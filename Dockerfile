@@ -1,36 +1,38 @@
-FROM node:22-bookworm-slim
-
+# Stage 1: Build the backend bundle
+FROM node:22-bookworm-slim AS build
 WORKDIR /app
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    python3 make g++ libsqlite3-dev curl \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy yarn and config files
-COPY package.json yarn.lock .yarnrc.yml backstage.json ./
-COPY .yarn ./.yarn
-
-# Copy all packages and plugins
-COPY packages ./packages
-COPY plugins ./plugins
-
-# Install all dependencies
+RUN apt-get update && apt-get install -y python3 make g++ libsqlite3-dev curl && rm -rf /var/lib/apt/lists/*
+COPY . .
 RUN yarn install --immutable
-
-# Build the backend
 RUN yarn tsc || true
 RUN yarn workspace backend build
 
-# Set environment variables for production
+# Stage 2: Runner
+FROM node:22-bookworm-slim AS runner
+WORKDIR /app
+RUN apt-get update && apt-get install -y python3 g++ build-essential libsqlite3-dev curl && rm -rf /var/lib/apt/lists/*
+
+# Copy root configurations and yarn setup
+COPY .yarn ./.yarn
+COPY .yarnrc.yml backstage.json package.json yarn.lock ./
+
+# Extract the skeleton to reconstruct the exact workspace structure (package.jsons)
+COPY --from=build /app/packages/backend/dist/skeleton.tar.gz ./
+RUN tar xzf skeleton.tar.gz && rm skeleton.tar.gz
+
+# INSTEAD of "yarn workspaces focus --production" which discards modules or fails hoisting,
+# we do a full bulletproof install to guarantee ALL modules are present!
+RUN yarn install --immutable
+
+# Extract the actual bundled code
+COPY --from=build /app/packages/backend/dist/bundle.tar.gz ./
+RUN tar xzf bundle.tar.gz && rm bundle.tar.gz
+
+# Configurations
+COPY app-config.yaml app-config.production.yaml ./
+
 ENV NODE_ENV=production
 ENV NODE_OPTIONS="--no-node-snapshot"
 
-# Copy configurations
-COPY app-config.yaml app-config.production.yaml ./
-
-# Expose port
 EXPOSE 7007
-
-# Run the backend directly from the workspace
 CMD ["node", "packages/backend", "--config", "app-config.yaml", "--config", "app-config.production.yaml"]
