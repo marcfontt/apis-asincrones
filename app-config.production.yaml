@@ -36,7 +36,7 @@ backend:
       #   ca: # if you have a CA file and want to verify it you can uncomment this section
       #     $file: <file-path>/ca/server.crt
     client: better-sqlite3
-    connection: ':memory:
+    connection: ':memory:'
 auth:
   providers:
     guest: {}
