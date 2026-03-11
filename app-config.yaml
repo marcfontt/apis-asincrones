@@ -29,21 +29,25 @@ proxy:
     '/catalog-service':
       target: 'http://catalog-service:3001'
       changeOrigin: true
+      credentials: dangerously-allow-unauthenticated
       pathRewrite:
         '^/api/proxy/catalog-service': ''
     '/scenario-service':
       target: 'http://scenario-service:3002'
       changeOrigin: true
+      credentials: dangerously-allow-unauthenticated
       pathRewrite:
         '^/api/proxy/scenario-service': ''
     '/benchmark-orchestrator':
       target: 'http://benchmark-orchestrator:3003'
       changeOrigin: true
+      credentials: dangerously-allow-unauthenticated
       pathRewrite:
         '^/api/proxy/benchmark-orchestrator': ''
     '/metrics-api':
       target: 'http://metrics-api:3004'
       changeOrigin: true
+      credentials: dangerously-allow-unauthenticated
       pathRewrite:
         '^/api/proxy/metrics-api': ''
 
