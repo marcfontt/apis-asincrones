@@ -80,14 +80,11 @@ catalog:
         - allow: [User, Group]
 
 kubernetes:
-  {}
-
-permission:
-  enabled: true
-
-kubernetes:
   serviceLocatorMethod:
     type: 'multiTenant'
   clusterLocatorMethods:
     - type: 'config'
       clusters: []
+
+permission:
+  enabled: true
