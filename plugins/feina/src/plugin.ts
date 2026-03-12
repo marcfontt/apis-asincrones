@@ -5,12 +5,12 @@ export const scenariosRouteRef = createRouteRef({ id: 'async-escenaris' });
 export const runsRouteRef      = createRouteRef({ id: 'async-execucions' });
 export const metricsRouteRef   = createRouteRef({ id: 'async-metriques' });
 
-export const feinaPlugin = createPlugin({
+export const asyncApisPlugin = createPlugin({
   id: 'async-apis',
   routes: { root: catalogRouteRef },
 });
 
-export const CatalogPage = feinaPlugin.provide(
+export const CatalogPage = asyncApisPlugin.provide(
   createRoutableExtension({
     name: 'CatalogPage',
     component: () => import('./components/CatalogPage/CatalogPage').then(m => m.CatalogPage),
@@ -18,7 +18,7 @@ export const CatalogPage = feinaPlugin.provide(
   }),
 );
 
-export const ScenariosPage = feinaPlugin.provide(
+export const ScenariosPage = asyncApisPlugin.provide(
   createRoutableExtension({
     name: 'ScenariosPage',
     component: () => import('./components/ScenariosPage/ScenariosPage').then(m => m.ScenariosPage),
@@ -26,7 +26,7 @@ export const ScenariosPage = feinaPlugin.provide(
   }),
 );
 
-export const RunsPage = feinaPlugin.provide(
+export const RunsPage = asyncApisPlugin.provide(
   createRoutableExtension({
     name: 'RunsPage',
     component: () => import('./components/RunsPage/RunsPage').then(m => m.RunsPage),
@@ -34,7 +34,7 @@ export const RunsPage = feinaPlugin.provide(
   }),
 );
 
-export const MetricsPage = feinaPlugin.provide(
+export const MetricsPage = asyncApisPlugin.provide(
   createRoutableExtension({
     name: 'MetricsPage',
     component: () => import('./components/MetricsPage/MetricsPage').then(m => m.MetricsPage),
