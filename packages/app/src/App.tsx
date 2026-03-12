@@ -102,6 +102,8 @@ const routes = (
     <Route path="/escenaris" element={<AsyncScenariosPage />} />
     <Route path="/execucions" element={<AsyncRunsPage />} />
     <Route path="/metriques" element={<AsyncMetricsPage />} />
+    <Route path="/execucions" element={<AsyncRunsPage />} />
+    <Route path="/metriques" element={<AsyncMetricsPage />} />
   </FlatRoutes>
 );
 
