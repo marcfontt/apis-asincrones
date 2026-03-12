@@ -37,6 +37,7 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { NotificationsPage } from '@backstage/plugin-notifications';
 import { SignalsDisplay } from '@backstage/plugin-signals';
+import { CatalogPage as AsyncCatalogPage, ScenariosPage as AsyncScenariosPage } from '../../../plugins/feina/src/plugin';
 
 const app = createApp({
   apis,
@@ -97,6 +98,8 @@ const routes = (
     <Route path="/settings" element={<UserSettingsPage />} />
     <Route path="/catalog-graph" element={<CatalogGraphPage />} />
     <Route path="/notifications" element={<NotificationsPage />} />
+    <Route path="/combinacions" element={<AsyncCatalogPage />} />
+    <Route path="/escenaris" element={<AsyncScenariosPage />} />
   </FlatRoutes>
 );
 
@@ -110,3 +113,6 @@ export default app.createRoot(
     </AppRouter>
   </>,
 );
+// FEINA plugin routes - afegir dins del <FlatRoutes>
+// <Route path="/feina-catalog" element={<CatalogPage />} />
+// <Route path="/feina-scenarios" element={<ScenariosPage />} />

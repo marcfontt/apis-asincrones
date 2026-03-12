@@ -1,9 +1,9 @@
 app:
-  title: FEINA - AsyncAPI Benchmark Platform
+  title: APIs Asíncrones - Benchmark Platform
   baseUrl: http://20.238.185.45
 
 organization:
-  name: FEINA
+  name: APIs Asíncrones
 
 backend:
   baseUrl: http://20.238.185.45

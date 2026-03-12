@@ -1,9 +1,9 @@
 app:
-  title: FEINA - AsyncAPI Benchmark Platform
+  title: APIs Asíncrones - Benchmark Platform
   baseUrl: http://localhost:3000
 
 organization:
-  name: FEINA
+  name: APIs Asíncrones
 
 backend:
   baseUrl: http://localhost:7007
