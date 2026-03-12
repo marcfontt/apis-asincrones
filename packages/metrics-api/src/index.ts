@@ -53,7 +53,7 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // ── GET /metrics — amb filtres ────────────────────────────────────────────────
 // Query params: runId, architecture, protocol, broker, gateway, scenarioId
-app.get('/metrics', async (req: Request, res: Response) => {
+app.get('/metrics', async (_req: Request, res: Response) => {
   try {
     const { runId, architecture, protocol, broker, gateway, scenarioId } = req.query;
 
@@ -81,7 +81,7 @@ app.get('/metrics', async (req: Request, res: Response) => {
 
 // ── GET /metrics/compare — side-by-side per scenarioIds ──────────────────────
 // Query: scenarioIds=id1,id2,id3
-app.get('/metrics/compare', async (req: Request, res: Response) => {
+app.get('/metrics/compare', async (_req: Request, res: Response) => {
   try {
     const { scenarioIds } = req.query;
     if (!scenarioIds) return res.status(400).json({ error: 'scenarioIds required' });
@@ -109,7 +109,7 @@ app.get('/metrics/compare', async (req: Request, res: Response) => {
 
 // ── GET /metrics/summary — agregació per escenari ────────────────────────────
 // Retorna avg latency, throughput, errorRate agrupat per scenarioId
-app.get('/metrics/summary', async (req: Request, res: Response) => {
+app.get('/metrics/summary', async (_req: Request, res: Response) => {
   try {
     const result = await es.search({
       index: INDEX,
@@ -150,7 +150,7 @@ app.get('/metrics/summary', async (req: Request, res: Response) => {
 });
 
 // ── GET /metrics/:id ──────────────────────────────────────────────────────────
-app.get('/metrics/:id', async (req: Request, res: Response) => {
+app.get('/metrics/:id', async (_req: Request, res: Response) => {
   try {
     const result = await es.get({ index: INDEX, id: req.params.id });
     res.json({ id: result._id, ...(result._source as object) });
@@ -161,7 +161,7 @@ app.get('/metrics/:id', async (req: Request, res: Response) => {
 });
 
 // ── POST /metrics — ingestió + broadcast WebSocket ───────────────────────────
-app.post('/metrics', async (req: Request, res: Response) => {
+app.post('/metrics', async (_req: Request, res: Response) => {
   try {
     const id = uuidv4();
     const body = {
@@ -180,7 +180,7 @@ app.post('/metrics', async (req: Request, res: Response) => {
 });
 
 // ── PUT /metrics/:id ──────────────────────────────────────────────────────────
-app.put('/metrics/:id', async (req: Request, res: Response) => {
+app.put('/metrics/:id', async (_req: Request, res: Response) => {
   try {
     await es.index({ index: INDEX, id: req.params.id, body: req.body });
     res.json({ id: req.params.id, ...req.body });
@@ -190,7 +190,7 @@ app.put('/metrics/:id', async (req: Request, res: Response) => {
 });
 
 // ── DELETE /metrics/:id ───────────────────────────────────────────────────────
-app.delete('/metrics/:id', async (req: Request, res: Response) => {
+app.delete('/metrics/:id', async (_req: Request, res: Response) => {
   try {
     await es.delete({ index: INDEX, id: req.params.id });
     res.status(204).send();

@@ -14,7 +14,7 @@ const es = new Client({
 const INDEX = 'feina-catalog';
 
 // GET /components - Llista tots els components
-app.get('/components', async (req, res) => {
+app.get('/components', async (_req, res) => {
   try {
     const result = await es.search({
       index: INDEX,
@@ -29,7 +29,7 @@ app.get('/components', async (req, res) => {
 });
 
 // GET /components/:id
-app.get('/components/:id', async (req, res) => {
+app.get('/components/:id', async (_req, res) => {
   try {
     const result = await es.get({ index: INDEX, id: req.params.id });
     res.json({ id: result._id, ...result._source as object });
@@ -39,7 +39,7 @@ app.get('/components/:id', async (req, res) => {
 });
 
 // POST /components - Crea un component
-app.post('/components', async (req, res) => {
+app.post('/components', async (_req, res) => {
   try {
     const doc = { ...req.body, timestamp: new Date().toISOString() };
     const result = await es.index({ index: INDEX, id: uuidv4(), document: doc });
@@ -50,7 +50,7 @@ app.post('/components', async (req, res) => {
 });
 
 // PUT /components/:id - Actualitza un component
-app.put('/components/:id', async (req, res) => {
+app.put('/components/:id', async (_req, res) => {
   try {
     const doc = { ...req.body, timestamp: new Date().toISOString() };
     await es.update({ index: INDEX, id: req.params.id, doc });
@@ -61,7 +61,7 @@ app.put('/components/:id', async (req, res) => {
 });
 
 // DELETE /components/:id
-app.delete('/components/:id', async (req, res) => {
+app.delete('/components/:id', async (_req, res) => {
   try {
     await es.delete({ index: INDEX, id: req.params.id });
     res.json({ deleted: req.params.id });
@@ -71,7 +71,7 @@ app.delete('/components/:id', async (req, res) => {
 });
 
 // Health check
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => console.log(`Catalog Service running on port ${PORT}`));

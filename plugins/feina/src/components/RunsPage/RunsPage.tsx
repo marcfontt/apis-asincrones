@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 const API_BASE = '/api/proxy/benchmark-orchestrator';
 const STATUS_COLORS: Record<string, string> = {
