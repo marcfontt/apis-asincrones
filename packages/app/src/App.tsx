@@ -37,7 +37,7 @@ import { RequirePermission } from '@backstage/plugin-permission-react';
 import { catalogEntityCreatePermission } from '@backstage/plugin-catalog-common/alpha';
 import { NotificationsPage } from '@backstage/plugin-notifications';
 import { SignalsDisplay } from '@backstage/plugin-signals';
-import { CatalogPage as AsyncCatalogPage, ScenariosPage as AsyncScenariosPage } from '../../../plugins/feina/src/plugin';
+import { CatalogPage as AsyncCatalogPage, ScenariosPage as AsyncScenariosPage, RunsPage as AsyncRunsPage, MetricsPage as AsyncMetricsPage } from '../../../plugins/feina/src/plugin';
 
 const app = createApp({
   apis,
@@ -100,6 +100,8 @@ const routes = (
     <Route path="/notifications" element={<NotificationsPage />} />
     <Route path="/combinacions" element={<AsyncCatalogPage />} />
     <Route path="/escenaris" element={<AsyncScenariosPage />} />
+    <Route path="/execucions" element={<AsyncRunsPage />} />
+    <Route path="/metriques" element={<AsyncMetricsPage />} />
   </FlatRoutes>
 );
 

@@ -79,6 +79,8 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarDivider />
         <SidebarItem icon={ExtensionIcon} to="combinacions" text="Combinacions" />
         <SidebarItem icon={LibraryBooks} to="escenaris" text="Escenaris" />
+        <SidebarItem icon={ExtensionIcon} to="execucions" text="Execucions" />
+        <SidebarItem icon={HomeIcon} to="metriques" text="Mètriques" />
         {/* End global nav */}
         <SidebarDivider />
         <SidebarScrollWrapper>

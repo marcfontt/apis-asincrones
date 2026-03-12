@@ -1,1 +1,1 @@
-export { feinaPlugin, CatalogPage, ScenariosPage } from './plugin';
+export { feinaPlugin, CatalogPage, ScenariosPage, RunsPage, MetricsPage } from './plugin';
