@@ -1,1 +1,1 @@
-export { asyncApisPlugin, CatalogPage, ScenariosPage, RunsPage, MetricsPage } from './plugin';
+export { asyncApisPlugin, HomePage, CatalogPage, ScenariosPage, ResultatsPage } from './plugin';

@@ -1,14 +1,22 @@
 import { createPlugin, createRoutableExtension, createRouteRef } from '@backstage/core-plugin-api';
 
+export const homeRouteRef      = createRouteRef({ id: 'async-home' });
 export const catalogRouteRef   = createRouteRef({ id: 'async-combinacions' });
 export const scenariosRouteRef = createRouteRef({ id: 'async-escenaris' });
-export const runsRouteRef      = createRouteRef({ id: 'async-execucions' });
-export const metricsRouteRef   = createRouteRef({ id: 'async-metriques' });
+export const resultatsRouteRef = createRouteRef({ id: 'async-resultats' });
 
 export const asyncApisPlugin = createPlugin({
   id: 'async-apis',
-  routes: { root: catalogRouteRef },
+  routes: { root: homeRouteRef },
 });
+
+export const HomePage = asyncApisPlugin.provide(
+  createRoutableExtension({
+    name: 'HomePage',
+    component: () => import('./components/HomePage/HomePage').then(m => m.HomePage),
+    mountPoint: homeRouteRef,
+  }),
+);
 
 export const CatalogPage = asyncApisPlugin.provide(
   createRoutableExtension({
@@ -26,18 +34,10 @@ export const ScenariosPage = asyncApisPlugin.provide(
   }),
 );
 
-export const RunsPage = asyncApisPlugin.provide(
+export const ResultatsPage = asyncApisPlugin.provide(
   createRoutableExtension({
-    name: 'RunsPage',
-    component: () => import('./components/RunsPage/RunsPage').then(m => m.RunsPage),
-    mountPoint: runsRouteRef,
-  }),
-);
-
-export const MetricsPage = asyncApisPlugin.provide(
-  createRoutableExtension({
-    name: 'MetricsPage',
-    component: () => import('./components/MetricsPage/MetricsPage').then(m => m.MetricsPage),
-    mountPoint: metricsRouteRef,
+    name: 'ResultatsPage',
+    component: () => import('./components/ResultatsPage/ResultatsPage').then(m => m.ResultatsPage),
+    mountPoint: resultatsRouteRef,
   }),
 );
