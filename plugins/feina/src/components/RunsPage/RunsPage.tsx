@@ -1,13 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
 const API_BASE = '/api/proxy/benchmark-orchestrator';
-
 const STATUS_COLORS: Record<string, string> = {
-  pending:   '#f0ad4e',
-  running:   '#5bc0de',
-  completed: '#5cb85c',
-  error:     '#d9534f',
-  cleanup:   '#999',
+  pending: '#f0ad4e', running: '#5bc0de', completed: '#5cb85c', error: '#d9534f', cleanup: '#999',
 };
 
 export const RunsPage = () => {
@@ -31,9 +26,7 @@ export const RunsPage = () => {
           <h1>Execucions de Benchmark</h1>
           <p style={{ color: '#666' }}>Historial de runs de proves sobre combinacions d'APIs asíncrones</p>
         </div>
-        <button onClick={fetchRuns} style={{ padding: '8px 16px', cursor: 'pointer' }}>
-          Actualitzar
-        </button>
+        <button onClick={fetchRuns} style={{ padding: '8px 16px', cursor: 'pointer' }}>Actualitzar</button>
       </div>
       {loading ? <p>Carregant...</p> : runs.filter(r => !r.test).length === 0 ? (
         <p style={{ color: '#999' }}>No hi ha execucions encara.</p>
@@ -57,14 +50,11 @@ export const RunsPage = () => {
                 <td style={{ padding: 8 }}>{r.architecture || '-'}</td>
                 <td style={{ padding: 8 }}>{r.protocol || '-'}</td>
                 <td style={{ padding: 8 }}>
-                  <span style={{
-                    background: STATUS_COLORS[r.status] || '#ccc',
-                    color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 12,
-                  }}>{r.status || '-'}</span>
+                  <span style={{ background: STATUS_COLORS[r.status] || '#ccc', color: 'white', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>
+                    {r.status || '-'}
+                  </span>
                 </td>
-                <td style={{ padding: 8, fontSize: 12 }}>
-                  {r.createdAt ? new Date(r.createdAt).toLocaleString('ca') : '-'}
-                </td>
+                <td style={{ padding: 8, fontSize: 12 }}>{r.createdAt ? new Date(r.createdAt).toLocaleString('ca') : '-'}</td>
               </tr>
             ))}
           </tbody>
