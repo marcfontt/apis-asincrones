@@ -1,9 +1,9 @@
 import { PropsWithChildren } from 'react';
 import { makeStyles } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
-import ExtensionIcon from '@material-ui/icons/Extension';
-import LibraryBooks from '@material-ui/icons/LibraryBooks';
-import CreateComponentIcon from '@material-ui/icons/AddCircleOutline';
+import StorageIcon from '@material-ui/icons/Storage';
+import ListAltIcon from '@material-ui/icons/ListAlt';
+import BarChartIcon from '@material-ui/icons/BarChart';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
 import {
@@ -18,15 +18,12 @@ import {
   SidebarGroup,
   SidebarItem,
   SidebarPage,
-  SidebarScrollWrapper,
   SidebarSpace,
   useSidebarOpenState,
   Link,
 } from '@backstage/core-components';
 import MenuIcon from '@material-ui/icons/Menu';
 import SearchIcon from '@material-ui/icons/Search';
-import { MyGroupsSidebarItem } from '@backstage/plugin-org';
-import GroupIcon from '@material-ui/icons/People';
 import { NotificationsSidebarItem } from '@backstage/plugin-notifications';
 
 const useSidebarLogoStyles = makeStyles({
@@ -47,10 +44,9 @@ const useSidebarLogoStyles = makeStyles({
 const SidebarLogo = () => {
   const classes = useSidebarLogoStyles();
   const { isOpen } = useSidebarOpenState();
-
   return (
     <div className={classes.root}>
-      <Link to="/" underline="none" className={classes.link} aria-label="Home">
+      <Link to="/" underline="none" className={classes.link} aria-label="APIs Asíncrones">
         {isOpen ? <LogoFull /> : <LogoIcon />}
       </Link>
     </div>
@@ -66,28 +62,11 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
       </SidebarGroup>
       <SidebarDivider />
       <SidebarGroup label="Menu" icon={<MenuIcon />}>
-        {/* Global nav, not org-specific */}
-        <SidebarItem icon={HomeIcon} to="catalog" text="Home" />
-        <MyGroupsSidebarItem
-          singularTitle="My Group"
-          pluralTitle="My Groups"
-          icon={GroupIcon}
-        />
-        <SidebarItem icon={ExtensionIcon} to="api-docs" text="APIs" />
-        <SidebarItem icon={LibraryBooks} to="docs" text="Docs" />
-        <SidebarItem icon={CreateComponentIcon} to="create" text="Create..." />
+        <SidebarItem icon={HomeIcon}    to="home"        text="Home" />
         <SidebarDivider />
-        <SidebarItem icon={ExtensionIcon} to="combinacions" text="Combinacions" />
-        <SidebarItem icon={LibraryBooks} to="escenaris" text="Escenaris" />
-        <SidebarItem icon={ExtensionIcon} to="execucions" text="Execucions" />
-        <SidebarItem icon={HomeIcon} to="metriques" text="Mètriques" />
-        <SidebarItem icon={ExtensionIcon} to="execucions" text="Execucions" />
-        <SidebarItem icon={HomeIcon} to="metriques" text="Mètriques" />
-        {/* End global nav */}
-        <SidebarDivider />
-        <SidebarScrollWrapper>
-          {/* Items in this group will be scrollable if they run out of space */}
-        </SidebarScrollWrapper>
+        <SidebarItem icon={StorageIcon} to="combinacions" text="Catàleg" />
+        <SidebarItem icon={ListAltIcon} to="escenaris"    text="Escenaris" />
+        <SidebarItem icon={BarChartIcon} to="resultats"   text="Resultats" />
       </SidebarGroup>
       <SidebarSpace />
       <SidebarDivider />
