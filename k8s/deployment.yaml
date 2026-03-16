@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: backstage
-  namespace: feina
+  namespace: feina  # TODO: migrar a apis-asincronas
   labels:
     app: backstage
 spec:

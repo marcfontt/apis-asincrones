@@ -11,7 +11,7 @@ const es = new Client({
   node: process.env.ELASTICSEARCH_URL || 'http://elasticsearch:9200'
 });
 
-const INDEX = 'feina-catalog';
+const INDEX = 'async-catalog';
 
 // GET /components - Llista tots els components
 app.get('/components', async (_req, res) => {

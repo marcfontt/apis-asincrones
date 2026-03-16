@@ -11,7 +11,7 @@ const httpServer = createServer(app);
 const wss = new WebSocketServer({ server: httpServer });
 
 const es = new Client({ node: process.env.ELASTICSEARCH_URL || 'http://elasticsearch:9200' });
-const INDEX = 'feina-metrics';
+const INDEX = 'async-metrics';
 
 // ── WebSocket: Live metrics per runId ─────────────────────────────────────────
 // Els clients es subscriuen amb: { action: "subscribe", runId: "xxx" }

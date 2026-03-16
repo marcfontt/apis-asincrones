@@ -6,7 +6,7 @@ const app = express();
 app.use(express.json());
 
 const es = new Client({ node: process.env.ELASTICSEARCH_URL || 'http://elasticsearch:9200' });
-const INDEX = 'feina-benchmarks';
+const INDEX = 'async-benchmarks';
 
 app.get('/health', (_req: Request, res: Response) => {
   res.json({ status: 'ok', service: 'benchmark-orchestrator' });
