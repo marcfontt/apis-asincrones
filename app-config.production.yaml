@@ -1,19 +1,19 @@
 app:
   title: APIs Asíncrones
-  baseUrl: http://20.238.185.45
+  baseUrl: http://20.23.94.191
 
 organization:
   name: APIs Asíncrones
 
 backend:
-  baseUrl: http://20.238.185.45
+  baseUrl: http://20.23.94.191
   listen:
     port: 7007
   csp:
     connect-src: ["'self'", 'http:', 'https:', 'ws:', 'wss:']
     upgradeInsecureRequests: false
   cors:
-    origin: http://20.238.185.45
+    origin: http://20.23.94.191
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
   database:
