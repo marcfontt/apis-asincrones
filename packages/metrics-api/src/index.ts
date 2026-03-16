@@ -84,7 +84,7 @@ app.get('/metrics', async (_req: Request, res: Response) => {
 app.get('/metrics/compare', async (_req: Request, res: Response) => {
   try {
     const { scenarioIds } = req.query;
-    if (!scenarioIds) return res.status(400).json({ error: 'scenarioIds required' });
+    if (!scenarioIds) { res.status(400).json({ error: 'scenarioIds required' }); return; }
 
     const ids = (scenarioIds as string).split(',');
     const results: Record<string, object[]> = {};
