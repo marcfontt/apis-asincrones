@@ -1,0 +1,29 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","kind":"PersistentVolumeClaim","metadata":{"annotations":{"pv.kubernetes.io/bind-completed":"yes","pv.kubernetes.io/bound-by-controller":"yes","volume.beta.kubernetes.io/storage-provisioner":"disk.csi.azure.com","volume.kubernetes.io/selected-node":"aks-agentpool-36546064-vmss000009","volume.kubernetes.io/storage-provisioner":"disk.csi.azure.com"},"finalizers":["kubernetes.io/pvc-protection"],"name":"elasticsearch-pvc","namespace":"apis-asincronas"},"spec":{"accessModes":["ReadWriteOnce"],"resources":{"requests":{"storage":"10Gi"}},"storageClassName":"default","volumeMode":"Filesystem"},"status":{"accessModes":["ReadWriteOnce"],"capacity":{"storage":"10Gi"},"phase":"Bound"}}
+    pv.kubernetes.io/bind-completed: "yes"
+    pv.kubernetes.io/bound-by-controller: "yes"
+    volume.beta.kubernetes.io/storage-provisioner: disk.csi.azure.com
+    volume.kubernetes.io/selected-node: aks-agentpool-36546064-vmss000009
+    volume.kubernetes.io/storage-provisioner: disk.csi.azure.com
+  finalizers:
+  - kubernetes.io/pvc-protection
+  name: elasticsearch-pvc
+  namespace: apis-asincronas
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  storageClassName: default
+  volumeMode: Filesystem
+  volumeName: pvc-1db63a5a-e636-4c3f-b549-ba80eb1d4b37
+  accessModes:
+  - ReadWriteOnce
+  capacity:
+    storage: 10Gi
+  phase: Bound

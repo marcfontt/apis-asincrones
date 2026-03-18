@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc
+  namespace: apis-asincronas
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: azure-retain
+  resources:
+    requests:
+      storage: 2Gi
