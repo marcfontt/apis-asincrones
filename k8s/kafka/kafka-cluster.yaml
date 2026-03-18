@@ -1,9 +1,7 @@
 apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
-  annotations:
     kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"kafka.strimzi.io/v1","kind":"Kafka","metadata":{"annotations":{"strimzi.io/kraft":"enabled","strimzi.io/node-pools":"enabled"},"name":"kafka-cluster","namespace":"kafka-strimzi"},"spec":{"entityOperator":{"topicOperator":{},"userOperator":{}},"kafka":{"config":{"default.replication.factor":1,"min.insync.replicas":1,"offsets.topic.replication.factor":1,"transaction.state.log.min.isr":1,"transaction.state.log.replication.factor":1},"listeners":[{"name":"plain","port":9092,"tls":false,"type":"internal"}],"metadataVersion":"4.1-IV0","version":"4.1.1"}}}
     strimzi.io/kraft: enabled
     strimzi.io/node-pools: enabled
   name: kafka-cluster
@@ -26,23 +24,19 @@ spec:
       type: internal
     metadataVersion: 4.1-IV0
     version: 4.1.1
-status:
   clusterId: 6-1BXqbxQWawHenLK5uuaA
   conditions:
   - lastTransitionTime: "2026-03-18T10:31:46.311008106Z"
     message: A Kafka cluster with a single broker node and ephemeral storage will
       lose topic messages after any restart or rolling update.
     reason: KafkaStorage
-    status: "True"
     type: Warning
   - lastTransitionTime: "2026-03-18T10:31:46.311098598Z"
     message: A Kafka cluster with a single controller node and ephemeral storage will
       lose data after any restart or rolling update.
     reason: KafkaStorage
-    status: "True"
     type: Warning
   - lastTransitionTime: "2026-03-18T10:32:43.001420705Z"
-    status: "True"
     type: Ready
   kafkaMetadataVersion: 4.1-IV0
   kafkaNodePools:
