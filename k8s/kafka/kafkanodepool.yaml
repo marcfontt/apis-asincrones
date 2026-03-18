@@ -1,0 +1,35 @@
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"kafka.strimzi.io/v1","kind":"KafkaNodePool","metadata":{"annotations":{},"labels":{"strimzi.io/cluster":"kafka-cluster"},"name":"dual-role","namespace":"kafka-strimzi"},"spec":{"replicas":1,"resources":{"limits":{"cpu":"500m","memory":"1Gi"},"requests":{"cpu":"250m","memory":"512Mi"}},"roles":["controller","broker"],"storage":{"type":"ephemeral"}}}
+  labels:
+    strimzi.io/cluster: kafka-cluster
+  name: dual-role
+  namespace: kafka-strimzi
+spec:
+  replicas: 1
+  resources:
+    limits:
+      cpu: 500m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 512Mi
+  roles:
+  - controller
+  - broker
+  storage:
+    type: ephemeral
+status:
+  clusterId: 6-1BXqbxQWawHenLK5uuaA
+  conditions: []
+  labelSelector: strimzi.io/cluster=kafka-cluster,strimzi.io/name=kafka-cluster-kafka,strimzi.io/kind=Kafka,strimzi.io/pool-name=dual-role
+  nodeIds:
+  - 0
+  observedGeneration: 1
+  replicas: 1
+  roles:
+  - controller
+  - broker
