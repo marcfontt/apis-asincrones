@@ -1,14 +1,33 @@
 import { useEffect, useState } from 'react';
-
+ 
 const API_BASE     = '/api/proxy/scenario-service';
 const CATALOG_BASE = '/api/proxy/catalog-service';
-
-const ARCHITECTURES = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
-const PROTOCOLS     = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
-const PLATFORMS     = ['Kafka', 'RabbitMQ', 'Confluent', 'Pulsar', 'NATS Server'];
-
+ 
+const ALL_ARCHITECTURES = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
+const ALL_PROTOCOLS     = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
+const ALL_PLATFORMS     = ['Kafka', 'RabbitMQ', 'Confluent', 'Pulsar', 'NATS Server'];
+ 
+/* ── Lògica de compatibilitat ──────────────────────────────────────────── */
+const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string[] }> = {
+  'Kafka':       { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
+  'RabbitMQ':    { architectures: ['EDA', 'QBA', 'EMA'], protocols: ['AMQP', 'MQTT', 'WS'] },
+  'Confluent':   { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
+  'Pulsar':      { architectures: ['EDA', 'QBA', 'SEA'], protocols: ['AMQP', 'WS', 'gRPC'] },
+  'NATS Server': { architectures: ['EDA', 'LCA', 'SEA'], protocols: ['NATS', 'WS', 'gRPC'] },
+};
+ 
+const getCompatibleArchitectures = (platform: string) => {
+  if (!platform || !COMPATIBILITY[platform]) return ALL_ARCHITECTURES;
+  return COMPATIBILITY[platform].architectures;
+};
+ 
+const getCompatibleProtocols = (platform: string) => {
+  if (!platform || !COMPATIBILITY[platform]) return ALL_PROTOCOLS;
+  return COMPATIBILITY[platform].protocols;
+};
+ 
 const EMPTY_FORM = { name: '', architecture: '', protocol: '', platform: '', duration: '', rate: '', payloadSize: '' };
-
+ 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   idle:      { color: '#999', label: 'Preparat' },
   pending:   { color: '#f59e0b', label: 'Pendent' },
@@ -16,19 +35,37 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   completed: { color: '#22c55e', label: 'Completat' },
   error:     { color: '#ef4444', label: 'Error' },
 };
-
+ 
 const PlayIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>);
 const EditIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>);
 const TrashIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>);
 const CloseIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>);
-
-/* Modal Crear/Editar */
+ 
+/* ── Modal Crear/Editar amb compatibilitat ─────────────────────────────── */
 const ScenarioModal = ({ mode, initial, onClose, onSaved }: { mode: 'create' | 'edit'; initial: typeof EMPTY_FORM & { id?: string }; onClose: () => void; onSaved: () => void; }) => {
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
-
+ 
+  const set = (k: string, v: string) => {
+    if (k === 'platform') {
+      // Quan canvia la plataforma, reset arquitectura i protocol si no són compatibles
+      const compatArch = getCompatibleArchitectures(v);
+      const compatProto = getCompatibleProtocols(v);
+      setForm(f => ({
+        ...f,
+        platform: v,
+        architecture: compatArch.includes(f.architecture) ? f.architecture : '',
+        protocol: compatProto.includes(f.protocol) ? f.protocol : '',
+      }));
+    } else {
+      setForm(f => ({ ...f, [k]: v }));
+    }
+  };
+ 
+  const compatibleArchitectures = getCompatibleArchitectures(form.platform);
+  const compatibleProtocols = getCompatibleProtocols(form.platform);
+ 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.architecture || !form.protocol || !form.platform) {
       setError('Nom, arquitectura, protocol i plataforma són obligatoris.');
@@ -44,24 +81,60 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: { mode: 'create' | '
       onSaved(); onClose();
     } catch (e: any) { setError(e.message); setSaving(false); }
   };
-
+ 
   const lbl: React.CSSProperties = { display: 'block', fontSize: 12, color: '#666', marginBottom: 6, fontWeight: 600 };
   const inp: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' };
-
+  const disabledOpt: React.CSSProperties = { color: '#ccc' };
+ 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'white', borderRadius: 8, padding: 24, width: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(0,0,0,0.2)' }}>
+      <div style={{ background: 'white', borderRadius: 8, padding: 24, width: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(0,0,0,0.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <h2 style={{ margin: 0, fontSize: 18 }}>{mode === 'edit' ? 'Editar Escenari' : 'Nou Escenari'}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><CloseIcon /></button>
         </div>
         <div style={{ display: 'grid', gap: 16 }}>
           <div><label style={lbl}>Nom *</label><input style={inp} placeholder="Ex: MQTT-EDA-Kafka-Basic" value={form.name} onChange={e => set('name', e.target.value)} /></div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Arquitectura *</label><select style={inp} value={form.architecture} onChange={e => set('architecture', e.target.value)}><option value="">Selecciona...</option>{ARCHITECTURES.map(a => <option key={a} value={a}>{a}</option>)}</select></div>
-            <div><label style={lbl}>Protocol *</label><select style={inp} value={form.protocol} onChange={e => set('protocol', e.target.value)}><option value="">Selecciona...</option>{PROTOCOLS.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
+ 
+          {/* Plataforma primer per filtrar la resta */}
+          <div>
+            <label style={lbl}>Plataforma / Broker * <span style={{ fontWeight: 400, color: '#999' }}>(selecciona primer)</span></label>
+            <select style={inp} value={form.platform} onChange={e => set('platform', e.target.value)}>
+              <option value="">Selecciona...</option>
+              {ALL_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+            </select>
           </div>
-          <div><label style={lbl}>Plataforma / Broker *</label><select style={inp} value={form.platform} onChange={e => set('platform', e.target.value)}><option value="">Selecciona...</option>{PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}</select></div>
+ 
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <div>
+              <label style={lbl}>Arquitectura * {form.platform && <span style={{ fontWeight: 400, color: '#4a9eed' }}>({compatibleArchitectures.length} compatibles)</span>}</label>
+              <select style={inp} value={form.architecture} onChange={e => set('architecture', e.target.value)}>
+                <option value="">Selecciona...</option>
+                {ALL_ARCHITECTURES.map(a => {
+                  const compatible = compatibleArchitectures.includes(a);
+                  return <option key={a} value={a} disabled={!compatible} style={!compatible ? disabledOpt : {}}>{a}{!compatible && form.platform ? ' (no compatible)' : ''}</option>;
+                })}
+              </select>
+            </div>
+            <div>
+              <label style={lbl}>Protocol * {form.platform && <span style={{ fontWeight: 400, color: '#4a9eed' }}>({compatibleProtocols.length} compatibles)</span>}</label>
+              <select style={inp} value={form.protocol} onChange={e => set('protocol', e.target.value)}>
+                <option value="">Selecciona...</option>
+                {ALL_PROTOCOLS.map(p => {
+                  const compatible = compatibleProtocols.includes(p);
+                  return <option key={p} value={p} disabled={!compatible} style={!compatible ? disabledOpt : {}}>{p}{!compatible && form.platform ? ' (no compatible)' : ''}</option>;
+                })}
+              </select>
+            </div>
+          </div>
+ 
+          {/* Info de compatibilitat */}
+          {form.platform && (
+            <div style={{ background: '#f0f7ff', border: '1px solid #c6e0ff', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: '#1a73e8' }}>
+              <strong>{form.platform}</strong> és compatible amb: {compatibleArchitectures.join(', ')} (arquitectures) i {compatibleProtocols.join(', ')} (protocols)
+            </div>
+          )}
+ 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div><label style={lbl}>Duració (s)</label><input style={inp} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} /></div>
             <div><label style={lbl}>Rate (msg/s)</label><input style={inp} type="number" min={1} placeholder="1000" value={form.rate} onChange={e => set('rate', e.target.value)} /></div>
@@ -77,8 +150,8 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: { mode: 'create' | '
     </div>
   );
 };
-
-/* Modal Eliminar */
+ 
+/* ── Modal Eliminar ───────────────────────────────────────────────────── */
 const DeleteModal = ({ name, onConfirm, onClose }: { name: string; onConfirm: () => void; onClose: () => void }) => (
   <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <div style={{ background: 'white', borderRadius: 8, padding: 24, width: 400, boxShadow: '0 16px 48px rgba(0,0,0,0.2)' }}>
@@ -91,8 +164,8 @@ const DeleteModal = ({ name, onConfirm, onClose }: { name: string; onConfirm: ()
     </div>
   </div>
 );
-
-/* Toast */
+ 
+/* ── Toast ─────────────────────────────────────────────────────────────── */
 const DevToast = ({ message, onClose }: { message: string; onClose: () => void }) => {
   useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
   return (
@@ -101,8 +174,8 @@ const DevToast = ({ message, onClose }: { message: string; onClose: () => void }
     </div>
   );
 };
-
-/* Panell Detall */
+ 
+/* ── Panell Detall ─────────────────────────────────────────────────────── */
 const ScenarioDetail = ({ scenario, onClose, onExecute, onEdit, onDelete }: { scenario: any; onClose: () => void; onExecute: () => void; onEdit: () => void; onDelete: () => void; }) => {
   const status = STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle;
   const InfoRow = ({ label, value }: { label: string; value: string }) => (
@@ -146,8 +219,8 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onEdit, onDelete }: { sc
     </div>
   );
 };
-
-/* Pàgina Principal */
+ 
+/* ── Pàgina Principal ──────────────────────────────────────────────────── */
 export const ScenariosPage = () => {
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -160,7 +233,7 @@ export const ScenariosPage = () => {
   const [editScenario, setEditScenario] = useState<any | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
   const [toast, setToast] = useState('');
-
+ 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('create') === 'true') {
@@ -170,7 +243,7 @@ export const ScenariosPage = () => {
       window.history.replaceState({}, '', '/escenaris');
     }
   }, []);
-
+ 
   const fetchData = () => {
     setLoading(true);
     fetch(API_BASE + '/scenarios').then(r => r.json())
@@ -178,7 +251,7 @@ export const ScenariosPage = () => {
       .catch(e => { setError(e.message); setLoading(false); });
   };
   useEffect(() => { fetchData(); }, []);
-
+ 
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
@@ -187,35 +260,35 @@ export const ScenariosPage = () => {
       setDeleteTarget(null); fetchData();
     } catch (e: any) { setToast('Error en eliminar: ' + e.message); setDeleteTarget(null); }
   };
-
-  const handleExecute = () => { setToast('Funcionalitat en desenvolupament. Properament es podran executar escenaris des d\'aquí.'); };
-
+ 
+  const handleExecute = () => { setToast("Funcionalitat en desenvolupament. Properament es podran executar escenaris des d'aquí."); };
+ 
   const openEdit = (s: any) => {
     setEditScenario({ id: s.id, name: s.name || '', architecture: s.architecture || '', protocol: s.protocol || '', platform: s.platform || s.broker || '', duration: s.duration ? String(s.duration) : '', rate: s.rate ? String(s.rate) : '', payloadSize: s.payloadSize ? String(s.payloadSize) : '' });
     setShowModal(true);
   };
-
+ 
   const filtered = scenarios.filter(s => {
     if (filterArch !== 'all' && s.architecture !== filterArch) return false;
     if (filterProto !== 'all' && s.protocol !== filterProto) return false;
     return true;
   });
-
+ 
   const formatTime = (iso: string) => { if (!iso) return '-'; return new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); };
-
+ 
   const modalInitial = editScenario && !editScenario._prefill ? editScenario : editScenario?._prefill ? { ...EMPTY_FORM, ...editScenario } : EMPTY_FORM;
   const modalMode = editScenario && editScenario.id && !editScenario._prefill ? 'edit' : 'create';
-
+ 
   const chipStyle = (active: boolean): React.CSSProperties => ({ padding: '4px 12px', borderRadius: 16, border: active ? '2px solid #4a9eed' : '1px solid #ddd', background: active ? '#e8f4fd' : 'white', color: active ? '#1a73e8' : '#666', fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer' });
   const thStyle: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontSize: 12, color: '#999', fontWeight: 600, textTransform: 'uppercase', borderBottom: '2px solid #eee' };
   const tdStyle: React.CSSProperties = { padding: '12px 14px', fontSize: 14, borderBottom: '1px solid #f0f0f0' };
-
+ 
   return (
     <div style={{ padding: 32, maxWidth: 1200, margin: '0 auto' }}>
       {showModal && <ScenarioModal mode={modalMode as 'create' | 'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={fetchData} />}
       {deleteTarget && <DeleteModal name={deleteTarget.name || 'aquest escenari'} onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} />}
       {toast && <DevToast message={toast} onClose={() => setToast('')} />}
-
+ 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 28 }}>Escenaris de Benchmark</h1>
@@ -226,16 +299,16 @@ export const ScenariosPage = () => {
           Nou Escenari
         </button>
       </div>
-
+ 
       {/* Filtres */}
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
         <span style={{ color: '#666', fontSize: 13 }}>Arquitectura:</span>
-        {['all', ...ARCHITECTURES].map(a => <button key={a} style={chipStyle(filterArch === a)} onClick={() => setFilterArch(a)}>{a === 'all' ? 'Totes' : a}</button>)}
+        {['all', ...ALL_ARCHITECTURES].map(a => <button key={a} style={chipStyle(filterArch === a)} onClick={() => setFilterArch(a)}>{a === 'all' ? 'Totes' : a}</button>)}
         <div style={{ width: 1, height: 20, background: '#ddd', margin: '0 4px' }} />
         <span style={{ color: '#666', fontSize: 13 }}>Protocol:</span>
-        {['all', ...PROTOCOLS].map(p => <button key={p} style={chipStyle(filterProto === p)} onClick={() => setFilterProto(p)}>{p === 'all' ? 'Tots' : p}</button>)}
+        {['all', ...ALL_PROTOCOLS].map(p => <button key={p} style={chipStyle(filterProto === p)} onClick={() => setFilterProto(p)}>{p === 'all' ? 'Tots' : p}</button>)}
       </div>
-
+ 
       {/* Taula + Detall */}
       <div style={{ display: 'flex', gap: 20 }}>
         <div style={{ background: 'white', borderRadius: 8, border: '1px solid #e0e0e0', overflow: 'hidden', flex: selectedScenario ? 2 : 1 }}>
