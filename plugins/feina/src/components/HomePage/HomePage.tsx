@@ -1,106 +1,61 @@
 import { useEffect, useState } from 'react';
-import { COLORS, CATEGORY_COLORS, S } from '../../theme';
 
 const STEPS = [
-  {
-    num: 1,
-    title: 'Explora el Catàleg',
-    desc: "Consulta les arquitectures, protocols, plataformes i gateways disponibles. Entén les combinacions possibles abans de dissenyar el teu escenari.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#58a6ff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-      </svg>
-    ),
-  },
-  {
-    num: 2,
-    title: 'Crea un Escenari',
-    desc: "Defineix un escenari de benchmark: tria la combinació de tecnologies, configura la càrrega (missatges/segon, duració, mida del payload) i desa'l.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#3fb950" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="12" y1="5" x2="12" y2="19" />
-        <line x1="5" y1="12" x2="19" y2="12" />
-      </svg>
-    ),
-  },
-  {
-    num: 3,
-    title: 'Executa el Benchmark',
-    desc: "Llança l'escenari. El sistema desplegarà la infraestructura necessària (broker, gateway, producers, consumers) a Kubernetes.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d29922" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <polygon points="5 3 19 12 5 21 5 3" />
-      </svg>
-    ),
-  },
-  {
-    num: 4,
-    title: 'Analitza els Resultats',
-    desc: "Consulta les mètriques en temps real (Live) o l'historial de totes les execucions. Compara latència, throughput i taxa d'error entre combinacions.",
-    icon: (
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#bc8cff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <line x1="18" y1="20" x2="18" y2="10" />
-        <line x1="12" y1="20" x2="12" y2="4" />
-        <line x1="6" y1="20" x2="6" y2="14" />
-      </svg>
-    ),
-  },
+  { num: 1, title: 'Explora el Catàleg', desc: 'Consulta les arquitectures, protocols, plataformes i gateways disponibles. Entén les combinacions possibles abans de dissenyar el teu escenari.', icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a9eed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>) },
+  { num: 2, title: 'Crea un Escenari', desc: "Defineix un escenari de benchmark: tria la combinació de tecnologies, configura la càrrega (missatges/segon, duració, mida del payload) i desa'l.", icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a9eed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>) },
+  { num: 3, title: 'Executa el Benchmark', desc: "Llança l'escenari. El sistema desplegarà automàticament la infraestructura necessària (broker, gateway, producers, consumers) a Kubernetes.", icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a9eed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>) },
+  { num: 4, title: 'Analitza els Resultats', desc: "Consulta les mètriques en temps real (Live) o l'historial de totes les execucions. Compara latència, throughput i taxa d'error entre combinacions.", icon: (<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4a9eed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>) },
+];
+
+const CATEGORIES = [
+  { name: 'Arquitectures', count: 5, color: '#a5d8ff', items: ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'] },
+  { name: 'Protocols', count: 8, color: '#b2f2bb', items: ['WebSockets', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'] },
+  { name: 'Plataformes', count: 5, color: '#ffd8a8', items: ['Kafka', 'RabbitMQ', 'Confluent', 'Pulsar', 'NATS Server'] },
+  { name: 'Gateways', count: 6, color: '#d0bfff', items: ['Kong OSS', 'AWS EventBridge', 'Azure Event Grid', 'Google Eventarc', 'Solace PubSub+', 'Mosquitto'] },
 ];
 
 const PREDEFINED_SCENARIOS = [
   {
-    name: 'Kafka — EDA Bàsic',
+    name: 'Kafka EDA Bàsic',
     architecture: 'EDA',
     protocol: 'Kafka',
     platform: 'Kafka',
-    description: 'Escenari Event-Driven amb Apache Kafka com a broker i protocol. Ideal per a proves de throughput alt.',
-    color: CATEGORY_COLORS.protocol,
+    description: 'Event-Driven amb Apache Kafka com a broker i protocol. Proves de throughput alt.',
+    color: '#b2f2bb',
     defaults: { duration: 60, rate: 1000, payloadSize: 256 },
   },
   {
-    name: 'MQTT — IoT Lightweight',
+    name: 'MQTT IoT Lightweight',
     architecture: 'EDA',
     protocol: 'MQTT',
     platform: 'RabbitMQ',
-    description: 'Protocol lleuger per a dispositius IoT amb RabbitMQ com a broker. Baixa latència, baix consum.',
-    color: CATEGORY_COLORS.gateway,
+    description: 'Protocol lleuger per a IoT amb RabbitMQ. Baixa latència, baix consum.',
+    color: '#d0bfff',
     defaults: { duration: 30, rate: 500, payloadSize: 128 },
   },
   {
-    name: 'gRPC — Alta Velocitat',
+    name: 'gRPC Alta Velocitat',
     architecture: 'LCA',
     protocol: 'gRPC',
     platform: 'NATS Server',
-    description: 'Comunicació RPC asíncrona amb serialització binària. Màxima eficiència en throughput.',
-    color: CATEGORY_COLORS.architecture,
+    description: 'Comunicació RPC asíncrona amb serialització binària. Màxima eficiència.',
+    color: '#a5d8ff',
     defaults: { duration: 45, rate: 2000, payloadSize: 512 },
   },
   {
-    name: 'WebSockets — Temps Real',
+    name: 'WebSockets Temps Real',
     architecture: 'SEA',
     protocol: 'WS',
     platform: 'Kafka',
     description: 'Connexió bidireccional persistent per a streaming de dades en temps real.',
-    color: '#39d0d4',
+    color: '#ffd8a8',
     defaults: { duration: 60, rate: 800, payloadSize: 256 },
   },
 ];
 
-const CATEGORIES = [
-  { name: 'Arquitectures', count: 5, color: CATEGORY_COLORS.architecture, items: ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'] },
-  { name: 'Protocols', count: 8, color: CATEGORY_COLORS.protocol, items: ['WebSockets', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'] },
-  { name: 'Plataformes', count: 5, color: CATEGORY_COLORS.platform, items: ['Kafka', 'RabbitMQ', 'Confluent', 'Pulsar', 'NATS Server'] },
-  { name: 'Gateways', count: 6, color: CATEGORY_COLORS.gateway, items: ['Kong OSS', 'EventBridge', 'Event Grid', 'Eventarc', 'Solace', 'Mosquitto'] },
-];
-
 export const HomePage = () => {
   const [time, setTime] = useState(new Date());
-
-  useEffect(() => {
-    const t = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(t);
-  }, []);
+  useEffect(() => { const t = setInterval(() => setTime(new Date()), 1000); return () => clearInterval(t); }, []);
 
   const handleCreateScenario = (scenario: typeof PREDEFINED_SCENARIOS[0]) => {
     const params = new URLSearchParams({
@@ -117,66 +72,30 @@ export const HomePage = () => {
   };
 
   return (
-    <div style={S.page}>
+    <div style={{ padding: 32, maxWidth: 1100, margin: '0 auto' }}>
+
       {/* Header */}
-      <div style={{ marginBottom: 36 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={COLORS.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
-          </svg>
-          <h1 style={{ fontSize: 28, margin: 0, fontWeight: 700, color: COLORS.textPrimary }}>
-            APIs Asíncrones — Benchmark Platform
-          </h1>
-        </div>
-        <p style={{ color: COLORS.textSecondary, fontSize: 15, marginTop: 8, maxWidth: 720, lineHeight: 1.6 }}>
-          Plataforma per experimentar, comparar i analitzar el rendiment de combinacions d&apos;APIs asíncrones.
+      <div style={{ marginBottom: 32 }}>
+        <h1 style={{ fontSize: 32, margin: 0 }}>APIs Asíncrones Benchmark Platform</h1>
+        <p style={{ color: '#666', fontSize: 16, marginTop: 8 }}>
+          Plataforma per experimentar, comparar i analitzar el rendiment de combinacions d'APIs asíncrones.
           Desplega arquitectures reals sobre Kubernetes i mesura latència, throughput i fiabilitat.
         </p>
-        <span style={{ fontSize: 12, color: COLORS.textDisabled, fontFamily: 'monospace' }}>
-          {time.toLocaleString('ca-ES')}
-        </span>
+        <span style={{ fontSize: 13, color: '#999' }}>{time.toLocaleString('ca')}</span>
       </div>
 
       {/* Com funciona */}
-      <div style={{ ...S.card, marginBottom: 32 }}>
-        <h2 style={{ margin: '0 0 20px 0', fontSize: 18, color: COLORS.textPrimary, fontWeight: 600 }}>
-          Com funciona?
-        </h2>
+      <div style={{ background: '#f8f9fa', borderRadius: 8, padding: 24, marginBottom: 32 }}>
+        <h2 style={{ margin: '0 0 20px 0', fontSize: 20 }}>Com funciona?</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {STEPS.map(s => (
-            <div
-              key={s.num}
-              style={{
-                background: COLORS.bgMain,
-                borderRadius: 8,
-                padding: 20,
-                border: `1px solid ${COLORS.border}`,
-                transition: 'border-color 0.2s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div
-                  style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: COLORS.bgHover,
-                    border: `1px solid ${COLORS.border}`,
-                  }}
-                >
-                  {s.icon}
-                </div>
-                <span style={{ fontSize: 11, color: COLORS.textDisabled, fontWeight: 600, fontFamily: 'monospace' }}>
-                  PAS {s.num}
-                </span>
+            <div key={s.num} style={{ background: 'white', borderRadius: 8, padding: 16, borderTop: '3px solid #4a9eed' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                <div style={{ background: '#4a9eed', color: 'white', width: 28, height: 28, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 14 }}>{s.num}</div>
+                {s.icon}
               </div>
-              <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 14, color: COLORS.textPrimary }}>
-                {s.title}
-              </div>
-              <div style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.6 }}>{s.desc}</div>
+              <div style={{ fontWeight: 600, marginBottom: 6 }}>{s.title}</div>
+              <div style={{ fontSize: 13, color: '#666', lineHeight: 1.5 }}>{s.desc}</div>
             </div>
           ))}
         </div>
@@ -185,70 +104,30 @@ export const HomePage = () => {
       {/* Escenaris Predeterminats */}
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: 18, color: COLORS.textPrimary, fontWeight: 600 }}>
-              Escenaris Predeterminats
-            </h2>
-            <p style={{ margin: '4px 0 0', color: COLORS.textSecondary, fontSize: 13 }}>
-              Configuracions de prova preparades per executar directament
-            </p>
-          </div>
-          <a
-            href="/escenaris?create=true"
-            style={{
-              ...S.btn,
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 13,
-            }}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Crear escenari personalitzat
+          <h2 style={{ margin: 0, fontSize: 20 }}>Escenaris Predeterminats</h2>
+          <a href="/escenaris" style={{ color: '#4a9eed', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+            Veure tots els escenaris →
           </a>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
           {PREDEFINED_SCENARIOS.map(sc => (
-            <div
-              key={sc.name}
-              style={{
-                ...S.card,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                borderLeft: `3px solid ${sc.color}`,
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = COLORS.bgHover)}
-              onMouseLeave={e => (e.currentTarget.style.background = COLORS.bgCard)}
-            >
+            <div key={sc.name} style={{ background: 'white', borderRadius: 8, padding: 20, border: '1px solid #e0e0e0', borderLeft: `4px solid ${sc.color}`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <span style={{ fontWeight: 700, fontSize: 15, color: COLORS.textPrimary }}>{sc.name}</span>
+                <div style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>{sc.name}</div>
+                <p style={{ fontSize: 13, color: '#666', lineHeight: 1.5, margin: '0 0 12px' }}>{sc.description}</p>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+                  <span style={{ background: '#e8f4fd', color: '#1a73e8', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{sc.architecture}</span>
+                  <span style={{ background: '#e6f4ea', color: '#137333', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{sc.protocol}</span>
+                  <span style={{ background: '#fef7e0', color: '#b06000', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{sc.platform}</span>
                 </div>
-                <p style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.5, margin: '0 0 14px' }}>
-                  {sc.description}
-                </p>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-                  <span style={S.badge(CATEGORY_COLORS.architecture)}>{sc.architecture}</span>
-                  <span style={S.badge(CATEGORY_COLORS.protocol)}>{sc.protocol}</span>
-                  <span style={S.badge(CATEGORY_COLORS.platform)}>{sc.platform}</span>
-                </div>
-                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: COLORS.textDisabled, fontFamily: 'monospace' }}>
-                  <span>{sc.defaults.duration}s</span>
+                <div style={{ display: 'flex', gap: 16, fontSize: 12, color: '#999' }}>
+                  <span>{sc.defaults.duration}s duració</span>
                   <span>{sc.defaults.rate} msg/s</span>
                   <span>{sc.defaults.payloadSize}B payload</span>
                 </div>
               </div>
-              <div style={{ marginTop: 16, display: 'flex', gap: 10 }}>
-                <button
-                  style={{ ...S.btnPrimary, fontSize: 13, padding: '6px 14px' }}
-                  onClick={() => handleCreateScenario(sc)}
-                >
+              <div style={{ marginTop: 14 }}>
+                <button onClick={() => handleCreateScenario(sc)} style={{ background: '#4a9eed', color: 'white', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                   Crear escenari
                 </button>
               </div>
@@ -258,55 +137,43 @@ export const HomePage = () => {
       </div>
 
       {/* Contingut del Catàleg */}
-      <div>
-        <h2 style={{ margin: '0 0 16px 0', fontSize: 18, color: COLORS.textPrimary, fontWeight: 600 }}>
-          Contingut del Catàleg
-        </h2>
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h2 style={{ margin: 0, fontSize: 20 }}>Contingut del Catàleg</h2>
+          <a href="/catalog" style={{ color: '#4a9eed', textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>Explorar catàleg →</a>
+        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {CATEGORIES.map(c => (
-            <div
-              key={c.name}
-              style={{
-                ...S.card,
-                borderTop: `3px solid ${c.color}`,
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={{ fontWeight: 700, fontSize: 15, color: COLORS.textPrimary }}>{c.name}</span>
-                <span
-                  style={{
-                    background: c.color + '22',
-                    color: c.color,
-                    fontSize: 12,
-                    fontWeight: 700,
-                    padding: '2px 8px',
-                    borderRadius: 10,
-                  }}
-                >
-                  {c.count}
-                </span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {c.items.map(i => (
-                  <div
-                    key={i}
-                    style={{
-                      fontSize: 13,
-                      color: COLORS.textSecondary,
-                      background: COLORS.bgMain,
-                      borderRadius: 4,
-                      padding: '4px 10px',
-                      border: `1px solid ${COLORS.border}`,
-                    }}
-                  >
-                    {i}
-                  </div>
-                ))}
-              </div>
+            <div key={c.name} style={{ background: c.color, borderRadius: 8, padding: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>{c.name}</div>
+              <div style={{ fontSize: 13, color: '#444', marginBottom: 10 }}>{c.count} components</div>
+              {c.items.map(i => (
+                <div key={i} style={{ fontSize: 12, background: 'rgba(255,255,255,0.6)', borderRadius: 4, padding: '2px 6px', marginBottom: 4 }}>{i}</div>
+              ))}
             </div>
           ))}
         </div>
       </div>
+
+      {/* Accions ràpides */}
+      <div style={{ background: '#f8f9fa', borderRadius: 8, padding: 24 }}>
+        <h2 style={{ margin: '0 0 16px 0', fontSize: 20 }}>Accions ràpides</h2>
+        <div style={{ display: 'flex', gap: 12 }}>
+          <a href="/catalog" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#4a9eed', color: 'white', padding: '10px 20px', borderRadius: 6, textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" /><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+            Explorar catàleg
+          </a>
+          <a href="/escenaris?create=true" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', color: '#333', padding: '10px 20px', borderRadius: 6, textDecoration: 'none', fontSize: 14, fontWeight: 600, border: '1px solid #ddd' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+            Crear escenari
+          </a>
+          <a href="/resultats" style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'white', color: '#333', padding: '10px 20px', borderRadius: 6, textDecoration: 'none', fontSize: 14, fontWeight: 600, border: '1px solid #ddd' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>
+            Veure resultats
+          </a>
+        </div>
+      </div>
+
     </div>
   );
 };
