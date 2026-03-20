@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "main": "src/index.ts",
   "dependencies": {
-    "react": "^18.0.0",
     "@backstage/core-plugin-api": "*",
-    "@backstage/plugin-catalog-react": "*"
+    "@backstage/plugin-catalog-react": "*",
+    "react": "^18.0.0"
   }
 }
