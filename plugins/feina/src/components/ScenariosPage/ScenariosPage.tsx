@@ -1,13 +1,12 @@
-import { useEffect, useState } from 'react';
- 
+import { useEffect, useState, useCallback } from 'react';
+
 const API_BASE     = '/api/proxy/scenario-service';
-const CATALOG_BASE = '/api/proxy/catalog-service';
- 
+const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
+
 const ALL_ARCHITECTURES = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
 const ALL_PROTOCOLS     = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
 const ALL_PLATFORMS     = ['Kafka', 'RabbitMQ', 'Confluent', 'Pulsar', 'NATS Server'];
- 
-/* ── Lògica de compatibilitat ──────────────────────────────────────────── */
+
 const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string[] }> = {
   'Kafka':       { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
   'RabbitMQ':    { architectures: ['EDA', 'QBA', 'EMA'], protocols: ['AMQP', 'MQTT', 'WS'] },
@@ -15,225 +14,262 @@ const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string
   'Pulsar':      { architectures: ['EDA', 'QBA', 'SEA'], protocols: ['AMQP', 'WS', 'gRPC'] },
   'NATS Server': { architectures: ['EDA', 'LCA', 'SEA'], protocols: ['NATS', 'WS', 'gRPC'] },
 };
- 
-const getCompatibleArchitectures = (platform: string) => {
-  if (!platform || !COMPATIBILITY[platform]) return ALL_ARCHITECTURES;
-  return COMPATIBILITY[platform].architectures;
-};
- 
-const getCompatibleProtocols = (platform: string) => {
-  if (!platform || !COMPATIBILITY[platform]) return ALL_PROTOCOLS;
-  return COMPATIBILITY[platform].protocols;
-};
- 
+
+const getCompatibleArchitectures = (p: string) => COMPATIBILITY[p]?.architectures ?? ALL_ARCHITECTURES;
+const getCompatibleProtocols     = (p: string) => COMPATIBILITY[p]?.protocols     ?? ALL_PROTOCOLS;
+
 const EMPTY_FORM = { name: '', architecture: '', protocol: '', platform: '', duration: '', rate: '', payloadSize: '' };
- 
+
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  idle:      { color: '#999', label: 'Preparat' },
-  pending:   { color: '#f59e0b', label: 'Pendent' },
-  running:   { color: '#4a9eed', label: 'En execució' },
-  completed: { color: '#22c55e', label: 'Completat' },
+  idle:      { color: '#94a3b8', label: 'Ready' },
+  pending:   { color: '#f59e0b', label: 'Pending' },
+  running:   { color: '#3b82f6', label: 'Running' },
+  completed: { color: '#22c55e', label: 'Completed' },
   error:     { color: '#ef4444', label: 'Error' },
 };
- 
-const PlayIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>);
-const EditIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" /></svg>);
-const TrashIcon = () => (<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" /></svg>);
-const CloseIcon = () => (<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>);
- 
-/* ── Modal Crear/Editar amb compatibilitat ─────────────────────────────── */
-const ScenarioModal = ({ mode, initial, onClose, onSaved }: { mode: 'create' | 'edit'; initial: typeof EMPTY_FORM & { id?: string }; onClose: () => void; onSaved: () => void; }) => {
+
+const PlayIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+const EditIcon  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const TrashIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+const CloseIcon = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+
+const ScenarioModal = ({ mode, initial, onClose, onSaved }: { mode: 'create'|'edit'; initial: typeof EMPTY_FORM & { id?: string }; onClose: () => void; onSaved: () => void }) => {
   const [form, setForm] = useState(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
- 
+
   const set = (k: string, v: string) => {
     if (k === 'platform') {
-      // Quan canvia la plataforma, reset arquitectura i protocol si no són compatibles
-      const compatArch = getCompatibleArchitectures(v);
-      const compatProto = getCompatibleProtocols(v);
-      setForm(f => ({
-        ...f,
-        platform: v,
-        architecture: compatArch.includes(f.architecture) ? f.architecture : '',
-        protocol: compatProto.includes(f.protocol) ? f.protocol : '',
-      }));
-    } else {
-      setForm(f => ({ ...f, [k]: v }));
-    }
+      const ca = getCompatibleArchitectures(v), cp = getCompatibleProtocols(v);
+      setForm(f => ({ ...f, platform: v, architecture: ca.includes(f.architecture) ? f.architecture : '', protocol: cp.includes(f.protocol) ? f.protocol : '' }));
+    } else setForm(f => ({ ...f, [k]: v }));
   };
- 
-  const compatibleArchitectures = getCompatibleArchitectures(form.platform);
-  const compatibleProtocols = getCompatibleProtocols(form.platform);
- 
+
+  const ca = getCompatibleArchitectures(form.platform);
+  const cp = getCompatibleProtocols(form.platform);
+
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.architecture || !form.protocol || !form.platform) {
-      setError('Nom, arquitectura, protocol i plataforma són obligatoris.');
-      return;
-    }
+    if (!form.name.trim() || !form.architecture || !form.protocol || !form.platform) { setError('Name, architecture, protocol and platform are required.'); return; }
     setSaving(true); setError('');
     try {
       const payload = { name: form.name.trim(), architecture: form.architecture, protocol: form.protocol, platform: form.platform, duration: form.duration ? Number(form.duration) : undefined, rate: form.rate ? Number(form.rate) : undefined, payloadSize: form.payloadSize ? Number(form.payloadSize) : undefined, predefined: false, status: 'idle' };
       const url = mode === 'edit' && form.id ? `${API_BASE}/scenarios/${form.id}` : `${API_BASE}/scenarios`;
-      const method = mode === 'edit' && form.id ? 'PUT' : 'POST';
-      const r = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const r = await fetch(url, { method: mode === 'edit' && form.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       onSaved(); onClose();
     } catch (e: any) { setError(e.message); setSaving(false); }
   };
- 
-  const lbl: React.CSSProperties = { display: 'block', fontSize: 12, color: '#666', marginBottom: 6, fontWeight: 600 };
-  const inp: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #ddd', fontSize: 14, boxSizing: 'border-box' };
-  const disabledOpt: React.CSSProperties = { color: '#ccc' };
- 
+
+  const inp: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 6, border: '1px solid #e2e8f0', fontSize: 14, boxSizing: 'border-box' };
+  const lbl: React.CSSProperties = { display: 'block', fontSize: 11, color: '#64748b', marginBottom: 5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' };
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: 'white', borderRadius: 8, padding: 24, width: 540, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 16px 48px rgba(0,0,0,0.2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <h2 style={{ margin: 0, fontSize: 18 }}>{mode === 'edit' ? 'Editar Escenari' : 'Nou Escenari'}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}><CloseIcon /></button>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 28, width: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>{mode === 'edit' ? 'Edit Scenario' : 'New Scenario'}</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><CloseIcon /></button>
         </div>
         <div style={{ display: 'grid', gap: 16 }}>
-          <div><label style={lbl}>Nom *</label><input style={inp} placeholder="Ex: MQTT-EDA-Kafka-Basic" value={form.name} onChange={e => set('name', e.target.value)} /></div>
- 
-          {/* Plataforma primer per filtrar la resta */}
+          <div><label style={lbl}>Name *</label><input style={inp} placeholder="e.g. MQTT-EDA-Kafka-Basic" value={form.name} onChange={e => set('name', e.target.value)} /></div>
           <div>
-            <label style={lbl}>Plataforma / Broker * <span style={{ fontWeight: 400, color: '#999' }}>(selecciona primer)</span></label>
+            <label style={lbl}>Platform / Broker * <span style={{ fontWeight: 400, textTransform: 'none' }}>(select first)</span></label>
             <select style={inp} value={form.platform} onChange={e => set('platform', e.target.value)}>
-              <option value="">Selecciona...</option>
+              <option value="">Select...</option>
               {ALL_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
           </div>
- 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={lbl}>Arquitectura * {form.platform && <span style={{ fontWeight: 400, color: '#4a9eed' }}>({compatibleArchitectures.length} compatibles)</span>}</label>
+              <label style={lbl}>Architecture * {form.platform && <span style={{ color: '#3b82f6', fontWeight: 400 }}>({ca.length} compatible)</span>}</label>
               <select style={inp} value={form.architecture} onChange={e => set('architecture', e.target.value)}>
-                <option value="">Selecciona...</option>
-                {ALL_ARCHITECTURES.map(a => {
-                  const compatible = compatibleArchitectures.includes(a);
-                  return <option key={a} value={a} disabled={!compatible} style={!compatible ? disabledOpt : {}}>{a}{!compatible && form.platform ? ' (no compatible)' : ''}</option>;
-                })}
+                <option value="">Select...</option>
+                {ALL_ARCHITECTURES.map(a => { const ok = ca.includes(a); return <option key={a} value={a} disabled={!ok} style={!ok ? { color: '#cbd5e1' } : {}}>{a}{!ok && form.platform ? ' (incompatible)' : ''}</option>; })}
               </select>
             </div>
             <div>
-              <label style={lbl}>Protocol * {form.platform && <span style={{ fontWeight: 400, color: '#4a9eed' }}>({compatibleProtocols.length} compatibles)</span>}</label>
+              <label style={lbl}>Protocol * {form.platform && <span style={{ color: '#3b82f6', fontWeight: 400 }}>({cp.length} compatible)</span>}</label>
               <select style={inp} value={form.protocol} onChange={e => set('protocol', e.target.value)}>
-                <option value="">Selecciona...</option>
-                {ALL_PROTOCOLS.map(p => {
-                  const compatible = compatibleProtocols.includes(p);
-                  return <option key={p} value={p} disabled={!compatible} style={!compatible ? disabledOpt : {}}>{p}{!compatible && form.platform ? ' (no compatible)' : ''}</option>;
-                })}
+                <option value="">Select...</option>
+                {ALL_PROTOCOLS.map(p => { const ok = cp.includes(p); return <option key={p} value={p} disabled={!ok} style={!ok ? { color: '#cbd5e1' } : {}}>{p}{!ok && form.platform ? ' (incompatible)' : ''}</option>; })}
               </select>
             </div>
           </div>
- 
-          {/* Info de compatibilitat */}
           {form.platform && (
-            <div style={{ background: '#f0f7ff', border: '1px solid #c6e0ff', borderRadius: 6, padding: '10px 14px', fontSize: 12, color: '#1a73e8' }}>
-              <strong>{form.platform}</strong> és compatible amb: {compatibleArchitectures.join(', ')} (arquitectures) i {compatibleProtocols.join(', ')} (protocols)
+            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1d4ed8' }}>
+              <strong>{form.platform}</strong> · Architectures: {ca.join(', ')} · Protocols: {cp.join(', ')}
             </div>
           )}
- 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Duració (s)</label><input style={inp} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} /></div>
+            <div><label style={lbl}>Duration (s)</label><input style={inp} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} /></div>
             <div><label style={lbl}>Rate (msg/s)</label><input style={inp} type="number" min={1} placeholder="1000" value={form.rate} onChange={e => set('rate', e.target.value)} /></div>
             <div><label style={lbl}>Payload (bytes)</label><input style={inp} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} /></div>
           </div>
-          {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '8px 12px', color: '#ef4444', fontSize: 13 }}>{error}</div>}
+          {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', color: '#dc2626', fontSize: 13 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button onClick={onClose} disabled={saving} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer', fontSize: 13 }}>Cancel·la</button>
-            <button onClick={handleSubmit} disabled={saving} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#4a9eed', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>{saving ? 'Desant...' : mode === 'edit' ? 'Desar canvis' : 'Crear Escenari'}</button>
+            <button onClick={onClose} disabled={saving} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+            <button onClick={handleSubmit} disabled={saving} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#3b82f6', color: 'white', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+              {saving ? 'Saving...' : mode === 'edit' ? 'Save Changes' : 'Create Scenario'}
+            </button>
           </div>
         </div>
       </div>
     </div>
   );
 };
- 
-/* ── Modal Eliminar ───────────────────────────────────────────────────── */
+
 const DeleteModal = ({ name, onConfirm, onClose }: { name: string; onConfirm: () => void; onClose: () => void }) => (
-  <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-    <div style={{ background: 'white', borderRadius: 8, padding: 24, width: 400, boxShadow: '0 16px 48px rgba(0,0,0,0.2)' }}>
-      <h3 style={{ margin: '0 0 12px' }}>Eliminar escenari</h3>
-      <p style={{ color: '#666', fontSize: 14, lineHeight: 1.5, margin: '0 0 20px' }}>Estàs segur que vols eliminar <strong>{name}</strong>? Aquesta acció no es pot desfer.</p>
+  <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
+    <div style={{ background: 'white', borderRadius: 12, padding: 28, width: 420, boxShadow: '0 24px 64px rgba(0,0,0,0.25)' }}>
+      <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700 }}>Delete Scenario</h3>
+      <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone.</p>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid #ddd', background: 'white', cursor: 'pointer' }}>Cancel·la</button>
-        <button onClick={onConfirm} style={{ padding: '8px 16px', borderRadius: 6, border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontWeight: 600 }}>Eliminar</button>
+        <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+        <button onClick={onConfirm} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#ef4444', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Delete</button>
       </div>
     </div>
   </div>
 );
- 
-/* ── Toast ─────────────────────────────────────────────────────────────── */
-const DevToast = ({ message, onClose }: { message: string; onClose: () => void }) => {
-  useEffect(() => { const t = setTimeout(onClose, 3000); return () => clearTimeout(t); }, [onClose]);
+
+const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => void }) => {
+  const [state, setState] = useState<'confirm'|'running'|'done'|'error'>('confirm');
+  const [runId, setRunId] = useState('');
+  const [error, setError] = useState('');
+
+  const handleExecute = async () => {
+    setState('running');
+    try {
+      const r = await fetch(`${ORCHESTRATOR}/runs`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ scenarioId: scenario.id }) });
+      if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || `HTTP ${r.status}`); }
+      const data = await r.json();
+      setRunId(data.id);
+      setState('done');
+    } catch (e: any) { setError(e.message); setState('error'); }
+  };
+
+  const overlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(15,23,42,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' };
+  const card: React.CSSProperties = { background: 'white', borderRadius: 12, padding: 28, width: 460, boxShadow: '0 24px 64px rgba(0,0,0,0.25)' };
+
+  if (state === 'confirm') return (
+    <div style={overlay}><div style={card}>
+      <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Execute Scenario</h3>
+      <p style={{ color: '#475569', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>This will deploy a load-generator Job to AKS for scenario <strong>{scenario.name}</strong>.</p>
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, display: 'grid', gap: 6 }}>
+        {[['Architecture', scenario.architecture], ['Protocol', scenario.protocol], ['Platform', scenario.platform || scenario.broker], ['Duration', scenario.duration ? `${scenario.duration}s` : 'Default (60s)'], ['Rate', scenario.rate ? `${scenario.rate} msg/s` : 'Default (100 msg/s)']].map(([l, v]) => (
+          <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748b' }}>{l}</span><strong>{v}</strong></div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+        <button onClick={handleExecute} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#22c55e', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}><PlayIcon /> Run on AKS</button>
+      </div>
+    </div></div>
+  );
+
+  if (state === 'running') return (
+    <div style={overlay}><div style={{ ...card, textAlign: 'center' as const, padding: 48 }}>
+      <div style={{ fontSize: 36, marginBottom: 16 }}>⚙️</div>
+      <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Deploying to AKS...</h3>
+      <p style={{ color: '#64748b', fontSize: 14, margin: 0 }}>Creating namespace and load-generator Job</p>
+    </div></div>
+  );
+
+  if (state === 'done') return (
+    <div style={overlay}><div style={card}>
+      <div style={{ textAlign: 'center' as const, marginBottom: 20 }}>
+        <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
+        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700 }}>Scenario deployed!</h3>
+        <p style={{ color: '#475569', fontSize: 14, margin: '0 0 16px' }}>The load-generator Job has been created in AKS.</p>
+      </div>
+      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13 }}>
+        <div style={{ color: '#166534', marginBottom: 4, fontWeight: 700 }}>Run ID</div>
+        <code style={{ fontSize: 12, color: '#166534', wordBreak: 'break-all' as const }}>{runId}</code>
+      </div>
+      <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1d4ed8', marginBottom: 20 }}>
+        Go to the <strong>Runs</strong> page to monitor progress and see live metrics.
+      </div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13 }}>Close</button>
+        <button onClick={() => { window.location.href = '/runs'; }} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#3b82f6', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>View Runs →</button>
+      </div>
+    </div></div>
+  );
+
   return (
-    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: '#fef7e0', border: '1px solid #f59e0b', color: '#92400e', padding: '12px 20px', borderRadius: 8, fontSize: 13, fontWeight: 600, boxShadow: '0 4px 16px rgba(0,0,0,0.15)' }}>
-      {message}
-    </div>
+    <div style={overlay}><div style={card}>
+      <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700 }}>Deployment failed</h3>
+      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: '#dc2626' }}>{error}</div>
+      <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+        <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', cursor: 'pointer', fontSize: 13 }}>Close</button>
+        <button onClick={() => setState('confirm')} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: '#f59e0b', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Try Again</button>
+      </div>
+    </div></div>
   );
 };
- 
-/* ── Panell Detall ─────────────────────────────────────────────────────── */
-const ScenarioDetail = ({ scenario, onClose, onExecute, onEdit, onDelete }: { scenario: any; onClose: () => void; onExecute: () => void; onEdit: () => void; onDelete: () => void; }) => {
+
+const Toast = ({ message, type, onClose }: { message: string; type: 'success'|'error'|'info'; onClose: () => void }) => {
+  useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
+  const c = { success: { bg: '#f0fdf4', border: '#bbf7d0', color: '#166534' }, error: { bg: '#fef2f2', border: '#fecaca', color: '#dc2626' }, info: { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8' } }[type];
+  return <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: c.bg, border: `1px solid ${c.border}`, color: c.color, padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', maxWidth: 360 }}>{message}</div>;
+};
+
+const ScenarioDetail = ({ scenario, onClose, onExecute, onEdit, onDelete }: { scenario: any; onClose: () => void; onExecute: () => void; onEdit: () => void; onDelete: () => void }) => {
   const status = STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle;
-  const InfoRow = ({ label, value }: { label: string; value: string }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #eee' }}>
-      <span style={{ color: '#666', fontSize: 13 }}>{label}</span>
-      <span style={{ fontSize: 13, fontFamily: 'monospace' }}>{value || '-'}</span>
+  const Row = ({ label, value }: { label: string; value: string }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid #f1f5f9' }}>
+      <span style={{ color: '#64748b', fontSize: 13 }}>{label}</span>
+      <span style={{ fontSize: 13, fontFamily: 'monospace', color: '#1e293b' }}>{value || '—'}</span>
     </div>
   );
   return (
-    <div style={{ background: 'white', borderRadius: 8, border: '1px solid #e0e0e0', padding: 20, flex: 1, minWidth: 320 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+    <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', padding: 22, flex: 1, minWidth: 300, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <h3 style={{ margin: 0, fontSize: 16 }}>{scenario.name || 'Sense nom'}</h3>
-            <span style={{ background: status.color + '20', color: status.color, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{status.label}</span>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700 }}>{scenario.name || 'Unnamed'}</h3>
+            <span style={{ background: status.color + '20', color: status.color, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
           </div>
-          <span style={{ fontSize: 11, color: '#999', fontFamily: 'monospace' }}>ID: {scenario.id || '-'}</span>
+          <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>ID: {scenario.id || '—'}</span>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><CloseIcon /></button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8' }}><CloseIcon /></button>
       </div>
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#999', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Configuració</div>
-        <InfoRow label="Arquitectura" value={scenario.architecture} />
-        <InfoRow label="Protocol" value={scenario.protocol} />
-        <InfoRow label="Plataforma" value={scenario.platform || scenario.broker} />
-        <InfoRow label="Duració" value={scenario.duration ? `${scenario.duration}s` : '-'} />
-        <InfoRow label="Rate" value={scenario.rate ? `${scenario.rate} msg/s` : '-'} />
-        <InfoRow label="Payload" value={scenario.payloadSize ? `${scenario.payloadSize} bytes` : '-'} />
+        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Configuration</div>
+        <Row label="Architecture" value={scenario.architecture} />
+        <Row label="Protocol"     value={scenario.protocol} />
+        <Row label="Platform"     value={scenario.platform || scenario.broker} />
+        <Row label="Duration"     value={scenario.duration    ? `${scenario.duration}s`         : '—'} />
+        <Row label="Rate"         value={scenario.rate        ? `${scenario.rate} msg/s`        : '—'} />
+        <Row label="Payload"      value={scenario.payloadSize ? `${scenario.payloadSize} bytes` : '—'} />
       </div>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: '#999', fontWeight: 600, textTransform: 'uppercase', marginBottom: 8 }}>Metadades</div>
-        <InfoRow label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleString('ca-ES') : '-'} />
-        <InfoRow label="Tipus" value={scenario.predefined ? 'Sistema' : 'Personalitzat'} />
-        {scenario.executionTime && <InfoRow label="Temps d'execució" value={`${scenario.executionTime}s`} />}
+      <div style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Metadata</div>
+        <Row label="Created" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleString('en-GB') : '—'} />
+        <Row label="Type"    value={scenario.predefined ? 'System' : 'Custom'} />
       </div>
-      <div style={{ display: 'flex', gap: 8, borderTop: '1px solid #eee', paddingTop: 16 }}>
-        <button onClick={onExecute} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 6, border: 'none', background: '#4a9eed', color: 'white', fontSize: 13, fontWeight: 600, opacity: 0.5, cursor: 'not-allowed' }}><PlayIcon /> Executar</button>
-        <button onClick={onEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 6, border: '1px solid #ddd', background: 'white', fontSize: 13, cursor: 'pointer' }}><EditIcon /> Editar</button>
-        <button onClick={onDelete} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 6, border: '1px solid #fecaca', background: 'white', color: '#ef4444', fontSize: 13, cursor: 'pointer' }}><TrashIcon /> Eliminar</button>
+      <div style={{ display: 'flex', gap: 8, borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
+        <button onClick={onExecute} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: 'none', background: '#22c55e', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><PlayIcon /> Execute</button>
+        <button onClick={onEdit}    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid #e2e8f0', background: 'white', fontSize: 13, cursor: 'pointer', color: '#475569' }}><EditIcon /> Edit</button>
+        <button onClick={onDelete}  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid #fecaca', background: 'white', color: '#ef4444', fontSize: 13, cursor: 'pointer' }}><TrashIcon /> Delete</button>
       </div>
     </div>
   );
 };
- 
-/* ── Pàgina Principal ──────────────────────────────────────────────────── */
+
 export const ScenariosPage = () => {
-  const [scenarios, setScenarios] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filterArch, setFilterArch] = useState('all');
-  const [filterProto, setFilterProto] = useState('all');
-  const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+  const [scenarios,        setScenarios]        = useState<any[]>([]);
+  const [loading,          setLoading]          = useState(true);
+  const [error,            setError]            = useState('');
+  const [filterArch,       setFilterArch]       = useState('all');
+  const [filterProto,      setFilterProto]      = useState('all');
+  const [hoveredRow,       setHoveredRow]       = useState<number | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<any | null>(null);
-  const [showModal, setShowModal] = useState(false);
-  const [editScenario, setEditScenario] = useState<any | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<any | null>(null);
-  const [toast, setToast] = useState('');
- 
+  const [showModal,        setShowModal]        = useState(false);
+  const [editScenario,     setEditScenario]     = useState<any | null>(null);
+  const [deleteTarget,     setDeleteTarget]     = useState<any | null>(null);
+  const [executeTarget,    setExecuteTarget]    = useState<any | null>(null);
+  const [toast,            setToast]            = useState<{ message: string; type: 'success'|'error'|'info' } | null>(null);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('create') === 'true') {
@@ -243,104 +279,105 @@ export const ScenariosPage = () => {
       window.history.replaceState({}, '', '/escenaris');
     }
   }, []);
- 
-  const fetchData = () => {
+
+  const fetchData = useCallback(() => {
     setLoading(true);
-    fetch(API_BASE + '/scenarios').then(r => r.json())
+    fetch(`${API_BASE}/scenarios`).then(r => r.json())
       .then(sc => { setScenarios(Array.isArray(sc) ? sc : []); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
-  };
-  useEffect(() => { fetchData(); }, []);
- 
+  }, []);
+  useEffect(() => { fetchData(); }, [fetchData]);
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
       await fetch(`${API_BASE}/scenarios/${deleteTarget.id}`, { method: 'DELETE' });
       if (selectedScenario?.id === deleteTarget.id) setSelectedScenario(null);
       setDeleteTarget(null); fetchData();
-    } catch (e: any) { setToast('Error en eliminar: ' + e.message); setDeleteTarget(null); }
+      setToast({ message: 'Scenario deleted.', type: 'info' });
+    } catch (e: any) { setToast({ message: 'Error: ' + e.message, type: 'error' }); setDeleteTarget(null); }
   };
- 
-  const handleExecute = () => { setToast("Funcionalitat en desenvolupament. Properament es podran executar escenaris des d'aquí."); };
- 
+
   const openEdit = (s: any) => {
     setEditScenario({ id: s.id, name: s.name || '', architecture: s.architecture || '', protocol: s.protocol || '', platform: s.platform || s.broker || '', duration: s.duration ? String(s.duration) : '', rate: s.rate ? String(s.rate) : '', payloadSize: s.payloadSize ? String(s.payloadSize) : '' });
     setShowModal(true);
   };
- 
+
   const filtered = scenarios.filter(s => {
-    if (filterArch !== 'all' && s.architecture !== filterArch) return false;
-    if (filterProto !== 'all' && s.protocol !== filterProto) return false;
+    if (filterArch  !== 'all' && s.architecture !== filterArch)  return false;
+    if (filterProto !== 'all' && s.protocol     !== filterProto) return false;
     return true;
   });
- 
-  const formatTime = (iso: string) => { if (!iso) return '-'; return new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }); };
- 
+
+  const formatTime = (iso: string) => !iso ? '—' : new Date(iso).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+
   const modalInitial = editScenario && !editScenario._prefill ? editScenario : editScenario?._prefill ? { ...EMPTY_FORM, ...editScenario } : EMPTY_FORM;
-  const modalMode = editScenario && editScenario.id && !editScenario._prefill ? 'edit' : 'create';
- 
-  const chipStyle = (active: boolean): React.CSSProperties => ({ padding: '4px 12px', borderRadius: 16, border: active ? '2px solid #4a9eed' : '1px solid #ddd', background: active ? '#e8f4fd' : 'white', color: active ? '#1a73e8' : '#666', fontSize: 12, fontWeight: active ? 600 : 400, cursor: 'pointer' });
-  const thStyle: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontSize: 12, color: '#999', fontWeight: 600, textTransform: 'uppercase', borderBottom: '2px solid #eee' };
-  const tdStyle: React.CSSProperties = { padding: '12px 14px', fontSize: 14, borderBottom: '1px solid #f0f0f0' };
- 
+  const modalMode    = editScenario?.id && !editScenario._prefill ? 'edit' : 'create';
+
+  const chip = (active: boolean): React.CSSProperties => ({ padding: '4px 14px', borderRadius: 20, border: active ? '2px solid #3b82f6' : '1px solid #e2e8f0', background: active ? '#eff6ff' : 'white', color: active ? '#1d4ed8' : '#64748b', fontSize: 12, fontWeight: active ? 700 : 400, cursor: 'pointer' });
+  const th: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '2px solid #f1f5f9' };
+  const td: React.CSSProperties = { padding: '12px 14px', fontSize: 14, borderBottom: '1px solid #f8fafc' };
+
   return (
-    <div style={{ padding: 32, maxWidth: 1200, margin: '0 auto' }}>
-      {showModal && <ScenarioModal mode={modalMode as 'create' | 'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={fetchData} />}
-      {deleteTarget && <DeleteModal name={deleteTarget.name || 'aquest escenari'} onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} />}
-      {toast && <DevToast message={toast} onClose={() => setToast('')} />}
- 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+    <div style={{ padding: 32, maxWidth: 1300, margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      {showModal    && <ScenarioModal mode={modalMode as 'create'|'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={fetchData} />}
+      {deleteTarget && <DeleteModal  name={deleteTarget.name || 'this scenario'} onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} />}
+      {executeTarget && <ExecuteModal scenario={executeTarget} onClose={() => { setExecuteTarget(null); fetchData(); }} />}
+      {toast        && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 28 }}>Escenaris de Benchmark</h1>
-          <p style={{ margin: '6px 0 0', color: '#666', fontSize: 15 }}>Configuracions de càrrega per provar combinacions d'APIs asíncrones</p>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#0f172a' }}>Benchmark Scenarios</h1>
+          <p style={{ margin: '6px 0 0', color: '#64748b', fontSize: 15 }}>Load configurations to test async API architecture combinations</p>
         </div>
-        <button onClick={() => { setEditScenario(null); setShowModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#4a9eed', color: 'white', border: 'none', borderRadius: 6, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
-          Nou Escenari
+        <button onClick={() => { setEditScenario(null); setShowModal(true); }} style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#3b82f6', color: 'white', border: 'none', borderRadius: 8, padding: '10px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(59,130,246,0.35)' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Scenario
         </button>
       </div>
- 
-      {/* Filtres */}
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
-        <span style={{ color: '#666', fontSize: 13 }}>Arquitectura:</span>
-        {['all', ...ALL_ARCHITECTURES].map(a => <button key={a} style={chipStyle(filterArch === a)} onClick={() => setFilterArch(a)}>{a === 'all' ? 'Totes' : a}</button>)}
-        <div style={{ width: 1, height: 20, background: '#ddd', margin: '0 4px' }} />
-        <span style={{ color: '#666', fontSize: 13 }}>Protocol:</span>
-        {['all', ...ALL_PROTOCOLS].map(p => <button key={p} style={chipStyle(filterProto === p)} onClick={() => setFilterProto(p)}>{p === 'all' ? 'Tots' : p}</button>)}
+
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap' }}>
+        <span style={{ color: '#64748b', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Architecture:</span>
+        {['all', ...ALL_ARCHITECTURES].map(a => <button key={a} style={chip(filterArch === a)} onClick={() => setFilterArch(a)}>{a === 'all' ? 'All' : a}</button>)}
+        <div style={{ width: 1, height: 20, background: '#e2e8f0', margin: '0 4px' }} />
+        <span style={{ color: '#64748b', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Protocol:</span>
+        {['all', ...ALL_PROTOCOLS].map(p => <button key={p} style={chip(filterProto === p)} onClick={() => setFilterProto(p)}>{p === 'all' ? 'All' : p}</button>)}
       </div>
- 
-      {/* Taula + Detall */}
+
       <div style={{ display: 'flex', gap: 20 }}>
-        <div style={{ background: 'white', borderRadius: 8, border: '1px solid #e0e0e0', overflow: 'hidden', flex: selectedScenario ? 2 : 1 }}>
-          <div style={{ padding: '10px 16px', borderBottom: '1px solid #eee', color: '#999', fontSize: 13, display: 'flex', justifyContent: 'space-between' }}>
-            <span>{filtered.length} escenari{filtered.length !== 1 ? 's' : ''}</span>
-            <button onClick={fetchData} style={{ background: 'none', border: 'none', color: '#4a9eed', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Actualitzar</button>
+        <div style={{ background: 'white', borderRadius: 10, border: '1px solid #e2e8f0', overflow: 'hidden', flex: selectedScenario ? 2 : 1, boxShadow: '0 1px 4px rgba(0,0,0,0.06)' }}>
+          <div style={{ padding: '10px 16px', borderBottom: '1px solid #f1f5f9', color: '#94a3b8', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>{filtered.length} scenario{filtered.length !== 1 ? 's' : ''}</span>
+            <button onClick={fetchData} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Refresh</button>
           </div>
-          {loading && <p style={{ color: '#999', padding: 40, textAlign: 'center' }}>Carregant escenaris...</p>}
-          {error && <p style={{ color: '#ef4444', padding: 16 }}>Error: {error}</p>}
+          {loading && <p style={{ color: '#94a3b8', padding: 48, textAlign: 'center', margin: 0 }}>Loading scenarios...</p>}
+          {error   && <p style={{ color: '#ef4444', padding: 16, margin: 0 }}>Error: {error}</p>}
           {!loading && !error && (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead><tr>
-                <th style={thStyle}>Nom</th><th style={thStyle}>Arquitectura</th><th style={thStyle}>Protocol</th><th style={thStyle}>Plataforma</th><th style={{ ...thStyle, textAlign: 'center' }}>Estat</th><th style={{ ...thStyle, textAlign: 'right' }}>Creat</th><th style={{ ...thStyle, textAlign: 'center', width: 130 }}>Accions</th>
+                <th style={th}>Name</th><th style={th}>Architecture</th><th style={th}>Protocol</th><th style={th}>Platform</th>
+                <th style={{ ...th, textAlign: 'center' }}>Status</th><th style={{ ...th, textAlign: 'right' }}>Created</th>
+                <th style={{ ...th, textAlign: 'center', width: 140 }}>Actions</th>
               </tr></thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: 48, textAlign: 'center', color: '#999' }}>Cap escenari trobat. Crea un amb el botó Nou Escenari.</td></tr>
+                  <tr><td colSpan={7} style={{ padding: 60, textAlign: 'center', color: '#94a3b8' }}>No scenarios found. Create one with the button above.</td></tr>
                 ) : filtered.map((s, i) => {
                   const st = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
                   return (
-                    <tr key={s.id || i} style={{ background: selectedScenario?.id === s.id ? '#e8f4fd' : hoveredRow === i ? '#f8f9fa' : 'white', cursor: 'pointer' }} onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)} onClick={() => setSelectedScenario(s)}>
-                      <td style={{ ...tdStyle, fontWeight: 600 }}>{s.name || '-'}</td>
-                      <td style={tdStyle}>{s.architecture ? <span style={{ background: '#e8f4fd', color: '#1a73e8', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{s.architecture}</span> : '-'}</td>
-                      <td style={tdStyle}>{s.protocol ? <span style={{ background: '#e6f4ea', color: '#137333', padding: '2px 8px', borderRadius: 4, fontSize: 12 }}>{s.protocol}</span> : '-'}</td>
-                      <td style={{ ...tdStyle, color: '#666' }}>{s.platform || s.broker || '-'}</td>
-                      <td style={{ ...tdStyle, textAlign: 'center' }}><span style={{ background: st.color + '20', color: st.color, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{st.label}</span></td>
-                      <td style={{ ...tdStyle, textAlign: 'right', fontSize: 12, color: '#999', fontFamily: 'monospace' }}>{formatTime(s.createdAt)}</td>
-                      <td style={{ ...tdStyle, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                    <tr key={s.id || i} style={{ background: selectedScenario?.id === s.id ? '#eff6ff' : hoveredRow === i ? '#f8fafc' : 'white', cursor: 'pointer' }}
+                      onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)} onClick={() => setSelectedScenario(s)}>
+                      <td style={{ ...td, fontWeight: 600, color: '#1e293b' }}>{s.name || '—'}</td>
+                      <td style={td}>{s.architecture ? <span style={{ background: '#eff6ff', color: '#1d4ed8', padding: '2px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600 }}>{s.architecture}</span> : '—'}</td>
+                      <td style={td}>{s.protocol     ? <span style={{ background: '#f0fdf4', color: '#166534', padding: '2px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600 }}>{s.protocol}</span>     : '—'}</td>
+                      <td style={{ ...td, color: '#475569' }}>{s.platform || s.broker || '—'}</td>
+                      <td style={{ ...td, textAlign: 'center' }}><span style={{ background: st.color + '20', color: st.color, padding: '2px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700 }}>{st.label}</span></td>
+                      <td style={{ ...td, textAlign: 'right', fontSize: 12, color: '#94a3b8', fontFamily: 'monospace' }}>{formatTime(s.createdAt)}</td>
+                      <td style={{ ...td, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                          <button title="Executar (en desenvolupament)" onClick={handleExecute} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 4, padding: '4px 6px', cursor: 'not-allowed', opacity: 0.5, display: 'flex' }}><PlayIcon /></button>
-                          <button title="Editar" onClick={() => openEdit(s)} style={{ background: 'none', border: '1px solid #ddd', borderRadius: 4, padding: '4px 6px', cursor: 'pointer', display: 'flex' }}><EditIcon /></button>
-                          <button title="Eliminar" onClick={() => setDeleteTarget(s)} style={{ background: 'none', border: '1px solid #fecaca', borderRadius: 4, padding: '4px 6px', cursor: 'pointer', display: 'flex', color: '#ef4444' }}><TrashIcon /></button>
+                          <button title="Execute on AKS" onClick={() => setExecuteTarget(s)} style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: '#16a34a' }}><PlayIcon /></button>
+                          <button title="Edit"           onClick={() => openEdit(s)}          style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: '#475569' }}><EditIcon /></button>
+                          <button title="Delete"         onClick={() => setDeleteTarget(s)}   style={{ background: 'none', border: '1px solid #fecaca', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: '#ef4444' }}><TrashIcon /></button>
                         </div>
                       </td>
                     </tr>
@@ -350,7 +387,7 @@ export const ScenariosPage = () => {
             </table>
           )}
         </div>
-        {selectedScenario && <ScenarioDetail scenario={selectedScenario} onClose={() => setSelectedScenario(null)} onExecute={handleExecute} onEdit={() => openEdit(selectedScenario)} onDelete={() => setDeleteTarget(selectedScenario)} />}
+        {selectedScenario && <ScenarioDetail scenario={selectedScenario} onClose={() => setSelectedScenario(null)} onExecute={() => setExecuteTarget(selectedScenario)} onEdit={() => openEdit(selectedScenario)} onDelete={() => setDeleteTarget(selectedScenario)} />}
       </div>
     </div>
   );
