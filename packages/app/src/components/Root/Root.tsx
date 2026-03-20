@@ -3,6 +3,7 @@ import { makeStyles } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import StorageIcon from '@material-ui/icons/Storage';
 import ListAltIcon from '@material-ui/icons/ListAlt';
+import PlayArrowIcon from '@material-ui/icons/PlayArrow';
 import BarChartIcon from '@material-ui/icons/BarChart';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
@@ -39,11 +40,12 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
       </SidebarGroup>
       <SidebarDivider />
       <SidebarGroup label="Menu" icon={<MenuIcon />}>
-        <SidebarItem icon={HomeIcon}     to="home"      text="Home" />
+        <SidebarItem icon={HomeIcon}      to="home"       text="Home" />
         <SidebarDivider />
-        <SidebarItem icon={StorageIcon}  to="catalog"   text="Catàleg" />
-        <SidebarItem icon={ListAltIcon}  to="escenaris" text="Escenaris" />
-        <SidebarItem icon={BarChartIcon} to="resultats" text="Resultats" />
+        <SidebarItem icon={StorageIcon}   to="catalog"    text="Catàleg" />
+        <SidebarItem icon={ListAltIcon}   to="escenaris"  text="Escenaris" />
+        <SidebarItem icon={PlayArrowIcon} to="execucions" text="Execucions" />
+        <SidebarItem icon={BarChartIcon}  to="resultats"  text="Resultats" />
       </SidebarGroup>
       <SidebarSpace />
       <SidebarDivider />
