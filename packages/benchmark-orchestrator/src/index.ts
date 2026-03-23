@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3002;
-const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenario-service:3000';
+const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenario-service:3002';
 const ACR_SERVER = process.env.ACR_SERVER || 'feinaregistry.azurecr.io';
 const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
 const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincronas';
@@ -171,7 +171,7 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
               { name: 'SCENARIO_ID',          value: scenarioId },
               { name: 'RUN_ID',               value: runId },
               { name: 'BROKER_TYPE',           value: brokerType },
-              { name: 'KAFKA_BROKERS',         value: 'kafka.apis-asincronas.svc.cluster.local:9092' },
+              { name: 'KAFKA_BROKERS',         value: 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
               { name: 'MQTT_BROKER',           value: 'mqtt://emqx.apis-asincronas.svc.cluster.local:1883' },
               { name: 'ELASTICSEARCH_URL',     value: 'http://elasticsearch.apis-asincronas.svc.cluster.local:9200' },
               { name: 'METRICS_API_URL',       value: 'http://metrics-api.apis-asincronas.svc.cluster.local:3001' },
