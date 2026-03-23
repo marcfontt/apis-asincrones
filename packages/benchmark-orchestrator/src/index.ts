@@ -170,7 +170,10 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
             env: [
               { name: 'SCENARIO_ID',          value: scenarioId },
               { name: 'RUN_ID',               value: runId },
-              { name: 'BROKER_TYPE',           value: brokerType },
+              { name: "BROKER_TYPE",           value: brokerType },
+              { name: "ARCHITECTURE",          value: r?.architecture || "" },
+              { name: "PROTOCOL",             value: r?.protocol || "Kafka" },
+              { name: "PLATFORM",             value: r?.platform || "" },
               { name: 'KAFKA_BROKERS',         value: 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
               { name: 'MQTT_BROKER',           value: 'mqtt://emqx.apis-asincronas.svc.cluster.local:1883' },
               { name: 'ELASTICSEARCH_URL',     value: 'http://elasticsearch.apis-asincronas.svc.cluster.local:9200' },
