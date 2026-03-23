@@ -57,15 +57,20 @@ function sanitizeName(name: string): string {
     .substring(0, 48);
 }
 
+// HTTP helpers amb timeout de 5s per evitar penjar
 function httpJson(url: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    http.get(url, (res) => {
-      let data = '';
-      res.on('data', (d) => (data += d));
-      res.on('end', () => {
-        try { resolve(JSON.parse(data)); } catch { resolve(null); }
+  return new Promise((resolve) => {
+    try {
+      const req = http.get(url, (res) => {
+        let data = '';
+        res.on('data', (d) => (data += d));
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)); } catch { resolve(null); }
+        });
       });
-    }).on('error', reject);
+      req.on('error', () => resolve(null));
+      req.setTimeout(5000, () => { req.destroy(); resolve(null); });
+    } catch { resolve(null); }
   });
 }
 
@@ -74,17 +79,16 @@ function httpPatch(url: string, body: object): Promise<void> {
     const data = JSON.stringify(body);
     try {
       const u = new URL(url);
-      const req = http.request(
-        {
-          hostname: u.hostname,
-          port: u.port || 80,
-          path: u.pathname + (u.search || ''),
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
-        },
-        (res) => { res.on('data', () => {}); res.on('end', resolve); }
-      );
+      const req = http.request({
+        hostname: u.hostname,
+        port: u.port || 80,
+        path: u.pathname + (u.search || ''),
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+        timeout: 5000,
+      }, (res) => { res.on('data', () => {}); res.on('end', resolve); });
       req.on('error', () => resolve());
+      req.on('timeout', () => { req.destroy(); resolve(); });
       req.write(data);
       req.end();
     } catch { resolve(); }
@@ -124,31 +128,8 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
 
   console.log(`[orchestrator] deploy runId=${runId}  ns=${namespace}  job=${jobName}`);
 
-  let brokerType = 'kafka';
-  let architecture = '';
-  let protocol = '';
-  let platform = '';
-  try {
-    const sc = await httpJson(`${SCENARIO_SERVICE_URL}/scenarios/${scenarioId}`) as any;
-    if (sc) {
-      architecture = sc.architecture || sc.type || '';
-      protocol = sc.protocol || '';
-      platform = sc.platform || '';
-      const raw = (sc.broker || sc.protocol || 'kafka').toLowerCase();
-      brokerType = raw.includes('mqtt') ? 'mqtt' : 'kafka';
-    }
-  } catch (e) {
-    console.warn(`[orchestrator] Could not fetch scenario: ${(e as Error).message}`);
-  }
-
   const run = runs.get(runId);
-  if (run) {
-    run.architecture = architecture;
-    run.protocol = protocol;
-    run.platform = platform;
-    run.namespace = namespace;
-    run.jobName = jobName;
-  }
+  if (run) { run.namespace = namespace; run.jobName = jobName; }
 
   if (!k8sEnabled) {
     console.log('[orchestrator] Mock mode - skipping K8s');
@@ -164,6 +145,9 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
   });
 
   await copyAcrSecret(namespace);
+
+  const r = runs.get(runId);
+  const brokerType = r?.protocol?.toLowerCase().includes('mqtt') ? 'mqtt' : 'kafka';
 
   await batchApi.createNamespacedJob(namespace, {
     apiVersion: 'batch/v1', kind: 'Job',
@@ -209,61 +193,51 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
 
 async function monitorJob(runId: string, namespace: string, jobName: string, scenarioId: string) {
   let attempts = 0;
-  const maxAttempts = 180;
-
   const poll = async () => {
     const run = runs.get(runId);
     if (!run || run.status === 'cancelled') return;
-    if (++attempts > maxAttempts) {
-      run.status = 'failed';
-      run.completedAt = new Date().toISOString();
-      await updateScenarioStatus(scenarioId, 'idle', null);
-      return;
+    if (++attempts > 180) {
+      run.status = 'failed'; run.completedAt = new Date().toISOString();
+      await updateScenarioStatus(scenarioId, 'idle', null); return;
     }
     try {
       const job = (await batchApi.readNamespacedJob(jobName, namespace)).body;
       const succeeded = job.status?.succeeded || 0;
       const failed    = job.status?.failed    || 0;
       const limit     = job.spec?.backoffLimit ?? 1;
-
       if (succeeded > 0) {
-        run.status = 'completed';
-        run.completedAt = new Date().toISOString();
+        run.status = 'completed'; run.completedAt = new Date().toISOString();
         await updateScenarioStatus(scenarioId, 'idle', null);
         try { await coreApi.deleteNamespace(namespace); } catch (_) {}
         console.log(`[orchestrator] Run ${runId} completed`);
       } else if (failed > limit) {
-        run.status = 'failed';
-        run.completedAt = new Date().toISOString();
+        run.status = 'failed'; run.completedAt = new Date().toISOString();
         await updateScenarioStatus(scenarioId, 'idle', null);
         console.log(`[orchestrator] Run ${runId} failed`);
       } else {
         setTimeout(poll, 10_000);
       }
     } catch (e) {
-      console.warn(`[orchestrator] monitor poll error: ${(e as Error).message}`);
+      console.warn(`[orchestrator] poll error: ${(e as Error).message}`);
       setTimeout(poll, 10_000);
     }
   };
-
   setTimeout(poll, 10_000);
 }
+
+// ---------- Routes ----------
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', k8sEnabled, image: LOAD_GENERATOR_IMAGE });
 });
 
 app.get('/runs', (_req, res) => {
-  const all = Array.from(runs.values())
-    .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
-  res.json(all);
+  res.json(Array.from(runs.values())
+    .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()));
 });
 
 app.get('/runs/active', (_req, res) => {
-  const active = Array.from(runs.values()).filter(
-    r => r.status === 'running' || r.status === 'pending'
-  );
-  res.json(active);
+  res.json(Array.from(runs.values()).filter(r => r.status === 'running' || r.status === 'pending'));
 });
 
 app.get('/runs/:id', (req, res) => {
@@ -272,60 +246,59 @@ app.get('/runs/:id', (req, res) => {
   res.json(run);
 });
 
-app.post('/runs', async (req, res) => {
+app.post('/runs', (req, res) => {
   const { scenarioId } = req.body;
   if (!scenarioId) return res.status(400).json({ error: 'scenarioId required' });
 
-  let scenarioName = scenarioId;
-  let architecture = '';
-  let protocol = '';
-  let platform = '';
-  try {
-    const sc = await httpJson(`${SCENARIO_SERVICE_URL}/scenarios/${scenarioId}`) as any;
-    if (sc) {
-      scenarioName = sc.name || sc.title || scenarioId;
-      architecture = sc.architecture || sc.type || '';
-      protocol     = sc.protocol || '';
-      platform     = sc.platform || '';
-    }
-  } catch (_) {}
-
   const runId = randomUUID();
   const run: RunRecord = {
-    id: runId, scenarioId, scenarioName,
-    architecture, protocol, platform,
-    status: 'pending', startedAt: new Date().toISOString(),
+    id: runId, scenarioId,
+    scenarioName: scenarioId,   // updated async below
+    architecture: '', protocol: '', platform: '',
+    status: 'running', startedAt: new Date().toISOString(),
   };
   runs.set(runId, run);
 
-  await updateScenarioStatus(scenarioId, 'running', runId);
-  run.status = 'running';
+  // *** Retornem IMMEDIATAMENT — res no es pot usar després d'això ***
+  res.status(201).json({ runId, scenarioId, status: 'running' });
 
-  deployScenario(runId, scenarioId, scenarioName)
-    .then(() => {
+  // Tot el treball pesat és asíncron i no bloca la resposta
+  setImmediate(async () => {
+    // 1. Fetch scenario details (timeout 5s)
+    try {
+      const sc = await httpJson(`${SCENARIO_SERVICE_URL}/scenarios/${scenarioId}`);
+      if (sc) {
+        run.scenarioName = sc.name || sc.title || scenarioId;
+        run.architecture = sc.architecture || sc.type || '';
+        run.protocol     = sc.protocol || '';
+        run.platform     = sc.platform || '';
+      }
+    } catch (_) {}
+
+    // 2. Sync status to scenario-service
+    await updateScenarioStatus(scenarioId, 'running', runId);
+
+    // 3. Deploy to AKS
+    try {
+      await deployScenario(runId, scenarioId, run.scenarioName);
       const r = runs.get(runId);
       if (r && r.status === 'running' && r.namespace && r.jobName) {
         monitorJob(runId, r.namespace, r.jobName, scenarioId);
       }
-    })
-    .catch(async (e) => {
-      console.error(`[orchestrator] Deploy failed: ${e.message}`);
+    } catch (e) {
+      console.error(`[orchestrator] Deploy failed: ${(e as Error).message}`);
       const r = runs.get(runId);
       if (r) { r.status = 'failed'; r.completedAt = new Date().toISOString(); }
       await updateScenarioStatus(scenarioId, 'idle', null);
-    });
-
-  res.status(201).json({ runId, scenarioId, status: 'running' });
+    }
+  });
 });
 
 app.post('/runs/:id/cancel', async (req, res) => {
   const run = runs.get(req.params.id);
   if (!run) return res.status(404).json({ error: 'Not found' });
-
-  run.status = 'cancelled';
-  run.completedAt = new Date().toISOString();
+  run.status = 'cancelled'; run.completedAt = new Date().toISOString();
   await updateScenarioStatus(run.scenarioId, 'idle', null);
-
   if (k8sEnabled && run.namespace) {
     try { await coreApi.deleteNamespace(run.namespace); } catch (_) {}
   }
