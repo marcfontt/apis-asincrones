@@ -1,0 +1,8 @@
+{
+  "name": "load-generator",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "scripts": { "build": "tsc", "start": "node dist/index.js" },
+  "dependencies": { "kafkajs": "^2.2.4" },
+  "devDependencies": { "typescript": "^5.3.3", "@types/node": "^20.11.0" }
+}

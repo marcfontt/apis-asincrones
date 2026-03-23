@@ -84,7 +84,7 @@ const HistorialTab = () => {
   return (
     <div>
       <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:16,marginBottom:28}}>
-        {[{label:'Escenaris comparats',value:String(summary.length),color:'#3b82f6',icon:'🔢'},{label:'Millor latència',value:`${best?.avgLatency?.toFixed(1)??'—'}ms`,color:'#22c55e',icon:'⚡'},{label:'Millor escenari',value:bestName,color:'#f59e0b',icon:'🏆'}].map(c=>(
+        {[{label:'Escenaris comparats',value:String(summary.length),color:'#3b82f6',icon:'🔢'},{label:'Millor latència',value:`${best?.avgLatency?.toFixed(1)??'—'}ms`,color:'#22c55e',icon:'⚡'},{label:'Millor escenari',value:bestName,color:'#f59e0b',icon:''}].map(c=>(
           <div key={c.label} style={{background:'white',borderRadius:10,border:'1px solid #e2e8f0',padding:'20px 24px',boxShadow:'0 1px 4px rgba(0,0,0,0.05)'}}>
             <div style={{fontSize:24,marginBottom:8}}>{c.icon}</div>
             <div style={{fontSize:22,fontWeight:800,color:c.color,fontFamily:'monospace'}}>{c.value}</div>
@@ -107,7 +107,7 @@ const HistorialTab = () => {
           ))}</tr></thead>
           <tbody>{summary.map((s,i)=>(
             <tr key={i} style={{borderBottom:'1px solid #f8fafc',background:i===0?'#f0fdf4':'white'}}>
-              <td style={{padding:'11px 14px',fontWeight:600,color:'#1e293b',fontSize:13}}>{i===0&&<span style={{marginRight:6}}>🏆</span>}{nameMap[s.scenarioId]||s.scenarioId?.slice(0,12)}</td>
+              <td style={{padding:'11px 14px',fontWeight:600,color:'#1e293b',fontSize:13}}>{i===0&&<span style={{marginRight:6}}></span>}{nameMap[s.scenarioId]||s.scenarioId?.slice(0,12)}</td>
               <td style={{padding:'11px 14px',textAlign:'right'}}>{s.architecture?<span style={{background:'#eff6ff',color:'#1d4ed8',padding:'2px 7px',borderRadius:4,fontSize:11,fontWeight:600}}>{s.architecture}</span>:'—'}</td>
               <td style={{padding:'11px 14px',textAlign:'right'}}>{s.protocol?<span style={{background:'#f0fdf4',color:'#166534',padding:'2px 7px',borderRadius:4,fontSize:11,fontWeight:600}}>{s.protocol}</span>:'—'}</td>
               <td style={{padding:'11px 14px',textAlign:'right',color:'#475569',fontSize:13}}>{s.broker||'—'}</td>
