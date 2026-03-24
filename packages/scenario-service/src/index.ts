@@ -53,6 +53,19 @@ app.put('/scenarios/:id', async (req: Request, res: Response) => {
   }
 });
 
+// PATCH /scenarios/:id — actualització parcial (status, currentRunId, etc.)
+app.patch('/scenarios/:id', async (req: Request, res: Response) => {
+  try {
+    const current = await es.get({ index: INDEX, id: req.params.id });
+    const merged = { ...(current._source as object), ...req.body, updatedAt: new Date().toISOString() };
+    await es.index({ index: INDEX, id: req.params.id, body: merged });
+    res.json({ id: req.params.id, ...merged });
+  } catch (err: any) {
+    if (err.meta?.statusCode === 404) res.status(404).json({ error: 'Scenario not found' });
+    else res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/scenarios/:id', async (req: Request, res: Response) => {
   try {
     await es.delete({ index: INDEX, id: req.params.id });

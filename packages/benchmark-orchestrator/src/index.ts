@@ -250,20 +250,24 @@ app.get('/runs/:id', (req, res) => {
 });
 
 app.post('/runs', (req, res) => {
-  const { scenarioId } = req.body;
+  const { scenarioId, scenarioName: providedName } = req.body;
   if (!scenarioId) return res.status(400).json({ error: 'scenarioId required' });
 
-  const runId = randomUUID();
+  // Genera runId basat en el nom de l'escenari + cua curta per unicitat
+  const shortId  = randomUUID().substring(0, 6);
+  const baseName = providedName ? sanitizeName(providedName) : '';
+  const runId    = baseName ? `${baseName}-${shortId}` : randomUUID();
+
   const run: RunRecord = {
     id: runId, scenarioId,
-    scenarioName: scenarioId,   // updated async below
+    scenarioName: providedName || scenarioId,
     architecture: '', protocol: '', platform: '',
     status: 'running', startedAt: new Date().toISOString(),
   };
   runs.set(runId, run);
 
   // *** Retornem IMMEDIATAMENT — res no es pot usar després d'això ***
-  res.status(201).json({ runId, scenarioId, status: 'running' });
+  res.status(201).json({ id: runId, runId, scenarioId, status: 'running' });
 
   // Tot el treball pesat és asíncron i no bloca la resposta
   setImmediate(async () => {
