@@ -1,238 +1,240 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Page, Header, Content } from '@backstage/core-components';
+import { useEffect, useState, useCallback } from 'react';
+import { S, GLOBAL_CSS } from '../../theme';
 
-const IconClock   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-const IconCheck   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
-const IconX       = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const IconSpinner = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>;
-const IconStop    = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>;
-const IconTrash   = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4h6v2"/></svg>;
+const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
 
-interface Run {
-  id: string;
-  scenarioId: string;
-  scenarioName?: string;
-  architecture?: string;
-  protocol?: string;
-  platform?: string;
-  status: string;
-  startedAt: string;
-  completedAt?: string;
-}
-
-const BASE             = '/api/proxy/benchmark-orchestrator';
-const SCENARIO_SERVICE = '/api/proxy/scenario-service';
-
-const formatDuration = (start: string, end?: string): string => {
-  const diff = Math.floor((new Date(end || Date.now()).getTime() - new Date(start).getTime()) / 1000);
-  if (diff < 60) return `${diff}s`;
-  return `${Math.floor(diff / 60)}m ${diff % 60}s`;
+const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
+  pending:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.08)',  label: 'Pendent' },
+  running:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.08)', label: 'En execució' },
+  completed: { color: '#22c55e', bg: 'rgba(34,197,94,0.08)',  label: 'Completat' },
+  cancelled: { color: '#94a3b8', bg: 'rgba(148,163,184,0.08)',label: 'Cancel·lat' },
+  error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.08)',  label: 'Error' },
 };
 
-const isUUID = (s: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(s);
-
-const StatusChip = ({ status }: { status: string }) => {
-  const map: Record<string, { bg: string; fg: string; bd: string; label: string; icon: JSX.Element }> = {
-    running:   { bg: 'rgba(210,153,34,0.12)',  fg: 'var(--warning)',        bd: 'var(--warning)',  label: 'En execució', icon: <IconSpinner /> },
-    completed: { bg: 'rgba(63,185,80,0.12)',   fg: 'var(--success)',        bd: 'var(--success)',  label: 'Completat',   icon: <IconCheck /> },
-    failed:    { bg: 'rgba(248,81,73,0.12)',   fg: 'var(--error)',          bd: 'var(--error)',    label: 'Fallit',      icon: <IconX /> },
-    cancelled: { bg: 'rgba(139,148,158,0.12)', fg: 'var(--text-secondary)', bd: 'var(--border)',   label: 'Cancel·lat',  icon: <IconClock /> },
-    pending:   { bg: 'rgba(139,148,158,0.12)', fg: 'var(--text-secondary)', bd: 'var(--border)',   label: 'Pendent',     icon: <IconClock /> },
-  };
-  const c = map[status] || map.pending;
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '3px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: 600, background: c.bg, color: c.fg, border: `1px solid ${c.bd}` }}>
-      {c.icon} {c.label}
-    </span>
-  );
+const SK_STYLE = {
+  background: 'linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%)',
+  backgroundSize: '200% 100%',
+  animation: 'shimmer 1.5s ease-in-out infinite',
+  borderRadius: 4,
 };
+
+const StopIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>;
+const TrashIcon   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+const RefreshIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
+const ActivityIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+const ListIcon     = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
+
+const formatDuration = (start: string, end: string) => {
+  if (!start) return '—';
+  const ms = new Date(end || new Date().toISOString()).getTime() - new Date(start).getTime();
+  if (ms < 1000) return `${ms}ms`;
+  if (ms < 60000) return `${(ms / 1000).toFixed(0)}s`;
+  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+};
+const formatTime = (iso: string) =>
+  !iso ? '—' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 
 export const ExecucionsPage = () => {
-  const [runs,     setRuns]     = useState<Run[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [stopping, setStopping] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [runs,         setRuns]         = useState<any[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [deletingId,   setDeletingId]   = useState<string | null>(null);
+  const [toast,        setToast]        = useState('');
 
   useEffect(() => { document.title = 'Execucions | APIs Asíncrones'; }, []);
 
-  const resolveScenarioNames = useCallback(async (rawRuns: Run[]): Promise<Run[]> => {
-    const needResolve = rawRuns.filter(r => !r.scenarioName || isUUID(r.scenarioName));
-    if (!needResolve.length) return rawRuns;
-
-    const uniqueIds = [...new Set(needResolve.map(r => r.scenarioId))];
-    const resolved: Record<string, any> = {};
-
-    await Promise.all(uniqueIds.map(async (id) => {
-      try {
-        const res = await fetch(`${SCENARIO_SERVICE}/scenarios/${id}`);
-        if (res.ok) resolved[id] = await res.json();
-      } catch (_) {}
-    }));
-
-    return rawRuns.map(r => {
-      const sc = resolved[r.scenarioId];
-      if (!sc) return r;
-      return {
-        ...r,
-        scenarioName: sc.name || r.scenarioName,
-        architecture: r.architecture || sc.architecture || '',
-        protocol:     r.protocol     || sc.protocol     || '',
-        platform:     r.platform     || sc.platform     || '',
-      };
-    });
+  const fetchRuns = useCallback(() => {
+    setLoading(true);
+    fetch(`${ORCHESTRATOR}/runs`)
+      .then(r => r.json())
+      .then(data => { setRuns(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => setLoading(false));
   }, []);
 
-  const fetchRuns = useCallback(async () => {
+  useEffect(() => { fetchRuns(); const i = setInterval(fetchRuns, 8000); return () => clearInterval(i); }, [fetchRuns]);
+  useEffect(() => { if (!toast) return; const t = setTimeout(() => setToast(''), 3000); return () => clearTimeout(t); }, [toast]);
+
+  const handleCancel = async (run: any) => {
+    setCancellingId(run.id);
     try {
-      const res = await fetch(`${BASE}/runs`);
-      if (res.ok) {
-        const data = await res.json();
-        const raw = Array.isArray(data) ? data : (data.runs || []);
-        const resolved = await resolveScenarioNames(raw);
-        setRuns(resolved);
-      }
-    } catch (_) {}
-    setLoading(false);
-  }, [resolveScenarioNames]);
-
-  useEffect(() => {
-    fetchRuns();
-    const t = setInterval(fetchRuns, 8000);
-    return () => clearInterval(t);
-  }, [fetchRuns]);
-
-  const handleStop = async (id: string) => {
-    setStopping(id);
-    try { await fetch(`${BASE}/runs/${id}/cancel`, { method: 'POST' }); } catch (_) {}
-    await fetchRuns();
-    setStopping(null);
+      const r = await fetch(`${ORCHESTRATOR}/runs/${run.id}/cancel`, { method: 'POST' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      setToast(`Execució "${run.scenarioName || run.id.slice(0, 8)}" cancel·lada.`);
+      fetchRuns();
+    } catch (e: any) { setToast('Error en cancel·lar: ' + e.message); }
+    finally { setCancellingId(null); }
   };
 
-  const handleDelete = async (id: string) => {
-    setDeleting(id);
+  const handleDelete = async (run: any) => {
+    setDeletingId(run.id);
     try {
-      await fetch(`${BASE}/runs/${id}`, { method: 'DELETE' });
-      setRuns(prev => prev.filter(r => r.id !== id));
-    } catch (_) { await fetchRuns(); }
-    setDeleting(null);
+      await fetch(`${ORCHESTRATOR}/runs/${run.id}`, { method: 'DELETE' });
+      setRuns(prev => prev.filter(r => r.id !== run.id));
+    } catch (e: any) { setToast('Error en eliminar: ' + e.message); }
+    finally { setDeletingId(null); }
   };
 
-  const active  = runs.filter(r => r.status === 'running' || r.status === 'pending');
-  const history = runs.filter(r => r.status !== 'running' && r.status !== 'pending');
+  const running   = runs.filter(r => r.status === 'running' || r.status === 'pending');
+  const completed = runs.filter(r => r.status !== 'running' && r.status !== 'pending');
 
-  const th: React.CSSProperties = {
-    padding: '9px 14px', textAlign: 'left', fontSize: '11px', fontWeight: 700,
-    textTransform: 'uppercase', letterSpacing: '0.06em',
-    color: 'var(--text-secondary)', borderBottom: '2px solid var(--border)',
-    background: 'var(--bg-main)', whiteSpace: 'nowrap',
-  };
-  const td: React.CSSProperties = {
-    padding: '11px 14px', borderBottom: '1px solid var(--border)',
-    verticalAlign: 'middle', fontSize: '13.5px', color: 'var(--text-primary)',
-  };
-
-  const scenarioLabel = (run: Run): string => {
-    if (run.scenarioName && !isUUID(run.scenarioName)) return run.scenarioName;
-    const parts = [run.architecture, run.protocol, run.platform].filter(Boolean);
-    if (parts.length) return parts.join(' · ');
-    return (run.scenarioId || run.id)?.substring(0, 8) + '...';
-  };
-
-  const RunTable = ({ data, showStop }: { data: Run[]; showStop: boolean }) => (
-    <div style={{ background: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border)', overflow: 'hidden' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13.5px' }}>
-        <thead>
-          <tr>
-            {['Nom escenari', 'ID', 'Arquitectura', 'Protocol', 'Plataforma', 'Estat', 'Durada', 'Accions'].map(c => (
-              <th key={c} style={th}>{c}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((run, i) => (
-            <tr key={run.id} style={{ background: i % 2 === 0 ? 'transparent' : 'var(--bg-hover)' }}>
-              <td style={{ ...td, fontWeight: 600 }}>{scenarioLabel(run)}</td>
-              <td style={{ ...td, fontFamily: 'monospace', color: 'var(--text-secondary)', fontSize: '12px' }}>{run.id.substring(0, 8)}</td>
-              <td style={td}>
-                {run.architecture
-                  ? <span style={{ background: 'rgba(88,166,255,0.15)', color: 'var(--accent)', padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{run.architecture}</span>
-                  : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
-              </td>
-              <td style={td}>
-                {run.protocol
-                  ? <span style={{ background: 'rgba(63,185,80,0.15)', color: 'var(--success)', padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{run.protocol}</span>
-                  : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
-              </td>
-              <td style={{ ...td, color: 'var(--text-secondary)' }}>{run.platform || <span style={{ color: 'var(--text-disabled)' }}>—</span>}</td>
-              <td style={td}><StatusChip status={run.status} /></td>
-              <td style={{ ...td, fontFamily: 'monospace', color: 'var(--text-secondary)', fontSize: 12 }}>{formatDuration(run.startedAt, run.completedAt)}</td>
-              <td style={td}>
-                {showStop ? (
-                  <button
-                    onClick={() => handleStop(run.id)}
-                    disabled={stopping === run.id}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--error)', background: stopping === run.id ? 'var(--bg-hover)' : 'rgba(248,81,73,0.1)', color: stopping === run.id ? 'var(--text-secondary)' : 'var(--error)', cursor: stopping === run.id ? 'not-allowed' : 'pointer' }}
-                  >
-                    <IconStop /> {stopping === run.id ? 'Aturant...' : 'Atura'}
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleDelete(run.id)}
-                    disabled={deleting === run.id}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', padding: '5px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--border)', background: 'var(--bg-main)', color: deleting === run.id ? 'var(--text-disabled)' : 'var(--text-secondary)', cursor: deleting === run.id ? 'not-allowed' : 'pointer' }}
-                  >
-                    <IconTrash /> {deleting === run.id ? 'Eliminant...' : 'Elimina'}
-                  </button>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+  const SkRow = ({ delay = 0 }: { delay?: number }) => (
+    <tr>
+      {[55, 45, 38, 50, 40, 42, 35, 30].map((w, j) => (
+        <td key={j} style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${delay}s` }} />
+        </td>
+      ))}
+    </tr>
   );
 
-  const EmptyBox = ({ text }: { text: string }) => (
-    <div style={{ padding: '28px', background: 'var(--bg-main)', borderRadius: '8px', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '14px', textAlign: 'center' }}>
-      {text}
-    </div>
-  );
-
-  if (loading) return (
-    <Page themeId="tool">
-      <Header title="Execucions" subtitle="Historial d'execucions de benchmarks" />
-      <Content><p style={{ color: 'var(--text-secondary)', padding: '24px' }}>Carregant...</p></Content>
-    </Page>
-  );
+  const RunTable = ({ data, title, showStop, icon }: { data: any[]; title: string; showStop: boolean; icon: React.ReactNode }) => {
+    const [hoveredRow, setHoveredRow] = useState<number | null>(null);
+    return (
+      <div style={{ ...S.card, padding: 0, overflow: 'hidden', marginBottom: 24 }}>
+        <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
+            {title}
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 10px', borderRadius: 10 }}>
+            {data.length} registre{data.length !== 1 ? 's' : ''}
+          </span>
+        </div>
+        {data.length === 0 ? (
+          <p style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--text-disabled)', margin: 0, fontSize: 14 }}>
+            Cap execució en aquest grup.
+          </p>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={S.tableHeader}>
+                  {['Nom Escenari', 'Arquitectura', 'Protocol', 'Plataforma', 'Estat', 'Durada', 'Iniciat', 'Accions'].map(h => (
+                    <th key={h} style={{ ...S.th, textAlign: h === 'Durada' || h === 'Iniciat' ? 'right' : h === 'Estat' || h === 'Accions' ? 'center' : 'left' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map((r, i) => {
+                  const st = STATUS_CONFIG[r.status] || { color: '#94a3b8', bg: 'transparent', label: r.status };
+                  const isActive = r.status === 'running' || r.status === 'pending';
+                  return (
+                    <tr key={r.id || i}
+                      onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}
+                      style={{ ...S.tableRow, background: hoveredRow === i ? 'var(--bg-hover)' : 'transparent' }}
+                    >
+                      <td style={{ ...S.td, fontWeight: 600 }}>{r.scenarioName || r.scenarioId?.slice(0, 12) || '—'}</td>
+                      <td style={S.td}>
+                        {r.architecture
+                          ? <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{r.architecture}</span>
+                          : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
+                      </td>
+                      <td style={S.td}>
+                        {r.protocol
+                          ? <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{r.protocol}</span>
+                          : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
+                      </td>
+                      <td style={{ ...S.td, color: 'var(--text-secondary)' }}>{r.platform || '—'}</td>
+                      <td style={{ ...S.td, textAlign: 'center' }}>
+                        <span style={{ background: st.bg, color: st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          {isActive && <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.color, display: 'inline-block', animation: 'pulseDot 1.5s ease infinite' }} />}
+                          {st.label}
+                        </span>
+                      </td>
+                      <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>
+                        {isActive
+                          ? formatDuration(r.startedAt || r.createdAt, new Date().toISOString())
+                          : formatDuration(r.startedAt || r.createdAt, r.completedAt || r.updatedAt)}
+                      </td>
+                      <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)' }}>
+                        {formatTime(r.createdAt)}
+                      </td>
+                      <td style={{ ...S.td, textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
+                          {showStop && isActive && (
+                            <button onClick={() => handleCancel(r)} disabled={cancellingId === r.id} title="Aturar execució"
+                              style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 8px', borderRadius: 6, border: 'none', background: '#ef4444', color: 'white', cursor: cancellingId === r.id ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, opacity: cancellingId === r.id ? 0.6 : 1, fontFamily: 'var(--font)' }}>
+                              <StopIcon /> {cancellingId === r.id ? '...' : 'Stop'}
+                            </button>
+                          )}
+                          {!isActive && (
+                            <button onClick={() => handleDelete(r)} disabled={deletingId === r.id} title="Eliminar registre"
+                              style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: '#ef4444', opacity: deletingId === r.id ? 0.5 : 1 }}>
+                              <TrashIcon />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
-    <Page themeId="tool">
-      <Header title="Execucions" subtitle="Historial d'execucions de benchmarks" />
-      <Content>
-        <div style={{ marginBottom: '32px' }}>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
-            <span style={{ color: 'var(--warning)' }}><IconSpinner /></span> En execució / Pendents
-            {active.length > 0 && (
-              <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'rgba(210,153,34,0.15)', color: 'var(--warning)', border: '1px solid var(--warning)' }}>
-                {active.length}
-              </span>
-            )}
-          </h2>
-          {active.length === 0 ? <EmptyBox text="Cap execució activa" /> : <RunTable data={active} showStop />}
-        </div>
+    <div style={{ ...S.page, maxWidth: 1260 }}>
+      <style>{GLOBAL_CSS}</style>
 
-        <div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>
-            <span style={{ color: 'var(--text-secondary)' }}><IconClock /></span> Historial
-            {history.length > 0 && (
-              <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: 'var(--bg-hover)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}>
-                {history.length}
-              </span>
-            )}
-          </h2>
-          {history.length === 0 ? <EmptyBox text="Cap execució finalitzada" /> : <RunTable data={history} showStop={false} />}
+      {/* Toast */}
+      {toast && (
+        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: '#0f172a', color: 'white', padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
+          {toast}
         </div>
-      </Content>
-    </Page>
+      )}
+
+      {/* Capçalera */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Execucions</h1>
+          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
+            Historial de benchmarks executats sobre el clúster AKS
+          </p>
+        </div>
+        <button onClick={fetchRuns} style={{ ...S.btn, fontSize: 13 }}>
+          <RefreshIcon /> Actualitzar
+        </button>
+      </div>
+
+      {/* Stats bar */}
+      {!loading && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Total',       value: runs.length,                                  color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
+            { label: 'En execució', value: running.length,                               color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+            { label: 'Completats',  value: completed.filter(r => r.status === 'completed').length, color: 'var(--success)', bg: 'rgba(34,197,94,0.08)' },
+            { label: 'Errors',      value: runs.filter(r => r.status === 'error').length, color: 'var(--error)', bg: 'rgba(239,68,68,0.08)' },
+          ].map(s => (
+            <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Contingut */}
+      {loading ? (
+        <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ ...SK_STYLE, height: 12, width: 120 }} />
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              {Array.from({ length: 5 }).map((_, i) => <SkRow key={i} delay={i * 0.08} />)}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <>
+          <RunTable data={running}   title="En execució / Pendents" showStop={true}  icon={<ActivityIcon />} />
+          <RunTable data={completed} title="Historial"               showStop={false} icon={<ListIcon />} />
+        </>
+      )}
+    </div>
   );
 };

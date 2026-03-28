@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { S, GLOBAL_CSS } from '../../theme';
 
 const API_BASE     = '/api/proxy/scenario-service';
 const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
@@ -28,40 +29,57 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   error:     { color: '#ef4444', label: 'Error' },
 };
 
-// ── Icones SVG ─────────────────────────────────────────────────────────────────
+const SK_STYLE = {
+  background: 'linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%)',
+  backgroundSize: '200% 100%',
+  animation: 'shimmer 1.5s ease-in-out infinite',
+  borderRadius: 4,
+};
+
+// ── Icons ──────────────────────────────────────────────────────────────────────
 const PlayIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
 const EditIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
 const TrashIcon   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
-const CloseIcon   = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const CloseIcon   = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const PlusIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+const RefreshIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
+const EmptyIcon   = () => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>;
 const RocketIcon  = () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m3.29 15 5 5"/><path d="M13 7 7 13"/><path d="m20 7-5 3-3 5 2 2 5-3 3-5z"/></svg>;
 const GearIcon    = () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
-const PlusIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const ChevronIcon = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>;
 
-// ── Estils comuns (dark-theme aware via CSS vars) ──────────────────────────────
-const inp: React.CSSProperties = {
-  width: '100%', padding: '8px 12px', borderRadius: 6,
-  border: '1px solid var(--border)',
-  background: 'var(--bg-input)',
-  color: 'var(--text-primary)',
-  fontSize: 14, boxSizing: 'border-box',
-  outline: 'none',
-};
+const SkeletonRow = ({ delay = 0 }: { delay?: number }) => (
+  <tr>
+    {[68, 55, 48, 65, 42, 50, 36].map((w, j) => (
+      <td key={j} style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${delay}s` }} />
+      </td>
+    ))}
+  </tr>
+);
+
 const lbl: React.CSSProperties = {
   display: 'block', fontSize: 11, color: 'var(--text-secondary)',
   marginBottom: 5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
 };
 
-// ── Modal: crear / editar escenari ────────────────────────────────────────────
+const selStyle: React.CSSProperties = {
+  padding: '8px 32px 8px 12px', borderRadius: 6, border: '1px solid var(--border)',
+  background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13,
+  cursor: 'pointer', outline: 'none', appearance: 'none', fontFamily: 'var(--font)',
+  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
+  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', minWidth: 140,
+};
+
+// ── Modal: Crear / Editar ──────────────────────────────────────────────────────
 const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   mode: 'create' | 'edit';
   initial: typeof EMPTY_FORM & { id?: string };
   onClose: () => void;
   onSaved: () => void;
 }) => {
-  const [form, setForm] = useState(initial);
+  const [form, setForm]     = useState(initial);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError]   = useState('');
 
   const set = (k: string, v: string) => {
     if (k === 'platform') {
@@ -75,8 +93,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
 
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.architecture || !form.protocol || !form.platform) {
-      setError('El nom, arquitectura, protocol i plataforma són obligatoris.');
-      return;
+      setError('El nom, arquitectura, protocol i plataforma són obligatoris.'); return;
     }
     setSaving(true); setError('');
     try {
@@ -95,23 +112,20 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
     } catch (e: any) { setError(e.message); setSaving(false); }
   };
 
-  const overlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' };
-  const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 28, width: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 24px 64px rgba(0,0,0,0.35)' };
-
   return (
-    <div style={overlay}>
-      <div style={card}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text-primary)' }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             {mode === 'edit' ? 'Editar Escenari' : 'Nou Escenari'}
           </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><CloseIcon /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6 }}><CloseIcon /></button>
         </div>
         <div style={{ display: 'grid', gap: 16 }}>
-          <div><label style={lbl}>Nom *</label><input style={inp} placeholder="ex. MQTT-EDA-Kafka-Basic" value={form.name} onChange={e => set('name', e.target.value)} /></div>
+          <div><label style={lbl}>Nom *</label><input style={{ ...S.input }} placeholder="ex. MQTT-EDA-Kafka-Basic" value={form.name} onChange={e => set('name', e.target.value)} /></div>
           <div>
             <label style={lbl}>Plataforma / Broker * <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--text-secondary)' }}>(selecciona primer)</span></label>
-            <select style={inp} value={form.platform} onChange={e => set('platform', e.target.value)}>
+            <select style={{ ...S.input }} value={form.platform} onChange={e => set('platform', e.target.value)}>
               <option value="">Selecciona...</option>
               {ALL_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
             </select>
@@ -119,33 +133,39 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>Arquitectura * {form.platform && <span style={{ color: 'var(--accent)', fontWeight: 400 }}>({ca.length} compatibles)</span>}</label>
-              <select style={inp} value={form.architecture} onChange={e => set('architecture', e.target.value)}>
+              <select style={{ ...S.input }} value={form.architecture} onChange={e => set('architecture', e.target.value)}>
                 <option value="">Selecciona...</option>
-                {ALL_ARCHITECTURES.map(a => { const ok = ca.includes(a); return <option key={a} value={a} disabled={!ok} style={!ok ? { color: 'var(--text-disabled)' } : {}}>{a}{!ok && form.platform ? ' (incompatible)' : ''}</option>; })}
+                {ALL_ARCHITECTURES.map(a => {
+                  const ok = ca.includes(a);
+                  return <option key={a} value={a} disabled={!ok} style={!ok ? { color: 'var(--text-disabled)' } : {}}>{a}{!ok && form.platform ? ' (incompatible)' : ''}</option>;
+                })}
               </select>
             </div>
             <div>
               <label style={lbl}>Protocol * {form.platform && <span style={{ color: 'var(--accent)', fontWeight: 400 }}>({cp.length} compatibles)</span>}</label>
-              <select style={inp} value={form.protocol} onChange={e => set('protocol', e.target.value)}>
+              <select style={{ ...S.input }} value={form.protocol} onChange={e => set('protocol', e.target.value)}>
                 <option value="">Selecciona...</option>
-                {ALL_PROTOCOLS.map(p => { const ok = cp.includes(p); return <option key={p} value={p} disabled={!ok} style={!ok ? { color: 'var(--text-disabled)' } : {}}>{p}{!ok && form.platform ? ' (incompatible)' : ''}</option>; })}
+                {ALL_PROTOCOLS.map(p => {
+                  const ok = cp.includes(p);
+                  return <option key={p} value={p} disabled={!ok} style={!ok ? { color: 'var(--text-disabled)' } : {}}>{p}{!ok && form.platform ? ' (incompatible)' : ''}</option>;
+                })}
               </select>
             </div>
           </div>
           {form.platform && (
-            <div style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--accent)', opacity: 0.9 }}>
+            <div style={{ background: 'var(--badge-blue-bg)', border: '1px solid var(--badge-blue-fg)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--badge-blue-fg)', opacity: 0.9 }}>
               <strong>{form.platform}</strong> · Arquitectures: {ca.join(', ')} · Protocols: {cp.join(', ')}
             </div>
           )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Durada (s)</label><input style={inp} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} /></div>
-            <div><label style={lbl}>Ràtio (msg/s)</label><input style={inp} type="number" min={1} placeholder="1000" value={form.rate} onChange={e => set('rate', e.target.value)} /></div>
-            <div><label style={lbl}>Payload (bytes)</label><input style={inp} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} /></div>
+            <div><label style={lbl}>Durada (s)</label><input style={{ ...S.input }} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} /></div>
+            <div><label style={lbl}>Ràtio (msg/s)</label><input style={{ ...S.input }} type="number" min={1} placeholder="1000" value={form.rate} onChange={e => set('rate', e.target.value)} /></div>
+            <div><label style={lbl}>Payload (bytes)</label><input style={{ ...S.input }} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} /></div>
           </div>
-          {error && <div style={{ background: 'rgba(248,81,73,0.1)', border: '1px solid var(--error)', borderRadius: 8, padding: '10px 14px', color: 'var(--error)', fontSize: 13 }}>{error}</div>}
+          {error && <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid var(--error)', borderRadius: 8, padding: '10px 14px', color: 'var(--error)', fontSize: 13 }}>{error}</div>}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button onClick={onClose} disabled={saving} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13 }}>Cancel·la</button>
-            <button onClick={handleSubmit} disabled={saving} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: '#ffffff', cursor: saving ? 'not-allowed' : 'pointer', fontSize: 13, fontWeight: 600, opacity: saving ? 0.7 : 1 }}>
+            <button onClick={onClose} disabled={saving} style={{ ...S.btn, fontSize: 13 }}>Cancel·la</button>
+            <button onClick={handleSubmit} disabled={saving} style={{ ...S.btnPrimary, fontSize: 13, opacity: saving ? 0.7 : 1 }}>
               {saving ? 'Desant...' : mode === 'edit' ? 'Desa els canvis' : 'Crea Escenari'}
             </button>
           </div>
@@ -155,21 +175,23 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   );
 };
 
-// ── Modal: confirmar eliminació ───────────────────────────────────────────────
+// ── Modal: Confirmar eliminació ────────────────────────────────────────────────
 const DeleteModal = ({ name, onConfirm, onClose }: { name: string; onConfirm: () => void; onClose: () => void }) => (
-  <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' }}>
-    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 28, width: 420, boxShadow: '0 24px 64px rgba(0,0,0,0.35)' }}>
+  <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+    <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 420, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
       <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Eliminar Escenari</h3>
-      <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>Segur que vols eliminar <strong style={{ color: 'var(--text-primary)' }}>{name}</strong>? Aquesta acció no es pot desfer.</p>
+      <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
+        Segur que vols eliminar <strong style={{ color: 'var(--text-primary)' }}>{name}</strong>? Aquesta acció no es pot desfer.
+      </p>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13 }}>Cancel·la</button>
-        <button onClick={onConfirm} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--error)', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Elimina</button>
+        <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Cancel·la</button>
+        <button onClick={onConfirm} style={{ ...S.btnPrimary, fontSize: 13, background: 'var(--error)', boxShadow: 'none' }}>Elimina</button>
       </div>
     </div>
   </div>
 );
 
-// ── Modal: executar escenari ──────────────────────────────────────────────────
+// ── Modal: Executar ────────────────────────────────────────────────────────────
 const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => void }) => {
   const [state, setState] = useState<'confirm' | 'running' | 'done' | 'error'>('confirm');
   const [runId, setRunId] = useState('');
@@ -179,8 +201,7 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
     setState('running');
     try {
       const r = await fetch(`${ORCHESTRATOR}/runs`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ scenarioId: scenario.id, scenarioName: scenario.name }),
       });
       if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || `HTTP ${r.status}`); }
@@ -190,24 +211,28 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
     } catch (e: any) { setError(e.message); setState('error'); }
   };
 
-  const overlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(2px)' };
-  const card: React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 28, width: 460, boxShadow: '0 24px 64px rgba(0,0,0,0.35)' };
+  const overlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' };
+  const card:    React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 460, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' };
 
   if (state === 'confirm') return (
     <div style={overlay}><div style={card}>
       <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Executar Escenari</h3>
-      <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>Es desplegarà un Job al AKS per l'escenari <strong style={{ color: 'var(--text-primary)' }}>{scenario.name}</strong>.</p>
-      <div style={{ background: 'var(--bg-main)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, display: 'grid', gap: 6 }}>
+      <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, margin: '0 0 16px' }}>
+        Es desplegarà un Job al AKS per l'escenari <strong style={{ color: 'var(--text-primary)' }}>{scenario.name}</strong>.
+      </p>
+      <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, display: 'grid', gap: 6 }}>
         {([['Arquitectura', scenario.architecture], ['Protocol', scenario.protocol], ['Plataforma', scenario.platform || scenario.broker], ['Durada', scenario.duration ? `${scenario.duration}s` : 'Per defecte (60s)'], ['Ràtio', scenario.rate ? `${scenario.rate} msg/s` : 'Per defecte (100 msg/s)']] as [string, string][]).map(([l, v]) => (
           <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-secondary)' }}>{l}</span>
-            <strong style={{ color: 'var(--text-primary)' }}>{v}</strong>
+            <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{v}</strong>
           </div>
         ))}
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13 }}>Cancel·la</button>
-        <button onClick={handleExecute} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--success)', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}><PlayIcon /> Executa a AKS</button>
+        <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Cancel·la</button>
+        <button onClick={handleExecute} style={{ ...S.btnPrimary, fontSize: 13, background: 'var(--success)', boxShadow: 'none' }}>
+          <PlayIcon /> Executa a AKS
+        </button>
       </div>
     </div></div>
   );
@@ -225,18 +250,20 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
       <div style={{ textAlign: 'center' as const, marginBottom: 20 }}>
         <div style={{ color: 'var(--success)', marginBottom: 12, display: 'flex', justifyContent: 'center' }}><RocketIcon /></div>
         <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Escenari desplegat!</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 16px' }}>El Job de càrrega s'ha creat a AKS correctament.</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 16px' }}>El Job s'ha creat a AKS correctament.</p>
       </div>
-      <div style={{ background: 'rgba(63,185,80,0.08)', border: '1px solid var(--success)', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13 }}>
+      <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid var(--success)', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13 }}>
         <div style={{ color: 'var(--success)', marginBottom: 4, fontWeight: 700 }}>ID d'execució</div>
-        <code style={{ fontSize: 12, color: 'var(--success)', wordBreak: 'break-all' as const, fontFamily: 'monospace' }}>{runId}</code>
+        <code style={{ fontSize: 12, color: 'var(--success)', wordBreak: 'break-all' as const, fontFamily: 'var(--font-mono)' }}>{runId}</code>
       </div>
-      <div style={{ background: 'var(--accent-bg)', border: '1px solid var(--accent)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--accent)', marginBottom: 20, opacity: 0.9 }}>
+      <div style={{ background: 'var(--badge-blue-bg)', border: '1px solid var(--badge-blue-fg)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--badge-blue-fg)', marginBottom: 20, opacity: 0.9 }}>
         Ves a la pàgina <strong>Execucions</strong> per monitoritzar el progrés i veure les mètriques en viu.
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13 }}>Tanca</button>
-        <button onClick={() => { window.location.href = '/execucions'; }} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--accent)', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Veure Execucions →</button>
+        <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Tanca</button>
+        <button onClick={() => { window.location.href = '/execucions'; }} style={{ ...S.btnPrimary, fontSize: 13 }}>
+          Veure Execucions →
+        </button>
       </div>
     </div></div>
   );
@@ -244,31 +271,31 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
   return (
     <div style={overlay}><div style={card}>
       <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Desplegament fallit</h3>
-      <div style={{ background: 'rgba(248,81,73,0.1)', border: '1px solid var(--error)', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: 'var(--error)' }}>{error}</div>
+      <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid var(--error)', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, color: 'var(--error)' }}>{error}</div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-        <button onClick={onClose} style={{ padding: '9px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 13 }}>Tanca</button>
-        <button onClick={() => setState('confirm')} style={{ padding: '9px 18px', borderRadius: 8, border: 'none', background: 'var(--warning)', color: 'white', cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>Torna a intentar</button>
+        <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Tanca</button>
+        <button onClick={() => setState('confirm')} style={{ ...S.btnPrimary, fontSize: 13, background: 'var(--warning)', boxShadow: 'none' }}>Torna a intentar</button>
       </div>
     </div></div>
   );
 };
 
-// ── Toast ─────────────────────────────────────────────────────────────────────
+// ── Toast ──────────────────────────────────────────────────────────────────────
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () => void }) => {
   useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
   const c = {
-    success: { bg: 'rgba(63,185,80,0.12)',   border: 'var(--success)', color: 'var(--success)' },
-    error:   { bg: 'rgba(248,81,73,0.12)',   border: 'var(--error)',   color: 'var(--error)' },
-    info:    { bg: 'var(--accent-bg)',       border: 'var(--accent)',  color: 'var(--accent)' },
+    success: { bg: 'rgba(34,197,94,0.12)',  border: 'var(--success)', color: 'var(--success)' },
+    error:   { bg: 'rgba(220,38,38,0.12)',  border: 'var(--error)',   color: 'var(--error)' },
+    info:    { bg: 'var(--badge-blue-bg)',  border: 'var(--accent)',  color: 'var(--accent)' },
   }[type];
   return (
-    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: c.bg, border: `1px solid ${c.border}`, color: c.color, padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: '0 8px 24px rgba(0,0,0,0.2)', maxWidth: 360 }}>
+    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: c.bg, border: `1px solid ${c.border}`, color: c.color, padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: 'var(--shadow-lg)', maxWidth: 360, animation: 'fadeUp 0.2s ease', fontFamily: 'var(--font)' }}>
       {message}
     </div>
   );
 };
 
-// ── Detall d'escenari (panell lateral) ───────────────────────────────────────
+// ── Detall d'escenari ──────────────────────────────────────────────────────────
 const ScenarioDetail = ({ scenario, onClose, onExecute, onEdit, onDelete }: {
   scenario: any; onClose: () => void; onExecute: () => void; onEdit: () => void; onDelete: () => void;
 }) => {
@@ -276,20 +303,20 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onEdit, onDelete }: {
   const Row = ({ label, value }: { label: string; value: string }) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{label}</span>
-      <span style={{ fontSize: 13, fontFamily: 'monospace', color: 'var(--text-primary)' }}>{value || '—'}</span>
+      <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{value || '—'}</span>
     </div>
   );
   return (
-    <div style={{ background: 'var(--bg-card)', borderRadius: 10, border: '1px solid var(--border)', padding: 22, flex: 1, minWidth: 300, boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
+    <div style={{ ...S.card, flex: 1, minWidth: 300, boxShadow: 'var(--shadow-md)', animation: 'slideIn 0.2s ease' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{scenario.name || 'Sense nom'}</h3>
-            <span style={{ background: status.color + '22', color: status.color, padding: '2px 8px', borderRadius: 4, fontSize: 11, fontWeight: 700 }}>{status.label}</span>
+            <span style={{ ...S.badge(status.color), fontSize: 11 }}>{status.label}</span>
           </div>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>ID: {scenario.id || '—'}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>ID: {scenario.id || '—'}</span>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><CloseIcon /></button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6 }}><CloseIcon /></button>
       </div>
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Configuració</div>
@@ -302,19 +329,19 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onEdit, onDelete }: {
       </div>
       <div style={{ marginBottom: 18 }}>
         <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Metadades</div>
-        <Row label="Creat"  value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleString('ca-ES') : '—'} />
-        <Row label="Tipus"  value={scenario.predefined ? 'Sistema' : 'Personalitzat'} />
+        <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleString('ca-ES') : '—'} />
+        <Row label="Tipus" value={scenario.predefined ? 'Sistema' : 'Personalitzat'} />
       </div>
       <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-        <button onClick={onExecute} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: 'none', background: 'var(--success)', color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}><PlayIcon /> Executar</button>
-        <button onClick={onEdit}    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', fontSize: 13, cursor: 'pointer', color: 'var(--text-secondary)' }}><EditIcon /> Editar</button>
-        <button onClick={onDelete}  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8, border: '1px solid var(--error)', background: 'var(--bg-main)', color: 'var(--error)', fontSize: 13, cursor: 'pointer' }}><TrashIcon /> Eliminar</button>
+        <button onClick={onExecute} style={{ ...S.btnPrimary, fontSize: 12, padding: '7px 12px', background: 'var(--success)', boxShadow: 'none' }}><PlayIcon /> Executar</button>
+        <button onClick={onEdit}    style={{ ...S.btn, fontSize: 12, padding: '7px 12px' }}><EditIcon /> Editar</button>
+        <button onClick={onDelete}  style={{ ...S.btn, fontSize: 12, padding: '7px 12px', color: 'var(--error)', borderColor: 'var(--error)' }}><TrashIcon /> Eliminar</button>
       </div>
     </div>
   );
 };
 
-// ── Pàgina principal d'escenaris ──────────────────────────────────────────────
+// ── ScenariosPage ──────────────────────────────────────────────────────────────
 export const ScenariosPage = () => {
   const [scenarios,        setScenarios]        = useState<any[]>([]);
   const [loading,          setLoading]          = useState(true);
@@ -329,7 +356,6 @@ export const ScenariosPage = () => {
   const [executeTarget,    setExecuteTarget]    = useState<any | null>(null);
   const [toast,            setToast]            = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
-  // Fix títol de pàgina
   useEffect(() => { document.title = 'Escenaris | APIs Asíncrones'; }, []);
 
   useEffect(() => {
@@ -353,6 +379,7 @@ export const ScenariosPage = () => {
       .then(sc => { setScenarios(Array.isArray(sc) ? sc : []); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
+
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleDelete = async () => {
@@ -366,87 +393,63 @@ export const ScenariosPage = () => {
   };
 
   const openEdit = (s: any) => {
-    setEditScenario({
-      id: s.id, name: s.name || '', architecture: s.architecture || '',
-      protocol: s.protocol || '', platform: s.platform || s.broker || '',
-      duration: s.duration ? String(s.duration) : '',
-      rate: s.rate ? String(s.rate) : '',
-      payloadSize: s.payloadSize ? String(s.payloadSize) : '',
-    });
+    setEditScenario({ id: s.id, name: s.name || '', architecture: s.architecture || '', protocol: s.protocol || '', platform: s.platform || s.broker || '', duration: s.duration ? String(s.duration) : '', rate: s.rate ? String(s.rate) : '', payloadSize: s.payloadSize ? String(s.payloadSize) : '' });
     setShowModal(true);
   };
 
-  const filtered = scenarios.filter(s => {
+  const filtered   = scenarios.filter(s => {
     if (filterArch  !== 'all' && s.architecture !== filterArch)  return false;
     if (filterProto !== 'all' && s.protocol     !== filterProto) return false;
     return true;
   });
-
+  const isFiltered = filterArch !== 'all' || filterProto !== 'all';
   const formatTime = (iso: string) => !iso ? '—' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   const modalInitial = editScenario && !editScenario._prefill ? editScenario : editScenario?._prefill ? { ...EMPTY_FORM, ...editScenario } : EMPTY_FORM;
   const modalMode    = editScenario?.id && !editScenario._prefill ? 'edit' : 'create';
 
-  const th: React.CSSProperties = { padding: '10px 14px', textAlign: 'left', fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', borderBottom: '2px solid var(--border)' };
-  const td: React.CSSProperties = { padding: '12px 14px', fontSize: 14, borderBottom: '1px solid var(--border)', color: 'var(--text-primary)' };
-
-  // Estil select dels filtres
-  const selStyle: React.CSSProperties = {
-    padding: '6px 32px 6px 12px', borderRadius: 6, border: '1px solid var(--border)',
-    background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13,
-    cursor: 'pointer', outline: 'none', appearance: 'none',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
-    minWidth: 140,
-  };
-
   return (
-    <div style={{ padding: 32, maxWidth: 1300, margin: '0 auto', fontFamily: 'system-ui, -apple-system, sans-serif', background: 'var(--bg-main)', minHeight: '100vh', color: 'var(--text-primary)' }}>
-      {showModal    && <ScenarioModal mode={modalMode as 'create' | 'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={fetchData} />}
-      {deleteTarget && <DeleteModal  name={deleteTarget.name || 'aquest escenari'} onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} />}
+    <div style={{ ...S.page, maxWidth: 1300 }}>
+      <style>{GLOBAL_CSS}</style>
+
+      {showModal     && <ScenarioModal mode={modalMode as 'create' | 'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={fetchData} />}
+      {deleteTarget  && <DeleteModal name={deleteTarget.name || 'aquest escenari'} onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} />}
       {executeTarget && <ExecuteModal scenario={executeTarget} onClose={() => { setExecuteTarget(null); fetchData(); }} />}
-      {toast        && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+      {toast         && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Capçalera */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: 'var(--text-primary)' }}>Escenaris de Benchmark</h1>
-          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>Configuracions de càrrega per provar combinacions d'APIs asíncrones</p>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Escenaris de Benchmark</h1>
+          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
+            Configuracions de càrrega per provar combinacions d'APIs asíncrones
+          </p>
         </div>
-        <button
-          onClick={() => { setEditScenario(null); setShowModal(true); }}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--accent)', color: 'white', border: 'none', borderRadius: 8, padding: '10px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer', boxShadow: '0 2px 8px rgba(88,166,255,0.3)' }}
-        >
+        <button onClick={() => { setEditScenario(null); setShowModal(true); }} style={{ ...S.btnPrimary, whiteSpace: 'nowrap' }}>
           <PlusIcon /> Nou Escenari
         </button>
       </div>
 
-      {/* Filtres desplegables */}
-      <div style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 20, flexWrap: 'wrap', background: 'var(--bg-card)', padding: '12px 16px', borderRadius: 8, border: '1px solid var(--border)' }}>
+      {/* Filtres */}
+      <div style={{ ...S.card, marginBottom: 20, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Arquitectura:</span>
-          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-            <select value={filterArch} onChange={e => setFilterArch(e.target.value)} style={selStyle}>
-              <option value="all">Totes</option>
-              {ALL_ARCHITECTURES.map(a => <option key={a} value={a}>{a}</option>)}
-            </select>
-          </div>
+          <select value={filterArch} onChange={e => setFilterArch(e.target.value)} style={selStyle}>
+            <option value="all">Totes</option>
+            {ALL_ARCHITECTURES.map(a => <option key={a} value={a}>{a}</option>)}
+          </select>
         </div>
         <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Protocol:</span>
-          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-            <select value={filterProto} onChange={e => setFilterProto(e.target.value)} style={selStyle}>
-              <option value="all">Tots</option>
-              {ALL_PROTOCOLS.map(p => <option key={p} value={p}>{p}</option>)}
-            </select>
-          </div>
+          <select value={filterProto} onChange={e => setFilterProto(e.target.value)} style={selStyle}>
+            <option value="all">Tots</option>
+            {ALL_PROTOCOLS.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
         </div>
-        {(filterArch !== 'all' || filterProto !== 'all') && (
-          <button
-            onClick={() => { setFilterArch('all'); setFilterProto('all'); }}
-            style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
-          >
+        {isFiltered && (
+          <button onClick={() => { setFilterArch('all'); setFilterProto('all'); }}
+            style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font)' }}>
             <CloseIcon /> Netejar filtres
           </button>
         )}
@@ -454,48 +457,77 @@ export const ScenariosPage = () => {
 
       {/* Taula + Detall */}
       <div style={{ display: 'flex', gap: 20 }}>
-        <div style={{ background: 'var(--bg-card)', borderRadius: 10, border: '1px solid var(--border)', overflow: 'hidden', flex: selectedScenario ? 2 : 1, boxShadow: '0 1px 4px rgba(0,0,0,0.15)' }}>
-          <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span>{filtered.length} escenari{filtered.length !== 1 ? 's' : ''}</span>
-            <button onClick={fetchData} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>Actualitzar</button>
+        <div style={{ ...S.card, padding: 0, overflow: 'hidden', flex: selectedScenario ? 2 : 1 }}>
+          <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '—' : filtered.length}</span>
+              <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>escenari{filtered.length !== 1 ? 's' : ''}</span>
+              {isFiltered && !loading && (
+                <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10 }}>
+                  de {scenarios.length} totals
+                </span>
+              )}
+            </div>
+            <button onClick={fetchData} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}>
+              <RefreshIcon /> Actualitzar
+            </button>
           </div>
-          {loading && <p style={{ color: 'var(--text-secondary)', padding: 48, textAlign: 'center', margin: 0 }}>Carregant escenaris...</p>}
-          {error   && <p style={{ color: 'var(--error)', padding: 16, margin: 0 }}>Error: {error}</p>}
-          {!loading && !error && (
+
+          {error && <p style={{ color: 'var(--error)', padding: '12px 18px', margin: 0 }}>Error: {error}</p>}
+
+          <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ background: 'var(--bg-main)' }}>
-                  <th style={th}>Nom</th>
-                  <th style={th}>Arquitectura</th>
-                  <th style={th}>Protocol</th>
-                  <th style={th}>Plataforma</th>
-                  <th style={{ ...th, textAlign: 'center' }}>Estat</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Creat</th>
-                  <th style={{ ...th, textAlign: 'center', width: 140 }}>Accions</th>
+                <tr style={S.tableHeader}>
+                  <th style={S.th}>Nom</th>
+                  <th style={S.th}>Arquitectura</th>
+                  <th style={S.th}>Protocol</th>
+                  <th style={S.th}>Plataforma</th>
+                  <th style={{ ...S.th, textAlign: 'center' }}>Estat</th>
+                  <th style={{ ...S.th, textAlign: 'right' }}>Creat</th>
+                  <th style={{ ...S.th, textAlign: 'center', width: 140 }}>Accions</th>
                 </tr>
               </thead>
               <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={7} style={{ padding: 60, textAlign: 'center', color: 'var(--text-secondary)' }}>Cap escenari trobat. Crea'n un amb el botó de dalt.</td></tr>
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} delay={i * 0.08} />)
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} style={{ padding: 60, textAlign: 'center' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+                        <EmptyIcon />
+                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Cap escenari trobat</div>
+                        <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+                          {isFiltered ? 'Prova a canviar els filtres.' : "Crea'n un amb el botó de dalt."}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
                 ) : filtered.map((s, i) => {
                   const st = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
                   return (
-                    <tr
-                      key={s.id || i}
-                      style={{ background: selectedScenario?.id === s.id ? 'var(--accent-bg)' : hoveredRow === i ? 'var(--bg-hover)' : 'transparent', cursor: 'pointer' }}
-                      onMouseEnter={() => setHoveredRow(i)}
-                      onMouseLeave={() => setHoveredRow(null)}
+                    <tr key={s.id || i}
+                      style={{ ...S.tableRow, background: selectedScenario?.id === s.id ? 'var(--bg-hover)' : hoveredRow === i ? 'var(--bg-hover)' : 'transparent', cursor: 'pointer' }}
+                      onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}
                       onClick={() => setSelectedScenario(s)}
                     >
-                      <td style={{ ...td, fontWeight: 600 }}>{s.name || '—'}</td>
-                      <td style={td}>{s.architecture ? <span style={{ background: 'rgba(88,166,255,0.15)', color: 'var(--accent)', padding: '2px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600 }}>{s.architecture}</span> : '—'}</td>
-                      <td style={td}>{s.protocol     ? <span style={{ background: 'rgba(63,185,80,0.15)',  color: 'var(--success)', padding: '2px 9px', borderRadius: 5, fontSize: 12, fontWeight: 600 }}>{s.protocol}</span>     : '—'}</td>
-                      <td style={{ ...td, color: 'var(--text-secondary)' }}>{s.platform || s.broker || '—'}</td>
-                      <td style={{ ...td, textAlign: 'center' }}><span style={{ background: st.color + '22', color: st.color, padding: '2px 9px', borderRadius: 5, fontSize: 11, fontWeight: 700 }}>{st.label}</span></td>
-                      <td style={{ ...td, textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>{formatTime(s.createdAt)}</td>
-                      <td style={{ ...td, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                      <td style={{ ...S.td, fontWeight: 600 }}>{s.name || '—'}</td>
+                      <td style={S.td}>
+                        {s.architecture ? <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{s.architecture}</span> : '—'}
+                      </td>
+                      <td style={S.td}>
+                        {s.protocol ? <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{s.protocol}</span> : '—'}
+                      </td>
+                      <td style={{ ...S.td, color: 'var(--text-secondary)' }}>{s.platform || s.broker || '—'}</td>
+                      <td style={{ ...S.td, textAlign: 'center' }}>
+                        <span style={{ ...S.badge(st.color), fontSize: 11 }}>{st.label}</span>
+                      </td>
+                      <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                        {formatTime(s.createdAt)}
+                      </td>
+                      <td style={{ ...S.td, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                          <button title="Executar a AKS" onClick={() => setExecuteTarget(s)} style={{ background: 'rgba(63,185,80,0.12)', border: '1px solid var(--success)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--success)' }}><PlayIcon /></button>
+                          <button title="Executar a AKS" onClick={() => setExecuteTarget(s)} style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-fg)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--badge-green-fg)' }}><PlayIcon /></button>
                           <button title="Editar"         onClick={() => openEdit(s)}          style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}><EditIcon /></button>
                           <button title="Eliminar"       onClick={() => setDeleteTarget(s)}   style={{ background: 'none', border: '1px solid var(--error)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--error)' }}><TrashIcon /></button>
                         </div>
@@ -505,8 +537,9 @@ export const ScenariosPage = () => {
                 })}
               </tbody>
             </table>
-          )}
+          </div>
         </div>
+
         {selectedScenario && (
           <ScenarioDetail
             scenario={selectedScenario}

@@ -1,39 +1,127 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import { S, GLOBAL_CSS } from '../../theme';
 
 const METRICS_BASE   = '/api/proxy/metrics-api';
 const SCENARIOS_BASE = '/api/proxy/scenario-service';
 const ORCHESTRATOR   = '/api/proxy/benchmark-orchestrator';
 
-// ── Icones SVG ────────────────────────────────────────────────────────────────
-const IconActivity  = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
-const IconHistory   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-const IconSignal    = () => <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="2" y1="20" x2="2" y2="20"/><line x1="7" y1="15" x2="7" y2="20"/><line x1="12" y1="10" x2="12" y2="20"/><line x1="17" y1="5" x2="17" y2="20"/><line x1="22" y1="2" x2="22" y2="20"/></svg>;
-const IconBarChart2 = () => <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>;
-const IconZap       = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
-const IconTrophy    = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 22V18"/><path d="M14 22V18"/><rect x="6" y="2" width="12" height="13" rx="2"/></svg>;
-const IconHash      = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg>;
-const IconRefresh   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>;
+const SK_STYLE = {
+  background: 'linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%)',
+  backgroundSize: '200% 100%',
+  animation: 'shimmer 1.5s ease-in-out infinite',
+  borderRadius: 4,
+};
 
-// ── Gràfic de barres ──────────────────────────────────────────────────────────
-const BarChart = ({ data, title, unit = '', color = 'var(--accent)', height = 140 }: {
+const IconBarChartEmpty = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round">
+    <rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/>
+  </svg>
+);
+const IconSignalEmpty = () => (
+  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round">
+    <path d="M2 12a10 10 0 0 1 20 0"/><path d="M6 12a6 6 0 0 1 12 0"/>
+    <path d="M10 12a2 2 0 0 1 4 0"/><circle cx="12" cy="12" r="1"/>
+  </svg>
+);
+const IconHash = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/>
+    <line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
+  </svg>
+);
+const IconZap = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+  </svg>
+);
+const IconTrophy = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="8 22 12 17 16 22"/><line x1="12" y1="17" x2="12" y2="11"/>
+    <path d="M6.5 4H17.5L17 9a5 5 0 0 1-10 0z"/>
+    <path d="M6.5 4c-.5 2.5-1.5 4-3.5 4"/><path d="M17.5 4c.5 2.5 1.5 4 3.5 4"/>
+  </svg>
+);
+const IconPulse = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+  </svg>
+);
+const IconClock2 = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+  </svg>
+);
+const IconTrophySmall = () => (
+  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <polyline points="8 22 12 17 16 22"/><line x1="12" y1="17" x2="12" y2="11"/>
+    <path d="M6.5 4H17.5L17 9a5 5 0 0 1-10 0z"/>
+  </svg>
+);
+const IconFilter = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+  </svg>
+);
+
+// ── BarChart with hover tooltip ────────────────────────────────────────────────
+const BarChart = ({ data, title, unit = '', color = '#3b82f6', height = 140 }: {
   data: { label: string; value: number }[];
   title: string; unit?: string; color?: string; height?: number;
 }) => {
-  if (!data.length) return <div style={{ textAlign: 'center', color: 'var(--text-secondary)', padding: 24, fontSize: 13 }}>Sense dades</div>;
+  const [hovered, setHovered] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  if (!data.length) return <div style={{ textAlign: 'center', color: 'var(--text-disabled)', padding: 24, fontSize: 13 }}>Sense dades</div>;
+
   const W = 480, max = Math.max(...data.map(d => d.value), 0.01);
   const barW = Math.max(20, (W - 16 - data.length * 6) / data.length);
+
   return (
-    <div>
-      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{title}</div>
-      <svg width="100%" viewBox={`0 0 ${W} ${height + 44}`} style={{ overflow: 'visible' }}>
-        {[0.25, 0.5, 0.75, 1].map(f => <line key={f} x1={8} y1={height - f * height} x2={W - 8} y2={height - f * height} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 2"/>)}
+    <div style={{ position: 'relative' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>{title}</div>
+      {hovered !== null && data[hovered] && (
+        <div style={{ position: 'absolute', left: tooltipPos.x, top: tooltipPos.y, transform: 'translate(-50%, -100%)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', boxShadow: 'var(--shadow-md)', pointerEvents: 'none', whiteSpace: 'nowrap', zIndex: 10, fontFamily: 'var(--font-mono)' }}>
+          <span style={{ color }}>{data[hovered].value.toFixed(2)}{unit}</span>
+          <span style={{ color: 'var(--text-secondary)', fontWeight: 500, marginLeft: 6 }}>{data[hovered].label}</span>
+        </div>
+      )}
+      <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${height + 48}`} style={{ overflow: 'visible' }}>
+        <defs>
+          <linearGradient id={`bg-${title.replace(/\s/g,'-')}`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.9"/>
+            <stop offset="100%" stopColor={color} stopOpacity="0.55"/>
+          </linearGradient>
+        </defs>
+        {[0.25, 0.5, 0.75, 1].map(f => (
+          <line key={f} x1={8} y1={height - f * height} x2={W - 8} y2={height - f * height} stroke="var(--border)" strokeWidth="1" strokeDasharray="4 3"/>
+        ))}
+        {[0.5, 1].map(f => (
+          <text key={f} x={6} y={height - f * height - 3} fontSize="9" fill="var(--text-disabled)" textAnchor="start">
+            {(max * f).toFixed(max > 100 ? 0 : 1)}{unit}
+          </text>
+        ))}
         {data.map((d, i) => {
           const bh = (d.value / max) * height, x = 8 + i * (barW + 6), y = height - bh;
-          return <g key={i}>
-            <rect x={x} y={y} width={barW} height={bh} fill={color} rx={3} opacity={0.85}/>
-            <text x={x + barW / 2} y={y - 5} textAnchor="middle" fontSize="10" fill="var(--text-secondary)" fontWeight="600">{d.value > 0 ? `${d.value.toFixed(1)}${unit}` : ''}</text>
-            <text x={x + barW / 2} y={height + 14} textAnchor="middle" fontSize="9" fill="var(--text-disabled)">{d.label.length > 12 ? d.label.slice(0, 11) + '…' : d.label}</text>
-          </g>;
+          const isHov = hovered === i;
+          return (
+            <g key={i} style={{ cursor: 'crosshair' }}
+              onMouseEnter={e => {
+                setHovered(i);
+                const svg = svgRef.current;
+                if (!svg) return;
+                const rect = svg.getBoundingClientRect();
+                setTooltipPos({ x: (x + barW / 2) * (rect.width / W), y: y * (rect.width / W) - 8 });
+              }}
+              onMouseLeave={() => setHovered(null)}
+            >
+              {isHov && <rect x={x - 2} y={0} width={barW + 4} height={height} fill={color} opacity={0.06} rx={4}/>}
+              <rect x={x} y={y} width={barW} height={bh} fill={`url(#bg-${title.replace(/\s/g,'-')})`} rx={3} opacity={isHov ? 1 : 0.82} style={{ transition: 'opacity 0.15s' }}/>
+              <text x={x + barW / 2} y={height + 14} textAnchor="middle" fontSize="9" fill={isHov ? 'var(--text-secondary)' : 'var(--text-disabled)'}>
+                {d.label.length > 13 ? d.label.slice(0, 12) + '…' : d.label}
+              </text>
+            </g>
+          );
         })}
         <line x1={8} y1={height} x2={W - 8} y2={height} stroke="var(--border)" strokeWidth="1.5"/>
       </svg>
@@ -41,314 +129,402 @@ const BarChart = ({ data, title, unit = '', color = 'var(--accent)', height = 14
   );
 };
 
-// ── Gràfic de línia live ──────────────────────────────────────────────────────
-const LiveLineChart = ({ data, color = 'var(--accent)', label }: { data: number[]; color?: string; label: string }) => {
-  if (data.length < 2) return <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: 12, padding: '8px 0' }}>Esperant dades...</div>;
-  const W = 480, H = 80, max = Math.max(...data, 0.01);
-  const pts = data.map((v, i) => `${data.length < 2 ? W / 2 : (i / (data.length - 1)) * (W - 20) + 10},${H - (v / max) * (H - 10) - 4}`).join(' ');
+// ── LiveLineChart with gradient + cursor tooltip ───────────────────────────────
+const LiveLineChart = ({ data, color = '#3b82f6', label }: { data: number[]; color?: string; label: string }) => {
+  const [cursorX, setCursorX] = useState<number | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  if (data.length < 2) return <div style={{ textAlign: 'center', color: 'var(--text-disabled)', fontSize: 12, padding: '12px 0' }}>Esperant dades...</div>;
+
+  const W = 480, H = 90, max = Math.max(...data, 0.01);
+  const px2 = (i: number) => (i / (data.length - 1)) * (W - 20) + 10;
+  const py2 = (v: number) => H - 8 - (v / max) * (H - 16);
+  const pts = data.map((v, i) => `${px2(i)},${py2(v)}`).join(' ');
+  const last = `${px2(data.length - 1)},${H}`;
+  const fillPts = [`${px2(0)},${H}`, ...data.map((v, i) => `${px2(i)},${py2(v)}`), last].join(' ');
+  const gradId = 'lg-' + label.replace(/\s/g, '-');
+
+  let hovIdx: number | null = null;
+  if (cursorX !== null && svgRef.current) {
+    const rect = svgRef.current.getBoundingClientRect();
+    hovIdx = Math.round(((cursorX - rect.left) * (W / rect.width) - 10) / (W - 20) * (data.length - 1));
+    hovIdx = Math.max(0, Math.min(data.length - 1, hovIdx));
+  }
+  const hovVal = hovIdx !== null ? data[hovIdx] : data[data.length - 1];
+  const hovX   = hovIdx !== null ? px2(hovIdx)  : px2(data.length - 1);
+  const hovY   = hovIdx !== null ? py2(hovVal)  : py2(data[data.length - 1]);
+
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>{label}</span>
-        <span style={{ fontSize: 13, fontFamily: 'monospace', fontWeight: 700, color }}>{data[data.length - 1].toFixed(2)}</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <span style={{ fontSize: 11, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>{label}</span>
+        <span style={{ fontSize: 14, fontFamily: 'var(--font-mono)', fontWeight: 700, color, letterSpacing: '-0.02em' }}>{hovVal.toFixed(2)}</span>
       </div>
-      <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible' }}>
-        <polyline points={pts} fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round"/>
+      <svg ref={svgRef} width="100%" viewBox={`0 0 ${W} ${H}`} style={{ overflow: 'visible', display: 'block', cursor: 'crosshair' }}
+        onMouseMove={e => setCursorX(e.clientX)} onMouseLeave={() => setCursorX(null)}>
+        <defs>
+          <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22"/>
+            <stop offset="100%" stopColor={color} stopOpacity="0.02"/>
+          </linearGradient>
+        </defs>
+        <polygon points={fillPts} fill={'url(#' + gradId + ')'}/>
+        <polyline points={pts} fill="none" stroke={color} strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round"/>
+        {cursorX !== null && hovIdx !== null && (
+          <>
+            <line x1={hovX} y1={0} x2={hovX} y2={H} stroke={color} strokeWidth="1" strokeDasharray="3 3" opacity={0.5}/>
+            <circle cx={hovX} cy={hovY} r={4} fill={color} stroke="var(--bg-card)" strokeWidth="2"/>
+            <rect x={hovX + 8} y={hovY - 18} width={72} height={20} rx={5} fill="var(--bg-card)" stroke="var(--border)" strokeWidth="1"/>
+            <text x={hovX + 44} y={hovY - 4} textAnchor="middle" fontSize="10" fontWeight="700" fill={color} fontFamily="monospace">{hovVal.toFixed(2)}</text>
+          </>
+        )}
       </svg>
     </div>
   );
 };
 
-// ── Tab Historial ─────────────────────────────────────────────────────────────
+// ── FilterChip ────────────────────────────────────────────────────────────────
+const FilterChip = ({ label, active, onClick, color }: { label: string; active: boolean; onClick: () => void; color?: string }) => (
+  <button onClick={onClick} style={{ ...S.chip(active, color), fontSize: 12 }}>{label}</button>
+);
+
+// ── HistorialTab ───────────────────────────────────────────────────────────────
 const HistorialTab = () => {
-  const [summary,   setSummary]   = useState<any[]>([]);
-  const [scenarios, setScenarios] = useState<any[]>([]);
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState('');
+  const [summary,        setSummary]        = useState<any[]>([]);
+  const [scenarios,      setScenarios]      = useState<any[]>([]);
+  const [loading,        setLoading]        = useState(false);
+  const [filterPlatform, setFilterPlatform] = useState<string[]>([]);
+  const [filterProtocol, setFilterProtocol] = useState<string[]>([]);
+  const [filterArch,     setFilterArch]     = useState<string[]>([]);
+  const [filtersOpen,    setFiltersOpen]    = useState(false);
 
   const fetchData = useCallback(async () => {
-    setLoading(true); setError('');
+    setLoading(true);
     try {
-      const [sumRes, scRes] = await Promise.all([
-        fetch(`${METRICS_BASE}/metrics/summary`).then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`)),
-        fetch(`${SCENARIOS_BASE}/scenarios`).then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`)),
-      ]);
+      const sumRes = await fetch(`${METRICS_BASE}/metrics/summary`).then(r => r.json());
+      const scRes  = await fetch(`${SCENARIOS_BASE}/scenarios`).then(r => r.json());
       setSummary(Array.isArray(sumRes) ? sumRes : []);
       setScenarios(Array.isArray(scRes) ? scRes : []);
-    } catch (e: any) {
-      setError(typeof e === 'string' ? e : (e.message || 'Error desconegut'));
-    }
+    } catch (_) {}
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const nameMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s.name || s.id?.slice(0, 8)]));
-  const lat  = summary.map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 8) || '?', value: s.avgLatency    ?? 0 }));
-  const tput = summary.map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 8) || '?', value: s.avgThroughput ?? 0 }));
-  const err  = summary.map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 8) || '?', value: s.avgErrorRate  ?? 0 }));
+  const nameMap        = Object.fromEntries(scenarios.map((s: any) => [s.id, s.name || s.id?.slice(0, 8)]));
+  const availPlatforms = [...new Set(summary.map((s: any) => s.platform  || s.broker || '').filter(Boolean))];
+  const availProtocols = [...new Set(summary.map((s: any) => s.protocol  || '').filter(Boolean))];
+  const availArchs     = [...new Set(summary.map((s: any) => s.architecture || '').filter(Boolean))];
 
-  const card: React.CSSProperties = { background: 'var(--bg-card)', borderRadius: 10, border: '1px solid var(--border)', padding: 20, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' };
+  const toggle = (list: string[], set: (v: string[]) => void, val: string) =>
+    set(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
 
-  if (loading) return <p style={{ color: 'var(--text-secondary)', textAlign: 'center', padding: 48 }}>Carregant...</p>;
+  const filteredSummary = summary.filter(s => {
+    if (filterPlatform.length && !filterPlatform.includes(s.platform || s.broker || '')) return false;
+    if (filterProtocol.length && !filterProtocol.includes(s.protocol || ''))             return false;
+    if (filterArch.length     && !filterArch.includes(s.architecture || ''))             return false;
+    return true;
+  });
 
-  if (error) return (
-    <div style={{ ...card, textAlign: 'center', padding: 48 }}>
-      <div style={{ color: 'var(--error)', marginBottom: 8, fontSize: 14, fontWeight: 600 }}>Error carregant les mètriques</div>
-      <div style={{ color: 'var(--text-secondary)', fontSize: 13, marginBottom: 16 }}>{error}</div>
-      <button onClick={fetchData} style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-main)', color: 'var(--text-primary)', cursor: 'pointer', fontSize: 12 }}>Torna a intentar</button>
+  const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length;
+  const clearFilters  = () => { setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]); };
+
+  if (loading) return (
+    <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 24 }}>
+        {[0,1,2].map(i => (
+          <div key={i} style={{ ...S.card }}>
+            <div style={{ ...SK_STYLE, height: 18, width: 18, borderRadius: '50%', marginBottom: 12 }}/>
+            <div style={{ ...SK_STYLE, height: 22, width: '55%', marginBottom: 8, animationDelay: `${i*0.1}s` }}/>
+            <div style={{ ...SK_STYLE, height: 10, width: '75%', animationDelay: `${i*0.15}s` }}/>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        {[0,1].map(i => (
+          <div key={i} style={{ ...S.card }}>
+            <div style={{ ...SK_STYLE, height: 10, width: '45%', marginBottom: 14 }}/>
+            <div style={{ ...SK_STYLE, height: 130, width: '100%' }}/>
+          </div>
+        ))}
+      </div>
     </div>
   );
 
   if (!summary.length) return (
-    <div style={{ ...card, textAlign: 'center', padding: 64 }}>
-      <div style={{ color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IconBarChart2 /></div>
+    <div style={{ ...S.card, textAlign: 'center', padding: 64 }}>
+      <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IconBarChartEmpty /></div>
       <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600 }}>Encara no hi ha resultats</div>
       <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>Executa escenaris per veure les comparatives aquí.</div>
     </div>
   );
 
-  const best     = [...summary].sort((a, b) => (a.avgLatency ?? 999) - (b.avgLatency ?? 999))[0];
+  const sorted   = [...filteredSummary].sort((a, b) => (a.avgLatency ?? 999) - (b.avgLatency ?? 999));
+  const best     = sorted[0];
   const bestName = nameMap[best?.scenarioId] || best?.scenarioId?.slice(0, 8) || '—';
+  const statCards = [
+    { label: 'Escenaris comparats', value: String(filteredSummary.length), color: '#3b82f6', Icon: IconHash },
+    { label: 'Millor latència',     value: best ? `${best.avgLatency?.toFixed(1)}ms` : '—', color: '#22c55e', Icon: IconZap },
+    { label: 'Millor escenari',     value: bestName, color: '#f59e0b', Icon: IconTrophy },
+  ];
+
+  const lat  = filteredSummary.map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 8) || '?', value: s.avgLatency   ?? 0 }));
+  const tput = filteredSummary.map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 8) || '?', value: s.avgThroughput ?? 0 }));
+  const err  = filteredSummary.map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 8) || '?', value: s.avgErrorRate  ?? 0 }));
 
   return (
     <div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 16, marginBottom: 28 }}>
-        {[
-          { label: 'Escenaris comparats', value: String(summary.length),                      color: 'var(--accent)',   icon: <IconHash /> },
-          { label: 'Millor latència',     value: `${best?.avgLatency?.toFixed(1) ?? '—'}ms`, color: 'var(--success)', icon: <IconZap /> },
-          { label: 'Millor escenari',     value: bestName,                                    color: 'var(--warning)', icon: <IconTrophy /> },
-        ].map(c => (
-          <div key={c.label} style={{ ...card, padding: '20px 24px' }}>
-            <div style={{ color: c.color, marginBottom: 8 }}>{c.icon}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: c.color, fontFamily: 'monospace' }}>{c.value}</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.label}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 14, marginBottom: 20 }}>
+        {statCards.map(c => (
+          <div key={c.label} style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 40, height: 40, borderRadius: 10, background: c.color + '14', color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><c.Icon /></div>
+            <div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-mono)' }}>{c.value}</div>
+              <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 2, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{c.label}</div>
+            </div>
           </div>
         ))}
       </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-        <div style={card}><BarChart data={lat}  title="Latència mitjana (ms)"    unit="ms" color="var(--warning)" /></div>
-        <div style={card}><BarChart data={tput} title="Throughput mitjà (msg/s)" unit=""   color="var(--success)" /></div>
-      </div>
-      <div style={{ ...card, marginBottom: 20 }}>
-        <BarChart data={err} title="Taxa d'error mitjana (%)" unit="%" color="var(--error)" height={100}/>
-      </div>
-      <div style={{ ...card, padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Taula comparativa</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr>
-              {['Escenari', 'Arquitectura', 'Protocol', 'Broker', 'Latència avg', 'Throughput avg', 'Error rate', 'Mostres'].map(h => (
-                <th key={h} style={{ padding: '10px 14px', textAlign: h === 'Escenari' ? 'left' : 'right', fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '2px solid var(--border)', background: 'var(--bg-main)' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {summary.map((s, i) => (
-              <tr key={i} style={{ borderBottom: '1px solid var(--border)', background: i === 0 ? 'rgba(63,185,80,0.06)' : 'transparent' }}>
-                <td style={{ padding: '11px 14px', fontWeight: 600, color: 'var(--text-primary)', fontSize: 13 }}>
-                  {i === 0 && <span style={{ marginRight: 6, color: 'var(--warning)' }}>★</span>}
-                  {nameMap[s.scenarioId] || s.scenarioId?.slice(0, 12)}
-                </td>
-                <td style={{ padding: '11px 14px', textAlign: 'right' }}>
-                  {s.architecture ? <span style={{ background: 'rgba(88,166,255,0.15)', color: 'var(--accent)', padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{s.architecture}</span> : '—'}
-                </td>
-                <td style={{ padding: '11px 14px', textAlign: 'right' }}>
-                  {s.protocol ? <span style={{ background: 'rgba(63,185,80,0.15)', color: 'var(--success)', padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600 }}>{s.protocol}</span> : '—'}
-                </td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', color: 'var(--text-secondary)', fontSize: 13 }}>{s.broker || '—'}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: 'var(--warning)' }}>{s.avgLatency?.toFixed(2) ?? '—'}ms</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: 'var(--success)' }}>{s.avgThroughput?.toFixed(1) ?? '—'}</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', fontFamily: 'monospace', fontSize: 13, fontWeight: 600, color: 'var(--error)' }}>{s.avgErrorRate?.toFixed(3) ?? '—'}%</td>
-                <td style={{ padding: '11px 14px', textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)' }}>{s.count}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-        <button onClick={fetchData} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>
-          <IconRefresh /> Actualitzar
-        </button>
-      </div>
-    </div>
-  );
-};
 
-// ── Tab Live ──────────────────────────────────────────────────────────────────
-const LiveTab = () => {
-  const [activeRuns,    setActiveRuns]    = useState<any[]>([]);
-  const [selectedRunId, setSelectedRunId] = useState('');
-  const [wsStatus,      setWsStatus]      = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
-  const [metrics,       setMetrics]       = useState<any[]>([]);
-  const wsRef      = useRef<WebSocket | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  const fetchActive = useCallback(() => {
-    fetch(`${ORCHESTRATOR}/runs/active`)
-      .then(r => r.json())
-      .then(d => { if (Array.isArray(d)) setActiveRuns(d); })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => { fetchActive(); const i = setInterval(fetchActive, 5000); return () => clearInterval(i); }, [fetchActive]);
-  useEffect(() => { if (!selectedRunId && activeRuns.length > 0) setSelectedRunId(activeRuns[0].id); }, [activeRuns, selectedRunId]);
-
-  useEffect(() => {
-    if (!selectedRunId) return;
-    wsRef.current?.close();
-    if (pollingRef.current) clearInterval(pollingRef.current);
-    setWsStatus('connecting');
-    setMetrics([]);
-
-    let wsWorked = false;
-
-    function startPolling() {
-      setWsStatus('connected');
-      pollingRef.current = setInterval(async () => {
-        try {
-          const res = await fetch(`${METRICS_BASE}/metrics?runId=${selectedRunId}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (Array.isArray(data) && data.length > 0) setMetrics(data.slice(-120));
-          }
-        } catch (_) {}
-      }, 3000);
-    }
-
-    try {
-      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const ws = new WebSocket(`${proto}//${window.location.host}/api/proxy/metrics-api`);
-      wsRef.current = ws;
-      const timeout = setTimeout(() => { if (!wsWorked) { ws.close(); startPolling(); } }, 4000);
-      ws.onopen    = () => { clearTimeout(timeout); wsWorked = true; setWsStatus('connected'); ws.send(JSON.stringify({ action: 'subscribe', runId: selectedRunId })); };
-      ws.onmessage = e => { try { const m = JSON.parse(e.data); if (m.event === 'metric' && m.data) setMetrics(p => [...p.slice(-120), m.data]); } catch (_) {} };
-      ws.onerror   = () => { if (!wsWorked) startPolling(); else setWsStatus('error'); };
-      ws.onclose   = () => { if (wsWorked) setWsStatus('disconnected'); };
-    } catch (_) { startPolling(); }
-
-    return () => { wsRef.current?.close(); if (pollingRef.current) clearInterval(pollingRef.current); };
-  }, [selectedRunId]);
-
-  const lat  = metrics.map(m => m.latency    ?? 0);
-  const tput = metrics.map(m => m.throughput ?? 0);
-  const err  = metrics.map(m => m.errorRate  ?? 0);
-  const avg  = (a: number[]) => a.length ? (a.reduce((s, v) => s + v, 0) / a.length).toFixed(2) : '—';
-
-  const wsC = { disconnected: 'var(--text-secondary)', connecting: 'var(--warning)', connected: 'var(--success)', error: 'var(--error)' };
-  const wsL = { disconnected: 'Desconnectat', connecting: 'Connectant...', connected: 'Connectat', error: 'Error' };
-  const sel = activeRuns.find(r => r.id === selectedRunId);
-  const card: React.CSSProperties = { background: 'var(--bg-card)', borderRadius: 10, border: '1px solid var(--border)', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' };
-
-  return (
-    <div>
-      <div style={{ ...card, padding: '16px 20px', marginBottom: 20, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>Escenari en execució</div>
-          {activeRuns.length === 0
-            ? <div style={{ color: 'var(--text-secondary)', fontSize: 14 }}>Cap escenari actiu ara mateix.</div>
-            : <select value={selectedRunId} onChange={e => setSelectedRunId(e.target.value)} style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 14, width: '100%', maxWidth: 360, background: 'var(--bg-input)', color: 'var(--text-primary)' }}>
-                {activeRuns.map(r => <option key={r.id} value={r.id}>{r.scenarioName || r.id.slice(0, 12)} — {r.protocol || '?'} / {r.architecture || '?'}</option>)}
-              </select>}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: wsC[wsStatus], display: 'inline-block', boxShadow: wsStatus === 'connected' ? `0 0 6px ${wsC.connected}` : 'none' }}/>
-          <span style={{ fontSize: 13, color: wsC[wsStatus], fontWeight: 600 }}>{wsL[wsStatus]}</span>
-        </div>
-        {sel && <div style={{ display: 'flex', gap: 8 }}>
-          {sel.protocol     && <span style={{ background: 'rgba(63,185,80,0.15)',   color: 'var(--success)', padding: '3px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600 }}>{sel.protocol}</span>}
-          {sel.architecture && <span style={{ background: 'rgba(88,166,255,0.15)',  color: 'var(--accent)',  padding: '3px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600 }}>{sel.architecture}</span>}
-          {sel.platform     && <span style={{ background: 'rgba(188,140,255,0.15)', color: 'var(--special)', padding: '3px 10px', borderRadius: 5, fontSize: 12, fontWeight: 600 }}>{sel.platform}</span>}
-        </div>}
-      </div>
-
-      {activeRuns.length === 0 ? (
-        <div style={{ ...card, padding: 64, textAlign: 'center' }}>
-          <div style={{ color: 'var(--text-secondary)', marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IconSignal /></div>
-          <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600 }}>Cap execució activa</div>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, maxWidth: 360, margin: '8px auto 0' }}>
-            Inicia un escenari des de la pàgina <strong>Escenaris</strong> i aquí apareixeran les mètriques en temps real.
+      {(availPlatforms.length > 0 || availProtocols.length > 0 || availArchs.length > 0) && (
+        <div style={{ ...S.card, marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button onClick={() => setFiltersOpen(o => !o)} style={{ ...S.btn, fontSize: 13, padding: '6px 14px', border: 'none', background: 'none', paddingLeft: 0 }}>
+              <IconFilter /> Filtres
+              {activeFilters > 0 && <span style={{ background: 'var(--accent)', color: 'white', borderRadius: '50%', width: 18, height: 18, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>{activeFilters}</span>}
+            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {filteredSummary.length !== summary.length && <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Mostrant <strong>{filteredSummary.length}</strong> de {summary.length}</span>}
+              {activeFilters > 0 && <button onClick={clearFilters} style={{ ...S.btn, fontSize: 12, padding: '5px 12px', color: 'var(--error)', borderColor: 'var(--error)' }}>Esborra tots</button>}
+            </div>
           </div>
-        </div>
-      ) : <>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 16, marginBottom: 20 }}>
-          {[
-            { l: 'Mostres rebudes',    v: String(metrics.length), c: 'var(--accent)' },
-            { l: 'Latència avg (ms)',  v: avg(lat),               c: 'var(--warning)' },
-            { l: 'Throughput avg',     v: avg(tput),              c: 'var(--success)' },
-            { l: 'Error rate avg (%)', v: avg(err),               c: 'var(--error)' },
-          ].map(c => (
-            <div key={c.l} style={{ ...card, padding: '18px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: 26, fontWeight: 800, color: c.c, fontFamily: 'monospace' }}>{c.v}</div>
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{c.l}</div>
+          {filtersOpen && (
+            <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {availPlatforms.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Plataforma</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{availPlatforms.map(p => <FilterChip key={p} label={p} active={filterPlatform.includes(p)} color="#d97706" onClick={() => toggle(filterPlatform, setFilterPlatform, p)}/>)}</div>
+                </div>
+              )}
+              {availProtocols.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Protocol</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{availProtocols.map(p => <FilterChip key={p} label={p} active={filterProtocol.includes(p)} color="#16a34a" onClick={() => toggle(filterProtocol, setFilterProtocol, p)}/>)}</div>
+                </div>
+              )}
+              {availArchs.length > 0 && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Arquitectura</div>
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>{availArchs.map(a => <FilterChip key={a} label={a} active={filterArch.includes(a)} color="#2563eb" onClick={() => toggle(filterArch, setFilterArch, a)}/>)}</div>
+                </div>
+              )}
             </div>
-          ))}
+          )}
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-          {[
-            { data: lat,  color: 'var(--warning)', label: 'Latència (ms)' },
-            { data: tput, color: 'var(--success)', label: 'Throughput (msg/s)' },
-            { data: err,  color: 'var(--error)',   label: 'Error rate (%)' },
-          ].map(c => (
-            <div key={c.label} style={{ ...card, padding: 16 }}>
-              <LiveLineChart data={c.data} color={c.color} label={c.label}/>
+      )}
+
+      {filteredSummary.length === 0 ? (
+        <div style={{ ...S.card, textAlign: 'center', padding: 40 }}>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Cap resultat coincideix amb els filtres actuals.</div>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ ...S.card }}><BarChart data={lat}  title="Latència mitjana (ms)"   unit="ms" color="#f59e0b"/></div>
+            <div style={{ ...S.card }}><BarChart data={tput} title="Throughput mitjà (msg/s)" unit=""   color="#22c55e"/></div>
+          </div>
+          <div style={{ ...S.card, marginBottom: 16 }}><BarChart data={err} title="Taxa d'error mitjana (%)" unit="%" color="#ef4444" height={100}/></div>
+          <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
+            <div style={{ padding: '12px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Taula comparativa</span>
+              <button onClick={fetchData} style={{ ...S.btn, fontSize: 12, padding: '5px 12px' }}>Actualitzar</button>
             </div>
-          ))}
-        </div>
-        {metrics.length > 0 && (
-          <div style={{ ...card, overflow: 'hidden', marginTop: 20 }}>
-            <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>Últimes mètriques</div>
-            <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+            <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'var(--bg-main)' }}>
-                    {['Hora', 'Latència', 'Throughput', 'Errors (%)'].map(h => (
-                      <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Hora' ? 'left' : 'right', fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase' }}>{h}</th>
+                  <tr style={S.tableHeader}>
+                    {['Escenari','Arquitectura','Protocol','Plataforma','Latència avg','Throughput avg','Error rate','Mostres'].map(h => (
+                      <th key={h} style={{ ...S.th }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {[...metrics].reverse().slice(0, 50).map((m, i) => (
-                    <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '7px 14px', fontFamily: 'monospace', fontSize: 12, color: 'var(--text-secondary)' }}>{m.timestamp ? new Date(m.timestamp).toLocaleTimeString('ca-ES') : '—'}</td>
-                      <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--warning)', fontWeight: 600 }}>{m.latency?.toFixed(2) ?? '—'}</td>
-                      <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--success)', fontWeight: 600 }}>{m.throughput?.toFixed(2) ?? '—'}</td>
-                      <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: 'monospace', fontSize: 12, color: 'var(--error)', fontWeight: 600 }}>{m.errorRate?.toFixed(3) ?? '—'}</td>
+                  {sorted.map((s, i) => (
+                    <tr key={i} style={{ ...S.tableRow, background: i === 0 ? 'rgba(34,197,94,0.05)' : 'transparent' }}>
+                      <td style={{ ...S.td, fontWeight: 600 }}>
+                        {i === 0 && <span style={{ marginRight: 6, verticalAlign: 'middle', color: '#f59e0b' }}><IconTrophySmall /></span>}
+                        {nameMap[s.scenarioId] || s.scenarioId?.slice(0, 12)}
+                      </td>
+                      <td style={S.td}>{s.architecture ? <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{s.architecture}</span> : <span style={{ color: 'var(--text-disabled)' }}>—</span>}</td>
+                      <td style={S.td}>{s.protocol ? <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{s.protocol}</span> : <span style={{ color: 'var(--text-disabled)' }}>—</span>}</td>
+                      <td style={{ ...S.td, color: 'var(--text-secondary)' }}>{s.platform || s.broker || '—'}</td>
+                      <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#f59e0b' }}>{s.avgLatency?.toFixed(2) ?? '—'}ms</td>
+                      <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#22c55e' }}>{s.avgThroughput?.toFixed(1) ?? '—'}</td>
+                      <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#ef4444' }}>{s.avgErrorRate?.toFixed(3) ?? '—'}%</td>
+                      <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-disabled)' }}>{s.count}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
           </div>
-        )}
-      </>}
+        </>
+      )}
     </div>
   );
 };
 
-// ── Pàgina principal ──────────────────────────────────────────────────────────
+// ── LiveTab ────────────────────────────────────────────────────────────────────
+const LiveTab = () => {
+  const [activeRuns,    setActiveRuns]    = useState<any[]>([]);
+  const [selectedRunId, setSelectedRunId] = useState('');
+  const [metrics,       setMetrics]       = useState<any[]>([]);
+  const [polling,       setPolling]       = useState(false);
+
+  const fetchActive = useCallback(async () => {
+    try {
+      const data = await fetch(`${ORCHESTRATOR}/runs`).then(r => r.json());
+      if (Array.isArray(data)) setActiveRuns(data.filter((r: any) => r.status === 'running'));
+    } catch (_) {}
+  }, []);
+
+  useEffect(() => { fetchActive(); const i = setInterval(fetchActive, 5000); return () => clearInterval(i); }, [fetchActive]);
+  useEffect(() => {
+    if (!selectedRunId && activeRuns.length > 0) setSelectedRunId(activeRuns[0].id);
+    if (selectedRunId && !activeRuns.find(r => r.id === selectedRunId) && activeRuns.length > 0) setSelectedRunId(activeRuns[0].id);
+  }, [activeRuns, selectedRunId]);
+  useEffect(() => {
+    if (!selectedRunId) { setMetrics([]); setPolling(false); return; }
+    setMetrics([]); setPolling(true);
+    const poll = async () => {
+      try { const data = await fetch(`${METRICS_BASE}/metrics?runId=${selectedRunId}`).then(r => r.json()); if (Array.isArray(data)) setMetrics(data.slice(-120)); } catch (_) {}
+    };
+    poll();
+    const i = setInterval(poll, 4000);
+    return () => { clearInterval(i); setPolling(false); };
+  }, [selectedRunId]);
+
+  const lat  = metrics.map(m => m.latency    ?? 0);
+  const tput = metrics.map(m => m.throughput ?? 0);
+  const err  = metrics.map(m => m.errorRate  ?? 0);
+  const avg  = (a: number[]) => a.length ? (a.reduce((s, v) => s + v, 0) / a.length).toFixed(2) : '—';
+  const sel  = activeRuns.find(r => r.id === selectedRunId);
+
+  return (
+    <div>
+      <div style={{ ...S.card, marginBottom: 20, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Escenari en execució</div>
+          {activeRuns.length === 0
+            ? <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>Cap escenari actiu.</div>
+            : <select value={selectedRunId} onChange={e => setSelectedRunId(e.target.value)} style={{ ...S.input, maxWidth: 320 }}>
+                {activeRuns.map(r => <option key={r.id} value={r.id}>{r.scenarioName || r.id.slice(0, 12)}</option>)}
+              </select>
+          }
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: polling && activeRuns.length > 0 ? '#22c55e' : 'var(--text-disabled)', display: 'inline-block', boxShadow: polling && activeRuns.length > 0 ? '0 0 6px #22c55e' : 'none', animation: polling && activeRuns.length > 0 ? 'pulseDot 2s ease infinite' : 'none' }}/>
+          <span style={{ fontSize: 13, color: polling && activeRuns.length > 0 ? '#22c55e' : 'var(--text-disabled)', fontWeight: 600 }}>{polling && activeRuns.length > 0 ? 'En directe' : 'Inactiu'}</span>
+        </div>
+        {sel && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {sel.protocol     && <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{sel.protocol}</span>}
+            {sel.architecture && <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{sel.architecture}</span>}
+            {sel.platform     && <span style={{ ...S.badge('#7c3aed'), fontSize: 11 }}>{sel.platform}</span>}
+          </div>
+        )}
+      </div>
+
+      {activeRuns.length === 0 ? (
+        <div style={{ ...S.card, textAlign: 'center', padding: 64 }}>
+          <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IconSignalEmpty /></div>
+          <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600 }}>Cap execució activa</div>
+          <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6, maxWidth: 360, margin: '8px auto 0' }}>
+            Inicia un escenari des de la pàgina <strong>Escenaris</strong> i aquí apareixeran les mètriques en temps real.
+          </div>
+        </div>
+      ) : (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, marginBottom: 20 }}>
+            {[
+              { l: 'Mostres rebudes',   v: String(metrics.length), c: '#3b82f6' },
+              { l: 'Latència avg (ms)', v: avg(lat),               c: '#f59e0b' },
+              { l: 'Throughput avg',    v: avg(tput),              c: '#22c55e' },
+              { l: 'Error rate avg (%)',v: avg(err),               c: '#ef4444' },
+            ].map(c => (
+              <div key={c.l} style={{ ...S.card, textAlign: 'center' }}>
+                <div style={{ fontSize: 24, fontWeight: 800, color: c.c, fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em' }}>{c.v}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{c.l}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16, marginBottom: 20 }}>
+            {[
+              { data: lat,  color: '#f59e0b', label: 'Latència (ms)' },
+              { data: tput, color: '#22c55e', label: 'Throughput (msg/s)' },
+              { data: err,  color: '#ef4444', label: 'Error rate (%)' },
+            ].map(c => (
+              <div key={c.label} style={{ ...S.card }}><LiveLineChart data={c.data} color={c.color} label={c.label}/></div>
+            ))}
+          </div>
+          {metrics.length > 0 && (
+            <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
+              <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ color: 'var(--text-disabled)' }}><IconPulse /></span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Últimes mètriques</span>
+              </div>
+              <div style={{ maxHeight: 240, overflowY: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={S.tableHeader}>
+                      {['Hora','Latència','Throughput','Error (%)'].map(h => <th key={h} style={{ ...S.th }}>{h}</th>)}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...metrics].reverse().slice(0, 50).map((m, i) => (
+                      <tr key={i} style={S.tableRow}>
+                        <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>{m.timestamp ? new Date(m.timestamp).toLocaleTimeString('ca-ES') : '—'}</td>
+                        <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#f59e0b', fontWeight: 700 }}>{m.latency?.toFixed(2) ?? '—'}</td>
+                        <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#22c55e', fontWeight: 700 }}>{m.throughput?.toFixed(2) ?? '—'}</td>
+                        <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#ef4444', fontWeight: 700 }}>{m.errorRate?.toFixed(3) ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
+
+// ── ResultatsPage ──────────────────────────────────────────────────────────────
 export const ResultatsPage = () => {
   const [tab, setTab] = useState<'live' | 'historial'>('live');
-
   useEffect(() => { document.title = 'Resultats | APIs Asíncrones'; }, []);
 
-  const ts = (a: boolean): React.CSSProperties => ({
-    padding: '10px 24px', cursor: 'pointer', border: 'none',
-    borderBottom: a ? `2px solid var(--accent)` : '2px solid transparent',
-    background: 'none', fontWeight: a ? 700 : 400, fontSize: 14,
-    color: a ? 'var(--accent)' : 'var(--text-secondary)',
-    display: 'flex', alignItems: 'center', gap: 8,
+  const tabStyle = (active: boolean): React.CSSProperties => ({
+    display: 'inline-flex', alignItems: 'center', gap: 7,
+    padding: '10px 20px', cursor: 'pointer', border: 'none',
+    borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
+    background: 'none', fontWeight: active ? 700 : 500, fontSize: 14,
+    color: active ? 'var(--accent)' : 'var(--text-secondary)',
+    transition: 'color var(--transition), border-color var(--transition)',
+    fontFamily: 'var(--font)',
   });
 
   return (
-    <div style={{ padding: 32, maxWidth: 1200, margin: '0 auto', fontFamily: 'system-ui,-apple-system,sans-serif', background: 'var(--bg-main)', minHeight: '100vh', color: 'var(--text-primary)' }}>
+    <div style={{ ...S.page }}>
+      <style>{GLOBAL_CSS}</style>
       <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 28, fontWeight: 800, color: 'var(--text-primary)' }}>Resultats</h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>Gràfiques de rendiment en temps real i comparatives d'escenaris</p>
+        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Resultats</h1>
+        <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>Mètriques en temps real i comparatives d'escenaris</p>
       </div>
       <div style={{ borderBottom: '1px solid var(--border)', marginBottom: 24, display: 'flex' }}>
-        <button style={ts(tab === 'live')}      onClick={() => setTab('live')}><IconActivity /> Live</button>
-        <button style={ts(tab === 'historial')} onClick={() => setTab('historial')}><IconHistory /> Historial &amp; Comparatives</button>
+        <button style={tabStyle(tab === 'live')} onClick={() => setTab('live')}><IconPulse /> En directe</button>
+        <button style={tabStyle(tab === 'historial')} onClick={() => setTab('historial')}><IconClock2 /> Historial i comparatives</button>
       </div>
       {tab === 'live'      && <LiveTab />}
       {tab === 'historial' && <HistorialTab />}
