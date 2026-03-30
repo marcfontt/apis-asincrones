@@ -1,14 +1,24 @@
+
 import { useEffect, useState } from 'react';
 import { S, GLOBAL_CSS, CATEGORY_COLORS } from '../../theme';
 
 const API_BASE = '/api/proxy/catalog-service';
+
 const CATEGORY_LABELS: Record<string, string> = {
   architecture: 'Arquitectura',
   protocol:     'Protocol',
   platform:     'Plataforma',
   gateway:      'Gateway',
 };
+
 const ALL_CATEGORIES = ['architecture', 'protocol', 'platform', 'gateway'];
+
+const CATEGORY_DESCRIPTIONS: Record<string, string> = {
+  architecture: 'Patró estructural que defineix com s\'organitzen els components del sistema i com interactuen entre ells.',
+  protocol:     'Conjunt de regles de comunicació que determinen com s\'envien i reben els missatges entre productors i consumidors.',
+  platform:     'Infraestructura de missatgeria que actua com a broker, gestionant la distribució dels missatges.',
+  gateway:      'Punt d\'entrada que gestiona l\'encaminament, la seguretat i la transformació dels missatges.',
+};
 
 const SK_STYLE = {
   background: 'linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%)',
@@ -17,82 +27,104 @@ const SK_STYLE = {
   borderRadius: 4,
 };
 
-const PlusIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const CloseIcon   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const RefreshIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
+const InfoIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
 
-// ── NewComponentModal ──────────────────────────────────────────────────────────
-const NewComponentModal = ({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) => {
-  const [form, setForm]     = useState({ name: '', category: '', shortName: '', description: '', version: '', tags: '' });
-  const [saving, setSaving] = useState(false);
-  const [error,  setError]  = useState('');
-  const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+// ── Component Detail Modal ─────────────────────────────────────────────────────
+const ComponentDetailModal = ({ component, onClose }: { component: any; onClose: () => void }) => {
+  const color = CATEGORY_COLORS[component.category] || 'var(--accent)';
+  const label = CATEGORY_LABELS[component.category] || component.category;
 
-  const handleSubmit = async () => {
-    if (!form.name.trim() || !form.category) { setError('El nom i la categoria són obligatoris.'); return; }
-    setSaving(true); setError('');
-    try {
-      const payload = {
-        name:        form.name.trim(),
-        category:    form.category,
-        shortName:   form.shortName.trim() || form.name.trim().toUpperCase().slice(0, 6),
-        description: form.description.trim(),
-        version:     form.version.trim() || '1.0',
-        tags:        form.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
-        predefined:  false,
-        createdAt:   new Date().toISOString(),
-      };
-      const r = await fetch(`${API_BASE}/components`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
-      });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      onSaved(); onClose();
-    } catch (e: any) { setError(e.message); setSaving(false); }
-  };
-
-  const lbl: React.CSSProperties = {
-    display: 'block', fontSize: 11, color: 'var(--text-secondary)',
-    marginBottom: 5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-  };
+  const Row = ({ label: l, value }: { label: string; value: string }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
+      <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>{l}</span>
+      <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>{value || '—'}</span>
+    </div>
+  );
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 520, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Nou Component</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6 }}><CloseIcon /></button>
-        </div>
-        <div style={{ display: 'grid', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Nom *</label><input style={{ ...S.input }} placeholder="ex. Apache Kafka" value={form.name} onChange={e => set('name', e.target.value)} /></div>
-            <div><label style={lbl}>Nom curt</label><input style={{ ...S.input }} placeholder="ex. KAFKA" value={form.shortName} onChange={e => set('shortName', e.target.value)} /></div>
-          </div>
-          <div>
-            <label style={lbl}>Categoria *</label>
-            <select style={{ ...S.input }} value={form.category} onChange={e => set('category', e.target.value)}>
-              <option value="">Selecciona categoria...</option>
-              {ALL_CATEGORIES.map(c => <option key={c} value={c}>{CATEGORY_LABELS[c]}</option>)}
-            </select>
-          </div>
-          <div>
-            <label style={lbl}>Descripció</label>
-            <textarea style={{ ...S.input, resize: 'vertical', minHeight: 72 } as React.CSSProperties} placeholder="Descriu el component..." value={form.description} onChange={e => set('description', e.target.value)} />
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div><label style={lbl}>Versió</label><input style={{ ...S.input }} placeholder="ex. 3.6" value={form.version} onChange={e => set('version', e.target.value)} /></div>
-            <div><label style={lbl}>Etiquetes (coma)</label><input style={{ ...S.input }} placeholder="ex. streaming, event-driven" value={form.tags} onChange={e => set('tags', e.target.value)} /></div>
-          </div>
-          {error && (
-            <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid var(--error)', borderRadius: 8, padding: '10px 14px', color: 'var(--error)', fontSize: 13 }}>
-              {error}
+      <div style={{ background: 'var(--bg-card)', border: `1px solid ${color}40`, borderRadius: 14, padding: 32, width: 540, maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
+
+        {/* Capçalera */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+                {component.name}
+              </h2>
+              {component.shortName && (
+                <code style={{
+                  background: color + '18', color, border: '1px solid ' + color + '40',
+                  padding: '2px 10px', borderRadius: 6, fontSize: 12,
+                  fontFamily: 'var(--font-mono)', fontWeight: 700,
+                }}>
+                  {component.shortName}
+                </code>
+              )}
             </div>
-          )}
-          <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
-            <button onClick={onClose} disabled={saving} style={{ ...S.btn, fontSize: 13 }}>Cancel·la</button>
-            <button onClick={handleSubmit} disabled={saving} style={{ ...S.btnPrimary, fontSize: 13, opacity: saving ? 0.7 : 1 }}>
-              {saving ? 'Desant...' : 'Crea Component'}
-            </button>
+            <span style={{ ...S.badge(color), fontSize: 12 }}>{label}</span>
           </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6, marginLeft: 12, flexShrink: 0 }}>
+            <CloseIcon />
+          </button>
+        </div>
+
+        {/* Descripció */}
+        {component.description && (
+          <div style={{ marginBottom: 20, padding: '14px 18px', background: `${color}08`, borderRadius: 8, border: `1px solid ${color}25` }}>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+              {component.description}
+            </p>
+          </div>
+        )}
+
+        {/* Context de la categoria */}
+        {CATEGORY_DESCRIPTIONS[component.category] && (
+          <div style={{ marginBottom: 20, padding: '10px 14px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+            <span style={{ color: 'var(--text-disabled)', flexShrink: 0, marginTop: 1 }}><InfoIcon /></span>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-disabled)', lineHeight: 1.55 }}>
+              <strong style={{ color: 'var(--text-secondary)' }}>{label}:</strong> {CATEGORY_DESCRIPTIONS[component.category]}
+            </p>
+          </div>
+        )}
+
+        {/* Metadades */}
+        <div style={{ marginBottom: 20 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+            Detalls tècnics
+          </div>
+          <Row label="Categoria"  value={label} />
+          <Row label="Nom curt"   value={component.shortName} />
+          <Row label="Versió"     value={component.version} />
+          {component.createdAt && (
+            <Row label="Afegit el" value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
+          )}
+        </div>
+
+        {/* Tags */}
+        {component.tags && component.tags.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
+              Etiquetes
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {component.tags.map((tag: string) => (
+                <span key={tag} style={{ ...S.badge(color), fontSize: 11 }}>{tag}</span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Ús en escenaris */}
+        <div style={{ padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 24, fontSize: 12, color: 'var(--text-secondary)' }}>
+          Pots usar <strong style={{ color: 'var(--text-primary)' }}>{component.name}</strong> com a {label.toLowerCase()} al crear un nou escenari de benchmark.{' '}
+          <a href="/escenaris?create=true" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Crear escenari →</a>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ ...S.btnPrimary, fontSize: 13, background: color, boxShadow: 'none' }}>Tanca</button>
         </div>
       </div>
     </div>
@@ -101,12 +133,12 @@ const NewComponentModal = ({ onClose, onSaved }: { onClose: () => void; onSaved:
 
 // ── CatalogPage ────────────────────────────────────────────────────────────────
 export const CatalogPage = () => {
-  const [components,   setComponents]   = useState<any[]>([]);
-  const [loading,      setLoading]      = useState(true);
-  const [error,        setError]        = useState('');
-  const [activeFilter, setActiveFilter] = useState('all');
-  const [hoveredRow,   setHoveredRow]   = useState<number | null>(null);
-  const [showNewModal, setShowNewModal] = useState(false);
+  const [components,      setComponents]      = useState<any[]>([]);
+  const [loading,         setLoading]         = useState(true);
+  const [error,           setError]           = useState('');
+  const [activeFilter,    setActiveFilter]    = useState('all');
+  const [hoveredRow,      setHoveredRow]      = useState<number | null>(null);
+  const [selectedComponent, setSelectedComponent] = useState<any | null>(null);
 
   useEffect(() => { document.title = 'Catàleg | APIs Asíncrones'; }, []);
 
@@ -119,15 +151,21 @@ export const CatalogPage = () => {
   };
   useEffect(() => { fetchComponents(); }, []);
 
-  const real            = components.filter(c => !c.test);
-  const filtered        = activeFilter === 'all' ? real : real.filter(c => c.category === activeFilter);
+  // Només components predefinits (filtra "test" i qualsevol creat manualment)
+  const real     = components.filter(c => c.predefined !== false);
+  const filtered = activeFilter === 'all' ? real : real.filter(c => c.category === activeFilter);
   const countByCategory = (cat: string) => real.filter(c => c.category === cat).length;
 
   return (
     <div style={{ ...S.page }}>
       <style>{GLOBAL_CSS}</style>
 
-      {showNewModal && <NewComponentModal onClose={() => setShowNewModal(false)} onSaved={fetchComponents} />}
+      {selectedComponent && (
+        <ComponentDetailModal
+          component={selectedComponent}
+          onClose={() => setSelectedComponent(null)}
+        />
+      )}
 
       {/* Capçalera */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
@@ -139,12 +177,9 @@ export const CatalogPage = () => {
             Arquitectures, protocols, plataformes i gateways disponibles per construir escenaris
           </p>
         </div>
-        <button onClick={() => setShowNewModal(true)} style={{ ...S.btnPrimary, whiteSpace: 'nowrap' }}>
-          <PlusIcon /> Nou Component
-        </button>
       </div>
 
-      {/* Filtres */}
+      {/* Filtres de categoria */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         <button
           onClick={() => setActiveFilter('all')}
@@ -181,9 +216,12 @@ export const CatalogPage = () => {
               </span>
             )}
           </div>
-          <button onClick={fetchComponents} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}>
-            <RefreshIcon /> Actualitzar
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>Clica una fila per veure els detalls</span>
+            <button onClick={fetchComponents} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}>
+              <RefreshIcon /> Actualitzar
+            </button>
+          </div>
         </div>
 
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -192,45 +230,62 @@ export const CatalogPage = () => {
               <th style={S.th}>Nom</th>
               <th style={S.th}>Categoria</th>
               <th style={S.th}>Descripció</th>
-              <th style={S.th}>Nom curt</th>
+              <th style={{ ...S.th, textAlign: 'center' }}>Nom curt</th>
+              <th style={{ ...S.th, textAlign: 'center' }}>Versió</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              Array.from({ length: 6 }).map((_, i) => (
+              Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i}>
-                  {[50, 30, 70, 20].map((w, j) => (
+                  {[45, 25, 65, 18, 12].map((w, j) => (
                     <td key={j} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                      <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${i * 0.08}s` }} />
+                      <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${i * 0.07}s` }} />
                     </td>
                   ))}
                 </tr>
               ))
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={4} style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
+                <td colSpan={5} style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
                   Cap component trobat.
                 </td>
               </tr>
-            ) : filtered.map((c, i) => (
-              <tr key={c.id || i}
-                style={{ ...S.tableRow, background: hoveredRow === i ? 'var(--bg-hover)' : 'transparent' }}
-                onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}
-              >
-                <td style={{ ...S.td, fontWeight: 600 }}>{c.name || '—'}</td>
-                <td style={S.td}>
-                  {c.category
-                    ? <span style={{ ...S.badge(CATEGORY_COLORS[c.category] || 'var(--accent)') }}>{CATEGORY_LABELS[c.category] || c.category}</span>
-                    : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
-                </td>
-                <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 300 }}>{c.description || '—'}</td>
-                <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 13 }}>
-                  {c.shortName
-                    ? <code style={{ background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 4, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{c.shortName}</code>
-                    : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
-                </td>
-              </tr>
-            ))}
+            ) : filtered.map((c, i) => {
+              const color = CATEGORY_COLORS[c.category] || 'var(--accent)';
+              return (
+                <tr key={c.id || i}
+                  className="card-hover"
+                  style={{
+                    ...S.tableRow,
+                    background: hoveredRow === i ? 'var(--bg-hover)' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'background var(--transition)',
+                  }}
+                  onMouseEnter={() => setHoveredRow(i)}
+                  onMouseLeave={() => setHoveredRow(null)}
+                  onClick={() => setSelectedComponent(c)}
+                >
+                  <td style={{ ...S.td, fontWeight: 700 }}>{c.name || '—'}</td>
+                  <td style={S.td}>
+                    {c.category
+                      ? <span style={{ ...S.badge(color) }}>{CATEGORY_LABELS[c.category] || c.category}</span>
+                      : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
+                  </td>
+                  <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {c.description || '—'}
+                  </td>
+                  <td style={{ ...S.td, textAlign: 'center' }}>
+                    {c.shortName
+                      ? <code style={{ background: color + '14', border: '1px solid ' + color + '30', padding: '2px 8px', borderRadius: 5, color, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700 }}>{c.shortName}</code>
+                      : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
+                  </td>
+                  <td style={{ ...S.td, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {c.version || '—'}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

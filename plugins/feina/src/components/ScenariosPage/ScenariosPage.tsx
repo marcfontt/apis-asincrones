@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { S, GLOBAL_CSS } from '../../theme';
 
@@ -6,7 +7,33 @@ const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
 
 const ALL_ARCHITECTURES = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
 const ALL_PROTOCOLS     = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
-const ALL_PLATFORMS     = ['Kafka', 'RabbitMQ', 'Confluent', 'Pulsar', 'NATS Server'];
+const ALL_PLATFORMS     = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server', 'Pulsar'];
+const DISABLED_PLATFORMS = ['Pulsar']; // Fora de l'abast del projecte
+
+const DATA_FORMATS = [
+  { value: '',           label: 'Per defecte (bytes aleatoris)' },
+  { value: 'default',    label: 'Per defecte (bytes aleatoris)' },
+  { value: 'video-4k',   label: 'Streaming vídeo 4K (~4 Mbps)' },
+  { value: 'video-8k',   label: 'Streaming vídeo 8K (~16 Mbps)' },
+  { value: 'financial',  label: 'Transaccions financeres (JSON compacte)' },
+  { value: 'iot',        label: 'Telemetria IoT (payload mínim)' },
+];
+
+const DATA_FORMAT_LABELS: Record<string, string> = {
+  'default':   'Per defecte',
+  'video-4k':  'Vídeo 4K',
+  'video-8k':  'Vídeo 8K',
+  'financial': 'Financer',
+  'iot':       'IoT',
+};
+
+const DATA_FORMAT_COLORS: Record<string, string> = {
+  'default':   '#6b7280',
+  'video-4k':  '#7c3aed',
+  'video-8k':  '#9333ea',
+  'financial': '#0891b2',
+  'iot':       '#16a34a',
+};
 
 const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string[] }> = {
   'Kafka':       { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
@@ -19,14 +46,17 @@ const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string
 const getCompatibleArchitectures = (p: string) => COMPATIBILITY[p]?.architectures ?? ALL_ARCHITECTURES;
 const getCompatibleProtocols     = (p: string) => COMPATIBILITY[p]?.protocols     ?? ALL_PROTOCOLS;
 
-const EMPTY_FORM = { name: '', architecture: '', protocol: '', platform: '', duration: '', rate: '', payloadSize: '' };
+const EMPTY_FORM = {
+  name: '', architecture: '', protocol: '', platform: '',
+  duration: '', rate: '', payloadSize: '', dataFormat: '',
+};
 
-const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
-  idle:      { color: '#94a3b8', label: 'Llest' },
-  pending:   { color: '#f59e0b', label: 'Pendent' },
-  running:   { color: '#3b82f6', label: 'En execució' },
-  completed: { color: '#22c55e', label: 'Completat' },
-  error:     { color: '#ef4444', label: 'Error' },
+const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
+  idle:      { color: '#94a3b8', label: 'Llest',        bg: 'rgba(148,163,184,0.1)' },
+  pending:   { color: '#f59e0b', label: 'Pendent',      bg: 'rgba(245,158,11,0.1)' },
+  running:   { color: '#3b82f6', label: 'En execució',  bg: 'rgba(59,130,246,0.1)' },
+  completed: { color: '#22c55e', label: 'Completat',    bg: 'rgba(34,197,94,0.1)' },
+  error:     { color: '#ef4444', label: 'Error',        bg: 'rgba(239,68,68,0.1)' },
 };
 
 const SK_STYLE = {
@@ -37,9 +67,10 @@ const SK_STYLE = {
 };
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
-const PlayIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
-const EditIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
-const TrashIcon   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+const PlayIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+const StopIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>;
+const EditIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const TrashIcon   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 const CloseIcon   = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const PlusIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const RefreshIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
@@ -49,7 +80,7 @@ const GearIcon    = () => <svg width="32" height="32" viewBox="0 0 24 24" fill="
 
 const SkeletonRow = ({ delay = 0 }: { delay?: number }) => (
   <tr>
-    {[68, 55, 48, 65, 42, 50, 36].map((w, j) => (
+    {[62, 48, 42, 55, 38, 45, 30, 32].map((w, j) => (
       <td key={j} style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${delay}s` }} />
       </td>
@@ -61,7 +92,6 @@ const lbl: React.CSSProperties = {
   display: 'block', fontSize: 11, color: 'var(--text-secondary)',
   marginBottom: 5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
 };
-
 const selStyle: React.CSSProperties = {
   padding: '8px 32px 8px 12px', borderRadius: 6, border: '1px solid var(--border)',
   background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13,
@@ -73,11 +103,11 @@ const selStyle: React.CSSProperties = {
 // ── Modal: Crear / Editar ──────────────────────────────────────────────────────
 const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   mode: 'create' | 'edit';
-  initial: typeof EMPTY_FORM & { id?: string };
+  initial: typeof EMPTY_FORM & { id?: string; createdAt?: string };
   onClose: () => void;
   onSaved: () => void;
 }) => {
-  const [form, setForm]     = useState(initial);
+  const [form, setForm]     = useState({ ...EMPTY_FORM, ...initial });
   const [saving, setSaving] = useState(false);
   const [error, setError]   = useState('');
 
@@ -97,16 +127,30 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
     }
     setSaving(true); setError('');
     try {
-      const payload = {
-        name: form.name.trim(), architecture: form.architecture,
-        protocol: form.protocol, platform: form.platform,
+      const payload: any = {
+        name: form.name.trim(),
+        architecture: form.architecture,
+        protocol: form.protocol,
+        platform: form.platform,
         duration: form.duration ? Number(form.duration) : undefined,
         rate: form.rate ? Number(form.rate) : undefined,
         payloadSize: form.payloadSize ? Number(form.payloadSize) : undefined,
-        predefined: false, status: 'idle',
+        dataFormat: form.dataFormat || 'default',
+        predefined: false,
+        status: 'idle',
       };
-      const url = mode === 'edit' && form.id ? `${API_BASE}/scenarios/${form.id}` : `${API_BASE}/scenarios`;
-      const r = await fetch(url, { method: mode === 'edit' && form.id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      // Preserva la data de creació original en editar
+      if (mode === 'edit' && initial.createdAt) {
+        payload.createdAt = initial.createdAt;
+      }
+      const url = mode === 'edit' && initial.id
+        ? `${API_BASE}/scenarios/${initial.id}`
+        : `${API_BASE}/scenarios`;
+      const r = await fetch(url, {
+        method: mode === 'edit' && initial.id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       onSaved(); onClose();
     } catch (e: any) { setError(e.message); setSaving(false); }
@@ -114,55 +158,108 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 560, maxHeight: '90vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 580, maxHeight: '92vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             {mode === 'edit' ? 'Editar Escenari' : 'Nou Escenari'}
           </h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6 }}><CloseIcon /></button>
         </div>
+
         <div style={{ display: 'grid', gap: 16 }}>
-          <div><label style={lbl}>Nom *</label><input style={{ ...S.input }} placeholder="ex. MQTT-EDA-Kafka-Basic" value={form.name} onChange={e => set('name', e.target.value)} /></div>
+          {/* Nom */}
           <div>
-            <label style={lbl}>Plataforma / Broker * <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--text-secondary)' }}>(selecciona primer)</span></label>
+            <label style={lbl}>Nom *</label>
+            <input style={{ ...S.input }} placeholder="ex. MQTT-EDA-RabbitMQ-IoT" value={form.name} onChange={e => set('name', e.target.value)} />
+          </div>
+
+          {/* Plataforma */}
+          <div>
+            <label style={lbl}>
+              Plataforma / Broker *{' '}
+              <span style={{ fontWeight: 400, textTransform: 'none', color: 'var(--text-secondary)' }}>(selecciona primer)</span>
+            </label>
             <select style={{ ...S.input }} value={form.platform} onChange={e => set('platform', e.target.value)}>
               <option value="">Selecciona...</option>
-              {ALL_PLATFORMS.map(p => <option key={p} value={p}>{p}</option>)}
+              {ALL_PLATFORMS.map(p => {
+                const disabled = DISABLED_PLATFORMS.includes(p);
+                return (
+                  <option key={p} value={p} disabled={disabled} style={disabled ? { color: 'var(--text-disabled)' } : {}}>
+                    {p}{disabled ? ' (no disponible)' : ''}
+                  </option>
+                );
+              })}
             </select>
+            {DISABLED_PLATFORMS.length > 0 && (
+              <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-disabled)' }}>
+                Plataformes no disponibles en aquest entorn: {DISABLED_PLATFORMS.join(', ')}
+              </p>
+            )}
           </div>
+
+          {/* Arquitectura + Protocol */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
-              <label style={lbl}>Arquitectura * {form.platform && <span style={{ color: 'var(--accent)', fontWeight: 400 }}>({ca.length} compatibles)</span>}</label>
+              <label style={lbl}>
+                Arquitectura *{' '}
+                {form.platform && <span style={{ color: 'var(--accent)', fontWeight: 400 }}>({ca.length} compatibles)</span>}
+              </label>
               <select style={{ ...S.input }} value={form.architecture} onChange={e => set('architecture', e.target.value)}>
                 <option value="">Selecciona...</option>
                 {ALL_ARCHITECTURES.map(a => {
-                  const ok = ca.includes(a);
-                  return <option key={a} value={a} disabled={!ok} style={!ok ? { color: 'var(--text-disabled)' } : {}}>{a}{!ok && form.platform ? ' (incompatible)' : ''}</option>;
+                  const ok = form.platform ? ca.includes(a) : true;
+                  return <option key={a} value={a} disabled={!ok} style={!ok ? { color: 'var(--text-disabled)' } : {}}>{a}{!ok && form.platform ? ' ✗' : ''}</option>;
                 })}
               </select>
             </div>
             <div>
-              <label style={lbl}>Protocol * {form.platform && <span style={{ color: 'var(--accent)', fontWeight: 400 }}>({cp.length} compatibles)</span>}</label>
+              <label style={lbl}>
+                Protocol *{' '}
+                {form.platform && <span style={{ color: 'var(--accent)', fontWeight: 400 }}>({cp.length} compatibles)</span>}
+              </label>
               <select style={{ ...S.input }} value={form.protocol} onChange={e => set('protocol', e.target.value)}>
                 <option value="">Selecciona...</option>
                 {ALL_PROTOCOLS.map(p => {
-                  const ok = cp.includes(p);
-                  return <option key={p} value={p} disabled={!ok} style={!ok ? { color: 'var(--text-disabled)' } : {}}>{p}{!ok && form.platform ? ' (incompatible)' : ''}</option>;
+                  const ok = form.platform ? cp.includes(p) : true;
+                  return <option key={p} value={p} disabled={!ok} style={!ok ? { color: 'var(--text-disabled)' } : {}}>{p}{!ok && form.platform ? ' ✗' : ''}</option>;
                 })}
               </select>
             </div>
           </div>
+
+          {/* Hint compatibilitat */}
           {form.platform && (
             <div style={{ background: 'var(--badge-blue-bg)', border: '1px solid var(--badge-blue-fg)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--badge-blue-fg)', opacity: 0.9 }}>
-              <strong>{form.platform}</strong> · Arquitectures: {ca.join(', ')} · Protocols: {cp.join(', ')}
+              <strong>{form.platform}</strong> · Arq: {ca.join(', ')} · Proto: {cp.join(', ')}
             </div>
           )}
+
+          {/* Càrrega */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div><label style={lbl}>Durada (s)</label><input style={{ ...S.input }} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} /></div>
             <div><label style={lbl}>Ràtio (msg/s)</label><input style={{ ...S.input }} type="number" min={1} placeholder="1000" value={form.rate} onChange={e => set('rate', e.target.value)} /></div>
             <div><label style={lbl}>Payload (bytes)</label><input style={{ ...S.input }} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} /></div>
           </div>
-          {error && <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid var(--error)', borderRadius: 8, padding: '10px 14px', color: 'var(--error)', fontSize: 13 }}>{error}</div>}
+
+          {/* Format de dades */}
+          <div>
+            <label style={lbl}>Format de dades</label>
+            <select style={{ ...S.input }} value={form.dataFormat} onChange={e => set('dataFormat', e.target.value)}>
+              {DATA_FORMATS.filter((f, i) => i === 0 || f.value !== '').map(f => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </select>
+            <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-disabled)' }}>
+              Defineix el tipus de dades per simular casos d'ús reals (streaming, IoT, finances...)
+            </p>
+          </div>
+
+          {error && (
+            <div style={{ background: 'rgba(220,38,38,0.08)', border: '1px solid var(--error)', borderRadius: 8, padding: '10px 14px', color: 'var(--error)', fontSize: 13 }}>
+              {error}
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
             <button onClick={onClose} disabled={saving} style={{ ...S.btn, fontSize: 13 }}>Cancel·la</button>
             <button onClick={handleSubmit} disabled={saving} style={{ ...S.btnPrimary, fontSize: 13, opacity: saving ? 0.7 : 1 }}>
@@ -202,7 +299,14 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
     try {
       const r = await fetch(`${ORCHESTRATOR}/runs`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ scenarioId: scenario.id, scenarioName: scenario.name }),
+        body: JSON.stringify({
+          scenarioId:   scenario.id,
+          scenarioName: scenario.name,
+          architecture: scenario.architecture,
+          protocol:     scenario.protocol,
+          platform:     scenario.platform || scenario.broker,
+          dataFormat:   scenario.dataFormat || 'default',
+        }),
       });
       if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || `HTTP ${r.status}`); }
       const data = await r.json();
@@ -221,7 +325,15 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
         Es desplegarà un Job al AKS per l'escenari <strong style={{ color: 'var(--text-primary)' }}>{scenario.name}</strong>.
       </p>
       <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 20, fontSize: 13, display: 'grid', gap: 6 }}>
-        {([['Arquitectura', scenario.architecture], ['Protocol', scenario.protocol], ['Plataforma', scenario.platform || scenario.broker], ['Durada', scenario.duration ? `${scenario.duration}s` : 'Per defecte (60s)'], ['Ràtio', scenario.rate ? `${scenario.rate} msg/s` : 'Per defecte (100 msg/s)']] as [string, string][]).map(([l, v]) => (
+        {([
+          ['Arquitectura', scenario.architecture],
+          ['Protocol',     scenario.protocol],
+          ['Plataforma',   scenario.platform || scenario.broker],
+          ['Format dades', DATA_FORMAT_LABELS[scenario.dataFormat] || 'Per defecte'],
+          ['Durada',       scenario.duration  ? `${scenario.duration}s`       : 'Per defecte (60s)'],
+          ['Ràtio',        scenario.rate      ? `${scenario.rate} msg/s`      : 'Per defecte (100 msg/s)'],
+          ['Payload',      scenario.payloadSize ? `${scenario.payloadSize}B`  : 'Per defecte (256B)'],
+        ] as [string, string][]).map(([l, v]) => (
           <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-secondary)' }}>{l}</span>
             <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{v}</strong>
@@ -257,7 +369,7 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
         <code style={{ fontSize: 12, color: 'var(--success)', wordBreak: 'break-all' as const, fontFamily: 'var(--font-mono)' }}>{runId}</code>
       </div>
       <div style={{ background: 'var(--badge-blue-bg)', border: '1px solid var(--badge-blue-fg)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--badge-blue-fg)', marginBottom: 20, opacity: 0.9 }}>
-        Ves a la pàgina <strong>Execucions</strong> per monitoritzar el progrés i veure les mètriques en viu.
+        Ves a <strong>Execucions</strong> per monitoritzar el progrés i <strong>Resultats</strong> per veure les mètriques en viu.
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Tanca</button>
@@ -295,47 +407,68 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   );
 };
 
-// ── Detall d'escenari ──────────────────────────────────────────────────────────
-const ScenarioDetail = ({ scenario, onClose, onExecute, onEdit, onDelete }: {
-  scenario: any; onClose: () => void; onExecute: () => void; onEdit: () => void; onDelete: () => void;
+// ── Detall d'escenari (panel lateral) ─────────────────────────────────────────
+const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete, isRunning }: {
+  scenario: any; onClose: () => void; onExecute: () => void; onStop: () => void;
+  onEdit: () => void; onDelete: () => void; isRunning: boolean;
 }) => {
   const status = STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle;
+  const dfColor = DATA_FORMAT_COLORS[scenario.dataFormat || 'default'] || DATA_FORMAT_COLORS['default'];
+  const dfLabel = DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Per defecte';
   const Row = ({ label, value }: { label: string; value: string }) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{label}</span>
-      <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{value || '—'}</span>
+      <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>{value || '—'}</span>
     </div>
   );
   return (
-    <div style={{ ...S.card, flex: 1, minWidth: 300, boxShadow: 'var(--shadow-md)', animation: 'slideIn 0.2s ease' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>{scenario.name || 'Sense nom'}</h3>
-            <span style={{ ...S.badge(status.color), fontSize: 11 }}>{status.label}</span>
+    <div style={{ ...S.card, flex: 1, minWidth: 280, maxWidth: 320, boxShadow: 'var(--shadow-md)', animation: 'slideIn 0.2s ease', alignSelf: 'flex-start' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-word' }}>{scenario.name || 'Sense nom'}</h3>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <span style={{
+              background: status.bg, color: status.color,
+              padding: '2px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+            }}>
+              {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: status.color, animation: 'pulseDot 1.5s ease infinite' }} />}
+              {isRunning ? 'En execució' : status.label}
+            </span>
           </div>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>ID: {scenario.id || '—'}</span>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6 }}><CloseIcon /></button>
+        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6, flexShrink: 0 }}><CloseIcon /></button>
       </div>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Configuració</div>
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Configuració</div>
         <Row label="Arquitectura" value={scenario.architecture} />
         <Row label="Protocol"     value={scenario.protocol} />
         <Row label="Plataforma"   value={scenario.platform || scenario.broker} />
         <Row label="Durada"       value={scenario.duration    ? `${scenario.duration}s`         : '—'} />
         <Row label="Ràtio"        value={scenario.rate        ? `${scenario.rate} msg/s`        : '—'} />
         <Row label="Payload"      value={scenario.payloadSize ? `${scenario.payloadSize} bytes` : '—'} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Format dades</span>
+          <span style={{ ...S.badge(dfColor), fontSize: 10 }}>{dfLabel}</span>
+        </div>
       </div>
-      <div style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Metadades</div>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Metadades</div>
         <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleString('ca-ES') : '—'} />
         <Row label="Tipus" value={scenario.predefined ? 'Sistema' : 'Personalitzat'} />
       </div>
-      <div style={{ display: 'flex', gap: 8, borderTop: '1px solid var(--border)', paddingTop: 16 }}>
-        <button onClick={onExecute} style={{ ...S.btnPrimary, fontSize: 12, padding: '7px 12px', background: 'var(--success)', boxShadow: 'none' }}><PlayIcon /> Executar</button>
-        <button onClick={onEdit}    style={{ ...S.btn, fontSize: 12, padding: '7px 12px' }}><EditIcon /> Editar</button>
-        <button onClick={onDelete}  style={{ ...S.btn, fontSize: 12, padding: '7px 12px', color: 'var(--error)', borderColor: 'var(--error)' }}><TrashIcon /> Eliminar</button>
+      <div style={{ display: 'flex', gap: 6, borderTop: '1px solid var(--border)', paddingTop: 14, flexWrap: 'wrap' }}>
+        {isRunning ? (
+          <button onClick={onStop} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', color: 'var(--error)', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
+            <StopIcon /> Aturar
+          </button>
+        ) : (
+          <button onClick={onExecute} style={{ ...S.btnPrimary, fontSize: 12, padding: '6px 10px', background: 'var(--success)', boxShadow: 'none' }}>
+            <PlayIcon /> Executar
+          </button>
+        )}
+        <button onClick={onEdit}   style={{ ...S.btn, fontSize: 12, padding: '6px 10px' }}><EditIcon /> Editar</button>
+        <button onClick={onDelete} style={{ ...S.btn, fontSize: 12, padding: '6px 10px', color: 'var(--error)', borderColor: 'var(--error)' }}><TrashIcon /></button>
       </div>
     </div>
   );
@@ -348,6 +481,7 @@ export const ScenariosPage = () => {
   const [error,            setError]            = useState('');
   const [filterArch,       setFilterArch]       = useState('all');
   const [filterProto,      setFilterProto]      = useState('all');
+  const [filterDataFormat, setFilterDataFormat] = useState('all');
   const [hoveredRow,       setHoveredRow]       = useState<number | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<any | null>(null);
   const [showModal,        setShowModal]        = useState(false);
@@ -355,9 +489,34 @@ export const ScenariosPage = () => {
   const [deleteTarget,     setDeleteTarget]     = useState<any | null>(null);
   const [executeTarget,    setExecuteTarget]    = useState<any | null>(null);
   const [toast,            setToast]            = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  // Map scenarioId -> runId per als que estan en execució ara
+  const [runningMap,       setRunningMap]       = useState<Record<string, string>>({});
 
   useEffect(() => { document.title = 'Escenaris | APIs Asíncrones'; }, []);
 
+  // Detecta quins escenaris estan ara en execució
+  const fetchRunningMap = useCallback(() => {
+    fetch(`${ORCHESTRATOR}/runs`)
+      .then(r => r.json())
+      .then(data => {
+        if (Array.isArray(data)) {
+          const map: Record<string, string> = {};
+          data
+            .filter(r => r.status === 'running' || r.status === 'pending')
+            .forEach(r => { if (r.scenarioId) map[r.scenarioId] = r.id; });
+          setRunningMap(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    fetchRunningMap();
+    const i = setInterval(fetchRunningMap, 6000);
+    return () => clearInterval(i);
+  }, [fetchRunningMap]);
+
+  // Gestió URL params (prefill des de HomePage)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('create') === 'true') {
@@ -366,7 +525,7 @@ export const ScenariosPage = () => {
         name: params.get('name') || '', architecture: params.get('architecture') || '',
         protocol: params.get('protocol') || '', platform: params.get('platform') || '',
         duration: params.get('duration') || '', rate: params.get('rate') || '',
-        payloadSize: params.get('payloadSize') || '',
+        payloadSize: params.get('payloadSize') || '', dataFormat: '',
       };
       if (prefill.name) setEditScenario({ ...prefill, _prefill: true });
       window.history.replaceState({}, '', '/escenaris');
@@ -379,7 +538,6 @@ export const ScenariosPage = () => {
       .then(sc => { setScenarios(Array.isArray(sc) ? sc : []); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
-
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleDelete = async () => {
@@ -392,29 +550,54 @@ export const ScenariosPage = () => {
     } catch (e: any) { setToast({ message: 'Error: ' + e.message, type: 'error' }); setDeleteTarget(null); }
   };
 
+  const handleStopScenario = async (scenario: any) => {
+    const runId = runningMap[scenario.id];
+    if (!runId) return;
+    try {
+      await fetch(`${ORCHESTRATOR}/runs/${runId}/cancel`, { method: 'POST' });
+      setToast({ message: `Escenari "${scenario.name}" aturat.`, type: 'info' });
+      fetchRunningMap();
+    } catch (e: any) {
+      setToast({ message: 'Error en aturar: ' + e.message, type: 'error' });
+    }
+  };
+
   const openEdit = (s: any) => {
-    setEditScenario({ id: s.id, name: s.name || '', architecture: s.architecture || '', protocol: s.protocol || '', platform: s.platform || s.broker || '', duration: s.duration ? String(s.duration) : '', rate: s.rate ? String(s.rate) : '', payloadSize: s.payloadSize ? String(s.payloadSize) : '' });
+    setEditScenario({
+      id: s.id,
+      createdAt: s.createdAt, // preservem la data original
+      name: s.name || '', architecture: s.architecture || '',
+      protocol: s.protocol || '', platform: s.platform || s.broker || '',
+      duration: s.duration ? String(s.duration) : '',
+      rate: s.rate ? String(s.rate) : '',
+      payloadSize: s.payloadSize ? String(s.payloadSize) : '',
+      dataFormat: s.dataFormat || '',
+    });
     setShowModal(true);
   };
 
-  const filtered   = scenarios.filter(s => {
-    if (filterArch  !== 'all' && s.architecture !== filterArch)  return false;
-    if (filterProto !== 'all' && s.protocol     !== filterProto) return false;
+  const filtered = scenarios.filter(s => {
+    if (filterArch       !== 'all' && s.architecture !== filterArch)             return false;
+    if (filterProto      !== 'all' && s.protocol     !== filterProto)            return false;
+    if (filterDataFormat !== 'all' && (s.dataFormat || 'default') !== filterDataFormat) return false;
     return true;
   });
-  const isFiltered = filterArch !== 'all' || filterProto !== 'all';
-  const formatTime = (iso: string) => !iso ? '—' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const isFiltered = filterArch !== 'all' || filterProto !== 'all' || filterDataFormat !== 'all';
 
-  const modalInitial = editScenario && !editScenario._prefill ? editScenario : editScenario?._prefill ? { ...EMPTY_FORM, ...editScenario } : EMPTY_FORM;
-  const modalMode    = editScenario?.id && !editScenario._prefill ? 'edit' : 'create';
+  const formatTime = (iso: string) =>
+    !iso ? '—' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+  const modalInitial = editScenario?._prefill
+    ? { ...EMPTY_FORM, ...editScenario }
+    : editScenario ?? EMPTY_FORM;
+  const modalMode = editScenario?.id && !editScenario._prefill ? 'edit' : 'create';
 
   return (
-    <div style={{ ...S.page, maxWidth: 1300 }}>
+    <div style={{ ...S.page, maxWidth: 1340 }}>
       <style>{GLOBAL_CSS}</style>
-
       {showModal     && <ScenarioModal mode={modalMode as 'create' | 'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={fetchData} />}
       {deleteTarget  && <DeleteModal name={deleteTarget.name || 'aquest escenari'} onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} />}
-      {executeTarget && <ExecuteModal scenario={executeTarget} onClose={() => { setExecuteTarget(null); fetchData(); }} />}
+      {executeTarget && <ExecuteModal scenario={executeTarget} onClose={() => { setExecuteTarget(null); fetchData(); fetchRunningMap(); }} />}
       {toast         && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Capçalera */}
@@ -431,24 +614,33 @@ export const ScenariosPage = () => {
       </div>
 
       {/* Filtres */}
-      <div style={{ ...S.card, marginBottom: 20, display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Arquitectura:</span>
-          <select value={filterArch} onChange={e => setFilterArch(e.target.value)} style={selStyle}>
-            <option value="all">Totes</option>
-            {ALL_ARCHITECTURES.map(a => <option key={a} value={a}>{a}</option>)}
-          </select>
-        </div>
+      <div style={{ ...S.card, marginBottom: 20, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
+        {[
+          { label: 'Arquitectura', value: filterArch, options: ALL_ARCHITECTURES, onChange: setFilterArch, allLabel: 'Totes' },
+          { label: 'Protocol',     value: filterProto, options: ALL_PROTOCOLS,     onChange: setFilterProto, allLabel: 'Tots' },
+        ].map(({ label, value, options, onChange, allLabel }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', whiteSpace: 'nowrap' as const }}>{label}:</span>
+            <select value={value} onChange={e => onChange(e.target.value)} style={selStyle}>
+              <option value="all">{allLabel}</option>
+              {options.map(o => <option key={o} value={o}>{o}</option>)}
+            </select>
+          </div>
+        ))}
         <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', whiteSpace: 'nowrap' }}>Protocol:</span>
-          <select value={filterProto} onChange={e => setFilterProto(e.target.value)} style={selStyle}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', whiteSpace: 'nowrap' as const }}>Format:</span>
+          <select value={filterDataFormat} onChange={e => setFilterDataFormat(e.target.value)} style={selStyle}>
             <option value="all">Tots</option>
-            {ALL_PROTOCOLS.map(p => <option key={p} value={p}>{p}</option>)}
+            <option value="default">Per defecte</option>
+            <option value="video-4k">Vídeo 4K</option>
+            <option value="video-8k">Vídeo 8K</option>
+            <option value="financial">Financer</option>
+            <option value="iot">IoT</option>
           </select>
         </div>
         {isFiltered && (
-          <button onClick={() => { setFilterArch('all'); setFilterProto('all'); }}
+          <button onClick={() => { setFilterArch('all'); setFilterProto('all'); setFilterDataFormat('all'); }}
             style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font)' }}>
             <CloseIcon /> Netejar filtres
           </button>
@@ -456,8 +648,8 @@ export const ScenariosPage = () => {
       </div>
 
       {/* Taula + Detall */}
-      <div style={{ display: 'flex', gap: 20 }}>
-        <div style={{ ...S.card, padding: 0, overflow: 'hidden', flex: selectedScenario ? 2 : 1 }}>
+      <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
+        <div style={{ ...S.card, padding: 0, overflow: 'hidden', flex: selectedScenario ? '0 0 auto' : 1, width: selectedScenario ? 'calc(100% - 340px)' : '100%' }}>
           <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '—' : filtered.length}</span>
@@ -465,6 +657,12 @@ export const ScenariosPage = () => {
               {isFiltered && !loading && (
                 <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10 }}>
                   de {scenarios.length} totals
+                </span>
+              )}
+              {Object.keys(runningMap).length > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '2px 10px', borderRadius: 20, fontWeight: 700 }}>
+                  <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', display: 'inline-block', animation: 'pulseDot 1.5s ease infinite' }} />
+                  {Object.keys(runningMap).length} en execució
                 </span>
               )}
             </div>
@@ -483,9 +681,10 @@ export const ScenariosPage = () => {
                   <th style={S.th}>Arquitectura</th>
                   <th style={S.th}>Protocol</th>
                   <th style={S.th}>Plataforma</th>
+                  <th style={{ ...S.th }}>Format</th>
                   <th style={{ ...S.th, textAlign: 'center' }}>Estat</th>
                   <th style={{ ...S.th, textAlign: 'right' }}>Creat</th>
-                  <th style={{ ...S.th, textAlign: 'center', width: 140 }}>Accions</th>
+                  <th style={{ ...S.th, textAlign: 'center', width: 110 }}>Accions</th>
                 </tr>
               </thead>
               <tbody>
@@ -493,7 +692,7 @@ export const ScenariosPage = () => {
                   Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} delay={i * 0.08} />)
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={7} style={{ padding: 60, textAlign: 'center' }}>
+                    <td colSpan={8} style={{ padding: 60, textAlign: 'center' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                         <EmptyIcon />
                         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Cap escenari trobat</div>
@@ -504,32 +703,66 @@ export const ScenariosPage = () => {
                     </td>
                   </tr>
                 ) : filtered.map((s, i) => {
-                  const st = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
+                  const st        = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
+                  const isRunning = !!runningMap[s.id];
+                  const dfColor   = DATA_FORMAT_COLORS[s.dataFormat || 'default'] || '#6b7280';
+                  const dfLabel   = DATA_FORMAT_LABELS[s.dataFormat || ''] || '—';
                   return (
                     <tr key={s.id || i}
                       style={{ ...S.tableRow, background: selectedScenario?.id === s.id ? 'var(--bg-hover)' : hoveredRow === i ? 'var(--bg-hover)' : 'transparent', cursor: 'pointer' }}
                       onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}
-                      onClick={() => setSelectedScenario(s)}
+                      onClick={() => setSelectedScenario(prev => prev?.id === s.id ? null : s)}
                     >
-                      <td style={{ ...S.td, fontWeight: 600 }}>{s.name || '—'}</td>
+                      <td style={{ ...S.td, fontWeight: 700 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                          {isRunning && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', flexShrink: 0, animation: 'pulseDot 1.5s ease infinite' }} />}
+                          {s.name || '—'}
+                        </div>
+                      </td>
                       <td style={S.td}>
                         {s.architecture ? <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{s.architecture}</span> : '—'}
                       </td>
                       <td style={S.td}>
                         {s.protocol ? <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{s.protocol}</span> : '—'}
                       </td>
-                      <td style={{ ...S.td, color: 'var(--text-secondary)' }}>{s.platform || s.broker || '—'}</td>
+                      <td style={{ ...S.td, color: 'var(--text-secondary)', fontSize: 13 }}>
+                        {s.platform || s.broker || '—'}
+                      </td>
+                      <td style={S.td}>
+                        {s.dataFormat && s.dataFormat !== 'default'
+                          ? <span style={{ ...S.badge(dfColor), fontSize: 10 }}>{dfLabel}</span>
+                          : <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>—</span>}
+                      </td>
                       <td style={{ ...S.td, textAlign: 'center' }}>
-                        <span style={{ ...S.badge(st.color), fontSize: 11 }}>{st.label}</span>
+                        <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : st.bg, color: isRunning ? '#3b82f6' : st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
+                          {isRunning ? 'En execució' : st.label}
+                        </span>
                       </td>
                       <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
                         {formatTime(s.createdAt)}
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                          <button title="Executar a AKS" onClick={() => setExecuteTarget(s)} style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-fg)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--badge-green-fg)' }}><PlayIcon /></button>
-                          <button title="Editar"         onClick={() => openEdit(s)}          style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}><EditIcon /></button>
-                          <button title="Eliminar"       onClick={() => setDeleteTarget(s)}   style={{ background: 'none', border: '1px solid var(--error)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--error)' }}><TrashIcon /></button>
+                          {isRunning ? (
+                            <button title="Aturar execució" onClick={() => handleStopScenario(s)}
+                              style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--error)' }}>
+                              <StopIcon />
+                            </button>
+                          ) : (
+                            <button title="Executar a AKS" onClick={() => setExecuteTarget(s)}
+                              style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-fg)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--badge-green-fg)' }}>
+                              <PlayIcon />
+                            </button>
+                          )}
+                          <button title="Editar" onClick={() => openEdit(s)}
+                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}>
+                            <EditIcon />
+                          </button>
+                          <button title="Eliminar" onClick={() => setDeleteTarget(s)}
+                            style={{ background: 'none', border: '1px solid var(--error)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--error)' }}>
+                            <TrashIcon />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -543,8 +776,10 @@ export const ScenariosPage = () => {
         {selectedScenario && (
           <ScenarioDetail
             scenario={selectedScenario}
+            isRunning={!!runningMap[selectedScenario.id]}
             onClose={() => setSelectedScenario(null)}
             onExecute={() => setExecuteTarget(selectedScenario)}
+            onStop={() => handleStopScenario(selectedScenario)}
             onEdit={() => openEdit(selectedScenario)}
             onDelete={() => setDeleteTarget(selectedScenario)}
           />
@@ -553,3 +788,4 @@ export const ScenariosPage = () => {
     </div>
   );
 };
+
