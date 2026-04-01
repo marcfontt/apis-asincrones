@@ -8,7 +8,6 @@ import BarChartIcon from '@material-ui/icons/BarChart';
 import SettingsIcon from '@material-ui/icons/Settings';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
-import { Settings as SidebarSettings } from '@backstage/plugin-user-settings';
 import {
   Sidebar,
   sidebarConfig,
@@ -16,7 +15,6 @@ import {
   SidebarGroup,
   SidebarItem,
   SidebarPage,
-  SidebarSpace,
   useSidebarOpenState,
   Link,
 } from '@backstage/core-components';
@@ -63,11 +61,6 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
         <SidebarItem icon={BarChartIcon}  to="resultats"  text="Resultats" />
         <SidebarDivider />
         <SidebarItem icon={SettingsIcon}  to="settings"   text="Configuració" />
-      </SidebarGroup>
-      <SidebarSpace />
-      <SidebarDivider />
-      <SidebarGroup label="Configuració" icon={<SettingsIcon />} to="/settings">
-        <SidebarSettings />
       </SidebarGroup>
     </Sidebar>
     {children}

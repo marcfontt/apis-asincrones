@@ -19,7 +19,7 @@ const app = createApp({
   apis,
   plugins: [catalogPlugin, scaffolderPlugin, orgPlugin],
   bindRoutes({ bind }) {
-    bind(catalogPlugin.externalRoutes, { createComponent: scaffolderPlugin.routes.root, viewTechDoc: undefined as any, createFromTemplate: scaffolderPlugin.routes.root });
+    bind(catalogPlugin.externalRoutes, { createComponent: scaffolderPlugin.routes.root, viewTechDoc: undefined as any });
     bind(orgPlugin.externalRoutes, { catalogIndex: catalogPlugin.routes.catalogIndex });
   },
   components: { SignInPage: props => <SignInPage {...props} auto providers={['guest']} /> },

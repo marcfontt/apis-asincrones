@@ -1,22 +1,47 @@
-
 import { useEffect, useState, useCallback } from 'react';
 import { S, GLOBAL_CSS } from '../../theme';
 
 const API_BASE     = '/api/proxy/scenario-service';
 const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
 
-const ALL_ARCHITECTURES = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
-const ALL_PROTOCOLS     = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
-const ALL_PLATFORMS     = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server', 'Pulsar'];
-const DISABLED_PLATFORMS = ['Pulsar']; // Fora de l'abast del projecte
+// ── Types ──────────────────────────────────────────────────────────────────────
+type Scenario = {
+  id?: string;
+  name: string;
+  architecture: string;
+  protocol: string;
+  platform?: string;
+  broker?: string;
+  duration?: number;
+  rate?: number;
+  payloadSize?: number;
+  dataFormat?: string;
+  status?: string;
+  predefined?: boolean;
+  createdAt?: string;
+};
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const ALL_ARCHITECTURES  = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
+const ALL_PROTOCOLS      = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
+const ALL_PLATFORMS      = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server', 'Pulsar'];
+const DISABLED_PLATFORMS = ['Pulsar'];
+
+const PLATFORM_COLORS: Record<string, string> = {
+  'Kafka':       '#ef4444',
+  'Confluent':   '#3b82f6',
+  'RabbitMQ':    '#f59e0b',
+  'NATS Server': '#22c55e',
+  'Pulsar':      '#a78bfa',
+};
 
 const DATA_FORMATS = [
-  { value: '',           label: 'Per defecte (bytes aleatoris)' },
-  { value: 'default',    label: 'Per defecte (bytes aleatoris)' },
-  { value: 'video-4k',   label: 'Streaming vídeo 4K (~4 Mbps)' },
-  { value: 'video-8k',   label: 'Streaming vídeo 8K (~16 Mbps)' },
-  { value: 'financial',  label: 'Transaccions financeres (JSON compacte)' },
-  { value: 'iot',        label: 'Telemetria IoT (payload mínim)' },
+  { value: '',          label: 'Per defecte (bytes aleatoris)' },
+  { value: 'default',   label: 'Per defecte (bytes aleatoris)' },
+  { value: 'video-4k',  label: 'Streaming vídeo 4K (~4 Mbps)' },
+  { value: 'video-8k',  label: 'Streaming vídeo 8K (~16 Mbps)' },
+  { value: 'financial', label: 'Transaccions financeres (JSON compacte)' },
+  { value: 'iot',       label: 'Telemetria IoT (payload mínim)' },
 ];
 
 const DATA_FORMAT_LABELS: Record<string, string> = {
@@ -46,17 +71,26 @@ const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string
 const getCompatibleArchitectures = (p: string) => COMPATIBILITY[p]?.architectures ?? ALL_ARCHITECTURES;
 const getCompatibleProtocols     = (p: string) => COMPATIBILITY[p]?.protocols     ?? ALL_PROTOCOLS;
 
+const normalizePlatform = (p?: string): string => {
+  if (!p) return '';
+  const map: Record<string, string> = {
+    'kafka': 'Kafka', 'rabbitmq': 'RabbitMQ', 'rabbit': 'RabbitMQ',
+    'confluent': 'Confluent', 'nats': 'NATS Server', 'nats server': 'NATS Server', 'pulsar': 'Pulsar',
+  };
+  return map[p.toLowerCase()] ?? p;
+};
+
 const EMPTY_FORM = {
   name: '', architecture: '', protocol: '', platform: '',
   duration: '', rate: '', payloadSize: '', dataFormat: '',
 };
 
 const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
-  idle:      { color: '#94a3b8', label: 'Llest',        bg: 'rgba(148,163,184,0.1)' },
-  pending:   { color: '#f59e0b', label: 'Pendent',      bg: 'rgba(245,158,11,0.1)' },
-  running:   { color: '#3b82f6', label: 'En execució',  bg: 'rgba(59,130,246,0.1)' },
-  completed: { color: '#22c55e', label: 'Completat',    bg: 'rgba(34,197,94,0.1)' },
-  error:     { color: '#ef4444', label: 'Error',        bg: 'rgba(239,68,68,0.1)' },
+  idle:      { color: '#94a3b8', label: 'Llest',       bg: 'rgba(148,163,184,0.1)' },
+  pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  },
+  running:   { color: '#3b82f6', label: 'En execució', bg: 'rgba(59,130,246,0.1)'  },
+  completed: { color: '#22c55e', label: 'Completat',   bg: 'rgba(34,197,94,0.1)'   },
+  error:     { color: '#ef4444', label: 'Error',       bg: 'rgba(239,68,68,0.1)'   },
 };
 
 const SK_STYLE = {
@@ -67,20 +101,21 @@ const SK_STYLE = {
 };
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
-const PlayIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
-const StopIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>;
-const EditIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
-const TrashIcon   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
-const CloseIcon   = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const PlusIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const RefreshIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
-const EmptyIcon   = () => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>;
-const RocketIcon  = () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m3.29 15 5 5"/><path d="M13 7 7 13"/><path d="m20 7-5 3-3 5 2 2 5-3 3-5z"/></svg>;
-const GearIcon    = () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+const PlayIcon      = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+const StopIcon      = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>;
+const EditIcon      = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
+const TrashIcon     = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
+const DuplicateIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
+const CloseIcon     = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const PlusIcon      = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
+const RefreshIcon   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
+const EmptyIcon     = () => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>;
+const RocketIcon    = () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m3.29 15 5 5"/><path d="M13 7 7 13"/><path d="m20 7-5 3-3 5 2 2 5-3 3-5z"/></svg>;
+const GearIcon      = () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
 
 const SkeletonRow = ({ delay = 0 }: { delay?: number }) => (
   <tr>
-    {[62, 48, 42, 55, 38, 45, 30, 32].map((w, j) => (
+    {[62, 48, 42, 55, 38, 45, 30, 32, 32].map((w, j) => (
       <td key={j} style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
         <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${delay}s` }} />
       </td>
@@ -92,12 +127,14 @@ const lbl: React.CSSProperties = {
   display: 'block', fontSize: 11, color: 'var(--text-secondary)',
   marginBottom: 5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
 };
+
 const selStyle: React.CSSProperties = {
   padding: '8px 32px 8px 12px', borderRadius: 6, border: '1px solid var(--border)',
   background: 'var(--bg-card)', color: 'var(--text-primary)', fontSize: 13,
   cursor: 'pointer', outline: 'none', appearance: 'none', fontFamily: 'var(--font)',
   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center', minWidth: 140,
+  backgroundRepeat: 'no-repeat', backgroundPosition: 'right 10px center',
+  width: 160,
 };
 
 // ── Modal: Crear / Editar ──────────────────────────────────────────────────────
@@ -139,13 +176,8 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
         predefined: false,
         status: 'idle',
       };
-      // Preserva la data de creació original en editar
-      if (mode === 'edit' && initial.createdAt) {
-        payload.createdAt = initial.createdAt;
-      }
-      const url = mode === 'edit' && initial.id
-        ? `${API_BASE}/scenarios/${initial.id}`
-        : `${API_BASE}/scenarios`;
+      if (mode === 'edit' && initial.createdAt) payload.createdAt = initial.createdAt;
+      const url = mode === 'edit' && initial.id ? `${API_BASE}/scenarios/${initial.id}` : `${API_BASE}/scenarios`;
       const r = await fetch(url, {
         method: mode === 'edit' && initial.id ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -167,13 +199,11 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
         </div>
 
         <div style={{ display: 'grid', gap: 16 }}>
-          {/* Nom */}
           <div>
             <label style={lbl}>Nom *</label>
             <input style={{ ...S.input }} placeholder="ex. MQTT-EDA-RabbitMQ-IoT" value={form.name} onChange={e => set('name', e.target.value)} />
           </div>
 
-          {/* Plataforma */}
           <div>
             <label style={lbl}>
               Plataforma / Broker *{' '}
@@ -192,12 +222,11 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
             </select>
             {DISABLED_PLATFORMS.length > 0 && (
               <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-disabled)' }}>
-                Plataformes no disponibles en aquest entorn: {DISABLED_PLATFORMS.join(', ')}
+                Plataformes no disponibles: {DISABLED_PLATFORMS.join(', ')}
               </p>
             )}
           </div>
 
-          {/* Arquitectura + Protocol */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <div>
               <label style={lbl}>
@@ -227,21 +256,18 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
             </div>
           </div>
 
-          {/* Hint compatibilitat */}
           {form.platform && (
             <div style={{ background: 'var(--badge-blue-bg)', border: '1px solid var(--badge-blue-fg)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--badge-blue-fg)', opacity: 0.9 }}>
               <strong>{form.platform}</strong> · Arq: {ca.join(', ')} · Proto: {cp.join(', ')}
             </div>
           )}
 
-          {/* Càrrega */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
             <div><label style={lbl}>Durada (s)</label><input style={{ ...S.input }} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} /></div>
             <div><label style={lbl}>Ràtio (msg/s)</label><input style={{ ...S.input }} type="number" min={1} placeholder="1000" value={form.rate} onChange={e => set('rate', e.target.value)} /></div>
             <div><label style={lbl}>Payload (bytes)</label><input style={{ ...S.input }} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} /></div>
           </div>
 
-          {/* Format de dades */}
           <div>
             <label style={lbl}>Format de dades</label>
             <select style={{ ...S.input }} value={form.dataFormat} onChange={e => set('dataFormat', e.target.value)}>
@@ -289,7 +315,7 @@ const DeleteModal = ({ name, onConfirm, onClose }: { name: string; onConfirm: ()
 );
 
 // ── Modal: Executar ────────────────────────────────────────────────────────────
-const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => void }) => {
+const ExecuteModal = ({ scenario, onClose }: { scenario: Scenario; onClose: () => void }) => {
   const [state, setState] = useState<'confirm' | 'running' | 'done' | 'error'>('confirm');
   const [runId, setRunId] = useState('');
   const [error, setError] = useState('');
@@ -304,7 +330,7 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
           scenarioName: scenario.name,
           architecture: scenario.architecture,
           protocol:     scenario.protocol,
-          platform:     scenario.platform || scenario.broker,
+          platform:     normalizePlatform(scenario.platform || scenario.broker),
           dataFormat:   scenario.dataFormat || 'default',
         }),
       });
@@ -318,6 +344,8 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
   const overlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' };
   const card:    React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 460, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' };
 
+  const platDisplay = normalizePlatform(scenario.platform || scenario.broker);
+
   if (state === 'confirm') return (
     <div style={overlay}><div style={card}>
       <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Executar Escenari</h3>
@@ -328,15 +356,15 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
         {([
           ['Arquitectura', scenario.architecture],
           ['Protocol',     scenario.protocol],
-          ['Plataforma',   scenario.platform || scenario.broker],
-          ['Format dades', DATA_FORMAT_LABELS[scenario.dataFormat] || 'Per defecte'],
-          ['Durada',       scenario.duration  ? `${scenario.duration}s`       : 'Per defecte (60s)'],
-          ['Ràtio',        scenario.rate      ? `${scenario.rate} msg/s`      : 'Per defecte (100 msg/s)'],
-          ['Payload',      scenario.payloadSize ? `${scenario.payloadSize}B`  : 'Per defecte (256B)'],
+          ['Plataforma',   platDisplay],
+          ['Format dades', DATA_FORMAT_LABELS[scenario.dataFormat || ''] || 'Per defecte'],
+          ['Durada',       scenario.duration   ? `${scenario.duration}s`        : 'Per defecte (60s)'],
+          ['Ràtio',        scenario.rate       ? `${scenario.rate} msg/s`       : 'Per defecte (100 msg/s)'],
+          ['Payload',      scenario.payloadSize ? `${scenario.payloadSize}B`    : 'Per defecte (256B)'],
         ] as [string, string][]).map(([l, v]) => (
           <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-secondary)' }}>{l}</span>
-            <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{v}</strong>
+            <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{v || '-'}</strong>
           </div>
         ))}
       </div>
@@ -374,7 +402,7 @@ const ExecuteModal = ({ scenario, onClose }: { scenario: any; onClose: () => voi
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Tanca</button>
         <button onClick={() => { window.location.href = '/execucions'; }} style={{ ...S.btnPrimary, fontSize: 13 }}>
-          Veure Execucions →
+          Veure Execucions
         </button>
       </div>
     </div></div>
@@ -408,17 +436,20 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
 };
 
 // ── Detall d'escenari (panel lateral) ─────────────────────────────────────────
-const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete, isRunning }: {
-  scenario: any; onClose: () => void; onExecute: () => void; onStop: () => void;
-  onEdit: () => void; onDelete: () => void; isRunning: boolean;
+const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete, onDuplicate, isRunning }: {
+  scenario: Scenario; onClose: () => void; onExecute: () => void; onStop: () => void;
+  onEdit: () => void; onDelete: () => void; onDuplicate: () => void; isRunning: boolean;
 }) => {
-  const status = STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle;
-  const dfColor = DATA_FORMAT_COLORS[scenario.dataFormat || 'default'] || DATA_FORMAT_COLORS['default'];
-  const dfLabel = DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Per defecte';
+  const status   = STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle;
+  const dfColor  = DATA_FORMAT_COLORS[scenario.dataFormat || 'default'] || DATA_FORMAT_COLORS['default'];
+  const dfLabel  = DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Per defecte';
+  const platName = normalizePlatform(scenario.platform || scenario.broker);
+  const platColor = PLATFORM_COLORS[platName] || 'var(--text-secondary)';
+
   const Row = ({ label, value }: { label: string; value: string }) => (
     <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{label}</span>
-      <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>{value || '—'}</span>
+      <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>{value || '-'}</span>
     </div>
   );
   return (
@@ -427,12 +458,8 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
         <div style={{ flex: 1, minWidth: 0 }}>
           <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-word' }}>{scenario.name || 'Sense nom'}</h3>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{
-              background: status.bg, color: status.color,
-              padding: '2px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700,
-              display: 'inline-flex', alignItems: 'center', gap: 4,
-            }}>
-              {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: status.color, animation: 'pulseDot 1.5s ease infinite' }} />}
+            <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : status.bg, color: isRunning ? '#3b82f6' : status.color, padding: '2px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
               {isRunning ? 'En execució' : status.label}
             </span>
           </div>
@@ -443,10 +470,15 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
         <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Configuració</div>
         <Row label="Arquitectura" value={scenario.architecture} />
         <Row label="Protocol"     value={scenario.protocol} />
-        <Row label="Plataforma"   value={scenario.platform || scenario.broker} />
-        <Row label="Durada"       value={scenario.duration    ? `${scenario.duration}s`         : '—'} />
-        <Row label="Ràtio"        value={scenario.rate        ? `${scenario.rate} msg/s`        : '—'} />
-        <Row label="Payload"      value={scenario.payloadSize ? `${scenario.payloadSize} bytes` : '—'} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Plataforma</span>
+          {platName
+            ? <span style={{ ...S.badge(platColor), fontSize: 10 }}>{platName}</span>
+            : <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)' }}>-</span>}
+        </div>
+        <Row label="Durada"   value={scenario.duration    ? `${scenario.duration}s`         : '-'} />
+        <Row label="Ràtio"    value={scenario.rate        ? `${scenario.rate} msg/s`        : '-'} />
+        <Row label="Payload"  value={scenario.payloadSize ? `${scenario.payloadSize} bytes` : '-'} />
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
           <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Format dades</span>
           <span style={{ ...S.badge(dfColor), fontSize: 10 }}>{dfLabel}</span>
@@ -454,7 +486,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
       </div>
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Metadades</div>
-        <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleString('ca-ES') : '—'} />
+        <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleString('ca-ES') : '-'} />
         <Row label="Tipus" value={scenario.predefined ? 'Sistema' : 'Personalitzat'} />
       </div>
       <div style={{ display: 'flex', gap: 6, borderTop: '1px solid var(--border)', paddingTop: 14, flexWrap: 'wrap' }}>
@@ -467,6 +499,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
             <PlayIcon /> Executar
           </button>
         )}
+        <button onClick={onDuplicate} title="Duplicar" style={{ ...S.btn, fontSize: 12, padding: '6px 10px' }}><DuplicateIcon /> Còpia</button>
         <button onClick={onEdit}   style={{ ...S.btn, fontSize: 12, padding: '6px 10px' }}><EditIcon /> Editar</button>
         <button onClick={onDelete} style={{ ...S.btn, fontSize: 12, padding: '6px 10px', color: 'var(--error)', borderColor: 'var(--error)' }}><TrashIcon /></button>
       </div>
@@ -476,34 +509,31 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
 
 // ── ScenariosPage ──────────────────────────────────────────────────────────────
 export const ScenariosPage = () => {
-  const [scenarios,        setScenarios]        = useState<any[]>([]);
+  const [scenarios,        setScenarios]        = useState<Scenario[]>([]);
   const [loading,          setLoading]          = useState(true);
   const [error,            setError]            = useState('');
   const [filterArch,       setFilterArch]       = useState('all');
   const [filterProto,      setFilterProto]      = useState('all');
   const [filterDataFormat, setFilterDataFormat] = useState('all');
   const [hoveredRow,       setHoveredRow]       = useState<number | null>(null);
-  const [selectedScenario, setSelectedScenario] = useState<any | null>(null);
+  const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [showModal,        setShowModal]        = useState(false);
   const [editScenario,     setEditScenario]     = useState<any | null>(null);
-  const [deleteTarget,     setDeleteTarget]     = useState<any | null>(null);
-  const [executeTarget,    setExecuteTarget]    = useState<any | null>(null);
+  const [deleteTarget,     setDeleteTarget]     = useState<Scenario | null>(null);
+  const [executeTarget,    setExecuteTarget]    = useState<Scenario | null>(null);
   const [toast,            setToast]            = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  // Map scenarioId -> runId per als que estan en execució ara
   const [runningMap,       setRunningMap]       = useState<Record<string, string>>({});
 
   useEffect(() => { document.title = 'Escenaris | APIs Asíncrones'; }, []);
 
-  // Detecta quins escenaris estan ara en execució
   const fetchRunningMap = useCallback(() => {
     fetch(`${ORCHESTRATOR}/runs`)
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
           const map: Record<string, string> = {};
-          data
-            .filter(r => r.status === 'running' || r.status === 'pending')
-            .forEach(r => { if (r.scenarioId) map[r.scenarioId] = r.id; });
+          data.filter(r => r.status === 'running' || r.status === 'pending')
+              .forEach(r => { if (r.scenarioId) map[r.scenarioId] = r.id; });
           setRunningMap(map);
         }
       })
@@ -516,7 +546,6 @@ export const ScenariosPage = () => {
     return () => clearInterval(i);
   }, [fetchRunningMap]);
 
-  // Gestió URL params (prefill des de HomePage)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('create') === 'true') {
@@ -550,24 +579,47 @@ export const ScenariosPage = () => {
     } catch (e: any) { setToast({ message: 'Error: ' + e.message, type: 'error' }); setDeleteTarget(null); }
   };
 
-  const handleStopScenario = async (scenario: any) => {
-    const runId = runningMap[scenario.id];
+  const handleDuplicate = async (s: Scenario) => {
+    const copy = {
+      name: `${s.name} (còpia)`,
+      architecture: s.architecture,
+      protocol: s.protocol,
+      platform: normalizePlatform(s.platform || s.broker),
+      duration: s.duration,
+      rate: s.rate,
+      payloadSize: s.payloadSize,
+      dataFormat: s.dataFormat || 'default',
+      predefined: false,
+      status: 'idle',
+    };
+    try {
+      await fetch(`${API_BASE}/scenarios`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(copy),
+      });
+      fetchData();
+      setToast({ message: `Còpia de "${s.name}" creada.`, type: 'success' });
+    } catch (e: any) {
+      setToast({ message: 'Error en duplicar: ' + e.message, type: 'error' });
+    }
+  };
+
+  const handleStopScenario = async (scenario: Scenario) => {
+    const runId = runningMap[scenario.id!];
     if (!runId) return;
     try {
       await fetch(`${ORCHESTRATOR}/runs/${runId}/cancel`, { method: 'POST' });
       setToast({ message: `Escenari "${scenario.name}" aturat.`, type: 'info' });
       fetchRunningMap();
-    } catch (e: any) {
-      setToast({ message: 'Error en aturar: ' + e.message, type: 'error' });
-    }
+    } catch (e: any) { setToast({ message: 'Error en aturar: ' + e.message, type: 'error' }); }
   };
 
-  const openEdit = (s: any) => {
+  const openEdit = (s: Scenario) => {
     setEditScenario({
-      id: s.id,
-      createdAt: s.createdAt, // preservem la data original
+      id: s.id, createdAt: s.createdAt,
       name: s.name || '', architecture: s.architecture || '',
-      protocol: s.protocol || '', platform: s.platform || s.broker || '',
+      protocol: s.protocol || '', platform: normalizePlatform(s.platform || s.broker) || '',
       duration: s.duration ? String(s.duration) : '',
       rate: s.rate ? String(s.rate) : '',
       payloadSize: s.payloadSize ? String(s.payloadSize) : '',
@@ -577,15 +629,15 @@ export const ScenariosPage = () => {
   };
 
   const filtered = scenarios.filter(s => {
-    if (filterArch       !== 'all' && s.architecture !== filterArch)             return false;
-    if (filterProto      !== 'all' && s.protocol     !== filterProto)            return false;
-    if (filterDataFormat !== 'all' && (s.dataFormat || 'default') !== filterDataFormat) return false;
+    if (filterArch       !== 'all' && s.architecture !== filterArch)                             return false;
+    if (filterProto      !== 'all' && s.protocol     !== filterProto)                            return false;
+    if (filterDataFormat !== 'all' && (s.dataFormat || 'default') !== filterDataFormat)          return false;
     return true;
   });
   const isFiltered = filterArch !== 'all' || filterProto !== 'all' || filterDataFormat !== 'all';
 
   const formatTime = (iso: string) =>
-    !iso ? '—' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    !iso ? '-' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   const modalInitial = editScenario?._prefill
     ? { ...EMPTY_FORM, ...editScenario }
@@ -616,29 +668,18 @@ export const ScenariosPage = () => {
       {/* Filtres */}
       <div style={{ ...S.card, marginBottom: 20, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         {[
-          { label: 'Arquitectura', value: filterArch, options: ALL_ARCHITECTURES, onChange: setFilterArch, allLabel: 'Totes' },
-          { label: 'Protocol',     value: filterProto, options: ALL_PROTOCOLS,     onChange: setFilterProto, allLabel: 'Tots' },
+          { label: 'Arquitectura', value: filterArch,       options: ALL_ARCHITECTURES, onChange: setFilterArch,       allLabel: 'Totes' },
+          { label: 'Protocol',     value: filterProto,      options: ALL_PROTOCOLS,     onChange: setFilterProto,      allLabel: 'Tots'  },
+          { label: 'Format',       value: filterDataFormat, options: ['default', 'video-4k', 'video-8k', 'financial', 'iot'], onChange: setFilterDataFormat, allLabel: 'Tots' },
         ].map(({ label, value, options, onChange, allLabel }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', whiteSpace: 'nowrap' as const }}>{label}:</span>
             <select value={value} onChange={e => onChange(e.target.value)} style={selStyle}>
               <option value="all">{allLabel}</option>
-              {options.map(o => <option key={o} value={o}>{o}</option>)}
+              {options.map(o => <option key={o} value={o}>{DATA_FORMAT_LABELS[o] || o}</option>)}
             </select>
           </div>
         ))}
-        <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.05em', whiteSpace: 'nowrap' as const }}>Format:</span>
-          <select value={filterDataFormat} onChange={e => setFilterDataFormat(e.target.value)} style={selStyle}>
-            <option value="all">Tots</option>
-            <option value="default">Per defecte</option>
-            <option value="video-4k">Vídeo 4K</option>
-            <option value="video-8k">Vídeo 8K</option>
-            <option value="financial">Financer</option>
-            <option value="iot">IoT</option>
-          </select>
-        </div>
         {isFiltered && (
           <button onClick={() => { setFilterArch('all'); setFilterProto('all'); setFilterDataFormat('all'); }}
             style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font)' }}>
@@ -652,7 +693,7 @@ export const ScenariosPage = () => {
         <div style={{ ...S.card, padding: 0, overflow: 'hidden', flex: selectedScenario ? '0 0 auto' : 1, width: selectedScenario ? 'calc(100% - 340px)' : '100%' }}>
           <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '—' : filtered.length}</span>
+              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '-' : filtered.length}</span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>escenari{filtered.length !== 1 ? 's' : ''}</span>
               {isFiltered && !loading && (
                 <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10 }}>
@@ -681,10 +722,10 @@ export const ScenariosPage = () => {
                   <th style={S.th}>Arquitectura</th>
                   <th style={S.th}>Protocol</th>
                   <th style={S.th}>Plataforma</th>
-                  <th style={{ ...S.th }}>Format</th>
+                  <th style={S.th}>Format</th>
                   <th style={{ ...S.th, textAlign: 'center' }}>Estat</th>
                   <th style={{ ...S.th, textAlign: 'right' }}>Creat</th>
-                  <th style={{ ...S.th, textAlign: 'center', width: 110 }}>Accions</th>
+                  <th style={{ ...S.th, textAlign: 'center', width: 130 }}>Accions</th>
                 </tr>
               </thead>
               <tbody>
@@ -703,35 +744,46 @@ export const ScenariosPage = () => {
                     </td>
                   </tr>
                 ) : filtered.map((s, i) => {
-                  const st        = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
-                  const isRunning = !!runningMap[s.id];
-                  const dfColor   = DATA_FORMAT_COLORS[s.dataFormat || 'default'] || '#6b7280';
-                  const dfLabel   = DATA_FORMAT_LABELS[s.dataFormat || ''] || '—';
+                  const st         = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
+                  const isRunning  = !!runningMap[s.id!];
+                  const dfColor    = DATA_FORMAT_COLORS[s.dataFormat || 'default'] || '#6b7280';
+                  const dfLabel    = DATA_FORMAT_LABELS[s.dataFormat || ''] || '';
+                  const platName   = normalizePlatform(s.platform || s.broker);
+                  const platColor  = PLATFORM_COLORS[platName] || 'var(--text-secondary)';
+                  const isSelected = selectedScenario?.id === s.id;
                   return (
                     <tr key={s.id || i}
-                      style={{ ...S.tableRow, background: selectedScenario?.id === s.id ? 'var(--bg-hover)' : hoveredRow === i ? 'var(--bg-hover)' : 'transparent', cursor: 'pointer' }}
+                      style={{
+                        ...S.tableRow,
+                        background: isSelected ? 'var(--bg-hover)' : hoveredRow === i ? 'var(--bg-hover)' : 'transparent',
+                        cursor: 'pointer',
+                        borderLeft: isSelected ? '3px solid var(--accent)' : '3px solid transparent',
+                        transition: 'all 0.15s ease',
+                      }}
                       onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}
-                      onClick={() => setSelectedScenario(prev => prev?.id === s.id ? null : s)}
+                      onClick={() => setSelectedScenario((prev: Scenario | null) => prev?.id === s.id ? null : s)}
                     >
                       <td style={{ ...S.td, fontWeight: 700 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                           {isRunning && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', flexShrink: 0, animation: 'pulseDot 1.5s ease infinite' }} />}
-                          {s.name || '—'}
+                          {s.name || '-'}
                         </div>
                       </td>
                       <td style={S.td}>
-                        {s.architecture ? <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{s.architecture}</span> : '—'}
+                        {s.architecture ? <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{s.architecture}</span> : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
                       <td style={S.td}>
-                        {s.protocol ? <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{s.protocol}</span> : '—'}
+                        {s.protocol ? <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{s.protocol}</span> : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
-                      <td style={{ ...S.td, color: 'var(--text-secondary)', fontSize: 13 }}>
-                        {s.platform || s.broker || '—'}
+                      <td style={S.td}>
+                        {platName
+                          ? <span style={{ ...S.badge(platColor), fontSize: 11 }}>{platName}</span>
+                          : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
                       <td style={S.td}>
                         {s.dataFormat && s.dataFormat !== 'default'
                           ? <span style={{ ...S.badge(dfColor), fontSize: 10 }}>{dfLabel}</span>
-                          : <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>—</span>}
+                          : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }}>
                         <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : st.bg, color: isRunning ? '#3b82f6' : st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -740,7 +792,7 @@ export const ScenariosPage = () => {
                         </span>
                       </td>
                       <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                        {formatTime(s.createdAt)}
+                        {formatTime(s.createdAt || '')}
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
@@ -755,6 +807,10 @@ export const ScenariosPage = () => {
                               <PlayIcon />
                             </button>
                           )}
+                          <button title="Duplicar escenari" onClick={() => handleDuplicate(s)}
+                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}>
+                            <DuplicateIcon />
+                          </button>
                           <button title="Editar" onClick={() => openEdit(s)}
                             style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}>
                             <EditIcon />
@@ -776,16 +832,16 @@ export const ScenariosPage = () => {
         {selectedScenario && (
           <ScenarioDetail
             scenario={selectedScenario}
-            isRunning={!!runningMap[selectedScenario.id]}
+            isRunning={!!runningMap[selectedScenario.id!]}
             onClose={() => setSelectedScenario(null)}
             onExecute={() => setExecuteTarget(selectedScenario)}
             onStop={() => handleStopScenario(selectedScenario)}
             onEdit={() => openEdit(selectedScenario)}
             onDelete={() => setDeleteTarget(selectedScenario)}
+            onDuplicate={() => handleDuplicate(selectedScenario)}
           />
         )}
       </div>
     </div>
   );
 };
-
