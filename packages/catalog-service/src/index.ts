@@ -14,7 +14,7 @@ const es = new Client({
 const INDEX = 'async-catalog';
 
 // GET /components - Llista tots els components
-app.get('/components', async (req, res) => {
+app.get('/components', async (_req, res) => {
   try {
     const result = await es.search({
       index: INDEX,

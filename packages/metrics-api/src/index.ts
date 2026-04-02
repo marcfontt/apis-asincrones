@@ -109,7 +109,7 @@ app.get('/metrics/compare', async (req: Request, res: Response) => {
 
 // ── GET /metrics/summary — agregació per escenari ────────────────────────────
 // Retorna avg latency, throughput, errorRate agrupat per scenarioId
-app.get('/metrics/summary', async (req: Request, res: Response) => {
+app.get('/metrics/summary', async (_req: Request, res: Response) => {
   try {
     const result = await es.search({
       index: INDEX,
