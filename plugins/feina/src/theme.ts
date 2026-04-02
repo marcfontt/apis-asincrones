@@ -47,4 +47,4 @@ export const GLOBAL_CSS=`
   [data-theme="dark"] textarea{color-scheme:dark;}
   [data-theme="dark"] .card-hover:hover{box-shadow:0 4px 20px rgba(0,0,0,0.45);border-color:var(--border-hover)!important;}
   [data-theme="dark"] table{color-scheme:dark;}
-\`;
+`;
