@@ -85,12 +85,12 @@ const EMPTY_FORM = {
   duration: '', rate: '', payloadSize: '', dataFormat: '',
 };
 
-const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
-  idle:      { color: '#94a3b8', label: 'Llest',       bg: 'rgba(148,163,184,0.1)' },
-  pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  },
-  running:   { color: '#3b82f6', label: 'En execució', bg: 'rgba(59,130,246,0.1)'  },
-  completed: { color: '#22c55e', label: 'Completat',   bg: 'rgba(34,197,94,0.1)'   },
-  error:     { color: '#ef4444', label: 'Error',       bg: 'rgba(239,68,68,0.1)'   },
+const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string; border: string }> = {
+  idle:      { color: '#64748b', label: 'Llest',       bg: 'rgba(100,116,139,0.13)', border: 'rgba(100,116,139,0.35)' },
+  pending:   { color: '#d97706', label: 'Pendent',     bg: 'rgba(217,119,6,0.14)',   border: 'rgba(217,119,6,0.40)'   },
+  running:   { color: '#2563eb', label: 'En execució', bg: 'rgba(37,99,235,0.14)',   border: 'rgba(37,99,235,0.40)'   },
+  completed: { color: '#15803d', label: 'Completat',   bg: 'rgba(21,128,61,0.14)',   border: 'rgba(21,128,61,0.40)'   },
+  error:     { color: '#dc2626', label: 'Error',       bg: 'rgba(220,38,38,0.14)',   border: 'rgba(220,38,38,0.40)'   },
 };
 
 const SK_STYLE = {
@@ -112,6 +112,25 @@ const RefreshIcon   = () => <svg width="13" height="13" viewBox="0 0 24 24" fill
 const EmptyIcon     = () => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>;
 const RocketIcon    = () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m3.29 15 5 5"/><path d="M13 7 7 13"/><path d="m20 7-5 3-3 5 2 2 5-3 3-5z"/></svg>;
 const GearIcon      = () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+
+type SortDir = 'asc' | 'desc';
+const SortTh = ({ label, sk, current, dir, onSort, extraStyle }: {
+  label: string; sk: string; current: string; dir: SortDir;
+  onSort: (k: string) => void; extraStyle?: object;
+}) => {
+  const active = current === sk;
+  return (
+    <th style={{ ...S.th, cursor: 'pointer', userSelect: 'none' as const, whiteSpace: 'nowrap' as const, ...extraStyle }}
+      onClick={() => onSort(sk)}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+        {label}
+        <span style={{ fontSize: 9, opacity: active ? 1 : 0.3, color: active ? 'var(--accent)' : 'inherit' }}>
+          {active ? (dir === 'asc' ? '▲' : '▼') : '▲▼'}
+        </span>
+      </span>
+    </th>
+  );
+};
 
 const SkeletonRow = ({ delay = 0 }: { delay?: number }) => (
   <tr>
@@ -495,7 +514,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
             <StopIcon /> Aturar
           </button>
         ) : (
-          <button onClick={onExecute} style={{ ...S.btnPrimary, fontSize: 12, padding: '6px 10px', background: 'var(--success)', boxShadow: 'none' }}>
+          <button onClick={onExecute} style={{ ...S.btnPrimary, fontSize: 12, padding: '6px 10px', background: '#16a34a', boxShadow: '0 2px 8px rgba(22,163,74,0.4)', border: '1px solid #15803d' }}>
             <PlayIcon /> Executar
           </button>
         )}
@@ -515,6 +534,8 @@ export const ScenariosPage = () => {
   const [filterArch,       setFilterArch]       = useState('all');
   const [filterProto,      setFilterProto]      = useState('all');
   const [filterDataFormat, setFilterDataFormat] = useState('all');
+  const [sortKey,          setSortKey]          = useState<string>('createdAt');
+  const [sortDir,          setSortDir]          = useState<SortDir>('desc');
   const [hoveredRow,       setHoveredRow]       = useState<number | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [showModal,        setShowModal]        = useState(false);
@@ -635,6 +656,22 @@ export const ScenariosPage = () => {
     return true;
   });
   const isFiltered = filterArch !== 'all' || filterProto !== 'all' || filterDataFormat !== 'all';
+  const handleSort = (key: string) => {
+    if (sortKey === key) setSortDir((d: SortDir) => d === 'asc' ? 'desc' : 'asc');
+    else { setSortKey(key); setSortDir(key === 'createdAt' ? 'desc' : 'asc'); }
+  };
+  const sortedFiltered = [...filtered].sort((a: Scenario, b: Scenario) => {
+    let av: any = '', bv: any = '';
+    if      (sortKey === 'name')         { av = a.name || '';          bv = b.name || ''; }
+    else if (sortKey === 'architecture') { av = a.architecture || '';  bv = b.architecture || ''; }
+    else if (sortKey === 'protocol')     { av = a.protocol || '';      bv = b.protocol || ''; }
+    else if (sortKey === 'platform')     { av = normalizePlatform(a.platform || a.broker); bv = normalizePlatform(b.platform || b.broker); }
+    else if (sortKey === 'status')       { av = a.status || '';        bv = b.status || ''; }
+    else if (sortKey === 'createdAt')    { av = a.createdAt || '';     bv = b.createdAt || ''; }
+    const cmp = typeof av === 'string' ? av.localeCompare(bv, 'ca') : av - bv;
+    return sortDir === 'asc' ? cmp : -cmp;
+  });
+
 
   const formatTime = (iso: string) =>
     !iso ? '-' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -743,7 +780,7 @@ export const ScenariosPage = () => {
                       </div>
                     </td>
                   </tr>
-                ) : filtered.map((s, i) => {
+                ) : sortedFiltered.map((s, i) => {
                   const st         = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
                   const isRunning  = !!runningMap[s.id!];
                   const dfColor    = DATA_FORMAT_COLORS[s.dataFormat || 'default'] || '#6b7280';
@@ -786,8 +823,8 @@ export const ScenariosPage = () => {
                           : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }}>
-                        <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : st.bg, color: isRunning ? '#3b82f6' : st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                          {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
+                        <span style={{ background: isRunning ? 'rgba(37,99,235,0.14)' : st.bg, color: isRunning ? '#2563eb' : st.color, padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${isRunning ? 'rgba(37,99,235,0.40)' : st.border}` }}>
+                          {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#2563eb', animation: 'pulseDot 1.5s ease infinite' }} />}
                           {isRunning ? 'En execució' : st.label}
                         </span>
                       </td>
@@ -803,7 +840,7 @@ export const ScenariosPage = () => {
                             </button>
                           ) : (
                             <button title="Executar a AKS" onClick={() => setExecuteTarget(s)}
-                              style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-fg)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--badge-green-fg)' }}>
+                              style={{ background: '#16a34a', border: '1px solid #15803d', borderRadius: 6, padding: '5px 9px', cursor: 'pointer', display: 'flex', color: 'white', boxShadow: '0 2px 6px rgba(22,163,74,0.4)' }}>
                               <PlayIcon />
                             </button>
                           )}

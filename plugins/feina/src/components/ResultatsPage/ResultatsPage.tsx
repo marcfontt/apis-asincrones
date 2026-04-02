@@ -366,8 +366,8 @@ const HistorialTab = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
             {[
               { label: 'Escenaris comparats', value: String(filteredSummary.length), color: '#3b82f6', Icon: IconHash },
-              { label: 'Millor latencia',      value: bestLat ? `${bestLat.avgLatency?.toFixed(1)}ms` : '-', color: '#22c55e', Icon: IconZap },
-              { label: 'Millor escenari',      value: nameMap[bestLat?.scenarioId] || '-', color: '#f59e0b', Icon: IconAward },
+              { label: 'Millor latencia',      value: best ? `${best.avgLatency?.toFixed(1)}ms` : '-', color: '#22c55e', Icon: IconZap },
+              { label: 'Millor puntuació',      value: nameMap[best?.scenarioId] || '-', color: '#f59e0b', Icon: IconAward },
             ].map(c => (
               <div key={c.label} style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
                 <div style={{ width: 40, height: 40, borderRadius: 10, background: c.color + '14', color: c.color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><c.Icon /></div>
