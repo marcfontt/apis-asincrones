@@ -469,6 +469,8 @@ export const ExecucionsPage = () => {
             onCancel={handleCancel} onDelete={handleDelete}
             cancellingId={cancellingId} deletingId={deletingId}
             scenarioMap={scenarioMap}
+            onSelect={(r: any) => setSelectedRun((prev: any) => prev?.id === r.id ? null : r)}
+            selectedRunId={selectedRun?.id ?? null}
           />
         </>
       )}

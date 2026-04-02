@@ -260,7 +260,7 @@ const HistorialTab = () => {
   const clearFilters  = () => { setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]); setFilterDataFormat([]); };
 
   const sorted  = [...filteredSummary].sort((a, b) => (a.avgLatency ?? 999) - (b.avgLatency ?? 999));
-  const bestLat = sorted[0];
+  const best = sorted[0];
 
   const latData  = sorted.map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 10) || '?', value: s.avgLatency   ?? 0 }));
   const tputData = sorted.map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 10) || '?', value: s.avgThroughput ?? 0 }));

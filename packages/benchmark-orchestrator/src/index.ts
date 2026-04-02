@@ -246,10 +246,10 @@ app.get('/runs/active', (_req, res) => {
 app.get('/runs/:id', (req, res) => {
   const run = runs.get(req.params.id);
   if (!run) return res.status(404).json({ error: 'Not found' });
-  res.json(run);
+  return res.json(run);
 });
 
-app.post('/runs', (req, res) => {
+app.post('/runs', (req, res): void => {
   const { scenarioId, scenarioName: providedName } = req.body;
   if (!scenarioId) return res.status(400).json({ error: 'scenarioId required' });
 
@@ -315,7 +315,7 @@ app.post('/runs/:id/cancel', async (req, res) => {
 app.delete('/runs/:id', (req, res) => {
   if (!runs.has(req.params.id)) return res.status(404).json({ error: 'Not found' });
   runs.delete(req.params.id);
-  res.json({ ok: true });
+  return res.json({ ok: true });
 });
 
 app.listen(PORT, () => {
