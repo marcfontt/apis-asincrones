@@ -18,8 +18,8 @@ const CATEGORIES = [
 const QUICK_SCENARIOS = [
   { name: 'Kafka EDA - Alta Càrrega',       architecture: 'EDA', protocol: 'Kafka', platform: 'Kafka',       description: 'Throughput màxim amb Apache Kafka. Ideal per validar limits de capacitat.',    defaults: { duration: 60, rate: 1000, payloadSize: 256 }, accentColor: '#ef4444' },
   { name: 'MQTT IoT - Baix Consum',         architecture: 'EDA', protocol: 'MQTT',  platform: 'RabbitMQ',    description: 'Protocol lleuger per a escenaris IoT. Baix overhead, latència minima.',        defaults: { duration: 30, rate: 500,  payloadSize: 128 }, accentColor: '#16a34a' },
-  { name: 'gRPC - Serialització Binària',   architecture: 'LCA', protocol: 'gRPC',  platform: 'NATS Server', description: 'Comunicacio RPC asíncrona amb serialitzacio binaria.',                        defaults: { duration: 45, rate: 2000, payloadSize: 512 }, accentColor: '#7c3aed' },
-  { name: 'WebSockets - Temps Real',        architecture: 'SEA', protocol: 'WS',    platform: 'Kafka',       description: 'Connexio bidireccional persistent per a streaming en temps real.',             defaults: { duration: 60, rate: 800,  payloadSize: 256 }, accentColor: '#d97706' },
+  { name: 'gRPC - Serialització Binària',   architecture: 'LCA', protocol: 'gRPC',  platform: 'NATS Server', description: 'Comunicació RPC asíncrona amb serialització binària.',                        defaults: { duration: 45, rate: 2000, payloadSize: 512 }, accentColor: '#7c3aed' },
+  { name: 'WebSockets - Temps Real',        architecture: 'SEA', protocol: 'WS',    platform: 'Kafka',       description: 'Connexió bidireccional persistent per a streaming en temps real.',             defaults: { duration: 60, rate: 800,  payloadSize: 256 }, accentColor: '#d97706' },
 ];
 
 const STATS = [
@@ -43,6 +43,8 @@ export const HomePage = () => {
   const [hoveredCat,      setHoveredCat]      = useState<number | null>(null);
   const [hoveredStat,     setHoveredStat]     = useState<number | null>(null);
   const [hoveredFormat,   setHoveredFormat]   = useState<number | null>(null);
+  const [hoveredHeroBtn,  setHoveredHeroBtn]  = useState<number | null>(null);
+  const [hoveredFooter,   setHoveredFooter]   = useState<number | null>(null);
 
   useEffect(() => { document.title = 'Inici | APIs Asíncrones'; }, []);
 
@@ -75,9 +77,15 @@ export const HomePage = () => {
             Dissenya escenaris de benchmark, desplega infraestructura real sobre Kubernetes i analitza latència, throughput i fiabilitat.
           </p>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <a href="/escenaris?create=true" style={{ ...S.btnPrimary, textDecoration: 'none', fontSize: 14 }}>+ Crear escenari</a>
-            <a href="/resultats"             style={{ ...S.btn, textDecoration: 'none', fontSize: 14 }}>Resultats en viu</a>
-            <a href="/catalog"               style={{ ...S.btn, textDecoration: 'none', fontSize: 14 }}>Explorar cataleg</a>
+            <a href="/escenaris?create=true"
+              onMouseEnter={() => setHoveredHeroBtn(0)} onMouseLeave={() => setHoveredHeroBtn(null)}
+              style={{ ...S.btnPrimary, textDecoration: 'none', fontSize: 14, opacity: hoveredHeroBtn === 0 ? 0.88 : 1, transform: hoveredHeroBtn === 0 ? 'translateY(-1px)' : 'none', transition: 'opacity 0.15s, transform 0.15s' }}>+ Crear escenari</a>
+            <a href="/resultats"
+              onMouseEnter={() => setHoveredHeroBtn(1)} onMouseLeave={() => setHoveredHeroBtn(null)}
+              style={{ ...S.btn, textDecoration: 'none', fontSize: 14, opacity: hoveredHeroBtn === 1 ? 0.88 : 1, transform: hoveredHeroBtn === 1 ? 'translateY(-1px)' : 'none', transition: 'opacity 0.15s, transform 0.15s' }}>Resultats en viu</a>
+            <a href="/catalog"
+              onMouseEnter={() => setHoveredHeroBtn(2)} onMouseLeave={() => setHoveredHeroBtn(null)}
+              style={{ ...S.btn, textDecoration: 'none', fontSize: 14, opacity: hoveredHeroBtn === 2 ? 0.88 : 1, transform: hoveredHeroBtn === 2 ? 'translateY(-1px)' : 'none', transition: 'opacity 0.15s, transform 0.15s' }}>Explorar catàleg</a>
           </div>
 
           {/* Stats interactives */}
@@ -259,8 +267,10 @@ export const HomePage = () => {
           <strong style={{ color: 'var(--text-primary)' }}>APIs Asíncrones</strong> - Plataforma de benchmark per a APIs sobre AKS
         </span>
         <div style={{ display: 'flex', gap: 8 }}>
-          {[{ label: 'Escenaris', href: '/escenaris' }, { label: 'Execucions', href: '/execucions' }, { label: 'Resultats', href: '/resultats' }].map(link => (
-            <a key={link.href} href={link.href} style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textDecoration: 'none', padding: '4px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-card)' }}>
+          {[{ label: 'Escenaris', href: '/escenaris' }, { label: 'Execucions', href: '/execucions' }, { label: 'Resultats', href: '/resultats' }].map((link, i) => (
+            <a key={link.href} href={link.href}
+              onMouseEnter={() => setHoveredFooter(i)} onMouseLeave={() => setHoveredFooter(null)}
+              style={{ fontSize: 12, fontWeight: 600, color: hoveredFooter === i ? 'var(--accent)' : 'var(--text-secondary)', textDecoration: 'none', padding: '4px 10px', borderRadius: 6, border: `1px solid ${hoveredFooter === i ? 'var(--accent)' : 'var(--border)'}`, background: hoveredFooter === i ? 'rgba(37,99,235,0.07)' : 'var(--bg-card)', transition: 'all 0.15s ease' }}>
               {link.label}
             </a>
           ))}
