@@ -349,7 +349,7 @@ const HistorialTab = () => {
           <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IconBarChart /></div>
           <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600 }}>Encara no hi ha resultats</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>
-            Executa escenaris per veure les comparatives aqui.{' '}
+            Executa escenaris per veure les comparatives aquí.{' '}
             <a href="/escenaris" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Anar a Escenaris</a>
           </div>
         </div>
@@ -366,7 +366,7 @@ const HistorialTab = () => {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 20 }}>
             {[
               { label: 'Escenaris comparats', value: String(filteredSummary.length), color: '#3b82f6', Icon: IconHash },
-              { label: 'Millor latencia',      value: best ? `${best.avgLatency?.toFixed(1)}ms` : '-', color: '#22c55e', Icon: IconZap },
+              { label: 'Millor latència',      value: best ? `${best.avgLatency?.toFixed(1)}ms` : '-', color: '#22c55e', Icon: IconZap },
               { label: 'Millor puntuació',      value: nameMap[best?.scenarioId] || '-', color: '#f59e0b', Icon: IconAward },
             ].map(c => (
               <div key={c.label} style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -462,7 +462,7 @@ const HistorialTab = () => {
               </table>
             </div>
             <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-disabled)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span><span style={{ color: '#f59e0b', marginRight: 4 }}><IconTrophy /></span>Millor latencia</span>
+              <span><span style={{ color: '#f59e0b', marginRight: 4 }}><IconTrophy /></span>Millor latència</span>
               <span>P50/P99: calculats de les metriques en brut · - = sense dades suficients</span>
             </div>
           </div>
