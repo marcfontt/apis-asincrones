@@ -86,7 +86,7 @@ const EMPTY_FORM = {
 };
 
 const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string; border: string }> = {
-  idle:      { color: '#64748b', label: 'Llest',       bg: 'rgba(100,116,139,0.13)', border: 'rgba(100,116,139,0.35)' },
+  idle:      { color: '#0d9488', label: 'Llest',       bg: 'rgba(13,148,136,0.13)',  border: 'rgba(13,148,136,0.35)' },
   pending:   { color: '#d97706', label: 'Pendent',     bg: 'rgba(217,119,6,0.14)',   border: 'rgba(217,119,6,0.40)'   },
   running:   { color: '#2563eb', label: 'En execució', bg: 'rgba(37,99,235,0.14)',   border: 'rgba(37,99,235,0.40)'   },
   completed: { color: '#15803d', label: 'Completat',   bg: 'rgba(21,128,61,0.14)',   border: 'rgba(21,128,61,0.40)'   },
@@ -668,6 +668,7 @@ export const ScenariosPage = () => {
     else if (sortKey === 'platform')     { av = normalizePlatform(a.platform || a.broker); bv = normalizePlatform(b.platform || b.broker); }
     else if (sortKey === 'status')       { av = a.status || '';        bv = b.status || ''; }
     else if (sortKey === 'createdAt')    { av = a.createdAt || '';     bv = b.createdAt || ''; }
+    else if (sortKey === 'dataFormat')   { av = a.dataFormat || 'default'; bv = b.dataFormat || 'default'; }
     const cmp = typeof av === 'string' ? av.localeCompare(bv, 'ca') : av - bv;
     return sortDir === 'asc' ? cmp : -cmp;
   });
@@ -755,13 +756,13 @@ export const ScenariosPage = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={S.tableHeader}>
-                  <th style={S.th}>Nom</th>
-                  <th style={S.th}>Arquitectura</th>
-                  <th style={S.th}>Protocol</th>
-                  <th style={S.th}>Plataforma</th>
-                  <th style={S.th}>Format</th>
-                  <th style={{ ...S.th, textAlign: 'center' }}>Estat</th>
-                  <th style={{ ...S.th, textAlign: 'right' }}>Creat</th>
+                  <SortTh label="Nom"          sk="name"         current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Arquitectura" sk="architecture"  current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Protocol"     sk="protocol"      current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Plataforma"   sk="platform"      current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Format"       sk="dataFormat"    current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Estat"        sk="status"        current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
+                  <SortTh label="Creat"        sk="createdAt"     current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'right' }} />
                   <th style={{ ...S.th, textAlign: 'center', width: 130 }}>Accions</th>
                 </tr>
               </thead>
