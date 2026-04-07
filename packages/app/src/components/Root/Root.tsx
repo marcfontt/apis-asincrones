@@ -1,4 +1,4 @@
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useEffect } from 'react';
 import { makeStyles } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import StorageIcon from '@material-ui/icons/Storage';
@@ -47,7 +47,24 @@ const SidebarLogo = () => {
   );
 };
 
-export const Root = ({ children }: PropsWithChildren<{}>) => (
+// ── Sync Backstage theme → CSS custom properties ──────────────────────────────
+const THEME_KEY = '@backstage/core-app-api:themeId';
+const applyTheme = () => {
+  try {
+    const raw = localStorage.getItem(THEME_KEY) ?? '"light"';
+    const id = JSON.parse(raw) as string;
+    document.documentElement.setAttribute('data-theme', id === 'dark' ? 'dark' : 'light');
+  } catch { document.documentElement.setAttribute('data-theme', 'light'); }
+};
+
+export const Root = ({ children }: PropsWithChildren<{}>) => {
+  useEffect(() => {
+    applyTheme();
+    const iv = setInterval(applyTheme, 400);
+    window.addEventListener('storage', applyTheme);
+    return () => { clearInterval(iv); window.removeEventListener('storage', applyTheme); };
+  }, []);
+  return (
   <SidebarPage>
     <Sidebar>
       <SidebarLogo />
@@ -65,4 +82,5 @@ export const Root = ({ children }: PropsWithChildren<{}>) => (
     </Sidebar>
     {children}
   </SidebarPage>
-);
+  );
+};
