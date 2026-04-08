@@ -1,3 +1,4 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { S, GLOBAL_CSS } from '../../theme';
 
@@ -60,6 +61,25 @@ const DATA_FORMAT_COLORS: Record<string, string> = {
   'iot':       '#16a34a',
 };
 
+const PROTOCOL_COLORS: Record<string, string> = {
+  'Kafka':  '#ef4444',
+  'AMQP':   '#f97316',
+  'MQTT':   '#eab308',
+  'gRPC':   '#8b5cf6',
+  'WS':     '#3b82f6',
+  'SSE':    '#06b6d4',
+  'NATS':   '#22c55e',
+  'CoAP':   '#10b981',
+};
+
+const ARCHITECTURE_COLORS: Record<string, string> = {
+  'EDA':  '#2563eb',
+  'QBA':  '#9333ea',
+  'LCA':  '#16a34a',
+  'EMA':  '#dc2626',
+  'SEA':  '#d97706',
+};
+
 const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string[] }> = {
   'Kafka':       { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
   'RabbitMQ':    { architectures: ['EDA', 'QBA', 'EMA'], protocols: ['AMQP', 'MQTT', 'WS'] },
@@ -85,12 +105,12 @@ const EMPTY_FORM = {
   duration: '', rate: '', payloadSize: '', dataFormat: '',
 };
 
-const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string; border: string }> = {
-  idle:      { color: '#0d9488', label: 'Llest',       bg: 'rgba(13,148,136,0.13)',  border: 'rgba(13,148,136,0.35)' },
-  pending:   { color: '#d97706', label: 'Pendent',     bg: 'rgba(217,119,6,0.14)',   border: 'rgba(217,119,6,0.40)'   },
-  running:   { color: '#2563eb', label: 'En execució', bg: 'rgba(37,99,235,0.14)',   border: 'rgba(37,99,235,0.40)'   },
-  completed: { color: '#15803d', label: 'Completat',   bg: 'rgba(21,128,61,0.14)',   border: 'rgba(21,128,61,0.40)'   },
-  error:     { color: '#dc2626', label: 'Error',       bg: 'rgba(220,38,38,0.14)',   border: 'rgba(220,38,38,0.40)'   },
+const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
+  idle:      { color: '#94a3b8', label: 'Llest',       bg: 'rgba(148,163,184,0.1)' },
+  pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  },
+  running:   { color: '#3b82f6', label: 'En execució', bg: 'rgba(59,130,246,0.1)'  },
+  completed: { color: '#22c55e', label: 'Completat',   bg: 'rgba(34,197,94,0.1)'   },
+  error:     { color: '#ef4444', label: 'Error',       bg: 'rgba(239,68,68,0.1)'   },
 };
 
 const SK_STYLE = {
@@ -113,25 +133,6 @@ const EmptyIcon     = () => <svg width="40" height="40" viewBox="0 0 24 24" fill
 const RocketIcon    = () => <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m3.29 15 5 5"/><path d="M13 7 7 13"/><path d="m20 7-5 3-3 5 2 2 5-3 3-5z"/></svg>;
 const GearIcon      = () => <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
 
-type SortDir = 'asc' | 'desc';
-const SortTh = ({ label, sk, current, dir, onSort, extraStyle }: {
-  label: string; sk: string; current: string; dir: SortDir;
-  onSort: (k: string) => void; extraStyle?: object;
-}) => {
-  const active = current === sk;
-  return (
-    <th style={{ ...S.th, cursor: 'pointer', userSelect: 'none' as const, whiteSpace: 'nowrap' as const, ...extraStyle }}
-      onClick={() => onSort(sk)}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-        {label}
-        <span style={{ fontSize: 9, opacity: active ? 1 : 0.3, color: active ? 'var(--accent)' : 'inherit' }}>
-          {active ? (dir === 'asc' ? '▲' : '▼') : '▲▼'}
-        </span>
-      </span>
-    </th>
-  );
-};
-
 const SkeletonRow = ({ delay = 0 }: { delay?: number }) => (
   <tr>
     {[62, 48, 42, 55, 38, 45, 30, 32, 32].map((w, j) => (
@@ -141,6 +142,29 @@ const SkeletonRow = ({ delay = 0 }: { delay?: number }) => (
     ))}
   </tr>
 );
+
+type SortDir = 'asc' | 'desc';
+
+const SortTh = ({ label, sk, current, dir, onSort, extraStyle }: {
+  label: string; sk: string; current: string | null; dir: SortDir | null;
+  onSort: (sk: any) => void; extraStyle?: React.CSSProperties;
+}) => {
+  const active = current === sk;
+  return (
+    <th
+      style={{ ...S.th, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' as const, ...extraStyle }}
+      onClick={() => onSort(sk)}
+      aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {label}
+        <span style={{ fontSize: 10, color: active ? 'var(--accent)' : 'var(--text-disabled)' }}>
+          {active && dir === 'asc' ? '↑' : active && dir === 'desc' ? '↓' : '↕'}
+        </span>
+      </span>
+    </th>
+  );
+};
 
 const lbl: React.CSSProperties = {
   display: 'block', fontSize: 11, color: 'var(--text-secondary)',
@@ -214,7 +238,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             {mode === 'edit' ? 'Editar Escenari' : 'Nou Escenari'}
           </h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6 }}><CloseIcon /></button>
+          <button onClick={onClose} aria-label="Tanca el modal" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6 }}><CloseIcon /></button>
         </div>
 
         <div style={{ display: 'grid', gap: 16 }}>
@@ -448,7 +472,11 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
     info:    { bg: 'var(--badge-blue-bg)',  border: 'var(--accent)',  color: 'var(--accent)' },
   }[type];
   return (
-    <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: c.bg, border: `1px solid ${c.border}`, color: c.color, padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: 'var(--shadow-lg)', maxWidth: 360, animation: 'fadeUp 0.2s ease', fontFamily: 'var(--font)' }}>
+    <div
+      role="alert"
+      aria-live="polite"
+      style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: c.bg, border: `1px solid ${c.border}`, color: c.color, padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: 'var(--shadow-lg)', maxWidth: 360, animation: 'fadeUp 0.2s ease', fontFamily: 'var(--font)' }}
+    >
       {message}
     </div>
   );
@@ -514,7 +542,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
             <StopIcon /> Aturar
           </button>
         ) : (
-          <button onClick={onExecute} style={{ ...S.btnPrimary, fontSize: 12, padding: '6px 10px', background: '#16a34a', boxShadow: '0 2px 8px rgba(22,163,74,0.4)', border: '1px solid #15803d' }}>
+          <button onClick={onExecute} style={{ ...S.btnPrimary, fontSize: 12, padding: '6px 10px', background: 'var(--success)', boxShadow: 'none' }}>
             <PlayIcon /> Executar
           </button>
         )}
@@ -534,8 +562,6 @@ export const ScenariosPage = () => {
   const [filterArch,       setFilterArch]       = useState('all');
   const [filterProto,      setFilterProto]      = useState('all');
   const [filterDataFormat, setFilterDataFormat] = useState('all');
-  const [sortKey,          setSortKey]          = useState<string>('createdAt');
-  const [sortDir,          setSortDir]          = useState<SortDir>('desc');
   const [hoveredRow,       setHoveredRow]       = useState<number | null>(null);
   const [selectedScenario, setSelectedScenario] = useState<Scenario | null>(null);
   const [showModal,        setShowModal]        = useState(false);
@@ -544,6 +570,14 @@ export const ScenariosPage = () => {
   const [executeTarget,    setExecuteTarget]    = useState<Scenario | null>(null);
   const [toast,            setToast]            = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
   const [runningMap,       setRunningMap]       = useState<Record<string, string>>({});
+  const [sortKey,          setSortKey]          = useState<string | null>(null);
+  const [sortDir,          setSortDir]          = useState<SortDir | null>(null);
+
+  const handleSort = (sk: string) => {
+    if (sortKey !== sk) { setSortKey(sk); setSortDir('asc'); return; }
+    if (sortDir === 'asc') { setSortDir('desc'); return; }
+    setSortKey(null); setSortDir(null);
+  };
 
   useEffect(() => { document.title = 'Escenaris | APIs Asíncrones'; }, []);
 
@@ -656,23 +690,17 @@ export const ScenariosPage = () => {
     return true;
   });
   const isFiltered = filterArch !== 'all' || filterProto !== 'all' || filterDataFormat !== 'all';
-  const handleSort = (key: string) => {
-    if (sortKey === key) setSortDir((d: SortDir) => d === 'asc' ? 'desc' : 'asc');
-    else { setSortKey(key); setSortDir(key === 'createdAt' ? 'desc' : 'asc'); }
-  };
-  const sortedFiltered = [...filtered].sort((a: Scenario, b: Scenario) => {
-    let av: any = '', bv: any = '';
-    if      (sortKey === 'name')         { av = a.name || '';          bv = b.name || ''; }
-    else if (sortKey === 'architecture') { av = a.architecture || '';  bv = b.architecture || ''; }
-    else if (sortKey === 'protocol')     { av = a.protocol || '';      bv = b.protocol || ''; }
-    else if (sortKey === 'platform')     { av = normalizePlatform(a.platform || a.broker); bv = normalizePlatform(b.platform || b.broker); }
-    else if (sortKey === 'status')       { av = a.status || '';        bv = b.status || ''; }
-    else if (sortKey === 'createdAt')    { av = a.createdAt || '';     bv = b.createdAt || ''; }
-    else if (sortKey === 'dataFormat')   { av = a.dataFormat || 'default'; bv = b.dataFormat || 'default'; }
-    const cmp = typeof av === 'string' ? av.localeCompare(bv, 'ca') : av - bv;
-    return sortDir === 'asc' ? cmp : -cmp;
-  });
 
+  const sortedFiltered = sortKey == null
+    ? filtered
+    : [...filtered].sort((a, b) => {
+        const av = (a as any)[sortKey] ?? '';
+        const bv = (b as any)[sortKey] ?? '';
+        const cmp = typeof av === 'number' && typeof bv === 'number'
+          ? av - bv
+          : String(av).localeCompare(String(bv), 'ca');
+        return sortDir === 'desc' ? -cmp : cmp;
+      });
 
   const formatTime = (iso: string) =>
     !iso ? '-' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -703,7 +731,7 @@ export const ScenariosPage = () => {
         </button>
       </div>
 
-      {/* Filtres */}
+      {/* Filtres — sense separador vertical */}
       <div style={{ ...S.card, marginBottom: 20, display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
         {[
           { label: 'Arquitectura', value: filterArch,       options: ALL_ARCHITECTURES, onChange: setFilterArch,       allLabel: 'Totes' },
@@ -753,16 +781,16 @@ export const ScenariosPage = () => {
           {error && <p style={{ color: 'var(--error)', padding: '12px 18px', margin: 0 }}>Error: {error}</p>}
 
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }} aria-busy={loading} aria-label="Llista d'escenaris de benchmark">
               <thead>
                 <tr style={S.tableHeader}>
-                  <SortTh label="Nom"          sk="name"         current={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortTh label="Arquitectura" sk="architecture"  current={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortTh label="Protocol"     sk="protocol"      current={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortTh label="Plataforma"   sk="platform"      current={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortTh label="Format"       sk="dataFormat"    current={sortKey} dir={sortDir} onSort={handleSort} />
-                  <SortTh label="Estat"        sk="status"        current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
-                  <SortTh label="Creat"        sk="createdAt"     current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'right' }} />
+                  <SortTh label="Nom"        sk="name"         current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Arquitectura" sk="architecture" current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Protocol"   sk="protocol"     current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Plataforma" sk="platform"     current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Format"     sk="dataFormat"   current={sortKey} dir={sortDir} onSort={handleSort} />
+                  <SortTh label="Estat"      sk="status"       current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
+                  <SortTh label="Creat"      sk="createdAt"    current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'right' }} />
                   <th style={{ ...S.th, textAlign: 'center', width: 130 }}>Accions</th>
                 </tr>
               </thead>
@@ -808,10 +836,10 @@ export const ScenariosPage = () => {
                         </div>
                       </td>
                       <td style={S.td}>
-                        {s.architecture ? <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{s.architecture}</span> : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
+                        {s.architecture ? <span style={{ ...S.badge(ARCHITECTURE_COLORS[s.architecture] || '#2563eb'), fontSize: 11 }}>{s.architecture}</span> : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
                       <td style={S.td}>
-                        {s.protocol ? <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{s.protocol}</span> : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
+                        {s.protocol ? <span style={{ ...S.badge(PROTOCOL_COLORS[s.protocol] || '#16a34a'), fontSize: 11 }}>{s.protocol}</span> : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
                       <td style={S.td}>
                         {platName
@@ -824,8 +852,8 @@ export const ScenariosPage = () => {
                           : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }}>
-                        <span style={{ background: isRunning ? 'rgba(37,99,235,0.14)' : st.bg, color: isRunning ? '#2563eb' : st.color, padding: '4px 12px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4, border: `1px solid ${isRunning ? 'rgba(37,99,235,0.40)' : st.border}` }}>
-                          {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#2563eb', animation: 'pulseDot 1.5s ease infinite' }} />}
+                        <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : st.bg, color: isRunning ? '#3b82f6' : st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                          {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
                           {isRunning ? 'En execució' : st.label}
                         </span>
                       </td>
@@ -835,25 +863,25 @@ export const ScenariosPage = () => {
                       <td style={{ ...S.td, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                           {isRunning ? (
-                            <button title="Aturar execució" onClick={() => handleStopScenario(s)}
+                            <button title="Aturar execució" aria-label={`Aturar execució de ${s.name}`} onClick={() => handleStopScenario(s)}
                               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--error)' }}>
                               <StopIcon />
                             </button>
                           ) : (
-                            <button title="Executar a AKS" onClick={() => setExecuteTarget(s)}
-                              style={{ background: '#16a34a', border: '1px solid #15803d', borderRadius: 6, padding: '5px 9px', cursor: 'pointer', display: 'flex', color: 'white', boxShadow: '0 2px 6px rgba(22,163,74,0.4)' }}>
+                            <button title="Executar a AKS" aria-label={`Executar ${s.name} a AKS`} onClick={() => setExecuteTarget(s)}
+                              style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-fg)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--badge-green-fg)' }}>
                               <PlayIcon />
                             </button>
                           )}
-                          <button title="Duplicar escenari" onClick={() => handleDuplicate(s)}
+                          <button title="Duplicar escenari" aria-label={`Duplicar ${s.name}`} onClick={() => handleDuplicate(s)}
                             style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}>
                             <DuplicateIcon />
                           </button>
-                          <button title="Editar" onClick={() => openEdit(s)}
+                          <button title="Editar" aria-label={`Editar ${s.name}`} onClick={() => openEdit(s)}
                             style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}>
                             <EditIcon />
                           </button>
-                          <button title="Eliminar" onClick={() => setDeleteTarget(s)}
+                          <button title="Eliminar" aria-label={`Eliminar ${s.name}`} onClick={() => setDeleteTarget(s)}
                             style={{ background: 'none', border: '1px solid var(--error)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--error)' }}>
                             <TrashIcon />
                           </button>

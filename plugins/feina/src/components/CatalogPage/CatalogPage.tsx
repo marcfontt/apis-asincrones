@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from 'react';
 import { S, GLOBAL_CSS, CATEGORY_COLORS } from '../../theme';
 
@@ -12,6 +13,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const ALL_CATEGORIES = ['architecture', 'protocol', 'platform', 'gateway'];
 
+// Versions conegudes per als components predefinits
 const KNOWN_VERSIONS: Record<string, string> = {
   'kafka':          '3.7',
   'confluent':      '7.6',
@@ -40,10 +42,10 @@ const getVersion = (c: any): string => {
 };
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  architecture: "Patró estructural que defineix com s'organitzen els components del sistema i com interactuen entre ells.",
-  protocol:     "Conjunt de regles de comunicació que determinen com s'envien i reben els missatges entre productors i consumidors.",
-  platform:     "Infraestructura de missatgeria que actua com a broker, gestionant la distribució dels missatges.",
-  gateway:      "Punt d'entrada que gestiona l'encaminament, la seguretat i la transformació dels missatges.",
+  architecture: 'Patró estructural que defineix com s\'organitzen els components del sistema i com interactuen entre ells.',
+  protocol:     'Conjunt de regles de comunicació que determinen com s\'envien i reben els missatges entre productors i consumidors.',
+  platform:     'Infraestructura de missatgeria que actua com a broker, gestionant la distribució dels missatges.',
+  gateway:      'Punt d\'entrada que gestiona l\'encaminament, la seguretat i la transformació dels missatges.',
 };
 
 const SK_STYLE = {
@@ -57,6 +59,7 @@ const CloseIcon   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="
 const RefreshIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
 const InfoIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
 
+// ── Component Detail Modal ─────────────────────────────────────────────────────
 const ComponentDetailModal = ({ component, onClose }: { component: any; onClose: () => void }) => {
   const color = CATEGORY_COLORS[component.category] || 'var(--accent)';
   const label = CATEGORY_LABELS[component.category] || component.category;
@@ -71,6 +74,8 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
       <div style={{ background: 'var(--bg-card)', border: `1px solid ${color}40`, borderRadius: 14, padding: 32, width: 540, maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
+
+        {/* Capçalera */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
@@ -78,7 +83,11 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
                 {component.name}
               </h2>
               {component.shortName && (
-                <code style={{ background: color + '18', color, border: '1px solid ' + color + '40', padding: '2px 10px', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700 }}>
+                <code style={{
+                  background: color + '18', color, border: '1px solid ' + color + '40',
+                  padding: '2px 10px', borderRadius: 6, fontSize: 12,
+                  fontFamily: 'var(--font-mono)', fontWeight: 700,
+                }}>
                   {component.shortName}
                 </code>
               )}
@@ -90,12 +99,16 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
           </button>
         </div>
 
+        {/* Descripció */}
         {component.description && (
           <div style={{ marginBottom: 20, padding: '14px 18px', background: `${color}08`, borderRadius: 8, border: `1px solid ${color}25` }}>
-            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>{component.description}</p>
+            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+              {component.description}
+            </p>
           </div>
         )}
 
+        {/* Context de la categoria */}
         {CATEGORY_DESCRIPTIONS[component.category] && (
           <div style={{ marginBottom: 20, padding: '10px 14px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
             <span style={{ color: 'var(--text-disabled)', flexShrink: 0, marginTop: 1 }}><InfoIcon /></span>
@@ -105,18 +118,20 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
           </div>
         )}
 
+        {/* Metadades */}
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-            Detalls tecnics
+            Detalls tècnics
           </div>
-          <Row label="Categoria" value={label} />
-          <Row label="Nom curt"  value={component.shortName || '-'} />
-          <Row label="Versio"    value={getVersion(component) || '-'} />
+          <Row label="Categoria"  value={label} />
+          <Row label="Nom curt"   value={component.shortName || '-'} />
+          <Row label="Versió"     value={getVersion(component) || '-'} />
           {component.createdAt && (
             <Row label="Afegit el" value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
           )}
         </div>
 
+        {/* Tags */}
         {component.tags && component.tags.length > 0 && (
           <div style={{ marginBottom: 24 }}>
             <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
@@ -130,9 +145,10 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
           </div>
         )}
 
+        {/* Ús en escenaris */}
         <div style={{ padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 24, fontSize: 12, color: 'var(--text-secondary)' }}>
           Pots usar <strong style={{ color: 'var(--text-primary)' }}>{component.name}</strong> com a {label.toLowerCase()} al crear un nou escenari de benchmark.{' '}
-          <a href="/escenaris?create=true" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Crear escenari</a>
+          <a href="/escenaris?create=true" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Crear escenari →</a>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -143,6 +159,31 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
   );
 };
 
+// ── Sort helpers ──────────────────────────────────────────────────────────────
+type SortDir = 'asc' | 'desc';
+
+const SortTh = ({ label, sk, current, dir, onSort, extraStyle }: {
+  label: string; sk: string; current: string | null; dir: SortDir | null;
+  onSort: (sk: any) => void; extraStyle?: React.CSSProperties;
+}) => {
+  const active = current === sk;
+  return (
+    <th
+      style={{ ...S.th, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' as const, ...extraStyle }}
+      onClick={() => onSort(sk)}
+      aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+    >
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+        {label}
+        <span style={{ fontSize: 10, color: active ? 'var(--accent)' : 'var(--text-disabled)' }}>
+          {active && dir === 'asc' ? '↑' : active && dir === 'desc' ? '↓' : '↕'}
+        </span>
+      </span>
+    </th>
+  );
+};
+
+// ── CatalogPage ────────────────────────────────────────────────────────────────
 export const CatalogPage = () => {
   const [components,        setComponents]        = useState<any[]>([]);
   const [loading,           setLoading]           = useState(true);
@@ -151,8 +192,16 @@ export const CatalogPage = () => {
   const [hoveredRow,        setHoveredRow]        = useState<number | null>(null);
   const [selectedIdx,       setSelectedIdx]       = useState<number | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<any | null>(null);
+  const [sortKey,           setSortKey]           = useState<string | null>(null);
+  const [sortDir,           setSortDir]           = useState<SortDir | null>(null);
 
-  useEffect(() => { document.title = 'Cataleg | APIs Asincrones'; }, []);
+  const handleSort = (sk: string) => {
+    if (sortKey !== sk) { setSortKey(sk); setSortDir('asc'); return; }
+    if (sortDir === 'asc') { setSortDir('desc'); return; }
+    setSortKey(null); setSortDir(null);
+  };
+
+  useEffect(() => { document.title = 'Catàleg | APIs Asíncrones'; }, []);
 
   const fetchComponents = () => {
     setLoading(true);
@@ -163,22 +212,45 @@ export const CatalogPage = () => {
   };
   useEffect(() => { fetchComponents(); }, []);
 
+  // Només components predefinits (filtra "test" i qualsevol creat manualment)
   const real     = components.filter(c => c.predefined !== false);
   const filtered = activeFilter === 'all' ? real : real.filter(c => c.category === activeFilter);
   const countByCategory = (cat: string) => real.filter(c => c.category === cat).length;
+
+  const sortedFiltered = sortKey == null
+    ? filtered
+    : [...filtered].sort((a, b) => {
+        let av: string, bv: string;
+        if (sortKey === 'version') {
+          av = getVersion(a);
+          bv = getVersion(b);
+        } else if (sortKey === 'category') {
+          av = CATEGORY_LABELS[a.category] || a.category || '';
+          bv = CATEGORY_LABELS[b.category] || b.category || '';
+        } else {
+          av = String((a as any)[sortKey] ?? '');
+          bv = String((b as any)[sortKey] ?? '');
+        }
+        const cmp = av.localeCompare(bv, 'ca');
+        return sortDir === 'desc' ? -cmp : cmp;
+      });
 
   return (
     <div style={{ ...S.page }}>
       <style>{GLOBAL_CSS}</style>
 
       {selectedComponent && (
-        <ComponentDetailModal component={selectedComponent} onClose={() => { setSelectedComponent(null); setSelectedIdx(null); }} />
+        <ComponentDetailModal
+          component={selectedComponent}
+          onClose={() => setSelectedComponent(null)}
+        />
       )}
 
+      {/* Capçalera */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Cataleg de Components
+            Catàleg de Components
           </h1>
           <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
             Arquitectures, protocols, plataformes i gateways disponibles per construir escenaris
@@ -186,15 +258,20 @@ export const CatalogPage = () => {
         </div>
       </div>
 
+      {/* Filtres de categoria */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        <button onClick={() => setActiveFilter('all')} style={{ ...S.chip(activeFilter === 'all'), fontSize: 13, padding: '6px 16px' }}>
+        <button
+          onClick={() => setActiveFilter('all')}
+          style={{ ...S.chip(activeFilter === 'all'), fontSize: 13, padding: '6px 16px' }}
+        >
           Tots ({real.length})
         </button>
         {ALL_CATEGORIES.map(cat => {
           const active = activeFilter === cat;
           const color  = CATEGORY_COLORS[cat];
           return (
-            <button key={cat} onClick={() => setActiveFilter(cat)} style={{ ...S.chip(active, color), fontSize: 13, padding: '6px 16px' }}>
+            <button key={cat} onClick={() => setActiveFilter(cat)}
+              style={{ ...S.chip(active, color), fontSize: 13, padding: '6px 16px' }}>
               {CATEGORY_LABELS[cat]} ({countByCategory(cat)})
             </button>
           );
@@ -204,12 +281,13 @@ export const CatalogPage = () => {
       {error && <p style={{ color: 'var(--error)', padding: '0 0 16px' }}>Error: {error}</p>}
 
       <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
+        {/* Strip superior */}
         <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '-' : filtered.length}</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '—' : filtered.length}</span>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               component{filtered.length !== 1 ? 's' : ''}
-              {activeFilter !== 'all' && <span> - {CATEGORY_LABELS[activeFilter]}</span>}
+              {activeFilter !== 'all' && <span> · {CATEGORY_LABELS[activeFilter]}</span>}
             </span>
             {activeFilter !== 'all' && !loading && (
               <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10 }}>
@@ -228,11 +306,11 @@ export const CatalogPage = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={S.tableHeader}>
-              <th style={S.th}>Nom</th>
-              <th style={S.th}>Categoria</th>
-              <th style={S.th}>Descripcio</th>
-              <th style={{ ...S.th, textAlign: 'center' }}>Nom curt</th>
-              <th style={{ ...S.th, textAlign: 'center' }}>Versio</th>
+              <SortTh label="Nom"       sk="name"       current={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortTh label="Categoria" sk="category"   current={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortTh label="Descripció" sk="description" current={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortTh label="Nom curt"  sk="shortName"  current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
+              <SortTh label="Versió"    sk="version"    current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
             </tr>
           </thead>
           <tbody>
@@ -252,23 +330,31 @@ export const CatalogPage = () => {
                   Cap component trobat.
                 </td>
               </tr>
-            ) : filtered.map((c, i) => {
+            ) : sortedFiltered.map((c, i) => {
               const color      = CATEGORY_COLORS[c.category] || 'var(--accent)';
               const isSelected = selectedIdx === i;
               const isHovered  = hoveredRow === i;
               const version    = getVersion(c);
               return (
                 <tr key={c.id || i}
+                  className="card-hover"
                   style={{
                     ...S.tableRow,
-                    background: isSelected ? color + '10' : isHovered ? 'var(--bg-hover)' : 'transparent',
-                    borderLeft: isSelected ? `3px solid ${color}` : '3px solid transparent',
+                    background: isSelected
+                      ? color + '10'
+                      : isHovered ? 'var(--bg-hover)' : 'transparent',
+                    borderLeft: isSelected
+                      ? `3px solid ${color}`
+                      : '3px solid transparent',
                     cursor: 'pointer',
                     transition: 'background var(--transition), border-left-color var(--transition)',
                   }}
                   onMouseEnter={() => setHoveredRow(i)}
                   onMouseLeave={() => setHoveredRow(null)}
-                  onClick={() => { setSelectedIdx(isSelected ? null : i); setSelectedComponent(isSelected ? null : c); }}
+                  onClick={() => {
+                    setSelectedIdx(isSelected ? null : i);
+                    setSelectedComponent(isSelected ? null : c);
+                  }}
                 >
                   <td style={{ ...S.td, fontWeight: 700 }}>{c.name || '-'}</td>
                   <td style={S.td}>

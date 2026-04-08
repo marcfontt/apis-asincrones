@@ -1,9 +1,9 @@
+
 import { useEffect, useState, useCallback } from 'react';
 import { S, GLOBAL_CSS } from '../../theme';
 
 const ORCHESTRATOR   = '/api/proxy/benchmark-orchestrator';
 const SCENARIOS_BASE = '/api/proxy/scenario-service';
-const METRICS_BASE   = '/api/proxy/metrics-api';
 
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
   pending:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',  label: 'Pendent' },
@@ -50,6 +50,25 @@ const DATA_FORMAT_COLORS: Record<string, string> = {
   'iot':       '#10b981',
 };
 
+const PROTOCOL_COLORS: Record<string, string> = {
+  'Kafka':  '#ef4444',
+  'AMQP':   '#f97316',
+  'MQTT':   '#eab308',
+  'gRPC':   '#8b5cf6',
+  'WS':     '#3b82f6',
+  'SSE':    '#06b6d4',
+  'NATS':   '#22c55e',
+  'CoAP':   '#10b981',
+};
+
+const ARCHITECTURE_COLORS: Record<string, string> = {
+  'EDA':  '#2563eb',
+  'QBA':  '#9333ea',
+  'LCA':  '#16a34a',
+  'EMA':  '#dc2626',
+  'SEA':  '#d97706',
+};
+
 const SK_STYLE = {
   background: 'linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%)',
   backgroundSize: '200% 100%',
@@ -65,161 +84,32 @@ const ListIcon     = () => <svg width="13" height="13" viewBox="0 0 24 24" fill=
 const EmptyIcon    = () => <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
 
 const formatDuration = (start: string, end?: string) => {
-  if (!start) return '-';
+  if (!start) return '—';
   const ms = new Date(end || new Date().toISOString()).getTime() - new Date(start).getTime();
-  if (ms < 0) return '-';
+  if (ms < 0) return '—';
   if (ms < 1000) return `${ms}ms`;
   if (ms < 60000) return `${(ms / 1000).toFixed(0)}s`;
   return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
 };
 
 const formatTime = (iso: string) =>
-  !iso ? '-' : new Date(iso).toLocaleString('ca-ES', {
+  !iso ? '—' : new Date(iso).toLocaleString('ca-ES', {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit',
   });
 
-
-const CloseIcon = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-
-// ── RunDetailPanel ─────────────────────────────────────────────────────────────
-const RunDetailPanel = ({ run, scenarioMap, onClose }: {
-  run: any; scenarioMap: Record<string, any>; onClose: () => void;
-}) => {
-  const [metrics, setMetrics] = useState<any[]>([]);
-  const [loadingM, setLoadingM] = useState(true);
-
-  useEffect(() => {
-    setLoadingM(true);
-    const doFetch = async () => {
-      try {
-        let data = await fetch(`${METRICS_BASE}/metrics?runId=${run.id}`).then(r => r.json()).catch(() => null);
-        if (!data || !Array.isArray(data) || !data.length) {
-          if (run.scenarioId)
-            data = await fetch(`${METRICS_BASE}/metrics?scenarioId=${run.scenarioId}`).then(r => r.json()).catch(() => null);
-        }
-        setMetrics(Array.isArray(data) ? data.slice(-100) : []);
-      } catch (_) { setMetrics([]); }
-      setLoadingM(false);
-    };
-    doFetch();
-  }, [run.id, run.scenarioId]);
-
-  const st        = STATUS_CONFIG[run.status] || { color: '#94a3b8', bg: 'transparent', label: run.status };
-  const platform  = normalizePlatform(run.platform || run.broker);
-  const platColor = PLATFORM_COLORS[platform] || 'var(--text-secondary)';
-  const sc        = scenarioMap[run.scenarioId];
-  const df        = run.dataFormat || sc?.dataFormat || 'default';
-
-  const lats  = metrics.map((m: any) => m.latency    ?? m.avgLatency    ?? 0).filter((v: number) => v > 0);
-  const tputs = metrics.map((m: any) => m.throughput ?? m.avgThroughput ?? 0).filter((v: number) => v > 0);
-  const errs  = metrics.map((m: any) => m.errorRate  ?? m.avgErrorRate  ?? 0);
-  const avg   = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-  const pct   = (arr: number[], p: number) => {
-    if (!arr.length) return null;
-    const s = [...arr].sort((a, b) => a - b);
-    return s[Math.max(0, Math.ceil((p / 100) * s.length) - 1)];
-  };
-  const avgLat  = avg(lats);
-  const avgTput = avg(tputs);
-  const avgErr  = avg(errs);
-  const p50     = pct(lats, 50);
-  const p99     = pct(lats, 99);
-
-  const SRow = ({ label, value, color }: { label: string; value: string; color?: string }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
-      <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{label}</span>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: color || 'var(--text-primary)' }}>{value}</span>
-    </div>
-  );
-
-  const Spark = ({ data, color }: { data: number[]; color: string }) => {
-    if (data.length < 2) return null;
-    const W = 220, H = 36;
-    const mn = Math.min(...data), mx = Math.max(...data), rng = mx - mn || mx || 1;
-    const px = (i: number) => (i / (data.length - 1)) * (W - 4) + 2;
-    const py = (v: number) => H - 4 - ((v - mn) / rng) * (H - 8);
-    const pts = data.map((v, i) => `${px(i)},${py(v)}`).join(' ');
-    const fill = [`${px(0)},${H}`, ...data.map((v, i) => `${px(i)},${py(v)}`), `${px(data.length - 1)},${H}`].join(' ');
-    return (
-      <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', marginTop: 4 }}>
-        <polygon points={fill} style={{ fill: color, opacity: 0.12 }} />
-        <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
-      </svg>
-    );
-  };
-
-  return (
-    <div style={{ ...S.card, width: 268, flexShrink: 0, alignSelf: 'flex-start', animation: 'slideIn 0.2s ease', position: 'sticky', top: 20 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-primary)', marginBottom: 6, wordBreak: 'break-word' }}>
-            {run.scenarioName || run.id?.slice(0, 12) || '-'}
-          </div>
-          <span style={{ background: st.bg, color: st.color, padding: '3px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            {run.status === 'running' && <span style={{ width: 5, height: 5, borderRadius: '50%', background: st.color, animation: 'pulseDot 1.5s ease infinite' }} />}
-            {st.label}
-          </span>
-        </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6, flexShrink: 0 }}>
-          <CloseIcon />
-        </button>
-      </div>
-
-      <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 10 }}>
-        {run.architecture && <span style={{ ...S.badge('#2563eb'), fontSize: 10 }}>{run.architecture}</span>}
-        {run.protocol     && <span style={{ ...S.badge('#16a34a'), fontSize: 10 }}>{run.protocol}</span>}
-        {platform         && <span style={{ ...S.badge(platColor), fontSize: 10 }}>{platform}</span>}
-        {df !== 'default' && <span style={{ ...S.badge(DATA_FORMAT_COLORS[df] || '#64748b'), fontSize: 10 }}>{DATA_FORMAT_LABELS[df] || df}</span>}
-      </div>
-      <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)', marginBottom: 14 }}>
-        {formatDuration(run.startedAt || run.createdAt, run.completedAt || run.updatedAt)}
-        {' · '}{formatTime(run.createdAt)}
-      </div>
-
-      <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
-        Mètriques · {metrics.length} mostres
-      </div>
-      {loadingM ? (
-        <div style={{ ...SK_STYLE, height: 10, width: '70%', marginBottom: 6 }} />
-      ) : metrics.length === 0 ? (
-        <div style={{ fontSize: 12, color: 'var(--text-disabled)', padding: '6px 0' }}>Sense dades de mètriques.</div>
-      ) : (
-        <>
-          <SRow label="Latència avg" value={avgLat  != null ? `${avgLat.toFixed(2)}ms`    : '-'} color="#f59e0b" />
-          <SRow label="P50"          value={p50     != null ? `${p50.toFixed(2)}ms`        : '-'} color="#3b82f6" />
-          <SRow label="P99"          value={p99     != null ? `${p99.toFixed(2)}ms`        : '-'} color="#7c3aed" />
-          <SRow label="Throughput"   value={avgTput != null ? `${avgTput.toFixed(1)} m/s`  : '-'} color="#22c55e" />
-          <SRow label="Taxa error"   value={avgErr  != null ? `${avgErr.toFixed(3)}%`      : '-'} color={avgErr && avgErr > 0.1 ? '#ef4444' : 'var(--text-secondary)'} />
-          {lats.length >= 2 && (
-            <div style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 2 }}>Latència (historial)</div>
-              <Spark data={lats.slice(-60)} color="#f59e0b" />
-            </div>
-          )}
-        </>
-      )}
-      <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
-        <a href="/resultats" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
-          Veure a Resultats →
-        </a>
-      </div>
-    </div>
-  );
-};
-
 // ── RunTable ───────────────────────────────────────────────────────────────────
-const RunTable = ({ data, title, showStop, icon, onCancel, onDelete, cancellingId, deletingId, scenarioMap, onSelect, selectedRunId }: {
+const RunTable = ({ data, title, showStop, icon, onCancel, onDelete, cancellingId, deletingId, scenarioMap }: {
   data: any[]; title: string; showStop: boolean; icon: React.ReactNode;
   onCancel: (run: any) => void; onDelete: (run: any) => void;
   cancellingId: string | null; deletingId: string | null;
   scenarioMap: Record<string, any>;
-  onSelect: (run: any) => void; selectedRunId: string | null;
 }) => {
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
   return (
     <div style={{ ...S.card, padding: 0, overflow: 'hidden', marginBottom: 24 }}>
+      {/* Capçalera */}
       <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
@@ -262,59 +152,92 @@ const RunTable = ({ data, title, showStop, icon, onCancel, onDelete, cancellingI
                 const dfLabel   = DATA_FORMAT_LABELS[df] || df;
                 const dfColor   = DATA_FORMAT_COLORS[df] || '#64748b';
 
-                const isSelected = selectedRunId === r.id;
                 return (
                   <tr key={r.id || i}
                     onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}
-                    onClick={() => onSelect(r)}
-                    style={{ ...S.tableRow, background: isSelected ? 'var(--bg-hover)' : hoveredRow === i ? 'var(--bg-hover)' : 'transparent', cursor: 'pointer', borderLeft: isSelected ? '3px solid var(--accent)' : '3px solid transparent', transition: 'all 0.15s ease' }}
+                    style={{ ...S.tableRow, background: hoveredRow === i ? 'var(--bg-hover)' : 'transparent' }}
                   >
+                    {/* Nom */}
                     <td style={{ ...S.td, fontWeight: 700, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {r.scenarioName || <span style={{ color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{r.scenarioId?.slice(0, 10) || '-'}</span>}
                     </td>
+
+                    {/* Arquitectura */}
                     <td style={{ ...S.td, textAlign: 'center' }}>
                       {r.architecture
-                        ? <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{r.architecture}</span>
+                        ? <span style={{ ...S.badge(ARCHITECTURE_COLORS[r.architecture] || '#2563eb'), fontSize: 11 }}>{r.architecture}</span>
                         : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                     </td>
+
+                    {/* Protocol */}
                     <td style={{ ...S.td, textAlign: 'center' }}>
                       {r.protocol
-                        ? <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{r.protocol}</span>
+                        ? <span style={{ ...S.badge(PROTOCOL_COLORS[r.protocol] || '#16a34a'), fontSize: 11 }}>{r.protocol}</span>
                         : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                     </td>
+
+                    {/* Plataforma amb color propi */}
                     <td style={{ ...S.td, textAlign: 'center' }}>
                       {platform
                         ? <span style={{ ...S.badge(platColor), fontSize: 11 }}>{platform}</span>
                         : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                     </td>
+
+                    {/* Format de dades */}
                     <td style={{ ...S.td, textAlign: 'center' }}>
                       <span style={{ ...S.badge(dfColor), fontSize: 11 }}>{dfLabel}</span>
                     </td>
+
+                    {/* Estat */}
                     <td style={{ ...S.td, textAlign: 'center' }}>
                       <span style={{ background: st.bg, color: st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                         {isActive && <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.color, display: 'inline-block', animation: 'pulseDot 1.5s ease infinite' }} />}
                         {st.label}
                       </span>
                     </td>
+
+                    {/* Durada */}
                     <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)' }}>
                       {isActive
                         ? formatDuration(r.startedAt || r.createdAt)
                         : formatDuration(r.startedAt || r.createdAt, r.completedAt || r.updatedAt)}
                     </td>
+
+                    {/* Iniciat */}
                     <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)' }}>
                       {formatTime(r.createdAt)}
                     </td>
+
+                    {/* Accions */}
                     <td style={{ ...S.td, textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                         {showStop && isActive && (
-                          <button onClick={() => onCancel(r)} disabled={cancellingId === r.id} title="Aturar execució"
-                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 9px', borderRadius: 6, border: 'none', background: '#ef4444', color: 'white', cursor: cancellingId === r.id ? 'not-allowed' : 'pointer', fontSize: 11, fontWeight: 600, opacity: cancellingId === r.id ? 0.6 : 1, fontFamily: 'var(--font)' }}>
+                          <button
+                            onClick={() => onCancel(r)}
+                            disabled={cancellingId === r.id}
+                            title="Aturar execució"
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: 4,
+                              padding: '4px 9px', borderRadius: 6, border: 'none',
+                              background: 'var(--error)', color: '#fff', cursor: cancellingId === r.id ? 'not-allowed' : 'pointer',
+                              fontSize: 11, fontWeight: 600, opacity: cancellingId === r.id ? 0.6 : 1, fontFamily: 'var(--font)',
+                            }}
+                          >
                             <StopIcon /> {cancellingId === r.id ? '...' : 'Stop'}
                           </button>
                         )}
                         {!isActive && (
-                          <button onClick={() => onDelete(r)} disabled={deletingId === r.id} title="Eliminar registre"
-                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', color: 'var(--error)', opacity: deletingId === r.id ? 0.5 : 1, transition: 'border-color var(--transition), background var(--transition)' }}>
+                          <button
+                            onClick={() => onDelete(r)}
+                            disabled={deletingId === r.id}
+                            title="Eliminar registre"
+                            style={{
+                              background: 'none', border: '1px solid var(--border)', borderRadius: 6,
+                              padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center',
+                              color: 'var(--error)', opacity: deletingId === r.id ? 0.5 : 1,
+                              transition: 'border-color var(--transition), background var(--transition)',
+                            }}
+                          >
                             <TrashIcon />
                           </button>
                         )}
@@ -339,10 +262,10 @@ export const ExecucionsPage = () => {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [deletingId,   setDeletingId]   = useState<string | null>(null);
   const [toast,        setToast]        = useState('');
-  const [selectedRun,  setSelectedRun]  = useState<any | null>(null);
 
   useEffect(() => { document.title = 'Execucions | APIs Asíncrones'; }, []);
 
+  // Fetch scenarios once for dataFormat lookup
   useEffect(() => {
     fetch(`${SCENARIOS_BASE}/scenarios`)
       .then(r => r.json())
@@ -409,12 +332,14 @@ export const ExecucionsPage = () => {
     <div style={{ ...S.page, maxWidth: 1280 }}>
       <style>{GLOBAL_CSS}</style>
 
+      {/* Toast */}
       {toast && (
-        <div style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease', fontFamily: 'var(--font)' }}>
+        <div role="alert" aria-live="polite" style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000, background: 'var(--bg-card)', border: '1px solid var(--border)', color: 'var(--text-primary)', padding: '12px 20px', borderRadius: 10, fontSize: 13, fontWeight: 600, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease', fontFamily: 'var(--font)' }}>
           {toast}
         </div>
       )}
 
+      {/* Capçalera */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Execucions</h1>
@@ -427,13 +352,14 @@ export const ExecucionsPage = () => {
         </button>
       </div>
 
+      {/* Stats bar */}
       {!loading && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
-            { label: 'Total',       value: runs.length,                                            color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execució', value: running.length,                                          color: '#3b82f6',              bg: 'rgba(59,130,246,0.08)' },
-            { label: 'Completats',  value: completed.filter(r => r.status === 'completed').length,  color: 'var(--success)',        bg: 'rgba(34,197,94,0.08)' },
-            { label: 'Errors',      value: runs.filter(r => r.status === 'error').length,           color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
+            { label: 'Total',       value: runs.length,                                                    color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
+            { label: 'En execució', value: running.length,                                                 color: '#3b82f6',              bg: 'rgba(59,130,246,0.10)' },
+            { label: 'Completats',  value: completed.filter(r => r.status === 'completed').length,         color: 'var(--success)',        bg: 'rgba(34,197,94,0.08)' },
+            { label: 'Errors',      value: runs.filter(r => r.status === 'error').length,                  color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
@@ -443,6 +369,7 @@ export const ExecucionsPage = () => {
         </div>
       )}
 
+      {/* Contingut */}
       {loading ? (
         <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
           <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)' }}>
@@ -461,26 +388,16 @@ export const ExecucionsPage = () => {
             onCancel={handleCancel} onDelete={handleDelete}
             cancellingId={cancellingId} deletingId={deletingId}
             scenarioMap={scenarioMap}
-            onSelect={(r: any) => setSelectedRun((prev: any) => prev?.id === r.id ? null : r)}
-            selectedRunId={selectedRun?.id ?? null}
           />
           <RunTable
-            data={completed} title="Historial"              showStop={false} icon={<ListIcon />}
+            data={completed} title="Historial"               showStop={false} icon={<ListIcon />}
             onCancel={handleCancel} onDelete={handleDelete}
             cancellingId={cancellingId} deletingId={deletingId}
             scenarioMap={scenarioMap}
-            onSelect={(r: any) => setSelectedRun((prev: any) => prev?.id === r.id ? null : r)}
-            selectedRunId={selectedRun?.id ?? null}
           />
         </>
-      )}
-      {selectedRun && (
-        <RunDetailPanel
-          run={selectedRun}
-          scenarioMap={scenarioMap}
-          onClose={() => setSelectedRun(null)}
-        />
       )}
     </div>
   );
 };
+

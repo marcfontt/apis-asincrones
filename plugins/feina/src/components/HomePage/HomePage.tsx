@@ -1,276 +1,373 @@
+
+
 import { useEffect, useState } from 'react';
 import { S, GLOBAL_CSS } from '../../theme';
 
-const STEPS = [
-  { num: 1, color: '#2563eb', title: 'Explora el Catàleg',      desc: 'Revisa les arquitectures, protocols, plataformes i gateways disponibles.', href: '/catalog',    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> },
-  { num: 2, color: '#16a34a', title: 'Configura un Escenari',   desc: 'Defineix arquitectura, protocol i plataforma. Ajusta la carrega.',           href: '/escenaris', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg> },
-  { num: 3, color: '#d97706', title: 'Llança el Benchmark',     desc: 'El sistema desplega automàticament la infraestructura a Kubernetes.',         href: '/escenaris', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg> },
-  { num: 4, color: '#7c3aed', title: 'Analitza els Resultats',  desc: "Compara latència, throughput i taxa d'error en temps real.",                  href: '/resultats', icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> },
+// ── Icons ──────────────────────────────────────────────────────────────────────
+const IconArrow     = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>;
+const IconCatalog   = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
+const IconScenarios = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+const IconRun       = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
+const IconResults   = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="12" width="4" height="9"/><rect x="10" y="7" width="4" height="14"/><rect x="17" y="3" width="4" height="18"/></svg>;
+const IconKafka     = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="4" r="2"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="20" r="2"/><line x1="12" y1="6" x2="5" y2="18"/><line x1="12" y1="6" x2="19" y2="18"/></svg>;
+const IconCloud     = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>;
+const IconZap       = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+const IconLayers    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>;
+const IconAKS       = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v9l4.8 4.8"/></svg>;
+const IconMetric    = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>;
+
+// ── Page sections data ─────────────────────────────────────────────────────────
+const PAGES = [
+  {
+    href:    '/catalog',
+    label:   'Catàleg',
+    desc:    'Arquitectures, protocols, plataformes i gateways disponibles per combinar.',
+    Icon:    IconCatalog,
+    color:   '#2563eb',
+    badge:   '4 categories',
+  },
+  {
+    href:    '/escenaris',
+    label:   'Escenaris',
+    desc:    'Crea i gestiona combinacions de benchmark. Configura durada, ràtio i payload.',
+    Icon:    IconScenarios,
+    color:   '#8b5cf6',
+    badge:   'YAML + UI',
+  },
+  {
+    href:    '/execucions',
+    label:   'Execucions',
+    desc:    'Llança escenaris contra AKS i monitoritza el progrés en temps real.',
+    Icon:    IconRun,
+    color:   '#16a34a',
+    badge:   'AKS live',
+  },
+  {
+    href:    '/resultats',
+    label:   'Resultats',
+    desc:    'Compara latència, throughput i taxa d\'error entre múltiples escenaris.',
+    Icon:    IconResults,
+    color:   '#f59e0b',
+    badge:   'Multi-factor',
+  },
 ];
 
-const CATEGORIES = [
-  { key: 'architecture', name: 'Arquitectures', count: 5, color: '#2563eb', items: ['EDA','QBA','LCA','EMA','SEA'],                                                      href: '/catalog' },
-  { key: 'protocol',     name: 'Protocols',     count: 8, color: '#16a34a', items: ['MQTT','AMQP','gRPC','WebSockets','SSE','CoAP','NATS','Kafka'],                      href: '/catalog' },
-  { key: 'platform',     name: 'Plataformes',   count: 5, color: '#d97706', items: ['Apache Kafka','RabbitMQ','Confluent','Apache Pulsar','NATS Server'],                 href: '/catalog' },
-  { key: 'gateway',      name: 'Gateways',      count: 6, color: '#7c3aed', items: ['Kong OSS','AWS EventBridge','Azure Event Grid','Google Eventarc','Solace PubSub+','Mosquitto'], href: '/catalog' },
+const FEATURES = [
+  { Icon: IconKafka,  title: 'Brokers reals',         desc: 'Kafka, RabbitMQ, NATS Server i Confluent desplegats sobre AKS.' },
+  { Icon: IconCloud,  title: 'Desplegament automàtic', desc: 'Escenaris es converteixen en Kubernetes manifests i es llancen al clúster.' },
+  { Icon: IconMetric, title: 'Mètriques en temps real', desc: 'Latència, throughput i errors recollits per l\'agent de mètriques.' },
+  { Icon: IconZap,    title: 'Comparativa multi-factor', desc: 'El guanyador es calcula ponderant latència (40%), throughput (35%) i errors (25%).' },
+  { Icon: IconLayers, title: '5 arquitectures',        desc: 'EDA, QBA, LCA, EMA i SEA implementades com a patrons de messaging.' },
+  { Icon: IconAKS,    title: 'Azure Kubernetes Service', desc: 'Infraestructura escalable al núvol Azure amb namespaces aïllats per escenari.' },
 ];
 
-const QUICK_SCENARIOS = [
-  { name: 'Kafka EDA - Alta Càrrega',       architecture: 'EDA', protocol: 'Kafka', platform: 'Kafka',       description: 'Throughput màxim amb Apache Kafka. Ideal per validar limits de capacitat.',    defaults: { duration: 60, rate: 1000, payloadSize: 256 }, accentColor: '#ef4444' },
-  { name: 'MQTT IoT - Baix Consum',         architecture: 'EDA', protocol: 'MQTT',  platform: 'RabbitMQ',    description: 'Protocol lleuger per a escenaris IoT. Baix overhead, latència minima.',        defaults: { duration: 30, rate: 500,  payloadSize: 128 }, accentColor: '#16a34a' },
-  { name: 'gRPC - Serialització Binària',   architecture: 'LCA', protocol: 'gRPC',  platform: 'NATS Server', description: 'Comunicació RPC asíncrona amb serialització binària.',                        defaults: { duration: 45, rate: 2000, payloadSize: 512 }, accentColor: '#7c3aed' },
-  { name: 'WebSockets - Temps Real',        architecture: 'SEA', protocol: 'WS',    platform: 'Kafka',       description: 'Connexió bidireccional persistent per a streaming en temps real.',             defaults: { duration: 60, rate: 800,  payloadSize: 256 }, accentColor: '#d97706' },
+const PROTOCOLS = [
+  { name: 'Kafka',  color: '#ef4444' },
+  { name: 'AMQP',   color: '#f97316' },
+  { name: 'MQTT',   color: '#eab308' },
+  { name: 'gRPC',   color: '#8b5cf6' },
+  { name: 'WS',     color: '#3b82f6' },
+  { name: 'SSE',    color: '#06b6d4' },
+  { name: 'NATS',   color: '#22c55e' },
+  { name: 'CoAP',   color: '#10b981' },
 ];
 
-const STATS = [
-  { label: 'Arquitectures', value: '5',    color: '#2563eb', href: '/catalog' },
-  { label: 'Protocols',     value: '8',    color: '#16a34a', href: '/catalog' },
-  { label: 'Plataformes',   value: '5',    color: '#d97706', href: '/catalog' },
-  { label: 'Combinacions',  value: '200+', color: '#7c3aed', href: '/escenaris' },
+const ARCHS = [
+  { name: 'EDA', color: '#2563eb', full: 'Event-Driven Architecture' },
+  { name: 'QBA', color: '#9333ea', full: 'Queue-Based Architecture' },
+  { name: 'LCA', color: '#16a34a', full: 'Low-Coupling Architecture' },
+  { name: 'EMA', color: '#dc2626', full: 'Event Mesh Architecture' },
+  { name: 'SEA', color: '#d97706', full: 'Streaming-Event Architecture' },
 ];
 
-const DATA_FORMATS = [
-  { key: 'default',   label: 'Per defecte', color: '#64748b', icon: '📦', desc: 'Payload generic de mida fixa. Base de referencia per a totes les comparatives.',                                        payload: '256 B',   rate: 'variable' },
-  { key: 'iot',       label: 'IoT',         color: '#10b981', icon: '🌡', desc: 'Simulacio de sensors: temperatura, humitat, estat. Missatges petits i alta freqüència.',                               payload: '64-128 B', rate: 'alt' },
-  { key: 'financial', label: 'Financer',    color: '#0ea5e9', icon: '💹', desc: 'Operacions de trading i dades de mercat. Baix volum per missatge, latència critica.',                                  payload: '512 B',   rate: 'moderat' },
-  { key: 'video-4k',  label: 'Video 4K',    color: '#8b5cf6', icon: '🎬', desc: 'Fragments de stream de video en resolucio 4K. Alta pressio sobre el broker i la xarxa.',                              payload: '64 KB',   rate: 'baix' },
-  { key: 'video-8k',  label: 'Video 8K',    color: '#7c3aed', icon: '🎥', desc: 'Cas extrem de streaming 8K. Mesura la capacitat maxima del sistema en condicions de càrrega màxima.', payload: '256 KB',  rate: 'molt baix' },
-];
-
+// ── HomePage ───────────────────────────────────────────────────────────────────
 export const HomePage = () => {
-  const [hoveredStep,     setHoveredStep]     = useState<number | null>(null);
-  const [hoveredScenario, setHoveredScenario] = useState<number | null>(null);
-  const [hoveredCat,      setHoveredCat]      = useState<number | null>(null);
-  const [hoveredStat,     setHoveredStat]     = useState<number | null>(null);
-  const [hoveredFormat,   setHoveredFormat]   = useState<number | null>(null);
-  const [hoveredHeroBtn,  setHoveredHeroBtn]  = useState<number | null>(null);
-  const [hoveredFooter,   setHoveredFooter]   = useState<number | null>(null);
+  const [hoveredCard,  setHoveredCard]  = useState<number | null>(null);
+  const [hoveredFeat,  setHoveredFeat]  = useState<number | null>(null);
+  const [hoveredHero,  setHoveredHero]  = useState<number | null>(null);
+  const [hoveredFooter,setHoveredFooter]= useState<string | null>(null);
 
-  useEffect(() => { document.title = 'Inici | APIs Asíncrones'; }, []);
-
-  const handleCreateScenario = (sc: typeof QUICK_SCENARIOS[0]) => {
-    const params = new URLSearchParams({
-      create: 'true', name: sc.name, architecture: sc.architecture,
-      protocol: sc.protocol, platform: sc.platform,
-      duration: String(sc.defaults.duration), rate: String(sc.defaults.rate),
-      payloadSize: String(sc.defaults.payloadSize),
-    });
-    window.location.href = '/escenaris?' + params.toString();
-  };
+  useEffect(() => { document.title = 'Home | APIs Asíncrones'; }, []);
 
   return (
-    <div style={{ ...S.page, paddingTop: 32 }}>
+    <div style={{ ...S.page, maxWidth: 1200, paddingBottom: 56 }}>
       <style>{GLOBAL_CSS}</style>
 
-      {/* Hero */}
-      <div style={{ marginBottom: 36, padding: '36px 40px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, position: 'relative', overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', top: 0, right: 0, width: 420, height: '100%', background: 'linear-gradient(135deg, transparent 40%, rgba(37,99,235,0.04) 100%)', pointerEvents: 'none' }} />
+      {/* ── Hero ── */}
+      <div style={{
+        position: 'relative',
+        overflow: 'hidden',
+        borderRadius: 16,
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        padding: '52px 48px',
+        marginBottom: 32,
+        boxShadow: 'var(--shadow-md)',
+      }}>
+        {/* Glow decoració */}
+        <div style={{
+          position: 'absolute', top: -80, right: -80,
+          width: 320, height: 320,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(37,99,235,0.15) 0%, transparent 70%)',
+          animation: 'heroGlow 4s ease-in-out infinite',
+          pointerEvents: 'none',
+        }} />
+        <div style={{
+          position: 'absolute', bottom: -60, left: -60,
+          width: 240, height: 240,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(139,92,246,0.12) 0%, transparent 70%)',
+          animation: 'heroGlow 4s ease-in-out infinite 2s',
+          pointerEvents: 'none',
+        }} />
+
         <div style={{ position: 'relative' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--badge-blue-bg)', color: 'var(--badge-blue-fg)', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 12px', borderRadius: 20, marginBottom: 18 }}>
-            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--badge-blue-fg)', display: 'inline-block' }} />
-            Plataforma de Benchmark · AKS
-          </div>
-          <h1 style={{ margin: '0 0 12px', fontSize: 30, fontWeight: 800, color: 'var(--text-primary)', lineHeight: 1.2, letterSpacing: '-0.02em' }}>
-            Mesura el rendiment de les<br /><span style={{ color: 'var(--accent)' }}>APIs Asíncrones</span> en temps real
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 15, margin: '0 0 28px', lineHeight: 1.65, maxWidth: 600 }}>
-            Dissenya escenaris de benchmark, desplega infraestructura real sobre Kubernetes i analitza latència, throughput i fiabilitat.
-          </p>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <a href="/escenaris?create=true"
-              onMouseEnter={() => setHoveredHeroBtn(0)} onMouseLeave={() => setHoveredHeroBtn(null)}
-              style={{ ...S.btnPrimary, textDecoration: 'none', fontSize: 14, opacity: hoveredHeroBtn === 0 ? 0.88 : 1, transform: hoveredHeroBtn === 0 ? 'translateY(-1px)' : 'none', transition: 'opacity 0.15s, transform 0.15s' }}>+ Crear escenari</a>
-            <a href="/resultats"
-              onMouseEnter={() => setHoveredHeroBtn(1)} onMouseLeave={() => setHoveredHeroBtn(null)}
-              style={{ ...S.btn, textDecoration: 'none', fontSize: 14, opacity: hoveredHeroBtn === 1 ? 0.88 : 1, transform: hoveredHeroBtn === 1 ? 'translateY(-1px)' : 'none', transition: 'opacity 0.15s, transform 0.15s' }}>Resultats en viu</a>
-            <a href="/catalog"
-              onMouseEnter={() => setHoveredHeroBtn(2)} onMouseLeave={() => setHoveredHeroBtn(null)}
-              style={{ ...S.btn, textDecoration: 'none', fontSize: 14, opacity: hoveredHeroBtn === 2 ? 0.88 : 1, transform: hoveredHeroBtn === 2 ? 'translateY(-1px)' : 'none', transition: 'opacity 0.15s, transform 0.15s' }}>Explorar catàleg</a>
+          {/* Eyebrow badge */}
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '4px 12px', borderRadius: 20,
+            background: 'var(--accent-soft)',
+            border: '1px solid var(--accent)',
+            fontSize: 11, fontWeight: 700, color: 'var(--accent)',
+            textTransform: 'uppercase', letterSpacing: '0.08em',
+            marginBottom: 20,
+          }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)' }} />
+            Developer Portal · TFG
           </div>
 
-          {/* Stats interactives */}
-          <div style={{ display: 'flex', gap: 20, marginTop: 28, paddingTop: 24, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
-            {STATS.map((stat, i) => (
-              <a key={stat.label} href={stat.href}
-                onMouseEnter={() => setHoveredStat(i)} onMouseLeave={() => setHoveredStat(null)}
+          <h1 style={{
+            margin: '0 0 12px',
+            fontSize: 38,
+            fontWeight: 800,
+            color: 'var(--text-primary)',
+            letterSpacing: '-0.03em',
+            lineHeight: 1.15,
+            maxWidth: 600,
+          }}>
+            APIs Asíncrones<br />
+            <span style={{ color: 'var(--accent)' }}>Benchmark Platform</span>
+          </h1>
+
+          <p style={{
+            margin: '0 0 32px',
+            fontSize: 16,
+            color: 'var(--text-secondary)',
+            lineHeight: 1.65,
+            maxWidth: 560,
+          }}>
+            Plataforma per comparar arquitectures event-driven desplegades sobre Azure Kubernetes Service.
+            Defineix escenaris, executa benchmarks i analitza mètriques en temps real.
+          </p>
+
+          {/* CTA buttons */}
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            {[
+              { label: 'Crear escenari',    href: '/escenaris',   primary: true  },
+              { label: 'Veure catàleg',     href: '/catalog',     primary: false },
+              { label: 'Veure resultats',   href: '/resultats',   primary: false },
+            ].map((btn, i) => (
+              <a
+                key={i}
+                href={btn.href}
                 style={{
-                  display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none',
-                  padding: '6px 12px', borderRadius: 8, border: '1px solid transparent',
-                  background: hoveredStat === i ? stat.color + '22' : 'transparent',
-                  borderColor: hoveredStat === i ? stat.color + '55' : 'transparent',
-                  transition: 'background 0.15s, border-color 0.15s',
+                  ...(btn.primary ? S.btnPrimary : S.btn),
+                  textDecoration: 'none',
+                  opacity:    hoveredHero === i ? 0.88 : 1,
+                  transform:  hoveredHero === i ? 'translateY(-1px)' : 'translateY(0)',
+                  boxShadow:  hoveredHero === i
+                    ? (btn.primary ? '0 4px 12px rgba(37,99,235,0.3)' : 'var(--shadow-md)')
+                    : (btn.primary ? S.btnPrimary.boxShadow : 'none'),
+                  padding: '9px 20px',
+                  fontSize: 14,
                 }}
+                onMouseEnter={() => setHoveredHero(i)}
+                onMouseLeave={() => setHoveredHero(null)}
               >
-                <div style={{ width: 34, height: 34, borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', background: stat.color + '14', color: stat.color, flexShrink: 0, fontSize: 16, fontWeight: 800 }}>
-                  {stat.value}
-                </div>
-                <div style={{ fontSize: 12, color: hoveredStat === i ? stat.color : 'var(--text-secondary)', fontWeight: hoveredStat === i ? 700 : 500, transition: 'color 0.15s' }}>
-                  {stat.label}
-                </div>
+                {btn.label} {btn.primary && <IconArrow />}
               </a>
+            ))}
+          </div>
+
+          {/* Protocol pills */}
+          <div style={{ marginTop: 32, display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 4 }}>Protocols:</span>
+            {PROTOCOLS.map(p => (
+              <span key={p.name} style={{ ...S.badge(p.color), fontSize: 10 }}>{p.name}</span>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Com funciona */}
-      <div style={{ marginBottom: 32 }}>
-        <h2 style={{ margin: '0 0 16px', fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Com funciona</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-          {STEPS.map((step, i) => (
-            <a key={step.num} href={step.href}
-              onMouseEnter={() => setHoveredStep(i)} onMouseLeave={() => setHoveredStep(null)}
+      {/* ── Quick access cards ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 32 }}>
+        {PAGES.map((page, i) => {
+          const isHov = hoveredCard === i;
+          return (
+            <a
+              key={i}
+              href={page.href}
               style={{
-                ...S.card, padding: 18, textDecoration: 'none', display: 'block',
-                borderTop: `2px solid ${step.color}`,
-                boxShadow: hoveredStep === i ? `0 4px 20px ${step.color}28` : 'none',
-                transform: hoveredStep === i ? 'translateY(-2px)' : 'none',
-                background: hoveredStep === i ? step.color + '12' : 'var(--bg-card)',
-                transition: 'transform 0.15s, box-shadow 0.15s, background 0.15s',
+                ...S.card,
+                textDecoration: 'none',
+                display:       'flex',
+                flexDirection: 'column',
+                gap:           12,
+                cursor:        'pointer',
+                transition:    'all 0.18s ease',
+                transform:     isHov ? 'translateY(-3px)' : 'none',
+                boxShadow:     isHov ? `0 8px 24px ${page.color}22` : 'var(--shadow-sm)',
+                border:        `1px solid ${isHov ? page.color + '50' : 'var(--border)'}`,
+                borderTop:     `3px solid ${page.color}`,
+                padding:       20,
               }}
+              onMouseEnter={() => setHoveredCard(i)}
+              onMouseLeave={() => setHoveredCard(null)}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: step.color, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700 }}>
-                  {step.num}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div style={{
+                  width: 38, height: 38, borderRadius: 9,
+                  background: page.color + '14',
+                  color:      page.color,
+                  display:    'flex', alignItems: 'center', justifyContent: 'center',
+                  flexShrink: 0,
+                }}>
+                  <page.Icon />
                 </div>
-                <span style={{ color: hoveredStep === i ? step.color : 'var(--text-disabled)', transition: 'color 0.15s' }}>{step.icon}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 10,
+                  background: page.color + '12', color: page.color,
+                  border: `1px solid ${page.color}25`,
+                }}>
+                  {page.badge}
+                </span>
               </div>
-              <div style={{ fontWeight: 600, fontSize: 14, marginBottom: 6, color: hoveredStep === i ? step.color : 'var(--text-primary)', lineHeight: 1.3, transition: 'color 0.15s' }}>{step.title}</div>
-              <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{step.desc}</div>
-            </a>
-          ))}
-        </div>
-      </div>
 
-      {/* Escenaris predefinits */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Escenaris predefinits</h2>
-          <a href="/escenaris" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Veure tots</a>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-          {QUICK_SCENARIOS.map((sc, i) => (
-            <div key={sc.name}
-              onMouseEnter={() => setHoveredScenario(i)} onMouseLeave={() => setHoveredScenario(null)}
-              style={{
-                ...S.card, borderLeft: `3px solid ${sc.accentColor}`,
-                display: 'flex', flexDirection: 'column', gap: 12,
-                background: hoveredScenario === i ? sc.accentColor + '12' : 'var(--bg-card)',
-                boxShadow: hoveredScenario === i ? `0 4px 20px ${sc.accentColor}28` : 'none',
-                transform: hoveredScenario === i ? 'translateY(-1px)' : 'none',
-                transition: 'transform 0.15s, box-shadow 0.15s, background 0.15s',
-              }}
-            >
               <div>
-                <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4, color: 'var(--text-primary)', lineHeight: 1.3 }}>{sc.name}</div>
-                <p style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>{sc.description}</p>
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                <span style={{ ...S.badge('#2563eb'), fontSize: 11 }}>{sc.architecture}</span>
-                <span style={{ ...S.badge('#16a34a'), fontSize: 11 }}>{sc.protocol}</span>
-                <span style={{ ...S.badge('#d97706'), fontSize: 11 }}>{sc.platform}</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', gap: 14, fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)' }}>
-                  <span>{sc.defaults.duration}s</span><span>{sc.defaults.rate} msg/s</span><span>{sc.defaults.payloadSize}B</span>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+                  {page.label}
                 </div>
-                <button onClick={() => handleCreateScenario(sc)}
-                  style={{ background: sc.accentColor, color: 'white', border: 'none', borderRadius: 6, padding: '6px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-                  Crear
-                </button>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                  {page.desc}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      {/* Formats de dades */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Formats de dades</h2>
-          <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>Seleccionables a cada escenari</span>
-        </div>
-        <p style={{ margin: '-6px 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-          Cada format simula un cas d&apos;ús real i determina la mida del payload, la freqüència d&apos;enviament i la pressió sobre el broker.
-          El format <strong>Per defecte</strong> s&apos;utilitza com a línia base de comparació neutral.
-        </p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
-          {DATA_FORMATS.map((fmt, i) => (
-            <div key={fmt.key}
-              onMouseEnter={() => setHoveredFormat(i)} onMouseLeave={() => setHoveredFormat(null)}
-              style={{
-                ...S.card, padding: '16px 14px', cursor: 'default',
-                borderTop: `2px solid ${fmt.color}`,
-                background: hoveredFormat === i ? fmt.color + '16' : 'var(--bg-card)',
-                boxShadow: hoveredFormat === i ? `0 4px 16px ${fmt.color}22` : 'none',
-                transform: hoveredFormat === i ? 'translateY(-2px)' : 'none',
-                transition: 'transform 0.15s, box-shadow 0.15s, background 0.15s',
-              }}
-            >
-              <div style={{ fontSize: 22, marginBottom: 8 }}>{fmt.icon}</div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: fmt.color, marginBottom: 6 }}>{fmt.label}</div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: 10 }}>{fmt.desc}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <div style={{ fontSize: 11, color: 'var(--text-disabled)', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Payload</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: fmt.color }}>{fmt.payload}</span>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--text-disabled)', display: 'flex', justifyContent: 'space-between' }}>
-                  <span>Freqüència</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{fmt.rate}</span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Components del cataleg */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-          <h2 style={{ margin: 0, fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>Components del cataleg</h2>
-          <a href="/catalog" style={{ color: 'var(--accent)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Explorar</a>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
-          {CATEGORIES.map((cat, i) => (
-            <a key={cat.key} href={cat.href}
-              onMouseEnter={() => setHoveredCat(i)} onMouseLeave={() => setHoveredCat(null)}
-              style={{
-                ...S.card, textDecoration: 'none', display: 'block',
-                borderTop: `2px solid ${cat.color}`,
-                background: hoveredCat === i ? cat.color + '15' : 'var(--bg-card)',
-                boxShadow: hoveredCat === i ? `0 4px 20px ${cat.color}28` : 'none',
-                transform: hoveredCat === i ? 'translateY(-2px)' : 'none',
-                transition: 'transform 0.15s, box-shadow 0.15s, background 0.15s',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: cat.color }}>{cat.name}</div>
-                <span style={{ ...S.badge(cat.color), fontSize: 11 }}>{cat.count}</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {cat.items.slice(0, 4).map(item => (
-                  <div key={item} style={{ fontSize: 12, color: 'var(--text-secondary)', padding: '3px 8px', background: 'var(--bg-hover)', borderRadius: 4, border: '1px solid var(--border)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {item}
-                  </div>
-                ))}
-                {cat.items.length > 4 && <div style={{ fontSize: 11, color: 'var(--text-disabled)', paddingLeft: 8, marginTop: 2 }}>+{cat.items.length - 4} mes</div>}
+              <div style={{
+                marginTop: 'auto',
+                display:   'flex', alignItems: 'center', gap: 4,
+                fontSize:  12, fontWeight: 600,
+                color:     isHov ? page.color : 'var(--text-disabled)',
+                transition: 'color 0.15s ease',
+              }}>
+                Obrir <IconArrow />
               </div>
             </a>
+          );
+        })}
+      </div>
+
+      {/* ── Architecture badges + Features in two columns ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 20, marginBottom: 32 }}>
+
+        {/* Left: Architectures */}
+        <div style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+            Arquitectures
+          </div>
+          {ARCHS.map(a => (
+            <div key={a.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{
+                ...S.badge(a.color),
+                fontSize: 12, minWidth: 42, justifyContent: 'center',
+              }}>
+                {a.name}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{a.full}</span>
+            </div>
           ))}
+          <div style={{ marginTop: 'auto', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
+            <a href="/catalog" style={{ fontSize: 12, color: 'var(--accent)', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              Veure catàleg complet <IconArrow />
+            </a>
+          </div>
+        </div>
+
+        {/* Right: Feature grid */}
+        <div style={{ ...S.card }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 16 }}>
+            Capacitats de la plataforma
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            {FEATURES.map((f, i) => {
+              const isHov = hoveredFeat === i;
+              return (
+                <div
+                  key={i}
+                  style={{
+                    padding:     14,
+                    borderRadius: 9,
+                    border:      `1px solid ${isHov ? 'var(--accent)' : 'var(--border)'}`,
+                    background:  isHov ? 'var(--accent-soft)' : 'var(--bg-subtle)',
+                    transition:  'all 0.15s ease',
+                    cursor:      'default',
+                  }}
+                  onMouseEnter={() => setHoveredFeat(i)}
+                  onMouseLeave={() => setHoveredFeat(null)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ color: isHov ? 'var(--accent)' : 'var(--text-secondary)', transition: 'color 0.15s ease' }}>
+                      <f.Icon />
+                    </span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{f.title}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                    {f.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
-      {/* Footer */}
-      <div style={{ padding: '16px 20px', background: 'var(--bg-subtle)', borderRadius: 10, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-          <strong style={{ color: 'var(--text-primary)' }}>APIs Asíncrones</strong> - Plataforma de benchmark per a APIs sobre AKS
+      {/* ── Footer nav ── */}
+      <div style={{
+        ...S.card,
+        display:        'flex',
+        justifyContent: 'space-between',
+        alignItems:     'center',
+        flexWrap:       'wrap',
+        gap:            12,
+        padding:        '16px 24px',
+      }}>
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+          APIs Asíncrones · Treball de Fi de Grau
         </span>
         <div style={{ display: 'flex', gap: 8 }}>
-          {[{ label: 'Escenaris', href: '/escenaris' }, { label: 'Execucions', href: '/execucions' }, { label: 'Resultats', href: '/resultats' }].map((link, i) => (
-            <a key={link.href} href={link.href}
-              onMouseEnter={() => setHoveredFooter(i)} onMouseLeave={() => setHoveredFooter(null)}
-              style={{ fontSize: 12, fontWeight: 600, color: hoveredFooter === i ? 'var(--accent)' : 'var(--text-secondary)', textDecoration: 'none', padding: '4px 10px', borderRadius: 6, border: `1px solid ${hoveredFooter === i ? 'var(--accent)' : 'var(--border)'}`, background: hoveredFooter === i ? 'rgba(37,99,235,0.07)' : 'var(--bg-card)', transition: 'all 0.15s ease' }}>
+          {[
+            { label: 'Catàleg',     href: '/catalog'    },
+            { label: 'Escenaris',   href: '/escenaris'  },
+            { label: 'Execucions',  href: '/execucions' },
+            { label: 'Resultats',   href: '/resultats'  },
+            { label: 'Configuració',href: '/settings'   },
+          ].map(link => (
+            <a
+              key={link.href}
+              href={link.href}
+              style={{
+                fontSize:       12,
+                fontWeight:     600,
+                color:          hoveredFooter === link.href ? 'var(--accent)' : 'var(--text-disabled)',
+                textDecoration: 'none',
+                padding:        '4px 8px',
+                borderRadius:   5,
+                border:         `1px solid ${hoveredFooter === link.href ? 'var(--accent)' : 'transparent'}`,
+                transition:     'all 0.15s ease',
+              }}
+              onMouseEnter={() => setHoveredFooter(link.href)}
+              onMouseLeave={() => setHoveredFooter(null)}
+            >
               {link.label}
             </a>
           ))}
