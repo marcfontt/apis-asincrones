@@ -48,7 +48,7 @@ export const GLOBAL_CSS = `
     --badge-blue-fg:  #2563eb;
   }
 
-  /* ── Dark mode tokens (GitHub dark-inspired — desaturated tonal variants) ── */
+  /* ── Dark mode tokens (GitHub dark-inspired) ── */
   [data-theme="dark"] {
     --bg:          #0d1117;
     --bg-card:     #161b22;
@@ -109,7 +109,7 @@ export const GLOBAL_CSS = `
     border-radius: 4px;
   }
 
-  /* ── Button hover/active states (supplement React hover state) ── */
+  /* ── Button hover/active states ── */
   button:hover:not(:disabled), a[role="button"]:hover {
     filter: brightness(1.07);
   }
@@ -117,7 +117,6 @@ export const GLOBAL_CSS = `
     transform: scale(0.97);
     transition: transform 0.08s ease;
   }
-  /* Disabled state — reduced opacity + no pointer (WCAG 1.4.3 — disabled elements) */
   button:disabled {
     opacity: 0.45 !important;
     cursor: not-allowed !important;
@@ -143,6 +142,27 @@ export const GLOBAL_CSS = `
 
   /* ── Text selection ── */
   ::selection { background: var(--accent); color: #fff; }
+
+  /* ── Dark mode: overrides Backstage/MUI white background ── */
+  html[data-theme="dark"],
+  html[data-theme="dark"] body {
+    background-color: #0d1117 !important;
+    color: #e6edf3;
+  }
+  html[data-theme="dark"] [class*="BackstageContent"],
+  html[data-theme="dark"] [class*="MuiPaper-elevation0"],
+  html[data-theme="dark"] [class*="makeStyles-root"],
+  html[data-theme="dark"] main > div {
+    background-color: #0d1117 !important;
+  }
+
+  /* ── Reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 `;
 
 // ── Style object — all values use CSS variables so dark/light works automatically ──
@@ -150,10 +170,13 @@ export const S = {
 
   page: {
     padding:    '28px 32px',
+    maxWidth:   1300,
+    margin:     '0 auto',
     fontFamily: 'var(--font)',
     color:      'var(--text-primary)',
     minHeight:  '100vh',
     background: 'var(--bg)',
+    boxSizing:  'border-box' as const,
   } as React.CSSProperties,
 
   card: {
@@ -242,9 +265,6 @@ export const S = {
     boxSizing:    'border-box' as const,
   } as React.CSSProperties,
 
-  // ── Factories ──
-
-  /** Coloured badge pill. Uses 10% tinted bg + 20% tinted border of the given hex. */
   badge: (color: string): React.CSSProperties => ({
     display:     'inline-flex',
     alignItems:  'center',
@@ -259,7 +279,6 @@ export const S = {
     whiteSpace:  'nowrap' as const,
   }),
 
-  /** Filter chip. Active = accent fill; inactive = ghost. */
   chip: (active: boolean, color?: string): React.CSSProperties => ({
     padding:     '5px 14px',
     borderRadius: 20,

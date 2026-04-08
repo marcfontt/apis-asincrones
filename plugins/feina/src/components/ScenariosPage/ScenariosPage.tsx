@@ -847,9 +847,9 @@ export const ScenariosPage = () => {
                           : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
                       </td>
                       <td style={S.td}>
-                        {s.dataFormat && s.dataFormat !== 'default'
-                          ? <span style={{ ...S.badge(dfColor), fontSize: 10 }}>{dfLabel}</span>
-                          : <span style={{ color: 'var(--text-disabled)', fontSize: 11 }}>-</span>}
+                        <span style={{ ...S.badge(dfColor), fontSize: 10 }}>
+                          {s.dataFormat && s.dataFormat !== 'default' ? dfLabel : 'Per defecte'}
+                        </span>
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }}>
                         <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : st.bg, color: isRunning ? '#3b82f6' : st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>

@@ -119,7 +119,7 @@ const MetricGlossary = () => {
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: '#3b82f6' }}><IconInfo /></span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Guia de mètriques — Què estem comparant?</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Guia de mètriques: Què estem comparant?</span>
         </div>
         <IconChevron open={open} />
       </button>
@@ -352,20 +352,32 @@ const HistorialTab = () => {
   const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length + filterDataFormat.length;
   const clearFilters  = () => { setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]); setFilterDataFormat([]); };
 
-  // Multi-factor scoring: ponderat per latència (40%), throughput (35%), taxa d'error (25%)
-  // Rang per cada mètrica (1 = millor). Puntuació final = suma ponderada de rangs (menor = millor).
+  // Scoring multi-factor complet: totes les mètriques compten.
+  // Pesos: P99(25%) + error(22%) + avgLat(18%) + P50(15%) + throughput(15%) + penalització error >1%.
   const scoreMap = (() => {
     const n = filteredSummary.length;
     if (n === 0) return new Map<string, number>();
-    const byLat  = [...filteredSummary].sort((a, b) => (a.avgLatency   ?? 999) - (b.avgLatency   ?? 999));
-    const byTput = [...filteredSummary].sort((a, b) => (b.avgThroughput ??   0) - (a.avgThroughput ??   0));
-    const byErr  = [...filteredSummary].sort((a, b) => (a.avgErrorRate  ??   0) - (b.avgErrorRate  ??   0));
+
+    const getP50 = (s: any) => s.p50Latency ?? percentileMap[s.scenarioId]?.p50 ?? 9999;
+    const getP99 = (s: any) => s.p99Latency ?? percentileMap[s.scenarioId]?.p99 ?? 9999;
+
+    const byLat  = [...filteredSummary].sort((a, b) => (a.avgLatency   ?? 9999) - (b.avgLatency   ?? 9999));
+    const byP50  = [...filteredSummary].sort((a, b) => getP50(a) - getP50(b));
+    const byP99  = [...filteredSummary].sort((a, b) => getP99(a) - getP99(b));
+    const byTput = [...filteredSummary].sort((a, b) => (b.avgThroughput ??    0) - (a.avgThroughput ??    0));
+    const byErr  = [...filteredSummary].sort((a, b) => (a.avgErrorRate  ??    0) - (b.avgErrorRate  ??    0));
+
     const map = new Map<string, number>();
     filteredSummary.forEach(s => {
       const latRank  = byLat.findIndex(x => x.scenarioId === s.scenarioId)  + 1;
+      const p50Rank  = byP50.findIndex(x => x.scenarioId === s.scenarioId)  + 1;
+      const p99Rank  = byP99.findIndex(x => x.scenarioId === s.scenarioId)  + 1;
       const tputRank = byTput.findIndex(x => x.scenarioId === s.scenarioId) + 1;
       const errRank  = byErr.findIndex(x => x.scenarioId === s.scenarioId)  + 1;
-      map.set(s.scenarioId, latRank * 0.40 + tputRank * 0.35 + errRank * 0.25);
+      const base = latRank * 0.18 + p50Rank * 0.15 + p99Rank * 0.25 + tputRank * 0.20 + errRank * 0.22;
+      // Penalització si taxa d'error > 1%: multiplica el score x1.5 (empitjora el rànquing)
+      const errPenalty = (s.avgErrorRate ?? 0) > 1 ? 1.5 : 1;
+      map.set(s.scenarioId, base * errPenalty);
     });
     return map;
   })();
@@ -537,7 +549,7 @@ const HistorialTab = () => {
           <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Taula comparativa completa</span>
-              <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris · ordenats per latència</span>
+              <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris · puntuació global (P99, error, latència, throughput)</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -559,9 +571,12 @@ const HistorialTab = () => {
                 <tbody>
                   {sorted.map((s, i) => {
                     const isBest     = i === 0;
-                    const platform   = normalizePlatform(s.platform || s.broker);
-                    const platColor  = PLATFORM_COLORS[platform] || 'var(--text-secondary)';
                     const sc         = scenarioMap[s.scenarioId];
+                    // Fallback: si el summary no porta arquitectura/protocol, agafem de l'escenari
+                    const arch       = s.architecture || sc?.architecture || '';
+                    const proto      = s.protocol     || sc?.protocol     || '';
+                    const platform   = normalizePlatform(s.platform || s.broker || sc?.platform || sc?.broker);
+                    const platColor  = PLATFORM_COLORS[platform] || 'var(--text-secondary)';
                     const dfLabel    = DATA_FORMAT_LABELS[sc?.dataFormat] || '';
                     const computed   = percentileMap[s.scenarioId];
                     const p50Val     = s.p50Latency ?? computed?.p50;
@@ -578,13 +593,13 @@ const HistorialTab = () => {
                           {dfLabel && <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 400 }}>{dfLabel}</div>}
                         </td>
                         <td style={{ ...S.td, textAlign: 'center' }}>
-                          {s.architecture
-                            ? <span style={{ ...S.badge(ARCHITECTURE_COLORS[s.architecture] || '#2563eb'), fontSize: 11 }}>{s.architecture}</span>
+                          {arch
+                            ? <span style={{ ...S.badge(ARCHITECTURE_COLORS[arch] || '#2563eb'), fontSize: 11 }}>{arch}</span>
                             : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                         </td>
                         <td style={{ ...S.td, textAlign: 'center' }}>
-                          {s.protocol
-                            ? <span style={{ ...S.badge(PROTOCOL_COLORS[s.protocol] || '#16a34a'), fontSize: 11 }}>{s.protocol}</span>
+                          {proto
+                            ? <span style={{ ...S.badge(PROTOCOL_COLORS[proto] || '#16a34a'), fontSize: 11 }}>{proto}</span>
                             : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                         </td>
                         <td style={{ ...S.td, textAlign: 'center' }}>
@@ -617,7 +632,7 @@ const HistorialTab = () => {
               </table>
             </div>
             <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-disabled)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span><span style={{ color: '#f59e0b', marginRight: 4 }}><IconTrophy /></span>Millor escenari (multi-factor: latència 40% + throughput 35% + error 25%)</span>
+              <span><span style={{ color: '#f59e0b', marginRight: 4 }}><IconTrophy /></span>Millor escenari: P99 25% + error 22% + latència 18% + throughput 20% + P50 15% + penalització si error &gt;1%</span>
               <span>P50/P99: calculats de les mètriques en brut · <span style={{ fontStyle: 'italic' }}>-</span> = sense dades suficients</span>
             </div>
           </div>

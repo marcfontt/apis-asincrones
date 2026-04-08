@@ -1,4 +1,3 @@
-
 import { PropsWithChildren, useEffect } from 'react';
 import { makeStyles } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
@@ -16,7 +15,6 @@ import {
   SidebarGroup,
   SidebarItem,
   SidebarPage,
-  SidebarSpace,
   useSidebarOpenState,
   Link,
 } from '@backstage/core-components';
@@ -42,18 +40,30 @@ const SidebarLogo = () => {
   const { isOpen } = useSidebarOpenState();
   return (
     <div className={classes.root}>
-      <Link to="/" underline="none" className={classes.link} aria-label="APIs Asincrones">
+      <Link to="/" underline="none" className={classes.link} aria-label="APIs Asíncrones">
         {isOpen ? <LogoFull /> : <LogoIcon />}
       </Link>
     </div>
   );
 };
 
-const THEME_KEY = '@backstage/core-app-api:themeId';
+const THEME_KEYS = [
+  '@backstage/core-app-api:themeId',
+  'theme',
+  'backstage-theme',
+];
+
 const applyTheme = () => {
   try {
-    const raw = localStorage.getItem(THEME_KEY) ?? '"light"';
-    const id = JSON.parse(raw) as string;
+    let id = 'light';
+    for (const key of THEME_KEYS) {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        try { id = JSON.parse(raw) as string; }
+        catch { id = raw; }
+        break;
+      }
+    }
     document.documentElement.setAttribute('data-theme', id === 'dark' ? 'dark' : 'light');
   } catch {
     document.documentElement.setAttribute('data-theme', 'light');
@@ -64,7 +74,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
   useEffect(() => {
     applyTheme();
     window.addEventListener('storage', applyTheme);
-    const interval = setInterval(applyTheme, 400);
+    const interval = setInterval(applyTheme, 300);
     return () => {
       window.removeEventListener('storage', applyTheme);
       clearInterval(interval);
@@ -76,17 +86,16 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
       <Sidebar>
         <SidebarLogo />
         <SidebarDivider />
-        <SidebarGroup label="Menu" icon={<MenuIcon />}>
+        <SidebarGroup label="Menú" icon={<MenuIcon />}>
           <SidebarItem icon={HomeIcon}      to="home"       text="Home" />
           <SidebarDivider />
-          <SidebarItem icon={StorageIcon}   to="catalog"    text="Cataleg" />
+          <SidebarItem icon={StorageIcon}   to="catalog"    text="Catàleg" />
           <SidebarItem icon={ListAltIcon}   to="escenaris"  text="Escenaris" />
           <SidebarItem icon={PlayArrowIcon} to="execucions" text="Execucions" />
           <SidebarItem icon={BarChartIcon}  to="resultats"  text="Resultats" />
           <SidebarDivider />
-          <SidebarItem icon={SettingsIcon}  to="settings"   text="Configuracio" />
+          <SidebarItem icon={SettingsIcon}  to="settings"   text="Configuració" />
         </SidebarGroup>
-        <SidebarSpace />
       </Sidebar>
       {children}
     </SidebarPage>
