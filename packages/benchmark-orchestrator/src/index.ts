@@ -244,7 +244,9 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
               { name: 'PROTOCOL', value: r?.protocol || 'Kafka' },
               { name: 'PLATFORM', value: r?.platform || '' },
               { name: 'DATA_FORMAT', value: fmt },                                          // FIX 1+2: nou
-              { name: 'KAFKA_BROKERS', value: 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
+              { name: 'KAFKA_BROKERS', value: brokerType === 'confluent'
+                ? 'redpanda.brokers.svc.cluster.local:9093'
+                : 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
               { name: 'NATS_URL', value: 'nats://nats.brokers.svc.cluster.local:4222' },
               { name: 'RABBITMQ_URL', value: 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672' },
               { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
