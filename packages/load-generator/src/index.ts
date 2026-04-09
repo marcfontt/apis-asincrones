@@ -14,8 +14,8 @@ const CFG = {
   platform: process.env.PLATFORM || '',
   dataFormat: process.env.DATA_FORMAT || 'default',   // BUG 2: ara es llegeix
   kafkaBrokers: (process.env.KAFKA_BROKERS || 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092').split(','),
-  mqttBroker: process.env.MQTT_BROKER || 'mqtt://emqx.apis-asincronas.svc.cluster.local:1883',
-  metricsApiUrl: process.env.METRICS_API_URL || 'http://metrics-api.apis-asincronas.svc.cluster.local:3004',
+  mqttBroker: process.env.MQTT_BROKER || 'mqtt://emqx.brokers.svc.cluster.local:1883',
+  metricsApiUrl: process.env.METRICS_API_URL || 'http://metrics-api.apis-asincrones.svc.cluster.local:3004',
   durationMs: parseInt(process.env.TEST_DURATION_SECONDS || '60') * 1000,
   msgPerSec: parseInt(process.env.MESSAGES_PER_SECOND || '100'),
   msgSize: parseInt(process.env.MESSAGE_SIZE_BYTES || '256'),
@@ -207,7 +207,7 @@ async function runNats() {
   log(`=== Load Generator (NATS) ===`);
   log(`Format: ${CFG.dataFormat}  |  MsgSize: ${CFG.msgSize}B  |  Rate: ${CFG.msgPerSec} msg/s`);
 
-  const natsUrl = process.env.NATS_URL || 'nats://nats.apis-asincronas.svc.cluster.local:4222';
+  const natsUrl = process.env.NATS_URL || 'nats://nats.brokers.svc.cluster.local:4222';
   const nc = await natsConnect({ servers: natsUrl });
   const sc = StringCodec();
 
@@ -262,7 +262,7 @@ async function runNats() {
 // BUG 1 FIX: RabbitMQ implementat (abans → process.exit(1))
 async function runRabbitMQ() {
   const queue = `benchmark-${CFG.runId}`;
-  const amqpUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@rabbitmq.apis-asincronas.svc.cluster.local:5672';
+  const amqpUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@rabbitmq.brokers.svc.cluster.local:5672';
   log(`=== Load Generator (RabbitMQ/AMQP) ===`);
   log(`Format: ${CFG.dataFormat}  |  MsgSize: ${CFG.msgSize}B  |  Rate: ${CFG.msgPerSec} msg/s`);
 

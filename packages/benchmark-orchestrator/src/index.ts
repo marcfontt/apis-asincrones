@@ -214,9 +214,10 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
               { name: 'PLATFORM', value: r?.platform || '' },
               { name: 'DATA_FORMAT', value: fmt },                                          // FIX 1+2: nou
               { name: 'KAFKA_BROKERS', value: 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
-              { name: 'MQTT_BROKER', value: 'mqtt://emqx.apis-asincronas.svc.cluster.local:1883' },
-              { name: 'ELASTICSEARCH_URL', value: 'http://elasticsearch.apis-asincronas.svc.cluster.local:9200' },
-              { name: 'METRICS_API_URL', value: 'http://metrics-api.apis-asincronas.svc.cluster.local:3001' },
+              { name: 'NATS_URL', value: 'nats://nats.brokers.svc.cluster.local:4222' },
+              { name: 'RABBITMQ_URL', value: 'amqp://guest:guest@rabbitmq.brokers.svc.cluster.local:5672' },
+              { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
+              { name: 'METRICS_API_URL', value: `http://metrics-api.${ORCHESTRATOR_NAMESPACE}.svc.cluster.local:3001` },
               { name: 'TEST_DURATION_SECONDS', value: '60' },
               { name: 'MESSAGES_PER_SECOND', value: String(fmtConfig.messagesPerSecond) },          // FIX 2: dinàmic
               { name: 'MESSAGE_SIZE_BYTES', value: String(fmtConfig.messageSizeBytes) },           // FIX 2: dinàmic
