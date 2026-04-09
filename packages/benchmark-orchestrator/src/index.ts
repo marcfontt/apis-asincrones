@@ -29,6 +29,36 @@ try {
   console.warn('[orchestrator] K8s not available, running in mock mode');
 }
 
+// ── FIX 2: Configuració per format de dades ────────────────────────────────
+// Cada format defineix la mida del payload i els missatges per segon.
+// Això garanteix que cada format executa un benchmark realment diferent.
+const DATA_FORMAT_CONFIG: Record<string, {
+  messageSizeBytes: number;
+  messagesPerSecond: number;
+  memoryRequest: string;
+  memoryLimit: string;
+}> = {
+  'default': { messageSizeBytes: 256, messagesPerSecond: 100, memoryRequest: '128Mi', memoryLimit: '512Mi' },
+  'video-4k': { messageSizeBytes: 500_000, messagesPerSecond: 10, memoryRequest: '256Mi', memoryLimit: '1Gi' },
+  'video-8k': { messageSizeBytes: 2_000_000, messagesPerSecond: 4, memoryRequest: '512Mi', memoryLimit: '2Gi' },
+  'financial': { messageSizeBytes: 512, messagesPerSecond: 200, memoryRequest: '128Mi', memoryLimit: '512Mi' },
+  'iot': { messageSizeBytes: 64, messagesPerSecond: 500, memoryRequest: '128Mi', memoryLimit: '512Mi' },
+};
+
+// ── FIX 3: Mapeig de protocol/plataforma → brokerType ──────────────────────
+// Abans tot el que no era MQTT es tractava com 'kafka', incloent NATS, RabbitMQ i gRPC.
+function getBrokerType(protocol: string, platform: string): string {
+  const p = (protocol || '').toLowerCase();
+  const pl = (platform || '').toLowerCase();
+  if (p.includes('mqtt')) return 'mqtt';
+  if (p.includes('nats') || pl.includes('nats')) return 'nats';
+  if (p.includes('amqp') || pl.includes('rabbit')) return 'rabbitmq';
+  if (p.includes('grpc')) return 'grpc';
+  if (pl.includes('confluent')) return 'confluent';
+  return 'kafka';
+}
+
+// ── FIX 1: dataFormat afegit a RunRecord ──────────────────────────────────
 interface RunRecord {
   id: string;
   scenarioId: string;
@@ -36,6 +66,7 @@ interface RunRecord {
   architecture: string;
   protocol: string;
   platform: string;
+  dataFormat: string;   // <-- AFEGIT: abans no existia
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   startedAt: string;
   completedAt?: string;
@@ -57,7 +88,6 @@ function sanitizeName(name: string): string {
     .substring(0, 48);
 }
 
-// HTTP helpers amb timeout de 5s per evitar penjar
 function httpJson(url: string): Promise<any> {
   return new Promise((resolve) => {
     try {
@@ -86,7 +116,7 @@ function httpPatch(url: string, body: object): Promise<void> {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
         timeout: 5000,
-      }, (res) => { res.on('data', () => {}); res.on('end', resolve); });
+      }, (res) => { res.on('data', () => { }); res.on('end', resolve); });
       req.on('error', () => resolve());
       req.on('timeout', () => { req.destroy(); resolve(); });
       req.write(data);
@@ -147,7 +177,15 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
   await copyAcrSecret(namespace);
 
   const r = runs.get(runId);
-  const brokerType = r?.protocol?.toLowerCase().includes('mqtt') ? 'mqtt' : 'kafka';
+
+  // FIX 3: brokerType correcte per tots els protocols
+  const brokerType = getBrokerType(r?.protocol || '', r?.platform || '');
+
+  // FIX 2: configuració dinàmica per dataFormat
+  const fmt = r?.dataFormat || 'default';
+  const fmtConfig = DATA_FORMAT_CONFIG[fmt] || DATA_FORMAT_CONFIG['default'];
+
+  console.log(`[orchestrator] dataFormat=${fmt}  messageSizeBytes=${fmtConfig.messageSizeBytes}  brokerType=${brokerType}`);
 
   await batchApi.createNamespacedJob(namespace, {
     apiVersion: 'batch/v1', kind: 'Job',
@@ -168,30 +206,31 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
             image: LOAD_GENERATOR_IMAGE,
             imagePullPolicy: 'Always',
             env: [
-              { name: 'SCENARIO_ID',          value: scenarioId },
-              { name: 'RUN_ID',               value: runId },
-              { name: "BROKER_TYPE",           value: brokerType },
-              { name: "ARCHITECTURE",          value: r?.architecture || "" },
-              { name: "PROTOCOL",             value: r?.protocol || "Kafka" },
-              { name: "PLATFORM",             value: r?.platform || "" },
-              { name: 'KAFKA_BROKERS',         value: 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
-              { name: 'MQTT_BROKER',           value: 'mqtt://emqx.apis-asincronas.svc.cluster.local:1883' },
-              { name: 'ELASTICSEARCH_URL',     value: 'http://elasticsearch.apis-asincronas.svc.cluster.local:9200' },
-              { name: 'METRICS_API_URL',       value: 'http://metrics-api.apis-asincronas.svc.cluster.local:3001' },
+              { name: 'SCENARIO_ID', value: scenarioId },
+              { name: 'RUN_ID', value: runId },
+              { name: 'BROKER_TYPE', value: brokerType },                                   // FIX 3
+              { name: 'ARCHITECTURE', value: r?.architecture || '' },
+              { name: 'PROTOCOL', value: r?.protocol || 'Kafka' },
+              { name: 'PLATFORM', value: r?.platform || '' },
+              { name: 'DATA_FORMAT', value: fmt },                                          // FIX 1+2: nou
+              { name: 'KAFKA_BROKERS', value: 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
+              { name: 'MQTT_BROKER', value: 'mqtt://emqx.apis-asincronas.svc.cluster.local:1883' },
+              { name: 'ELASTICSEARCH_URL', value: 'http://elasticsearch.apis-asincronas.svc.cluster.local:9200' },
+              { name: 'METRICS_API_URL', value: 'http://metrics-api.apis-asincronas.svc.cluster.local:3001' },
               { name: 'TEST_DURATION_SECONDS', value: '60' },
-              { name: 'MESSAGES_PER_SECOND',   value: '100' },
-              { name: 'MESSAGE_SIZE_BYTES',    value: '256' },
+              { name: 'MESSAGES_PER_SECOND', value: String(fmtConfig.messagesPerSecond) },          // FIX 2: dinàmic
+              { name: 'MESSAGE_SIZE_BYTES', value: String(fmtConfig.messageSizeBytes) },           // FIX 2: dinàmic
             ],
             resources: {
-              requests: { cpu: '100m', memory: '128Mi' },
-              limits:   { cpu: '500m', memory: '512Mi' },
+              requests: { cpu: '100m', memory: fmtConfig.memoryRequest },  // FIX 2: ajustat per format
+              limits: { cpu: '500m', memory: fmtConfig.memoryLimit },  // FIX 2: ajustat per format
             },
           }],
         },
       },
     },
   });
-  console.log(`[orchestrator] Job ${jobName} created`);
+  console.log(`[orchestrator] Job ${jobName} created  format=${fmt}  size=${fmtConfig.messageSizeBytes}B  rate=${fmtConfig.messagesPerSecond}msg/s`);
 }
 
 async function monitorJob(runId: string, namespace: string, jobName: string, scenarioId: string) {
@@ -206,12 +245,12 @@ async function monitorJob(runId: string, namespace: string, jobName: string, sce
     try {
       const job = (await batchApi.readNamespacedJob(jobName, namespace)).body;
       const succeeded = job.status?.succeeded || 0;
-      const failed    = job.status?.failed    || 0;
-      const limit     = job.spec?.backoffLimit ?? 1;
+      const failed = job.status?.failed || 0;
+      const limit = job.spec?.backoffLimit ?? 1;
       if (succeeded > 0) {
         run.status = 'completed'; run.completedAt = new Date().toISOString();
         await updateScenarioStatus(scenarioId, 'idle', null);
-        try { await coreApi.deleteNamespace(namespace); } catch (_) {}
+        try { await coreApi.deleteNamespace(namespace); } catch (_) { }
         console.log(`[orchestrator] Run ${runId} completed`);
       } else if (failed > limit) {
         run.status = 'failed'; run.completedAt = new Date().toISOString();
@@ -245,47 +284,53 @@ app.get('/runs/active', (_req, res) => {
 
 app.get('/runs/:id', (req, res) => {
   const run = runs.get(req.params.id);
-  if (!run) return res.status(404).json({ error: 'Not found' });
-  return res.json(run);
+  if (!run) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
+  res.json(run);
 });
 
-app.post('/runs', (req, res): void => {
-  const { scenarioId, scenarioName: providedName } = req.body;
-  if (!scenarioId) return res.status(400).json({ error: 'scenarioId required' });
+app.post('/runs', (req, res) => {
+  // FIX 1: extreure dataFormat del body (abans s'ignorava completament)
+  const { scenarioId, scenarioName: providedName, dataFormat: providedDataFormat } = req.body;
+  if (!scenarioId) {
+    res.status(400).json({ error: 'scenarioId required' });
+    return;
+  }
 
-  // Genera runId basat en el nom de l'escenari + cua curta per unicitat
-  const shortId  = randomUUID().substring(0, 6);
+  const shortId = randomUUID().substring(0, 6);
   const baseName = providedName ? sanitizeName(providedName) : '';
-  const runId    = baseName ? `${baseName}-${shortId}` : randomUUID();
+  const runId = baseName ? `${baseName}-${shortId}` : randomUUID();
 
   const run: RunRecord = {
     id: runId, scenarioId,
     scenarioName: providedName || scenarioId,
     architecture: '', protocol: '', platform: '',
+    dataFormat: providedDataFormat || 'default',   // FIX 1: guardat al run
     status: 'running', startedAt: new Date().toISOString(),
   };
   runs.set(runId, run);
 
-  // *** Retornem IMMEDIATAMENT — res no es pot usar després d'això ***
   res.status(201).json({ id: runId, runId, scenarioId, status: 'running' });
 
-  // Tot el treball pesat és asíncron i no bloca la resposta
   setImmediate(async () => {
-    // 1. Fetch scenario details (timeout 5s)
     try {
       const sc = await httpJson(`${SCENARIO_SERVICE_URL}/scenarios/${scenarioId}`);
       if (sc) {
         run.scenarioName = sc.name || sc.title || scenarioId;
         run.architecture = sc.architecture || sc.type || '';
-        run.protocol     = sc.protocol || '';
-        run.platform     = sc.platform || '';
+        run.protocol = sc.protocol || '';
+        run.platform = sc.platform || '';
+        // FIX 1: si el body no tenia dataFormat, l'agafem del scenario-service
+        if (!providedDataFormat && sc.dataFormat) {
+          run.dataFormat = sc.dataFormat;
+        }
       }
-    } catch (_) {}
+    } catch (_) { }
 
-    // 2. Sync status to scenario-service
     await updateScenarioStatus(scenarioId, 'running', runId);
 
-    // 3. Deploy to AKS
     try {
       await deployScenario(runId, scenarioId, run.scenarioName);
       const r = runs.get(runId);
@@ -303,11 +348,14 @@ app.post('/runs', (req, res): void => {
 
 app.post('/runs/:id/cancel', async (req, res) => {
   const run = runs.get(req.params.id);
-  if (!run) return res.status(404).json({ error: 'Not found' });
+  if (!run) {
+    res.status(404).json({ error: 'Not found' });
+    return;
+  }
   run.status = 'cancelled'; run.completedAt = new Date().toISOString();
   await updateScenarioStatus(run.scenarioId, 'idle', null);
   if (k8sEnabled && run.namespace) {
-    try { await coreApi.deleteNamespace(run.namespace); } catch (_) {}
+    try { await coreApi.deleteNamespace(run.namespace); } catch (_) { }
   }
   res.json({ ok: true });
 });

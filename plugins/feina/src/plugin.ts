@@ -5,6 +5,7 @@ export const catalogRouteRef    = createRouteRef({ id: 'async-combinacions' });
 export const scenariosRouteRef  = createRouteRef({ id: 'async-escenaris' });
 export const execucionsRouteRef = createRouteRef({ id: 'async-execucions' });
 export const resultatsRouteRef  = createRouteRef({ id: 'async-resultats' });
+export const runsRouteRef       = createRouteRef({ id: 'async-runs' });
 
 export const asyncApisPlugin = createPlugin({ id: 'async-apis', routes: { root: homeRouteRef } });
 
@@ -13,3 +14,4 @@ export const CatalogPage = asyncApisPlugin.provide(createRoutableExtension({ nam
 export const ScenariosPage = asyncApisPlugin.provide(createRoutableExtension({ name: 'ScenariosPage', component: () => import('./components/ScenariosPage/ScenariosPage').then(m => m.ScenariosPage), mountPoint: scenariosRouteRef }));
 export const ExecucionsPage = asyncApisPlugin.provide(createRoutableExtension({ name: 'ExecucionsPage', component: () => import('./components/ExecucionsPage/ExecucionsPage').then(m => m.ExecucionsPage), mountPoint: execucionsRouteRef }));
 export const ResultatsPage = asyncApisPlugin.provide(createRoutableExtension({ name: 'ResultatsPage', component: () => import('./components/ResultatsPage/ResultatsPage').then(m => m.ResultatsPage), mountPoint: resultatsRouteRef }));
+export const RunsPage = asyncApisPlugin.provide(createRoutableExtension({ name: 'RunsPage', component: () => import('./components/RunsPage/RunsPage').then(m => m.RunsPage), mountPoint: runsRouteRef }));

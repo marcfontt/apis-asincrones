@@ -217,7 +217,6 @@ const LiveLineChart = ({ data, color = '#3b82f6', label, unit = '' }: {
   const py = (v: number) => H - 8 - ((v - min) / range) * (H - 16);
   const pts = data.map((v, i) => `${px(i)},${py(v)}`).join(' ');
   const fillPts = [`${px(0)},${H}`, ...data.map((v, i) => `${px(i)},${py(v)}`), `${px(data.length - 1)},${H}`].join(' ');
-  const gradId = 'lg-' + label.replace(/\s/g, '');
 
   let hovIdx: number | null = null;
   if (hovX !== null && svgRef.current) {
