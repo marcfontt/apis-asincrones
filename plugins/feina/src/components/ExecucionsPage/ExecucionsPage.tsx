@@ -205,7 +205,7 @@ const RunTable = ({ data, title, showStop, icon, onCancel, onDelete, cancellingI
 
                     {/* Iniciat */}
                     <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)' }}>
-                      {formatTime(r.createdAt)}
+                      {formatTime(r.startedAt || r.createdAt)}
                     </td>
 
                     {/* Accions */}
