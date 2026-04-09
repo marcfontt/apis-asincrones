@@ -54,8 +54,5 @@
       "prettier --write"
     ]
   },
-  "packageManager": "yarn@4.4.1",
-  "dependencies": {
-    "kafkajs": "^2.2.4"
-  }
+  "packageManager": "yarn@4.4.1"
 }
