@@ -262,7 +262,7 @@ async function runNats() {
 // BUG 1 FIX: RabbitMQ implementat (abans → process.exit(1))
 async function runRabbitMQ() {
   const queue = `benchmark-${CFG.runId}`;
-  const amqpUrl = process.env.RABBITMQ_URL || 'amqp://guest:guest@rabbitmq.brokers.svc.cluster.local:5672';
+  const amqpUrl = process.env.RABBITMQ_URL || 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672';
   log(`=== Load Generator (RabbitMQ/AMQP) ===`);
   log(`Format: ${CFG.dataFormat}  |  MsgSize: ${CFG.msgSize}B  |  Rate: ${CFG.msgPerSec} msg/s`);
 

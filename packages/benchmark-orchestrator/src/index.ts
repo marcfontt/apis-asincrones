@@ -46,15 +46,24 @@ const DATA_FORMAT_CONFIG: Record<string, {
 };
 
 // ── FIX 3: Mapeig de protocol/plataforma → brokerType ──────────────────────
-// Abans tot el que no era MQTT es tractava com 'kafka', incloent NATS, RabbitMQ i gRPC.
+// La PLATAFORMA indica quin broker real connectar. El PROTOCOL és el wire-protocol
+// però no determina el broker (ex: gRPC sobre Kafka segueix sent Kafka).
 function getBrokerType(protocol: string, platform: string): string {
   const p = (protocol || '').toLowerCase();
   const pl = (platform || '').toLowerCase();
-  if (p.includes('mqtt')) return 'mqtt';
-  if (p.includes('nats') || pl.includes('nats')) return 'nats';
-  if (p.includes('amqp') || pl.includes('rabbit')) return 'rabbitmq';
-  if (p.includes('grpc')) return 'grpc';
+
+  // 1. Plataforma té prioritat: indica el broker real
   if (pl.includes('confluent')) return 'confluent';
+  if (pl.includes('nats')) return 'nats';
+  if (pl.includes('rabbit')) return 'rabbitmq';
+  if (pl.includes('kafka')) return 'kafka';
+
+  // 2. Fallback al protocol si no hi ha plataforma clara
+  if (p.includes('mqtt')) return 'mqtt';
+  if (p.includes('nats')) return 'nats';
+  if (p.includes('amqp')) return 'rabbitmq';
+  if (p.includes('kafka')) return 'kafka';
+
   return 'kafka';
 }
 
@@ -237,7 +246,7 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
               { name: 'DATA_FORMAT', value: fmt },                                          // FIX 1+2: nou
               { name: 'KAFKA_BROKERS', value: 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
               { name: 'NATS_URL', value: 'nats://nats.brokers.svc.cluster.local:4222' },
-              { name: 'RABBITMQ_URL', value: 'amqp://guest:guest@rabbitmq.brokers.svc.cluster.local:5672' },
+              { name: 'RABBITMQ_URL', value: 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672' },
               { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
               { name: 'METRICS_API_URL', value: `http://metrics-api.${ORCHESTRATOR_NAMESPACE}.svc.cluster.local:3001` },
               { name: 'TEST_DURATION_SECONDS', value: '60' },
