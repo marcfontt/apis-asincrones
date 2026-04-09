@@ -152,7 +152,7 @@ async function copyAcrSecret(targetNamespace: string) {
 
 async function deployScenario(runId: string, scenarioId: string, scenarioName: string) {
   const slug = sanitizeName(scenarioName);
-  const shortId = runId.substring(0, 6);
+  const shortId = runId.slice(-6);
   const namespace = `sc-${slug}-${shortId}`;
   const jobName = `benchmark-${slug}-${shortId}`;
 
@@ -166,13 +166,35 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
     return;
   }
 
-  await coreApi.createNamespace({
-    apiVersion: 'v1', kind: 'Namespace',
-    metadata: {
-      name: namespace,
-      labels: { 'managed-by': 'benchmark-orchestrator', 'scenario-id': scenarioId, 'run-id': runId },
-    },
-  });
+  try {
+    await coreApi.createNamespace({
+      apiVersion: 'v1', kind: 'Namespace',
+      metadata: {
+        name: namespace,
+        labels: { 'managed-by': 'benchmark-orchestrator', 'scenario-id': scenarioId, 'run-id': runId },
+      },
+    });
+  } catch (e: any) {
+    if (e?.response?.statusCode === 409 || e?.statusCode === 409) {
+      console.log(`[orchestrator] Namespace ${namespace} already exists, cleaning up...`);
+      try {
+        await coreApi.deleteNamespace(namespace);
+        await new Promise(r => setTimeout(r, 5000));
+        await coreApi.createNamespace({
+          apiVersion: 'v1', kind: 'Namespace',
+          metadata: {
+            name: namespace,
+            labels: { 'managed-by': 'benchmark-orchestrator', 'scenario-id': scenarioId, 'run-id': runId },
+          },
+        });
+      } catch (e2: any) {
+        console.error(`[orchestrator] Failed to recreate namespace: ${(e2 as Error).message}`);
+        throw e2;
+      }
+    } else {
+      throw e;
+    }
+  }
 
   await copyAcrSecret(namespace);
 
