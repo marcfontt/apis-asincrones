@@ -227,7 +227,7 @@ const MetricGlossary = () => {
 
 // ── Horizontal Bar Chart (sortable, each by its own metric) ───────────────────
 const HBarChart = ({
-  data, title, unit = '', color = '#3b82f6', lowerIsBetter = true,
+  data, title, unit = '', color = '#3b82f6', _lowerIsBetter = true,
 }: {
   data: { label: string; value: number }[];
   title: string; unit?: string; color?: string; lowerIsBetter?: boolean;
@@ -877,7 +877,7 @@ const LiveTab = () => {
   const avg  = (a: number[]) => a.length ? (a.reduce((s, v) => s + v, 0) / a.length).toFixed(2) : '-';
   const p50v = (a: number[]) => computePercentile(a, 50)?.toFixed(2) ?? '-';
   const p99v = (a: number[]) => computePercentile(a, 99)?.toFixed(2) ?? '-';
-  const sel  = activeRuns.find(r => r.id === selectedRunId);
+  const _sel  = activeRuns.find(r => r.id === selectedRunId);
 
   return (
     <div>
