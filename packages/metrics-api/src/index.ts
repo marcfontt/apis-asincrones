@@ -125,6 +125,8 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
               architecture:   { terms: { field: 'architecture.keyword', size: 1 } },
               protocol:       { terms: { field: 'protocol.keyword', size: 1 } },
               broker:         { terms: { field: 'broker.keyword', size: 1 } },
+              platform:       { terms: { field: 'platform.keyword', size: 1 } },
+              dataFormat:     { terms: { field: 'dataFormat.keyword', size: 1 } },
             },
           },
         },
@@ -141,6 +143,8 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
       architecture:  b.architecture?.buckets?.[0]?.key,
       protocol:      b.protocol?.buckets?.[0]?.key,
       broker:        b.broker?.buckets?.[0]?.key,
+      platform:      b.platform?.buckets?.[0]?.key,
+      dataFormat:    b.dataFormat?.buckets?.[0]?.key,
     }));
 
     res.json(summary);

@@ -16,7 +16,9 @@ const CFG = {
   kafkaBrokers: (process.env.KAFKA_BROKERS || 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092').split(','),
   mqttBroker: process.env.MQTT_BROKER || 'mqtt://emqx.brokers.svc.cluster.local:1883',
   metricsApiUrl: process.env.METRICS_API_URL || 'http://metrics-api.apis-asincrones.svc.cluster.local:3004',
-  durationMs: parseInt(process.env.TEST_DURATION_SECONDS || '60') * 1000,
+  durationSeconds: parseInt(process.env.TEST_DURATION_SECONDS || '60'),
+  get durationMs() { return this.durationSeconds * 1000; },
+  get isIndefinite() { return this.durationSeconds === 0; },
   msgPerSec: parseInt(process.env.MESSAGES_PER_SECOND || '100'),
   msgSize: parseInt(process.env.MESSAGE_SIZE_BYTES || '256'),
 };
@@ -180,7 +182,15 @@ async function runKafka() {
     await postMetric(s);
   }, 5000);
 
-  await new Promise(r => setTimeout(r, CFG.durationMs));
+  // Wait for test duration or run indefinitely
+  if (CFG.isIndefinite) {
+    log('Running in INDEFINITE mode - will run until cancelled');
+    while (running) {
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  } else {
+    await new Promise(r => setTimeout(r, CFG.durationMs));
+  }
 
   running = false;
   clearInterval(produceTimer);
@@ -243,7 +253,15 @@ async function runNats() {
     await postMetric(s);
   }, 5000);
 
-  await new Promise(r => setTimeout(r, CFG.durationMs));
+  // Wait for test duration or run indefinitely
+  if (CFG.isIndefinite) {
+    log('Running in INDEFINITE mode - will run until cancelled');
+    while (running) {
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  } else {
+    await new Promise(r => setTimeout(r, CFG.durationMs));
+  }
 
   running = false;
   clearInterval(produceTimer);
@@ -302,7 +320,15 @@ async function runRabbitMQ() {
     await postMetric(s);
   }, 5000);
 
-  await new Promise(r => setTimeout(r, CFG.durationMs));
+  // Wait for test duration or run indefinitely
+  if (CFG.isIndefinite) {
+    log('Running in INDEFINITE mode - will run until cancelled');
+    while (running) {
+      await new Promise(r => setTimeout(r, 5000));
+    }
+  } else {
+    await new Promise(r => setTimeout(r, CFG.durationMs));
+  }
 
   running = false;
   clearInterval(produceTimer);
@@ -318,7 +344,7 @@ async function runRabbitMQ() {
 
 // ── Entry point ─────────────────────────────────────────────────────────────
 (async () => {
-  log(`[config] brokerType=${CFG.brokerType}  dataFormat=${CFG.dataFormat}  msgSize=${CFG.msgSize}B  rate=${CFG.msgPerSec}msg/s`);
+  log(`[config] brokerType=${CFG.brokerType}  dataFormat=${CFG.dataFormat}  msgSize=${CFG.msgSize}B  rate=${CFG.msgPerSec}msg/s  duration=${CFG.isIndefinite ? 'INDEFINITE' : CFG.durationSeconds + 's'}`);
   try {
     // BUG 1 FIX: routing complet (abans només 'kafka' funcionava)
     if (CFG.brokerType === 'kafka') { await runKafka(); }

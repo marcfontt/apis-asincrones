@@ -259,10 +259,8 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   const [form,       setForm]       = useState({ ...EMPTY_FORM, ...initial });
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState('');
-  // Indefinit flags
-  const [indDuration,    setIndDuration]    = useState(false);
-  const [indRate,        setIndRate]        = useState(false);
-  const [indPayloadSize, setIndPayloadSize] = useState(false);
+  // Indefinit flag (single toggle for all)
+  const [indefinite, setIndefinite] = useState(false);
 
   const set = (k: string, v: string) => {
     if (k === 'platform') {
@@ -285,9 +283,9 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
         architecture: form.architecture,
         protocol:     form.protocol,
         platform:     form.platform,
-        duration:     indDuration    ? null : (form.duration    ? Number(form.duration)    : undefined),
-        rate:         indRate        ? null : (form.rate        ? Number(form.rate)        : undefined),
-        payloadSize:  indPayloadSize ? null : (form.payloadSize ? Number(form.payloadSize) : undefined),
+        duration:     indefinite ? 3600 : (form.duration    ? Number(form.duration)    : undefined),
+        rate:         indefinite ? null : (form.rate        ? Number(form.rate)        : undefined),
+        payloadSize:  indefinite ? null : (form.payloadSize ? Number(form.payloadSize) : undefined),
         dataFormat:   form.dataFormat || 'default',
         predefined:   false,
         status:       'idle',
@@ -303,20 +301,6 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
       onSaved(); onClose();
     } catch (e: any) { setError(e.message); setSaving(false); }
   };
-
-  const IndefinitCheckbox = ({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) => (
-    <label style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', userSelect: 'none' }}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={e => onChange(e.target.checked)}
-        style={{ width: 14, height: 14, accentColor: 'var(--accent)', cursor: 'pointer' }}
-      />
-      <span style={{ fontSize: 11, color: checked ? 'var(--accent)' : 'var(--text-disabled)', fontWeight: checked ? 700 : 400, whiteSpace: 'nowrap' }}>
-        {label}
-      </span>
-    </label>
-  );
 
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
@@ -392,33 +376,58 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
             </div>
           )}
 
-          {/* Durada, Ràtio, Payload amb caselles Indefinit */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          {/* Durada, Ràtio, Payload + Mode Indefinit toggle */}
+          <div style={{ marginBottom: 4 }}>
+            <button
+              type="button"
+              onClick={() => setIndefinite(v => !v)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '10px 16px', borderRadius: 10, cursor: 'pointer',
+                border: indefinite ? '2px solid var(--accent)' : '1px solid var(--border)',
+                background: indefinite ? 'rgba(37,99,235,0.08)' : 'var(--bg-card)',
+                fontFamily: 'var(--font)', fontSize: 13, fontWeight: 600,
+                color: indefinite ? 'var(--accent)' : 'var(--text-secondary)',
+                transition: 'all 0.18s ease', width: '100%',
+              }}
+            >
+              <span style={{
+                width: 36, height: 20, borderRadius: 12, position: 'relative' as const,
+                background: indefinite ? 'var(--accent)' : 'var(--border)',
+                transition: 'background 0.2s ease', flexShrink: 0,
+              }}>
+                <span style={{
+                  position: 'absolute' as const, top: 2, left: indefinite ? 18 : 2,
+                  width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                  transition: 'left 0.2s ease', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                }}/>
+              </span>
+              <div>
+                <div>Mode Indefinit</div>
+                <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-disabled)', marginTop: 1 }}>
+                  {indefinite ? "L'escenari s'executarà un màxim d'1 hora" : "Activa per executar sense límit de temps (max 1h)"}
+                </div>
+              </div>
+              {indefinite && <span style={{ marginLeft: 'auto', fontSize: 18 }}>∞</span>}
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, opacity: indefinite ? 0.4 : 1, pointerEvents: indefinite ? 'none' as const : 'auto' as const, transition: 'opacity 0.2s' }}>
             <div>
               <label style={lbl}>Durada (s)</label>
-              <input style={{ ...S.input, opacity: indDuration ? 0.45 : 1 }} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} disabled={indDuration} />
-              <div style={{ marginTop: 6 }}>
-                <IndefinitCheckbox checked={indDuration} onChange={setIndDuration} label="Indefinit" />
-              </div>
+              <input style={{ ...S.input }} type="number" min={1} placeholder="60" value={form.duration} onChange={e => set('duration', e.target.value)} disabled={indefinite} />
             </div>
             <div>
               <label style={lbl}>Ràtio (msg/s)</label>
-              <input style={{ ...S.input, opacity: indRate ? 0.45 : 1 }} type="number" min={1} placeholder="1000" value={form.rate} onChange={e => set('rate', e.target.value)} disabled={indRate} />
-              <div style={{ marginTop: 6 }}>
-                <IndefinitCheckbox checked={indRate} onChange={setIndRate} label="Indefinit" />
-              </div>
+              <input style={{ ...S.input }} type="number" min={1} placeholder="1000" value={form.rate} onChange={e => set('rate', e.target.value)} disabled={indefinite} />
             </div>
             <div>
               <label style={lbl}>Payload (bytes)</label>
-              <input style={{ ...S.input, opacity: indPayloadSize ? 0.45 : 1 }} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} disabled={indPayloadSize} />
-              <div style={{ marginTop: 6 }}>
-                <IndefinitCheckbox checked={indPayloadSize} onChange={setIndPayloadSize} label="Indefinit" />
-              </div>
+              <input style={{ ...S.input }} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} disabled={indefinite} />
             </div>
           </div>
-          {(indDuration || indRate || indPayloadSize) && (
+          {indefinite && (
             <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, padding: '9px 14px', fontSize: 12, color: 'var(--text-secondary)' }}>
-              Els camps marcats com <strong style={{ color: 'var(--accent)' }}>Indefinit</strong> s'executaran sense limit fins que aturis l'escenari manualment. Ideal per obtenir mes mostres i estadistiques mes fiables.
+              <strong style={{ color: 'var(--accent)' }}>Mode Indefinit activat (1h max):</strong> L'escenari s'executarà sense limit de ràtio ni payload fixat durant <strong style={{ color: 'var(--text-primary)' }}>un màxim d'una hora (3600s)</strong> per seguretat. S'utilitzaran els valors per defecte del format de dades seleccionat. Pots aturar l'escenari manualment en qualsevol moment.
             </div>
           )}
 
@@ -486,6 +495,9 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
           protocol:     scenario.protocol,
           platform:     normalizePlatform(scenario.platform || scenario.broker),
           dataFormat:   scenario.dataFormat || 'default',
+          duration:     scenario.duration ?? null,
+          rate:         scenario.rate ?? null,
+          payloadSize:  scenario.payloadSize ?? null,
         }),
       });
       if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || `HTTP ${r.status}`); }
@@ -684,6 +696,8 @@ export const ScenariosPage = () => {
   const [runningMap,       setRunningMap]       = useState<Record<string, string>>({});
   const [sortKey,          setSortKey]          = useState<string | null>(null);
   const [sortDir,          setSortDir]          = useState<SortDir | null>(null);
+  const [selectedIds,      setSelectedIds]      = useState<Set<string>>(new Set());
+  const [bulkExecuting,    setBulkExecuting]    = useState(false);
 
   const handleSort = (sk: string) => {
     if (sortKey !== sk) { setSortKey(sk); setSortDir('asc'); return; }
@@ -790,6 +804,63 @@ export const ScenariosPage = () => {
     // Re-fetch amb delay per confirmar l'estat real
     setTimeout(fetchRunningMap, 2000);
     setTimeout(fetchRunningMap, 5000);
+  };
+
+  // ── Batch execution ──
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const s = new Set(prev);
+      s.has(id) ? s.delete(id) : s.add(id);
+      return s;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const nonRunning = sortedFiltered.filter(s => s.id && !runningMap[s.id!]);
+    const allSelected = nonRunning.every(s => selectedIds.has(s.id!));
+    setSelectedIds(prev => {
+      const s = new Set(prev);
+      if (allSelected) { nonRunning.forEach(sc => s.delete(sc.id!)); }
+      else { nonRunning.forEach(sc => s.add(sc.id!)); }
+      return s;
+    });
+  };
+
+  const handleBulkExecute = async () => {
+    const toExecute = sortedFiltered.filter(s => s.id && selectedIds.has(s.id!) && !runningMap[s.id!]);
+    if (toExecute.length === 0) return;
+    setBulkExecuting(true);
+    let okCount = 0, errCount = 0;
+    for (const sc of toExecute) {
+      try {
+        const r = await fetch(`${ORCHESTRATOR}/runs`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scenarioId: sc.id, scenarioName: sc.name,
+            architecture: sc.architecture, protocol: sc.protocol,
+            platform: normalizePlatform(sc.platform || sc.broker),
+            dataFormat: sc.dataFormat || 'default',
+            duration: sc.duration ?? null, rate: sc.rate ?? null, payloadSize: sc.payloadSize ?? null,
+          }),
+        });
+        if (r.ok) {
+          const data = await r.json();
+          handleScenarioStarted(sc.id!, data.runId || data.id || '');
+          okCount++;
+        } else { errCount++; }
+      } catch { errCount++; }
+      // Small delay between launches to avoid overwhelming the cluster
+      await new Promise(r => setTimeout(r, 800));
+    }
+    setBulkExecuting(false);
+    setSelectedIds(new Set());
+    fetchRunningMap();
+    fetchData();
+    if (errCount === 0) {
+      setToast({ message: `${okCount} escenari${okCount > 1 ? 's' : ''} executat${okCount > 1 ? 's' : ''} correctament!`, type: 'success' });
+    } else {
+      setToast({ message: `${okCount} executats, ${errCount} errors.`, type: 'error' });
+    }
   };
 
   const openEdit = (s: Scenario) => {
@@ -988,7 +1059,7 @@ export const ScenariosPage = () => {
       {/* Taula + Detall */}
       <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
         <div style={{ ...S.card, padding: 0, overflow: 'hidden', flex: selectedScenario ? '0 0 auto' : 1, width: selectedScenario ? 'calc(100% - 340px)' : '100%' }}>
-          <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '-' : filtered.length}</span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>escenari{filtered.length !== 1 ? 's' : ''}</span>
@@ -1004,9 +1075,33 @@ export const ScenariosPage = () => {
                 </span>
               )}
             </div>
-            <button onClick={fetchData} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}>
-              <RefreshIcon /> Actualitzar
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Bulk execute bar */}
+              {selectedIds.size > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 8, background: 'rgba(34,197,94,0.07)', border: '1px solid rgba(34,197,94,0.25)' }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--success)' }}>
+                    {selectedIds.size} seleccionat{selectedIds.size !== 1 ? 's' : ''}
+                  </span>
+                  <div style={{ width: 1, height: 14, background: 'rgba(34,197,94,0.25)' }} />
+                  <button
+                    onClick={handleBulkExecute}
+                    disabled={bulkExecuting}
+                    style={{ ...S.btnPrimary, fontSize: 12, padding: '3px 12px', background: 'var(--success)', boxShadow: 'none', gap: 4, opacity: bulkExecuting ? 0.6 : 1 }}
+                  >
+                    <PlayIcon /> {bulkExecuting ? 'Executant...' : `Executar ${selectedIds.size}`}
+                  </button>
+                  <button
+                    onClick={() => setSelectedIds(new Set())}
+                    style={{ ...S.btn, fontSize: 11, padding: '3px 8px' }}
+                  >
+                    Cancel·la
+                  </button>
+                </div>
+              )}
+              <button onClick={fetchData} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}>
+                <RefreshIcon /> Actualitzar
+              </button>
+            </div>
           </div>
 
           {error && <p style={{ color: 'var(--error)', padding: '12px 18px', margin: 0 }}>Error: {error}</p>}
@@ -1015,6 +1110,22 @@ export const ScenariosPage = () => {
             <table style={{ width: '100%', borderCollapse: 'collapse' }} aria-busy={loading} aria-label="Llista d'escenaris de benchmark">
               <thead>
                 <tr style={S.tableHeader}>
+                  <th style={{ ...S.th, width: 40, textAlign: 'center', paddingLeft: 12, paddingRight: 4 }}>
+                    <button
+                      onClick={toggleSelectAll}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      title="Seleccionar/deseleccionar tots"
+                    >
+                      {(() => {
+                        const nonRunning = sortedFiltered.filter(s => s.id && !runningMap[s.id!]);
+                        const allSel = nonRunning.length > 0 && nonRunning.every(s => selectedIds.has(s.id!));
+                        const someSel = nonRunning.some(s => selectedIds.has(s.id!)) && !allSel;
+                        if (someSel) return <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.5"/><line x1="4.5" y1="8" x2="11.5" y2="8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"/></svg>;
+                        if (allSel) return <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3" fill="var(--accent)" stroke="var(--accent)"/><path d="M4 8l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+                        return <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3" fill="var(--bg-card)" stroke="var(--border)" strokeWidth="1.5"/></svg>;
+                      })()}
+                    </button>
+                  </th>
                   <SortTh label="Nom"          sk="name"         current={sortKey} dir={sortDir} onSort={handleSort} />
                   <SortTh label="Arquitectura" sk="architecture" current={sortKey} dir={sortDir} onSort={handleSort} />
                   <SortTh label="Protocol"     sk="protocol"     current={sortKey} dir={sortDir} onSort={handleSort} />
@@ -1030,7 +1141,7 @@ export const ScenariosPage = () => {
                   Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} delay={i * 0.08} />)
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} style={{ padding: 60, textAlign: 'center' }}>
+                    <td colSpan={9} style={{ padding: 60, textAlign: 'center' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                         <EmptyIcon />
                         <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Cap escenari trobat</div>
@@ -1052,7 +1163,7 @@ export const ScenariosPage = () => {
                     <tr key={s.id || i}
                       style={{
                         ...S.tableRow,
-                        background:   isSelected ? 'var(--bg-hover)' : hoveredRow === i ? 'var(--bg-hover)' : 'transparent',
+                        background:   isSelected ? 'var(--bg-hover)' : hoveredRow === i ? 'var(--bg-hover)' : selectedIds.has(s.id!) ? 'rgba(34,197,94,0.03)' : 'transparent',
                         cursor:       'pointer',
                         borderLeft:   isSelected ? '3px solid var(--accent)' : '3px solid transparent',
                         transition:   'all 0.15s ease',
@@ -1060,6 +1171,20 @@ export const ScenariosPage = () => {
                       onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}
                       onClick={() => setSelectedScenario((prev: Scenario | null) => prev?.id === s.id ? null : s)}
                     >
+                      {/* Checkbox */}
+                      <td style={{ ...S.td, width: 40, paddingLeft: 12, paddingRight: 4, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                        {!isRunning && s.id && (
+                          <button
+                            onClick={() => toggleSelect(s.id!)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            title={selectedIds.has(s.id!) ? 'Deseleccionar' : 'Seleccionar'}
+                          >
+                            {selectedIds.has(s.id!)
+                              ? <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3" fill="var(--accent)" stroke="var(--accent)"/><path d="M4 8l3 3 5-5" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              : <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3" fill="var(--bg-card)" stroke="var(--border)" strokeWidth="1.5"/></svg>}
+                          </button>
+                        )}
+                      </td>
                       <td style={{ ...S.td, fontWeight: 700 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                           {isRunning && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', flexShrink: 0, animation: 'pulseDot 1.5s ease infinite' }} />}

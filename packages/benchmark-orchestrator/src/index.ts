@@ -216,7 +216,60 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
   const fmt = r?.dataFormat || 'default';
   const fmtConfig = DATA_FORMAT_CONFIG[fmt] || DATA_FORMAT_CONFIG['default'];
 
-  console.log(`[orchestrator] dataFormat=${fmt}  messageSizeBytes=${fmtConfig.messageSizeBytes}  brokerType=${brokerType}`);
+  // Dynamic duration/rate/payload from scenario (null = indefinite)
+  const rAny = r as any;
+  const scenarioDuration = rAny?.duration;
+  const scenarioRate = rAny?.rate;
+  const scenarioPayloadSize = rAny?.payloadSize;
+  const isIndefinite = scenarioDuration === null || scenarioDuration === 0;
+  const durationSeconds = isIndefinite ? '0' : String(scenarioDuration || 60);
+  const messagesPerSec = scenarioRate != null && scenarioRate > 0 ? String(scenarioRate) : String(fmtConfig.messagesPerSecond);
+  const messageSizeBytes = scenarioPayloadSize != null && scenarioPayloadSize > 0 ? String(scenarioPayloadSize) : String(fmtConfig.messageSizeBytes);
+
+  console.log(`[orchestrator] dataFormat=${fmt}  duration=${durationSeconds}s  rate=${messagesPerSec}msg/s  size=${messageSizeBytes}B  brokerType=${brokerType}  indefinite=${isIndefinite}`);
+
+  const jobSpec: any = {
+    backoffLimit: 1,
+    template: {
+      metadata: { labels: { 'run-id': runId } },
+      spec: {
+        restartPolicy: 'Never',
+        imagePullSecrets: [{ name: 'acr-secret' }],
+        containers: [{
+          name: 'load-generator',
+          image: LOAD_GENERATOR_IMAGE,
+          imagePullPolicy: 'Always',
+          env: [
+            { name: 'SCENARIO_ID', value: scenarioId },
+            { name: 'RUN_ID', value: runId },
+            { name: 'BROKER_TYPE', value: brokerType },
+            { name: 'ARCHITECTURE', value: r?.architecture || '' },
+            { name: 'PROTOCOL', value: r?.protocol || 'Kafka' },
+            { name: 'PLATFORM', value: r?.platform || '' },
+            { name: 'DATA_FORMAT', value: fmt },
+            { name: 'KAFKA_BROKERS', value: brokerType === 'confluent'
+              ? 'redpanda.brokers.svc.cluster.local:9093'
+              : 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
+            { name: 'NATS_URL', value: 'nats://nats.brokers.svc.cluster.local:4222' },
+            { name: 'RABBITMQ_URL', value: 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672' },
+            { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
+            { name: 'METRICS_API_URL', value: `http://metrics-api.${ORCHESTRATOR_NAMESPACE}.svc.cluster.local:3001` },
+            { name: 'TEST_DURATION_SECONDS', value: durationSeconds },
+            { name: 'MESSAGES_PER_SECOND', value: messagesPerSec },
+            { name: 'MESSAGE_SIZE_BYTES', value: messageSizeBytes },
+          ],
+          resources: {
+            requests: { cpu: '100m', memory: fmtConfig.memoryRequest },
+            limits: { cpu: '500m', memory: fmtConfig.memoryLimit },
+          },
+        }],
+      },
+    },
+  };
+  // Only set TTL for finite runs
+  if (!isIndefinite) {
+    jobSpec.ttlSecondsAfterFinished = 600;
+  }
 
   await batchApi.createNamespacedJob(namespace, {
     apiVersion: 'batch/v1', kind: 'Job',
@@ -224,47 +277,9 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
       name: jobName, namespace,
       labels: { 'managed-by': 'benchmark-orchestrator', 'run-id': runId, 'scenario-id': scenarioId },
     },
-    spec: {
-      ttlSecondsAfterFinished: 600,
-      backoffLimit: 1,
-      template: {
-        metadata: { labels: { 'run-id': runId } },
-        spec: {
-          restartPolicy: 'Never',
-          imagePullSecrets: [{ name: 'acr-secret' }],
-          containers: [{
-            name: 'load-generator',
-            image: LOAD_GENERATOR_IMAGE,
-            imagePullPolicy: 'Always',
-            env: [
-              { name: 'SCENARIO_ID', value: scenarioId },
-              { name: 'RUN_ID', value: runId },
-              { name: 'BROKER_TYPE', value: brokerType },                                   // FIX 3
-              { name: 'ARCHITECTURE', value: r?.architecture || '' },
-              { name: 'PROTOCOL', value: r?.protocol || 'Kafka' },
-              { name: 'PLATFORM', value: r?.platform || '' },
-              { name: 'DATA_FORMAT', value: fmt },                                          // FIX 1+2: nou
-              { name: 'KAFKA_BROKERS', value: brokerType === 'confluent'
-                ? 'redpanda.brokers.svc.cluster.local:9093'
-                : 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
-              { name: 'NATS_URL', value: 'nats://nats.brokers.svc.cluster.local:4222' },
-              { name: 'RABBITMQ_URL', value: 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672' },
-              { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
-              { name: 'METRICS_API_URL', value: `http://metrics-api.${ORCHESTRATOR_NAMESPACE}.svc.cluster.local:3001` },
-              { name: 'TEST_DURATION_SECONDS', value: '60' },
-              { name: 'MESSAGES_PER_SECOND', value: String(fmtConfig.messagesPerSecond) },          // FIX 2: dinàmic
-              { name: 'MESSAGE_SIZE_BYTES', value: String(fmtConfig.messageSizeBytes) },           // FIX 2: dinàmic
-            ],
-            resources: {
-              requests: { cpu: '100m', memory: fmtConfig.memoryRequest },  // FIX 2: ajustat per format
-              limits: { cpu: '500m', memory: fmtConfig.memoryLimit },  // FIX 2: ajustat per format
-            },
-          }],
-        },
-      },
-    },
+    spec: jobSpec,
   });
-  console.log(`[orchestrator] Job ${jobName} created  format=${fmt}  size=${fmtConfig.messageSizeBytes}B  rate=${fmtConfig.messagesPerSecond}msg/s`);
+  console.log(`[orchestrator] Job ${jobName} created  format=${fmt}  duration=${durationSeconds}s  size=${messageSizeBytes}B  rate=${messagesPerSec}msg/s`);
 }
 
 async function monitorJob(runId: string, namespace: string, jobName: string, scenarioId: string) {
@@ -327,7 +342,8 @@ app.get('/runs/:id', (req, res) => {
 
 app.post('/runs', (req, res) => {
   // FIX 1: extreure dataFormat del body (abans s'ignorava completament)
-  const { scenarioId, scenarioName: providedName, dataFormat: providedDataFormat } = req.body;
+  const { scenarioId, scenarioName: providedName, dataFormat: providedDataFormat,
+          duration: providedDuration, rate: providedRate, payloadSize: providedPayloadSize } = req.body;
   if (!scenarioId) {
     res.status(400).json({ error: 'scenarioId required' });
     return;
@@ -337,12 +353,15 @@ app.post('/runs', (req, res) => {
   const baseName = providedName ? sanitizeName(providedName) : '';
   const runId = baseName ? `${baseName}-${shortId}` : randomUUID();
 
-  const run: RunRecord = {
+  const run: RunRecord & { duration?: number | null; rate?: number | null; payloadSize?: number | null } = {
     id: runId, scenarioId,
     scenarioName: providedName || scenarioId,
     architecture: '', protocol: '', platform: '',
     dataFormat: providedDataFormat || 'default',   // FIX 1: guardat al run
     status: 'running', startedAt: new Date().toISOString(),
+    duration: providedDuration !== undefined ? providedDuration : undefined,
+    rate: providedRate !== undefined ? providedRate : undefined,
+    payloadSize: providedPayloadSize !== undefined ? providedPayloadSize : undefined,
   };
   runs.set(runId, run);
 
@@ -360,6 +379,10 @@ app.post('/runs', (req, res) => {
         if (!providedDataFormat && sc.dataFormat) {
           run.dataFormat = sc.dataFormat;
         }
+        // Inherit duration/rate/payloadSize from scenario if not provided in body
+        if (run.duration === undefined) run.duration = sc.duration ?? null;
+        if (run.rate === undefined) run.rate = sc.rate ?? null;
+        if (run.payloadSize === undefined) run.payloadSize = sc.payloadSize ?? null;
       }
     } catch (_) { }
 
