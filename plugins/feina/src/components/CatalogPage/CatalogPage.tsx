@@ -8,10 +8,9 @@ const CATEGORY_LABELS: Record<string, string> = {
   architecture: 'Arquitectura',
   protocol:     'Protocol',
   platform:     'Plataforma',
-  gateway:      'Gateway',
 };
 
-const ALL_CATEGORIES = ['architecture', 'protocol', 'platform', 'gateway'];
+const ALL_CATEGORIES = ['architecture', 'protocol', 'platform'];
 
 // Versions conegudes per als components predefinits
 const KNOWN_VERSIONS: Record<string, string> = {
@@ -45,7 +44,6 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   architecture: 'Patró estructural que defineix com s\'organitzen els components del sistema i com interactuen entre ells.',
   protocol:     'Conjunt de regles de comunicació que determinen com s\'envien i reben els missatges entre productors i consumidors.',
   platform:     'Infraestructura de missatgeria que actua com a broker, gestionant la distribució dels missatges.',
-  gateway:      'Punt d\'entrada que gestiona l\'encaminament, la seguretat i la transformació dels missatges.',
 };
 
 const SK_STYLE = {
@@ -145,7 +143,7 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
           </div>
         )}
 
-        {/* Ús en escenaris */}
+        {/* Us en escenaris */}
         <div style={{ padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 24, fontSize: 12, color: 'var(--text-secondary)' }}>
           Pots usar <strong style={{ color: 'var(--text-primary)' }}>{component.name}</strong> com a {label.toLowerCase()} al crear un nou escenari de benchmark.{' '}
           <a href="/escenaris?create=true" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Crear escenari →</a>
@@ -201,7 +199,7 @@ export const CatalogPage = () => {
     setSortKey(null); setSortDir(null);
   };
 
-  useEffect(() => { document.title = 'Catàleg | APIs Asíncrones'; }, []);
+  useEffect(() => { document.title = 'Cataleg | APIs Asincrones'; }, []);
 
   const fetchComponents = () => {
     setLoading(true);
@@ -212,8 +210,8 @@ export const CatalogPage = () => {
   };
   useEffect(() => { fetchComponents(); }, []);
 
-  // Només components predefinits (filtra "test" i qualsevol creat manualment)
-  const real     = components.filter(c => c.predefined !== false);
+  // Nomes components predefinits, sense gateways
+  const real     = components.filter(c => c.predefined !== false && c.category !== 'gateway');
   const filtered = activeFilter === 'all' ? real : real.filter(c => c.category === activeFilter);
   const countByCategory = (cat: string) => real.filter(c => c.category === cat).length;
 
@@ -250,10 +248,10 @@ export const CatalogPage = () => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Catàleg de Components
+            Cataleg de Components
           </h1>
           <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
-            Arquitectures, protocols, plataformes i gateways disponibles per construir escenaris
+            Arquitectures, protocols i plataformes disponibles per construir escenaris
           </p>
         </div>
       </div>
@@ -284,7 +282,7 @@ export const CatalogPage = () => {
         {/* Strip superior */}
         <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '—' : filtered.length}</span>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '-' : filtered.length}</span>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               component{filtered.length !== 1 ? 's' : ''}
               {activeFilter !== 'all' && <span> · {CATEGORY_LABELS[activeFilter]}</span>}
@@ -306,11 +304,11 @@ export const CatalogPage = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={S.tableHeader}>
-              <SortTh label="Nom"       sk="name"       current={sortKey} dir={sortDir} onSort={handleSort} />
-              <SortTh label="Categoria" sk="category"   current={sortKey} dir={sortDir} onSort={handleSort} />
-              <SortTh label="Descripció" sk="description" current={sortKey} dir={sortDir} onSort={handleSort} />
-              <SortTh label="Nom curt"  sk="shortName"  current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
-              <SortTh label="Versió"    sk="version"    current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
+              <SortTh label="Nom"        sk="name"        current={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortTh label="Categoria"  sk="category"    current={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortTh label="Descripcio" sk="description" current={sortKey} dir={sortDir} onSort={handleSort} />
+              <SortTh label="Nom curt"   sk="shortName"   current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
+              <SortTh label="Versio"     sk="version"     current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
             </tr>
           </thead>
           <tbody>
@@ -382,3 +380,5 @@ export const CatalogPage = () => {
     </div>
   );
 };
+
+export default CatalogPage;
