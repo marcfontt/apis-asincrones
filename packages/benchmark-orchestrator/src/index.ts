@@ -253,7 +253,7 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
             { name: 'NATS_URL', value: 'nats://nats.brokers.svc.cluster.local:4222' },
             { name: 'RABBITMQ_URL', value: 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672' },
             { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
-            { name: 'METRICS_API_URL', value: `http://metrics-api.${ORCHESTRATOR_NAMESPACE}.svc.cluster.local:3001` },
+            { name: 'METRICS_API_URL', value: `http://metrics-api.${ORCHESTRATOR_NAMESPACE}.svc.cluster.local:3004` },
             { name: 'TEST_DURATION_SECONDS', value: durationSeconds },
             { name: 'MESSAGES_PER_SECOND', value: messagesPerSec },
             { name: 'MESSAGE_SIZE_BYTES', value: messageSizeBytes },

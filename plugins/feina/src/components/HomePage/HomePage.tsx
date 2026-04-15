@@ -74,7 +74,15 @@ const CATALOG_CATEGORIES = [
   { label: 'Arquitectures', color: '#2563eb', items: ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'] },
   { label: 'Protocols',     color: '#16a34a', items: ['Kafka', 'AMQP', 'MQTT', 'gRPC', 'NATS'] },
   { label: 'Plataformes',   color: '#f59e0b', items: ['Confluent', 'RabbitMQ', 'EMQX', 'NATS'] },
-  { label: 'Gateways',      color: '#8b5cf6', items: ['Kong', 'AWS EventBridge', 'Solace'] },
+];
+
+const TECH_STATS = [
+  { label: '5 Arquitectures', color: '#2563eb', Icon: IconLayers },
+  { label: '5 Protocols',     color: '#16a34a', Icon: IconKafka  },
+  { label: '4 Plataformes',   color: '#f59e0b', Icon: IconCloud  },
+  { label: '3 Formats',       color: '#8b5cf6', Icon: IconZap    },
+  { label: 'Mètriques live',  color: '#06b6d4', Icon: IconMetric },
+  { label: 'AKS natiu',       color: '#64748b', Icon: IconAKS    },
 ];
 
 const ONBOARDING_STEPS = [
@@ -286,7 +294,7 @@ export const HomePage = () => {
           </p>
 
           {/* CTA buttons */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 32 }}>
             {[
               { label: 'Crear escenari',  href: '/escenaris', primary: true  },
               { label: 'Veure catàleg',   href: '/catalog',   primary: false },
@@ -314,6 +322,20 @@ export const HomePage = () => {
               </a>
             ))}
           </div>
+
+          {/* Tech stats strip */}
+          <div style={{
+            borderTop: '1px solid var(--border)',
+            paddingTop: 20,
+            display: 'flex', gap: 24, flexWrap: 'wrap',
+          }}>
+            {TECH_STATS.map((stat, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={{ color: stat.color, display: 'flex' }}><stat.Icon /></span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)' }}>{stat.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -330,6 +352,7 @@ export const HomePage = () => {
             <a
               key={i}
               href={page.href}
+              className="card-hover"
               style={{
                 ...S.card,
                 textDecoration: 'none',

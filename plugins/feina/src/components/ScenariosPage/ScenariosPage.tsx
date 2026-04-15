@@ -259,8 +259,10 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   const [form,       setForm]       = useState({ ...EMPTY_FORM, ...initial });
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState('');
-  // Indefinit flag (single toggle for all)
-  const [indefinite, setIndefinite] = useState(false);
+  // Indefinit flag — initialize from existing scenario duration
+  const [indefinite, setIndefinite] = useState(
+    initial.duration !== undefined && initial.duration !== '' && Number(initial.duration) >= 3600
+  );
 
   const set = (k: string, v: string) => {
     if (k === 'platform') {
