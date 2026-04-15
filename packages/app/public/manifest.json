@@ -1,7 +1,17 @@
 {
-  "short_name": "Backstage",
-  "name": "Backstage",
+  "short_name": "Lab Asíncron",
+  "name": "APIs Asíncrones — Laboratori Asíncron",
   "icons": [
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
     {
       "src": "favicon.ico",
       "sizes": "48x48",
@@ -10,6 +20,6 @@
   ],
   "start_url": "./index.html",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "theme_color": "#0d1117",
+  "background_color": "#0d1117"
 }
