@@ -58,7 +58,7 @@ const FEATURES = [
   { Icon: IconKafka,  title: 'Brokers reals',           desc: 'Kafka, RabbitMQ, NATS Server i Confluent desplegats sobre AKS.' },
   { Icon: IconCloud,  title: 'Desplegament automàtic',   desc: 'Escenaris es converteixen en Kubernetes manifests i es llancen al clúster.' },
   { Icon: IconMetric, title: 'Mètriques en temps real',  desc: "Latència, throughput i errors recollits per l'agent de mètriques." },
-  { Icon: IconZap,    title: 'Comparativa multi-factor', desc: 'El guanyador es calcula ponderant P99 (25%), throughput (20%), error (22%), latència (18%) i P50 (15%).' },
+  { Icon: IconZap,    title: 'Comparativa multi-factor', desc: 'El guanyador es calcula ponderant P99 (25%), throughput (20%), errors (20%), latència (20%) i P50 (15%).' },
   { Icon: IconLayers, title: '5 arquitectures',          desc: 'EDA, QBA, LCA, EMA i SEA implementades com a patrons de messaging.' },
   { Icon: IconAKS,    title: 'Azure Kubernetes Service', desc: 'Infraestructura escalable al núvol Azure amb namespaces aïllats per escenari.' },
 ];

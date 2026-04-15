@@ -526,7 +526,7 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
           ['Protocol',     scenario.protocol],
           ['Plataforma',   platDisplay],
           ['Format dades', DATA_FORMAT_LABELS[scenario.dataFormat || ''] || 'Per defecte'],
-          ['Durada',       scenario.duration    ? `${scenario.duration}s`        : 'Per defecte (60s)'],
+          ['Durada',       scenario.duration    ? `${scenario.duration}s`        : 'Indefinit (format per defecte)'],
           ['Ratio',        scenario.rate        ? `${scenario.rate} msg/s`       : 'Per defecte (100 msg/s)'],
           ['Payload',      scenario.payloadSize ? `${scenario.payloadSize}B`     : 'Per defecte (256B)'],
         ] as [string, string][]).map(([l, v]) => (
@@ -923,9 +923,9 @@ export const ScenariosPage = () => {
   const activeFiltersCount = [filterArch, filterProto, filterPlatform, filterDataFormat].filter(f => f !== 'all').length;
 
   const FILTER_DEFS = [
-    { label: 'Arquitectura', value: filterArch,       options: ALL_ARCHITECTURES,                                               onChange: setFilterArch,       allLabel: 'Totes', accentColor: '#2563eb' },
-    { label: 'Protocol',     value: filterProto,      options: ALL_PROTOCOLS,                                                   onChange: setFilterProto,      allLabel: 'Tots',  accentColor: '#16a34a' },
     { label: 'Plataforma',   value: filterPlatform,   options: ALL_PLATFORMS.filter(p => !DISABLED_PLATFORMS.includes(p)),      onChange: setFilterPlatform,   allLabel: 'Totes', accentColor: '#f59e0b' },
+    { label: 'Protocol',     value: filterProto,      options: ALL_PROTOCOLS,                                                   onChange: setFilterProto,      allLabel: 'Tots',  accentColor: '#16a34a' },
+    { label: 'Arquitectura', value: filterArch,       options: ALL_ARCHITECTURES,                                               onChange: setFilterArch,       allLabel: 'Totes', accentColor: '#2563eb' },
     { label: 'Format',       value: filterDataFormat, options: ['default', 'video-4k', 'video-8k', 'financial', 'iot'],          onChange: setFilterDataFormat, allLabel: 'Tots',  accentColor: '#7c3aed' },
   ];
 

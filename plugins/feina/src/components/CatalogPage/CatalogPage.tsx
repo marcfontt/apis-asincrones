@@ -10,7 +10,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   platform:     'Plataforma',
 };
 
-const ALL_CATEGORIES = ['architecture', 'protocol', 'platform'];
+const ALL_CATEGORIES = ['protocol', 'platform', 'architecture'];
 
 // Versions conegudes per als components predefinits
 const KNOWN_VERSIONS: Record<string, string> = {

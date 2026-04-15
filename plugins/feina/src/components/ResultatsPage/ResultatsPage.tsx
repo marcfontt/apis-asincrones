@@ -399,7 +399,7 @@ const VBarChart = ({
               </div>
               
               <div style={{ width: '100%', textAlign: 'center', fontSize: 10, fontWeight: isWinner ? 700 : 500, color: isHovered ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderTop: isWinner ? `2px solid ${color}` : '2px solid transparent', paddingTop: 4 }} title={item.label}>
-                {isWinner && <span style={{ color: '#f59e0b', fontSize: 12, display: 'block', marginBottom: 2 }}>🥇</span>}
+                {isWinner && <span style={{ color: '#f59e0b', display: 'flex', justifyContent: 'center', marginBottom: 2 }}><IconTrophy /></span>}
                 {item.label}
               </div>
             </div>
