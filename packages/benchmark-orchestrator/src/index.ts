@@ -221,8 +221,8 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
   const scenarioDuration = rAny?.duration;
   const scenarioRate = rAny?.rate;
   const scenarioPayloadSize = rAny?.payloadSize;
-  const isIndefinite = scenarioDuration === null || scenarioDuration === 0;
-  const durationSeconds = isIndefinite ? '0' : String(scenarioDuration || 60);
+  const isIndefinite = scenarioDuration == null || scenarioDuration === 0;
+  const durationSeconds = isIndefinite ? '0' : String(scenarioDuration);
   const messagesPerSec = scenarioRate != null && scenarioRate > 0 ? String(scenarioRate) : String(fmtConfig.messagesPerSecond);
   const messageSizeBytes = scenarioPayloadSize != null && scenarioPayloadSize > 0 ? String(scenarioPayloadSize) : String(fmtConfig.messageSizeBytes);
 
