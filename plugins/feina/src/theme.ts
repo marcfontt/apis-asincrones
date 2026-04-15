@@ -50,35 +50,35 @@ export const GLOBAL_CSS = `
     --bg-border:      rgba(15,23,42,0.07);
   }
 
-  /* ── Dark mode tokens (GitHub dark-inspired) ── */
+  /* ── Dark mode tokens (OLED dark) ── */
   [data-theme="dark"] {
-    --bg:          #0d1117;
-    --bg-card:     #161b22;
-    --bg-hover:    #1c2128;
-    --bg-subtle:   #0d1117;
+    --bg:          #09090b;
+    --bg-card:     #111318;
+    --bg-hover:    #1a1d23;
+    --bg-subtle:   #0d0e12;
 
-    --text-primary:   #e6edf3;
-    --text-secondary: #8b949e;
+    --text-primary:   #f0f6fc;
+    --text-secondary: #8d96a0;
     --text-disabled:  #484f58;
 
-    --border:      rgba(230,237,243,0.10);
+    --border:      rgba(240,246,252,0.08);
 
     --accent:      #58a6ff;
-    --accent-soft: rgba(88,166,255,0.10);
+    --accent-soft: rgba(88,166,255,0.12);
     --success:     #3fb950;
     --error:       #f85149;
     --warning:     #d29922;
 
-    --shadow-sm:   0 1px 2px rgba(0,0,0,0.30);
-    --shadow-md:   0 1px 3px rgba(0,0,0,0.40);
-    --shadow-lg:   0 4px 12px rgba(0,0,0,0.50);
+    --shadow-sm:   0 1px 3px rgba(0,0,0,0.50);
+    --shadow-md:   0 2px 8px rgba(0,0,0,0.60), 0 1px 2px rgba(0,0,0,0.40);
+    --shadow-lg:   0 8px 24px rgba(0,0,0,0.70), 0 2px 8px rgba(0,0,0,0.50);
 
     --badge-green-bg: rgba(63,185,80,0.15);
     --badge-green-fg: #3fb950;
     --badge-blue-bg:  rgba(88,166,255,0.12);
     --badge-blue-fg:  #58a6ff;
 
-    --bg-border:      rgba(230,237,243,0.07);
+    --bg-border:      rgba(240,246,252,0.06);
   }
 
   /* ── Animations ── */
@@ -130,17 +130,49 @@ export const GLOBAL_CSS = `
   /* ── Dark mode: primary button glow (OLED feel) ── */
   [data-theme="dark"] button[style*="var(--accent)"],
   [data-theme="dark"] button[style*="--accent"] {
-    box-shadow: 0 0 12px rgba(88,166,255,0.18) !important;
+    box-shadow: 0 0 16px rgba(88,166,255,0.22), 0 2px 4px rgba(0,0,0,0.40) !important;
   }
   [data-theme="dark"] button[style*="var(--success)"],
   [data-theme="dark"] button[style*="--success"] {
-    box-shadow: 0 0 12px rgba(63,185,80,0.18) !important;
+    box-shadow: 0 0 16px rgba(63,185,80,0.22), 0 2px 4px rgba(0,0,0,0.40) !important;
   }
 
-  /* ── Card hover: subtle lift ── */
+  /* ── Dark mode card: glass + glow on hover ── */
   [data-theme="dark"] .card-hover:hover {
-    border-color: rgba(88,166,255,0.25) !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.35), 0 0 0 1px rgba(88,166,255,0.10) !important;
+    border-color: rgba(88,166,255,0.28) !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.60), 0 0 0 1px rgba(88,166,255,0.12), 0 0 20px rgba(88,166,255,0.06) !important;
+    background: linear-gradient(135deg, rgba(88,166,255,0.04) 0%, transparent 60%) !important;
+  }
+
+  /* ── Dark mode: glass card utility ── */
+  [data-theme="dark"] .glass-card {
+    background: rgba(17,19,24,0.85) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(240,246,252,0.08) !important;
+  }
+
+  /* ── Dark mode: hero glow accent ── */
+  [data-theme="dark"] .hero-glow::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(88,166,255,0.10), transparent);
+    pointer-events: none;
+  }
+
+  /* ── Dark mode: table rows ── */
+  [data-theme="dark"] tr:hover td {
+    background: rgba(88,166,255,0.04) !important;
+  }
+
+  /* ── Dark mode: input focus ── */
+  [data-theme="dark"] input:focus,
+  [data-theme="dark"] select:focus,
+  [data-theme="dark"] textarea:focus {
+    border-color: #58a6ff !important;
+    box-shadow: 0 0 0 3px rgba(88,166,255,0.15) !important;
+    background-color: #0d0e12 !important;
   }
 
   /* ── Input focus state ── */
@@ -163,85 +195,10 @@ export const GLOBAL_CSS = `
   /* ── Text selection ── */
   ::selection { background: var(--accent); color: #fff; }
 
-  /* ── Dark mode: overrides Backstage/MUI white background ── */
-  html[data-theme="dark"],
-  html[data-theme="dark"] body {
-    background-color: #0d1117 !important;
-    color: #e6edf3;
-  }
-  html[data-theme="dark"] [class*="BackstageContent"],
-  html[data-theme="dark"] [class*="MuiPaper-elevation0"],
-  html[data-theme="dark"] [class*="makeStyles-root"],
-  html[data-theme="dark"] main > div {
-    background-color: #0d1117 !important;
-  }
-
-  /* ── Dark mode: sidebar & navigation drawer ── */
-  html[data-theme="dark"] [class*="BackstageSidebar"],
-  html[data-theme="dark"] [class*="makeStyles-drawer"],
-  html[data-theme="dark"] nav[class*="MuiDrawer"],
-  html[data-theme="dark"] [class*="MuiDrawer-paper"] {
-    background-color: #010409 !important;
-    border-right-color: #21262d !important;
-  }
-  html[data-theme="dark"] [class*="BackstageSidebarItem"],
-  html[data-theme="dark"] [class*="makeStyles-buttonItem"],
-  html[data-theme="dark"] [class*="BackstageSidebarItem-root"] {
-    color: #8b949e !important;
-  }
-  html[data-theme="dark"] [class*="BackstageSidebarItem"][class*="selected"],
-  html[data-theme="dark"] [class*="BackstageSidebarItem"][class*="open"],
-  html[data-theme="dark"] [class*="makeStyles-selected"] {
-    color: #e6edf3 !important;
-    background-color: rgba(255,255,255,0.06) !important;
-  }
-  html[data-theme="dark"] [class*="BackstageSidebarLogo"],
-  html[data-theme="dark"] [class*="makeStyles-logo"] {
-    border-bottom-color: #21262d !important;
-  }
-
-  /* ── Dark mode: settings page ── */
-  html[data-theme="dark"] [class*="MuiTab-root"] {
-    color: #8b949e !important;
-  }
-  html[data-theme="dark"] [class*="MuiTab-root"][class*="Mui-selected"] {
-    color: #58a6ff !important;
-  }
-  html[data-theme="dark"] [class*="MuiTabs-indicator"] {
-    background-color: #58a6ff !important;
-  }
-  html[data-theme="dark"] [class*="MuiDivider-root"] {
-    border-color: #21262d !important;
-  }
-  html[data-theme="dark"] [class*="MuiListItem-root"],
-  html[data-theme="dark"] [class*="MuiListItemText-root"] span,
-  html[data-theme="dark"] [class*="MuiTypography-root"] {
-    color: #e6edf3 !important;
-  }
-  html[data-theme="dark"] [class*="MuiSwitch-track"] {
-    background-color: #30363d !important;
-  }
-  html[data-theme="dark"] [class*="MuiSelect-root"],
-  html[data-theme="dark"] [class*="MuiSelect-select"],
-  html[data-theme="dark"] [class*="MuiInputBase-root"] {
-    background-color: #161b22 !important;
-    color: #e6edf3 !important;
-    border-color: #30363d !important;
-  }
-  html[data-theme="dark"] [class*="MuiOutlinedInput-notchedOutline"] {
-    border-color: #30363d !important;
-  }
-  html[data-theme="dark"] [class*="MuiPopover-paper"],
-  html[data-theme="dark"] [class*="MuiMenu-paper"],
-  html[data-theme="dark"] [class*="MuiMenu-list"] {
-    background-color: #161b22 !important;
-    border: 1px solid #30363d !important;
-  }
-  html[data-theme="dark"] [class*="MuiMenuItem-root"] {
-    color: #e6edf3 !important;
-  }
-  html[data-theme="dark"] [class*="MuiMenuItem-root"]:hover {
-    background-color: rgba(88,166,255,0.08) !important;
+  /* ── Dark mode: plugin page background ── */
+  [data-theme="dark"] [class*="BackstageContent"],
+  [data-theme="dark"] main > div {
+    background-color: #09090b !important;
   }
 
   /* ── Reduced motion ── */

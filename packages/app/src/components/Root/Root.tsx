@@ -1,4 +1,111 @@
 import { PropsWithChildren, useEffect } from 'react';
+
+// ── Dark mode overrides for Backstage/MUI built-in components ─────────────────
+// Injected here (root of the component tree) so they apply to ALL pages,
+// including sidebar, settings, and other Backstage-managed surfaces.
+const DARK_MODE_CSS = `
+  /* ── Sidebar / Drawer ── */
+  [data-theme="dark"] nav,
+  [data-theme="dark"] [class*="MuiDrawer-paper"],
+  [data-theme="dark"] [class*="MuiDrawer-paperAnchorLeft"],
+  [data-theme="dark"] [class*="BackstageSidebar-drawer"],
+  [data-theme="dark"] [class*="makeStyles-drawer"] {
+    background-color: #010409 !important;
+    border-right: 1px solid #21262d !important;
+  }
+  [data-theme="dark"] [class*="BackstageSidebarItem"],
+  [data-theme="dark"] [class*="makeStyles-buttonItem"],
+  [data-theme="dark"] [class*="makeStyles-root"] a[class*="SidebarItem"],
+  [data-theme="dark"] [class*="MuiListItem-root"] {
+    color: #8b949e !important;
+  }
+  [data-theme="dark"] [class*="BackstageSidebarItem"][aria-selected="true"],
+  [data-theme="dark"] [class*="makeStyles-selected"],
+  [data-theme="dark"] [class*="Mui-selected"][class*="SidebarItem"] {
+    color: #e6edf3 !important;
+    background-color: rgba(88,166,255,0.08) !important;
+  }
+  [data-theme="dark"] [class*="BackstageSidebarLogo"],
+  [data-theme="dark"] [class*="makeStyles-logo"] {
+    border-bottom: 1px solid #21262d !important;
+  }
+
+  /* ── Settings / UserSettingsPage ── */
+  [data-theme="dark"] [class*="MuiPaper-root"]:not([class*="MuiDrawer"]) {
+    background-color: #161b22 !important;
+    color: #e6edf3 !important;
+    border-color: #30363d !important;
+  }
+  [data-theme="dark"] [class*="MuiCard-root"] {
+    background-color: #161b22 !important;
+    border: 1px solid #30363d !important;
+  }
+  [data-theme="dark"] [class*="MuiCardContent-root"],
+  [data-theme="dark"] [class*="MuiCardHeader-root"] {
+    background-color: #161b22 !important;
+    color: #e6edf3 !important;
+  }
+  [data-theme="dark"] [class*="MuiTab-root"] {
+    color: #8b949e !important;
+  }
+  [data-theme="dark"] [class*="MuiTab-root"][class*="Mui-selected"] {
+    color: #58a6ff !important;
+  }
+  [data-theme="dark"] [class*="MuiTabs-indicator"] {
+    background-color: #58a6ff !important;
+  }
+  [data-theme="dark"] [class*="MuiDivider-root"] {
+    border-color: #21262d !important;
+    background-color: #21262d !important;
+  }
+  [data-theme="dark"] [class*="MuiTypography-root"] {
+    color: #e6edf3 !important;
+  }
+  [data-theme="dark"] [class*="MuiTypography-colorTextSecondary"] {
+    color: #8b949e !important;
+  }
+  [data-theme="dark"] [class*="MuiSwitch-track"] {
+    background-color: #30363d !important;
+  }
+  [data-theme="dark"] [class*="MuiSelect-root"],
+  [data-theme="dark"] [class*="MuiSelect-select"],
+  [data-theme="dark"] [class*="MuiInputBase-root"] {
+    background-color: #0d1117 !important;
+    color: #e6edf3 !important;
+  }
+  [data-theme="dark"] [class*="MuiOutlinedInput-notchedOutline"] {
+    border-color: #30363d !important;
+  }
+  [data-theme="dark"] [class*="MuiPopover-paper"],
+  [data-theme="dark"] [class*="MuiMenu-paper"],
+  [data-theme="dark"] [class*="MuiMenu-list"] {
+    background-color: #161b22 !important;
+    border: 1px solid #30363d !important;
+  }
+  [data-theme="dark"] [class*="MuiMenuItem-root"] {
+    color: #e6edf3 !important;
+  }
+  [data-theme="dark"] [class*="MuiMenuItem-root"]:hover {
+    background-color: rgba(88,166,255,0.08) !important;
+  }
+  [data-theme="dark"] [class*="MuiAppBar-root"],
+  [data-theme="dark"] [class*="MuiToolbar-root"] {
+    background-color: #010409 !important;
+    color: #e6edf3 !important;
+    border-bottom: 1px solid #21262d !important;
+  }
+
+  /* ── General dark background for main layout ── */
+  [data-theme="dark"],
+  [data-theme="dark"] body,
+  [data-theme="dark"] main,
+  [data-theme="dark"] [class*="BackstageContent-root"],
+  [data-theme="dark"] [class*="MuiPaper-elevation0"] {
+    background-color: #0d1117 !important;
+    color: #e6edf3;
+  }
+`;
+
 import { makeStyles } from '@material-ui/core';
 import HomeIcon from '@material-ui/icons/Home';
 import StorageIcon from '@material-ui/icons/Storage';
@@ -83,6 +190,7 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
 
   return (
     <SidebarPage>
+      <style>{DARK_MODE_CSS}</style>
       <Sidebar>
         <SidebarLogo />
         <SidebarDivider />
