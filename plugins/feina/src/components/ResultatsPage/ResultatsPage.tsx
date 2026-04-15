@@ -178,61 +178,201 @@ const IconFilter = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="n
 const IconRefresh = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
 
 // ── Metric Glossary ────────────────────────────────────────────────────────────
+const METRIC_DEFINITIONS = [
+  {
+    key: 'latency',
+    name: 'Latència (avg)',
+    color: '#f59e0b',
+    icon: '⟳',
+    unit: 'ms',
+    lowerBetter: true,
+    short: 'Temps des que el productor envia un missatge fins que el consumidor el rep.',
+    detail: `La latència mesura la velocitat de resposta del sistema. S'obté calculant la diferència temporal entre l'enviament d'un missatge pel productor i la seva recepció pel consumidor.
+    En el benchmark, la "latència mitjana" és la mitjana aritmètica de totes les mostres de la prova. Una latència baixa és crítica per casos d'ús en temps real com IoT, trading o streaming de vídeo.`,
+    formula: 'latència = t_recepció − t_enviament',
+  },
+  {
+    key: 'p50',
+    name: 'P50 (Mediana)',
+    color: '#06b6d4',
+    icon: '50',
+    unit: 'ms',
+    lowerBetter: true,
+    short: 'El 50% dels missatges s\'han processat en menys d\'aquest temps (mediana real).',
+    detail: `El percentil 50 (P50) és la mediana de la distribució de latències. Significa que el 50% dels missatges han tingut una latència inferior a aquest valor.
+    A diferència de la mitjana, el P50 no es veu afectat per pics extrems (outliers). És útil per entendre el comportament "normal" del sistema sota càrrega.`,
+    formula: 'P50 = valor en la posició 50% de les latències ordenades',
+  },
+  {
+    key: 'p99',
+    name: 'P99 (Cua de latència)',
+    color: '#8b5cf6',
+    icon: '99',
+    unit: 'ms',
+    lowerBetter: true,
+    short: 'El 99% dels missatges s\'han processat en menys d\'aquest temps (pitjor cas real).',
+    detail: `El percentil 99 (P99) representa el pitjor cas per al 99% dels missatges. Si el P99 és 200 ms, significa que 1 de cada 100 missatges tarda més de 200 ms.
+    El P99 és la mètrica més important per sistemes de producció: els usuaris "cua" (el 1% pitjor) solen representar els casos d'ús més exigents.
+    Un P99 molt superior al P50 indica que el sistema té pics de latència ocasionals greus (jitter), que poden ser inacceptables per aplicacions crítiques.`,
+    formula: 'P99 = valor en la posició 99% de les latències ordenades',
+  },
+  {
+    key: 'throughput',
+    name: 'Throughput',
+    color: '#22c55e',
+    icon: '→',
+    unit: 'msg/s',
+    lowerBetter: false,
+    short: 'Nombre de missatges processats per segon. Indica la capacitat del sistema.',
+    detail: `El throughput (o taxa de processament) mesura quants missatges processa el sistema per unitat de temps. En el benchmark, es calcula com el nombre total de missatges rebuts dividit pel temps transcorregut des de l'inici de la prova.
+    Un throughput alt és clau per aplicacions d'alta càrrega com analítica en temps real, pipelines de dades o plataformes d'events d'alta freqüència.
+    El throughput i la latència solen estar en tensió: augmentar la taxa d'enviament sol incrementar la latència si el sistema arriba al seu límit.`,
+    formula: 'throughput = missatges_rebuts / temps_transcorregut',
+  },
+  {
+    key: 'errorRate',
+    name: 'Taxa d\'error',
+    color: '#ef4444',
+    icon: '✕',
+    unit: '%',
+    lowerBetter: true,
+    short: 'Percentatge de missatges que no s\'han pogut processar correctament.',
+    detail: `La taxa d'error expressa quina fracció dels missatges enviats ha fallat o s'ha perdut. En sistemes de missatgeria asíncrona, els errors poden venir de diverses fonts: pèrdua de connexió, cua plena (backpressure), timeouts, o errors de seriació/deserialització.
+    El benchmark aplica una penalització exponencial si la taxa d'error supera el 0.1%. Això reflecteix la realitat: un sistema ràpid però poc fiable és inutilitzable en producció.
+    La taxa d'error és la mètrica amb major impacte negatiu en la puntuació global.`,
+    formula: 'errorRate = (missatges_fallats / missatges_enviats) × 100',
+  },
+];
+
 const MetricGlossary = () => {
   const [open, setOpen] = useState(false);
+  const [activeMetric, setActiveMetric] = useState<string | null>(null);
+
   return (
     <div style={{ ...S.card, marginBottom: 20, borderLeft: '3px solid #3b82f6', padding: '16px 20px' }}>
       <button onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ color: '#3b82f6' }}><IconInfo /></span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Guia de mètriques: Què estem comparant?</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Guia de mètriques i sistema de puntuació</span>
         </div>
         <IconChevron open={open} />
       </button>
 
       {open && (
         <div style={{ marginTop: 20, animation: 'fadeUp 0.3s ease' }}>
-          <p style={{ margin: '0 0 16px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            La <strong>puntuació global (Score)</strong> és un valor de 0 a 100 que resumeix el rendiment de l'escenari relativament al format de dades que s'està provant. Diferents formats de dades prioritzen diferents mètriques:
-          </p>
 
-          {/* Scoring weights visualization */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 20 }}>
-            {Object.entries(FORMAT_WEIGHTS).filter(([k]) => k !== 'default').map(([fmt, weights]) => {
-              const label = DATA_FORMAT_LABELS[fmt] || fmt;
-              const color = DATA_FORMAT_COLORS[fmt] || '#6b7280';
-              return (
-                <div key={fmt} style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                    <span style={{ ...S.badge(color), fontSize: 10 }}>{label}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 600 }}>Pesos de puntuació</span>
+          {/* ── Metric definitions ── */}
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
+              Definició de mètriques
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10, marginBottom: 16 }}>
+              {METRIC_DEFINITIONS.map(m => (
+                <button
+                  key={m.key}
+                  onClick={() => setActiveMetric(activeMetric === m.key ? null : m.key)}
+                  style={{
+                    background: activeMetric === m.key ? m.color + '12' : 'var(--bg-subtle)',
+                    border: `1px solid ${activeMetric === m.key ? m.color + '50' : 'var(--border)'}`,
+                    borderRadius: 10,
+                    padding: '12px 14px',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font)',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <span style={{ background: m.color + '20', color: m.color, borderRadius: 6, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{m.icon}</span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{m.name}</span>
+                    <span style={{ marginLeft: 'auto', fontSize: 10, color: m.lowerBetter ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{m.lowerBetter ? '↓ millor' : '↑ millor'}</span>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {Object.entries({
-                      'Latència': { w: weights.lat, c: '#f59e0b' },
-                      'Throughput': { w: weights.tput, c: '#22c55e' },
-                      'Errors': { w: weights.err, c: '#ef4444' }
-                    }).map(([mName, item]) => item.w > 0 && (
-                      <div key={mName} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 11, fontWeight: 600, width: 60, color: 'var(--text-secondary)' }}>{mName}</span>
-                        <div style={{ flex: 1, height: 6, background: 'var(--bg-border)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ width: `${item.w * 100}%`, height: '100%', background: item.c, borderRadius: 3 }} />
-                        </div>
-                        <span style={{ fontSize: 11, fontWeight: 700, width: 30, textAlign: 'right', color: item.c }}>{Math.round(item.w * 100)}%</span>
-                      </div>
-                    ))}
+                  <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{m.short}</p>
+                </button>
+              ))}
+            </div>
+
+            {/* Expanded metric explanation */}
+            {activeMetric && (() => {
+              const m = METRIC_DEFINITIONS.find(x => x.key === activeMetric)!;
+              return (
+                <div style={{ background: m.color + '08', border: `1px solid ${m.color}30`, borderRadius: 10, padding: '16px 20px', animation: 'fadeUp 0.2s ease' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                    <span style={{ background: m.color + '20', color: m.color, borderRadius: 7, width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{m.icon}</span>
+                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{m.name}</span>
+                    <span style={{ ...S.badge(m.color), fontSize: 10 }}>{m.unit}</span>
+                    <span style={{ fontSize: 11, color: m.lowerBetter ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{m.lowerBetter ? '↓ valor baix = millor' : '↑ valor alt = millor'}</span>
+                  </div>
+                  <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, whiteSpace: 'pre-line' }}>{m.detail}</p>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: m.color, background: m.color + '10', padding: '6px 12px', borderRadius: 6, display: 'inline-block', border: `1px solid ${m.color}25` }}>
+                    {m.formula}
                   </div>
                 </div>
               );
-            })}
+            })()}
           </div>
 
-          <div style={{ padding: '12px 16px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-            <span style={{ fontWeight: 700, color: '#ef4444', fontSize: 12 }}>Penalització Severa per Errors: </span>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-              Independentment dels pesos base, una taxa d'error superior al 0.1% aplica una penalització exponencial a la puntuació final.
-              Això garanteix que els sistemes ràpids però inestables no obtinguin bones puntuacions.
-            </span>
+          {/* ── Scoring system explanation ── */}
+          <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
+              Sistema de puntuació (0–100)
+            </div>
+            <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              La <strong style={{ color: 'var(--text-primary)' }}>puntuació global (Score)</strong> és un valor de 0 a 100 que resumeix el rendiment de l'escenari <em>en relació al format de dades que s'està provant</em>. Cada format prioritza mètriques diferent perquè les seves necessitats reals ho justifiquen:
+            </p>
+            <div style={{ marginBottom: 14, padding: '10px 16px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+              <span style={{ color: '#22c55e', fontWeight: 700 }}>Score</span> = (<span style={{ color: '#f59e0b' }}>latència_norm</span> × w_lat + <span style={{ color: '#22c55e' }}>throughput_norm</span> × w_tput + <span style={{ color: '#ef4444' }}>error_norm</span> × w_err + <span style={{ color: '#06b6d4' }}>P50_norm</span> × w_p50 + <span style={{ color: '#8b5cf6' }}>P99_norm</span> × w_p99) × <span style={{ color: '#ef4444' }}>penalització_error</span>
+            </div>
+            <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              On cada mètrica es <strong>normalitza</strong> entre 0 i 1 respecte a tots els escenaris comparats (el millor obté 1.0, el pitjor 0.0). Això fa que la puntuació sigui sempre <em>relativa</em>: si tots els escenaris van molt malament, el millor d'ells seguirà tenint 100 punts.
+            </p>
+
+            {/* Per-format weight bars */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 16 }}>
+              {Object.entries(FORMAT_WEIGHTS).filter(([k]) => k !== 'default').map(([fmt, weights]) => {
+                const label = DATA_FORMAT_LABELS[fmt] || fmt;
+                const color = DATA_FORMAT_COLORS[fmt] || '#6b7280';
+                const allWeights = [
+                  { name: 'Latència',   w: weights.lat,  c: '#f59e0b' },
+                  { name: 'Throughput', w: weights.tput, c: '#22c55e' },
+                  { name: 'Errors',     w: weights.err,  c: '#ef4444' },
+                  { name: 'P50',        w: weights.p50 ?? 0, c: '#06b6d4' },
+                  { name: 'P99',        w: weights.p99 ?? 0, c: '#8b5cf6' },
+                ];
+                return (
+                  <div key={fmt} style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+                      <span style={{ ...S.badge(color), fontSize: 10 }}>{label}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 600 }}>Pesos</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                      {allWeights.filter(x => x.w > 0).map(item => (
+                        <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, width: 72, color: 'var(--text-secondary)', flexShrink: 0 }}>{item.name}</span>
+                          <div style={{ flex: 1, height: 5, background: 'var(--bg-border)', borderRadius: 3, overflow: 'hidden' }}>
+                            <div style={{ width: `${item.w * 100}%`, height: '100%', background: item.c, borderRadius: 3 }} />
+                          </div>
+                          <span style={{ fontSize: 11, fontWeight: 700, width: 32, textAlign: 'right', color: item.c }}>{Math.round(item.w * 100)}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Per què pesos diferents per format?</strong> Un stream de vídeo 4K prioritza latència i P99 (els talls de vídeo es noten immediatament), mentre que un pipeline IoT pot tolerar latències moderades però necessita throughput alt. El format financer equilibra latència i fiabilitat per garantir transaccions correctes.
+            </p>
+          </div>
+
+          {/* ── Error penalty box ── */}
+          <div style={{ padding: '14px 18px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 6 }}>⚠ Penalització exponencial per errors</div>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Si la taxa d'error supera el <strong>0.1%</strong>, s'aplica una penalització exponencial a la puntuació final: <code style={{ background: 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 11 }}>penalització = 1 − min(1, errorRate × 10)</code>.
+              Això garanteix que un sistema ràpid però inestable no obtingui una bona puntuació. Un 10% d'error fa que la puntuació sigui 0 independentment de les altres mètriques.
+            </p>
           </div>
         </div>
       )}
@@ -332,84 +472,6 @@ const HBarChart = ({
   );
 };
 
-// ── Vertical Bar Chart (alternative view) ────────────────────────────────────────
-const VBarChart = ({
-  data, title, unit = '', color = '#3b82f6', lowerIsBetter = true,
-}: {
-  data: { label: string; value: number }[];
-  title: string; unit?: string; color?: string; lowerIsBetter?: boolean;
-}) => {
-  const [hovered, setHovered] = useState<number | null>(null);
-  
-  const validData = data.filter(d => typeof d.value === 'number' && !isNaN(d.value));
-  if (!validData.length) return (
-    <div style={{ textAlign: 'center', color: 'var(--text-disabled)', padding: '20px 0', fontSize: 13 }}>Sense dades</div>
-  );
-
-  const max = Math.max(...validData.map(d => Math.abs(d.value)), 0.001);
-  const sorted = [...validData].sort((a, b) => lowerIsBetter ? a.value - b.value : b.value - a.value);
-  const bestValue = sorted[0]?.value;
-
-  return (
-    <div style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: 14, height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h3 style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</h3>
-        <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: lowerIsBetter ? 'rgba(59,130,246,0.1)' : 'rgba(34,197,94,0.1)', color: lowerIsBetter ? '#3b82f6' : '#22c55e', fontWeight: 700 }}>
-          {lowerIsBetter ? 'Menor és millor' : 'Major és millor'}
-        </span>
-      </div>
-      
-      <div style={{ display: 'flex', height: 180, alignItems: 'flex-end', gap: 12, paddingBottom: 10, marginTop: 10, position: 'relative' }}>
-        {/* Horizontal reference lines */}
-        <div style={{ position: 'absolute', inset: '0 0 10px 0', pointerEvents: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: 0.1 }}>
-          {[0, 1, 2, 3, 4].map(i => (
-            <div key={i} style={{ height: 1, background: 'var(--text-primary)', width: '100%' }} />
-          ))}
-        </div>
-
-        {sorted.map((item, i) => {
-          const pct = Math.max(0, Math.min(100, (Math.abs(item.value) / max) * 100));
-          const isHovered = hovered === i;
-          const isWinner = item.value === bestValue && i === 0;
-          const bgGradient = `linear-gradient(0deg, ${color}cc 0%, ${color} 100%)`;
-          const shadow = isHovered ? `0 -4px 12px ${color}40` : (isWinner ? `0 -2px 8px ${color}25` : 'none');
-          
-          return (
-            <div key={item.label} 
-                 style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, position: 'relative', zIndex: 1, cursor: 'default', transition: 'opacity 0.15s', opacity: hovered !== null && !isHovered ? 0.65 : 1, minWidth: 40 }}
-                 onMouseEnter={() => setHovered(i)} onMouseLeave={() => setHovered(null)}>
-              
-              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: isWinner ? 800 : 700, color: isWinner ? color : 'var(--text-secondary)', transition: 'all 0.2s', position: 'absolute', top: -20, left: '50%', transform: `translateX(-50%) translateY(${100 - pct}px)`, whiteSpace: 'nowrap', opacity: isHovered || isWinner ? 1 : 0 }}>
-                {item.value.toFixed(1)}{unit}
-              </div>
-              
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'flex-end', position: 'relative' }}>
-                <div style={{ 
-                  width: '100%', height: `${pct}%`, background: bgGradient, borderRadius: '4px 4px 0 0', 
-                  transition: 'all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1)', position: 'relative', overflow: 'hidden', boxShadow: shadow 
-                }}>
-                  {isWinner && (
-                    <div style={{
-                      position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
-                      background: 'linear-gradient(180deg, rgba(255,255,255,0.3) 0%, transparent 50%)',
-                      animation: 'shimmer 3s infinite',
-                    }} />
-                  )}
-                </div>
-              </div>
-              
-              <div style={{ width: '100%', textAlign: 'center', fontSize: 10, fontWeight: isWinner ? 700 : 500, color: isHovered ? 'var(--text-primary)' : 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderTop: isWinner ? `2px solid ${color}` : '2px solid transparent', paddingTop: 4 }} title={item.label}>
-                {isWinner && <span style={{ color: '#f59e0b', display: 'flex', justifyContent: 'center', marginBottom: 2 }}><IconTrophy /></span>}
-                {item.label}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
 // ── Live Line Chart ────────────────────────────────────────────────────────────
 const LiveLineChart = ({ data, color = '#3b82f6', label, unit = '' }: {
   data: number[]; color?: string; label: string; unit?: string;
@@ -504,7 +566,6 @@ const HistorialTab = () => {
   const [filterArch, setFilterArch] = useState<string[]>([]);
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [chartType, setChartType] = useState<'hbar' | 'vbar'>('hbar');
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -761,47 +822,20 @@ const HistorialTab = () => {
             )}
           </div>
 
-          {/* Charts (each sorted by its own metric) */}
+          {/* Charts — always horizontal */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Rendiment Mètric</div>
-              <div style={{ display: 'flex', background: 'var(--bg-subtle)', borderRadius: 8, padding: 4, border: '1px solid var(--border)' }}>
-                <button 
-                  onClick={() => setChartType('hbar')} 
-                  style={{ ...S.btn, padding: '4px 10px', fontSize: 11, background: chartType === 'hbar' ? 'var(--bg-card)' : 'transparent', borderColor: chartType === 'hbar' ? 'var(--border)' : 'transparent', boxShadow: chartType === 'hbar' ? 'var(--shadow-sm)' : 'none', color: chartType === 'hbar' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                >
-                  <IconBarChart /> Horitzontal
-                </button>
-                <button 
-                  onClick={() => setChartType('vbar')} 
-                  style={{ ...S.btn, padding: '4px 10px', fontSize: 11, background: chartType === 'vbar' ? 'var(--bg-card)' : 'transparent', borderColor: chartType === 'vbar' ? 'var(--border)' : 'transparent', boxShadow: chartType === 'vbar' ? 'var(--shadow-sm)' : 'none', color: chartType === 'vbar' ? 'var(--text-primary)' : 'var(--text-secondary)' }}
-                >
-                  <span style={{ transform: 'rotate(-90deg)', display: 'inline-block' }}><IconBarChart /></span> Vertical
-                </button>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Rendiment Mètric</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div style={{ ...S.card }}>
+                <HBarChart data={latData} title="Latència mitjana (ms)" unit="ms" color="#f59e0b" lowerIsBetter />
+              </div>
+              <div style={{ ...S.card }}>
+                <HBarChart data={tputData} title="Throughput mitjà (msg/s)" unit="" color="#22c55e" lowerIsBetter={false} />
               </div>
             </div>
-
-            {chartType === 'hbar' ? (
-              <>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                  <div style={{ ...S.card }}>
-                    <HBarChart data={latData} title="Latència mitjana (ms)" unit="ms" color="#f59e0b" lowerIsBetter />
-                  </div>
-                  <div style={{ ...S.card }}>
-                    <HBarChart data={tputData} title="Throughput mitjà (msg/s)" unit="" color="#22c55e" lowerIsBetter={false} />
-                  </div>
-                </div>
-                <div style={{ ...S.card, marginBottom: 20 }}>
-                  <HBarChart data={errData} title="Taxa d'error mitjana (%)" unit="%" color="#ef4444" lowerIsBetter />
-                </div>
-              </>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16, marginBottom: 20 }}>
-                <VBarChart data={latData} title="Latència mitjana (ms)" unit="ms" color="#f59e0b" lowerIsBetter />
-                <VBarChart data={tputData} title="Throughput mitjà (msg/s)" unit="" color="#22c55e" lowerIsBetter={false} />
-                <VBarChart data={errData} title="Taxa d'error mitjana (%)" unit="%" color="#ef4444" lowerIsBetter />
-              </div>
-            )}
+            <div style={{ ...S.card, marginBottom: 20 }}>
+              <HBarChart data={errData} title="Taxa d'error mitjana (%)" unit="%" color="#ef4444" lowerIsBetter />
+            </div>
           </div>
 
           {/* Comparison table */}

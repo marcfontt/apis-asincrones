@@ -9,7 +9,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }
   pending:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',  label: 'Pendent' },
   running:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', label: 'En execució' },
   completed: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  label: 'Completat' },
-  cancelled: { color: '#94a3b8', bg: 'rgba(148,163,184,0.10)',label: 'Cancel·lat' },
+  cancelled: { color: '#94a3b8', bg: 'rgba(148,163,184,0.10)',label: 'Aturat' },
   error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.10)',  label: 'Error' },
 };
 
@@ -475,7 +475,7 @@ export const ExecucionsPage = () => {
     try {
       const r = await fetch(`${ORCHESTRATOR}/runs/${run.id}/cancel`, { method: 'POST' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      showToast(`Execució "${run.scenarioName || run.id.slice(0, 8)}" cancel·lada.`);
+      showToast(`Execució "${run.scenarioName || run.id.slice(0, 8)}" aturada.`);
       fetchRuns();
     } catch (e: any) { showToast('Error en cancel·lar: ' + e.message); }
     finally { setCancellingId(null); }
@@ -592,6 +592,34 @@ export const ExecucionsPage = () => {
   const running   = runs.filter(r => r.status === 'running' || r.status === 'pending');
   const completed = runs.filter(r => r.status !== 'running' && r.status !== 'pending');
 
+  // Stop all running + pending executions
+  const handleStopAll = () => {
+    if (running.length === 0) return;
+    setConfirmState({
+      open: true,
+      title: 'Atura totes les execucions',
+      message: (
+        <>
+          Segur que vols aturar <strong>{running.length} execució{running.length !== 1 ? 'ns' : ''}</strong> en curs o pendents?
+          <br />
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucions passaran a estat "Aturat".</span>
+        </>
+      ),
+      onConfirm: async () => {
+        closeConfirm();
+        const ids = running.map((r: any) => r.id).filter(Boolean);
+        setCancellingId('__all__');
+        try {
+          await Promise.allSettled(
+            ids.map((id: string) => fetch(`${ORCHESTRATOR}/runs/${id}/cancel`, { method: 'POST' }))
+          );
+          showToast(`${ids.length} execució${ids.length !== 1 ? 'ns' : ''} aturada${ids.length !== 1 ? 's' : ''}.`);
+          fetchRuns();
+        } finally { setCancellingId(null); }
+      },
+    });
+  };
+
   const SkRow = ({ delay = 0 }: { delay?: number }) => (
     <tr>
       {[40, 55, 30, 28, 32, 28, 40, 35, 38, 22].map((w, j) => (
@@ -633,9 +661,20 @@ export const ExecucionsPage = () => {
             Historial de benchmarks executats sobre el clúster AKS
           </p>
         </div>
-        <button onClick={fetchRuns} style={{ ...S.btn, fontSize: 13 }}>
-          <RefreshIcon /> Actualitzar
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {running.length > 0 && (
+            <button
+              onClick={handleStopAll}
+              title="Atura totes les execucions en curs o pendents"
+              style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
+            >
+              <StopIcon /> Atura tot ({running.length})
+            </button>
+          )}
+          <button onClick={fetchRuns} style={{ ...S.btn, fontSize: 13 }}>
+            <RefreshIcon /> Actualitzar
+          </button>
+        </div>
       </div>
 
       {/* Stats bar */}
