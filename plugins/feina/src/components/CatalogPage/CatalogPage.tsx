@@ -256,6 +256,32 @@ export const CatalogPage = () => {
         </div>
       </div>
 
+      {/* Stats de categories */}
+      {!loading && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
+          {[
+            { cat: 'all',          label: 'Total components', value: real.length,                  color: 'var(--text-secondary)', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
+            { cat: 'protocol',     label: 'Protocols',         value: countByCategory('protocol'),  color: CATEGORY_COLORS.protocol,  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
+            { cat: 'platform',     label: 'Plataformes',       value: countByCategory('platform'),  color: CATEGORY_COLORS.platform,  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
+            { cat: 'architecture', label: 'Arquitectures',     value: countByCategory('architecture'), color: CATEGORY_COLORS.architecture, icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> },
+          ].map(s => (
+            <button
+              key={s.cat}
+              onClick={() => setActiveFilter(s.cat)}
+              style={{ background: activeFilter === s.cat ? (s.cat === 'all' ? 'var(--bg-hover)' : s.color + '10') : 'var(--bg-card)', border: `1px solid ${activeFilter === s.cat ? (s.cat === 'all' ? 'var(--border)' : s.color + '40') : 'var(--border)'}`, borderRadius: 10, padding: '14px 18px', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: 12 }}
+            >
+              <div style={{ width: 36, height: 36, borderRadius: 8, background: s.cat === 'all' ? 'var(--bg-hover)' : s.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.cat === 'all' ? 'var(--text-secondary)' : s.color, flexShrink: 0 }}>
+                {s.icon}
+              </div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 800, color: s.cat === 'all' ? 'var(--text-primary)' : s.color, letterSpacing: '-0.02em', lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3, fontWeight: 600 }}>{s.label}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filtres de categoria */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
         <button

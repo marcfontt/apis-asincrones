@@ -744,6 +744,104 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
   );
 };
 
+// ── Guia d'escenaris ──────────────────────────────────────────────────────────
+const BookIcon   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+const ChevronIcon = ({ open }: { open: boolean }) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}><polyline points="6 9 12 15 18 9"/></svg>;
+
+const GUIDE_ITEMS = [
+  {
+    color: '#2563eb',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    title: 'Estructura d\'un escenari',
+    desc: 'Cada escenari combina una Plataforma (broker), una Arquitectura de missatgeria i un Protocol de transport. Selecciona\'ls en ordre: la plataforma filtra automàticament les arquitectures i protocols compatibles.',
+  },
+  {
+    color: '#16a34a',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    title: 'Paràmetres d\'execució',
+    desc: 'La Durada (en segons) controla quant temps corre el benchmark. El Ràtio (msg/s) és la taxa d\'enviament. El Payload (bytes) és la mida de cada missatge. Junts, determinen la càrrega total sobre el clúster AKS.',
+  },
+  {
+    color: '#2563eb',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+    title: 'Mode Indefinit',
+    desc: 'Quan la durada és ≥ 3600 s (1 hora), s\'activa el mode indefinit. El benchmark corre contínuament amb els valors per defecte del format de dades seleccionat fins que s\'atura manualment. Ideal per a proves de durada indeterminada.',
+  },
+  {
+    color: '#7c3aed',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+    title: 'Formats de dades',
+    desc: 'El Format de dades simula càrregues reals. Per defecte: bytes aleatoris. Vídeo 4K/8K: payloads grans (~4/16 Mbps). Financer: JSON compacte de baix payload. IoT: telemetria mínima d\'alta freqüència. Cada format ajusta automàticament ràtio i payload en mode indefinit.',
+  },
+];
+
+const ScenarioGuide = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ ...S.card, marginBottom: 24, padding: 0, overflow: 'hidden' }}>
+      {/* Header (toggle) */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font)', textAlign: 'left' }}
+      >
+        <span style={{ color: 'var(--accent)', display: 'flex' }}><BookIcon /></span>
+        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', flex: 1 }}>Com funcionen els escenaris?</span>
+        <span style={{ fontSize: 11, color: 'var(--text-disabled)', marginRight: 8 }}>
+          {open ? 'Amagar' : 'Mostrar guia'}
+        </span>
+        <span style={{ color: 'var(--text-secondary)', display: 'flex' }}><ChevronIcon open={open} /></span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--border)' }}>
+          {/* Flux de treball */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 0, margin: '16px 0 20px', overflowX: 'auto', paddingBottom: 4 }}>
+            {[
+              { n: '1', label: 'Tria una plataforma', sub: 'Kafka, RabbitMQ, NATS…', color: '#2563eb' },
+              { n: '2', label: 'Selecciona arquitectura i protocol', sub: 'Compatibles amb la plataforma', color: '#7c3aed' },
+              { n: '3', label: 'Configura la càrrega', sub: 'Durada · Ràtio · Payload · Format', color: '#16a34a' },
+              { n: '4', label: 'Executa a AKS', sub: 'Botó ▶ o execució en lot', color: '#f59e0b' },
+              { n: '5', label: 'Analitza resultats', sub: 'Mètriques en directe i historial', color: '#22c55e' },
+            ].map((step, i, arr) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 4px' }}>
+                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: step.color + '18', border: `1.5px solid ${step.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: step.color, fontFamily: 'var(--font-mono)' }}>
+                    {step.n}
+                  </div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' as const, textAlign: 'center' }}>{step.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const, textAlign: 'center' }}>{step.sub}</div>
+                </div>
+                {i < arr.length - 1 && (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, margin: '0 2px', marginBottom: 20 }}><polyline points="9 18 15 12 9 6"/></svg>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {/* Grid de conceptes */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+            {GUIDE_ITEMS.map((item, i) => (
+              <div key={i} style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '12px 14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                  <span style={{ color: item.color, display: 'flex' }}>{item.icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{item.title}</span>
+                </div>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.desc}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Mode indefinit destacat */}
+          <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+            <strong style={{ color: 'var(--accent)' }}>Consell:</strong>{' '}
+            Utilitza els <strong style={{ color: 'var(--text-primary)' }}>escenaris predefinits</strong> com a punt de partida. Estan optimitzats per als casos d'ús més habituals i serveixen de referència per entendre les combinacions recomanades.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ── ScenariosPage ──────────────────────────────────────────────────────────────
 export const ScenariosPage = () => {
   const [scenarios,        setScenarios]        = useState<Scenario[]>([]);
@@ -1016,6 +1114,9 @@ export const ScenariosPage = () => {
           <PlusIcon /> Nou Escenari
         </button>
       </div>
+
+      {/* ── Guia ── */}
+      <ScenarioGuide />
 
       {/* ── Escenaris Predefinits ── */}
       <div style={{ marginBottom: 24 }}>
