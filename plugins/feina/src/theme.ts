@@ -46,6 +46,8 @@ export const GLOBAL_CSS = `
     --badge-green-fg: #16a34a;
     --badge-blue-bg:  rgba(37,99,235,0.10);
     --badge-blue-fg:  #2563eb;
+
+    --bg-border:      rgba(15,23,42,0.07);
   }
 
   /* ── Dark mode tokens (GitHub dark-inspired) ── */
@@ -75,6 +77,8 @@ export const GLOBAL_CSS = `
     --badge-green-fg: #3fb950;
     --badge-blue-bg:  rgba(88,166,255,0.12);
     --badge-blue-fg:  #58a6ff;
+
+    --bg-border:      rgba(230,237,243,0.07);
   }
 
   /* ── Animations ── */
@@ -123,6 +127,22 @@ export const GLOBAL_CSS = `
     pointer-events: none;
   }
 
+  /* ── Dark mode: primary button glow (OLED feel) ── */
+  [data-theme="dark"] button[style*="var(--accent)"],
+  [data-theme="dark"] button[style*="--accent"] {
+    box-shadow: 0 0 12px rgba(88,166,255,0.18) !important;
+  }
+  [data-theme="dark"] button[style*="var(--success)"],
+  [data-theme="dark"] button[style*="--success"] {
+    box-shadow: 0 0 12px rgba(63,185,80,0.18) !important;
+  }
+
+  /* ── Card hover: subtle lift ── */
+  [data-theme="dark"] .card-hover:hover {
+    border-color: rgba(88,166,255,0.25) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35), 0 0 0 1px rgba(88,166,255,0.10) !important;
+  }
+
   /* ── Input focus state ── */
   input:focus, select:focus, textarea:focus {
     border-color: var(--accent) !important;
@@ -154,6 +174,74 @@ export const GLOBAL_CSS = `
   html[data-theme="dark"] [class*="makeStyles-root"],
   html[data-theme="dark"] main > div {
     background-color: #0d1117 !important;
+  }
+
+  /* ── Dark mode: sidebar & navigation drawer ── */
+  html[data-theme="dark"] [class*="BackstageSidebar"],
+  html[data-theme="dark"] [class*="makeStyles-drawer"],
+  html[data-theme="dark"] nav[class*="MuiDrawer"],
+  html[data-theme="dark"] [class*="MuiDrawer-paper"] {
+    background-color: #010409 !important;
+    border-right-color: #21262d !important;
+  }
+  html[data-theme="dark"] [class*="BackstageSidebarItem"],
+  html[data-theme="dark"] [class*="makeStyles-buttonItem"],
+  html[data-theme="dark"] [class*="BackstageSidebarItem-root"] {
+    color: #8b949e !important;
+  }
+  html[data-theme="dark"] [class*="BackstageSidebarItem"][class*="selected"],
+  html[data-theme="dark"] [class*="BackstageSidebarItem"][class*="open"],
+  html[data-theme="dark"] [class*="makeStyles-selected"] {
+    color: #e6edf3 !important;
+    background-color: rgba(255,255,255,0.06) !important;
+  }
+  html[data-theme="dark"] [class*="BackstageSidebarLogo"],
+  html[data-theme="dark"] [class*="makeStyles-logo"] {
+    border-bottom-color: #21262d !important;
+  }
+
+  /* ── Dark mode: settings page ── */
+  html[data-theme="dark"] [class*="MuiTab-root"] {
+    color: #8b949e !important;
+  }
+  html[data-theme="dark"] [class*="MuiTab-root"][class*="Mui-selected"] {
+    color: #58a6ff !important;
+  }
+  html[data-theme="dark"] [class*="MuiTabs-indicator"] {
+    background-color: #58a6ff !important;
+  }
+  html[data-theme="dark"] [class*="MuiDivider-root"] {
+    border-color: #21262d !important;
+  }
+  html[data-theme="dark"] [class*="MuiListItem-root"],
+  html[data-theme="dark"] [class*="MuiListItemText-root"] span,
+  html[data-theme="dark"] [class*="MuiTypography-root"] {
+    color: #e6edf3 !important;
+  }
+  html[data-theme="dark"] [class*="MuiSwitch-track"] {
+    background-color: #30363d !important;
+  }
+  html[data-theme="dark"] [class*="MuiSelect-root"],
+  html[data-theme="dark"] [class*="MuiSelect-select"],
+  html[data-theme="dark"] [class*="MuiInputBase-root"] {
+    background-color: #161b22 !important;
+    color: #e6edf3 !important;
+    border-color: #30363d !important;
+  }
+  html[data-theme="dark"] [class*="MuiOutlinedInput-notchedOutline"] {
+    border-color: #30363d !important;
+  }
+  html[data-theme="dark"] [class*="MuiPopover-paper"],
+  html[data-theme="dark"] [class*="MuiMenu-paper"],
+  html[data-theme="dark"] [class*="MuiMenu-list"] {
+    background-color: #161b22 !important;
+    border: 1px solid #30363d !important;
+  }
+  html[data-theme="dark"] [class*="MuiMenuItem-root"] {
+    color: #e6edf3 !important;
+  }
+  html[data-theme="dark"] [class*="MuiMenuItem-root"]:hover {
+    background-color: rgba(88,166,255,0.08) !important;
   }
 
   /* ── Reduced motion ── */
