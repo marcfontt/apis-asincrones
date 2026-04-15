@@ -71,17 +71,7 @@ catalog:
     pullRequestBranchName: backstage-integration
   rules:
     - allow: [Component, System, API, Resource, Location]
-  locations:
-    - type: file
-      target: ../../examples/entities.yaml
-    - type: file
-      target: ../../examples/template/template.yaml
-      rules:
-        - allow: [Template]
-    - type: file
-      target: ../../examples/org.yaml
-      rules:
-        - allow: [User, Group]
+  locations: []
 
 kubernetes:
   serviceLocatorMethod:
