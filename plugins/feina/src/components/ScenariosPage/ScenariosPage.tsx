@@ -170,6 +170,18 @@ const PREDEFINED_PRESETS = [
     desc:         'gRPC + Kafka per a aplicacions de temps real. Latència mínima garantida.',
     color:        '#ef4444',
   },
+  {
+    name:         'Streaming vídeo 8K',
+    platform:     'Confluent',
+    architecture: 'SEA',
+    protocol:     'Kafka',
+    dataFormat:   'video-8k',
+    duration:     '120',
+    rate:         '500',
+    payloadSize:  '16384',
+    desc:         'Kafka + Confluent per a streaming 8K (16 Mbps). Càrrega màxima de throughput.',
+    color:        '#9333ea',
+  },
 ];
 
 // ── Icons ──────────────────────────────────────────────────────────────────────
@@ -607,73 +619,126 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   );
 };
 
-// ── Detall d'escenari (panel lateral) ─────────────────────────────────────────
+// ── Detall d'escenari (modal overlay) ─────────────────────────────────────────
 const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete, onDuplicate, isRunning }: {
   scenario: Scenario; onClose: () => void; onExecute: () => void; onStop: () => void;
   onEdit: () => void; onDelete: () => void; onDuplicate: () => void; isRunning: boolean;
 }) => {
-  const status   = STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle;
-  const dfColor  = DATA_FORMAT_COLORS[scenario.dataFormat || 'default'] || DATA_FORMAT_COLORS['default'];
-  const dfLabel  = DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Per defecte';
-  const platName = normalizePlatform(scenario.platform || scenario.broker);
+  const status    = STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle;
+  const dfColor   = DATA_FORMAT_COLORS[scenario.dataFormat || 'default'] || DATA_FORMAT_COLORS['default'];
+  const dfLabel   = DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Per defecte';
+  const platName  = normalizePlatform(scenario.platform || scenario.broker);
   const platColor = PLATFORM_COLORS[platName] || 'var(--text-secondary)';
+  const isIndefinite = scenario.duration != null && Number(scenario.duration) >= 3600;
 
-  const Row = ({ label, value }: { label: string; value: string }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
+  // Close on backdrop click
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).dataset.backdrop) onClose();
+  };
+
+  const Section = ({ title }: { title: string }) => (
+    <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.09em', marginBottom: 8, marginTop: 4 }}>{title}</div>
+  );
+
+  const Row = ({ label, value, badge }: { label: string; value?: string; badge?: React.ReactNode }) => (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
       <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>{label}</span>
-      <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>{value || '-'}</span>
+      {badge ?? <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>{value || '-'}</span>}
     </div>
   );
+
   return (
-    <div style={{ ...S.card, flex: 1, minWidth: 280, maxWidth: 320, boxShadow: 'var(--shadow-md)', animation: 'slideIn 0.2s ease', alignSelf: 'flex-start' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <h3 style={{ margin: '0 0 6px', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', wordBreak: 'break-word' }}>{scenario.name || 'Sense nom'}</h3>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : status.bg, color: isRunning ? '#3b82f6' : status.color, padding: '2px 9px', borderRadius: 20, fontSize: 10, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-              {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
-              {isRunning ? 'En execució' : status.label}
-            </span>
+    <div data-backdrop="1" onClick={handleBackdropClick}
+      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', padding: 20 }}
+    >
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, width: '100%', maxWidth: 560, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease', overflow: 'hidden' }}>
+
+        {/* Header */}
+        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' as const }}>
+              <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : status.bg, color: isRunning ? '#3b82f6' : status.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
+                {isRunning ? 'En execució' : status.label}
+              </span>
+              {isIndefinite && (
+                <span style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--accent)', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  ∞ Mode Indefinit
+                </span>
+              )}
+              {scenario.predefined && (
+                <span style={{ background: 'var(--bg-hover)', color: 'var(--text-disabled)', padding: '3px 8px', borderRadius: 20, fontSize: 10, fontWeight: 600 }}>Sistema</span>
+              )}
+            </div>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--text-primary)', wordBreak: 'break-word' as const }}>{scenario.name || 'Sense nom'}</h3>
+          </div>
+          <button onClick={onClose} aria-label="Tancar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 6, borderRadius: 8, flexShrink: 0, marginLeft: 12, transition: 'background 0.15s' }}>
+            <CloseIcon />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div style={{ padding: '16px 24px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+          {/* Left column */}
+          <div>
+            <Section title="Configuració tècnica" />
+            <Row label="Arquitectura" badge={<span style={{ ...S.badge(ARCHITECTURE_COLORS[scenario.architecture] || '#2563eb'), fontSize: 10 }}>{scenario.architecture || '-'}</span>} />
+            <Row label="Protocol"     badge={<span style={{ ...S.badge(PROTOCOL_COLORS[scenario.protocol] || '#16a34a'), fontSize: 10 }}>{scenario.protocol || '-'}</span>} />
+            <Row label="Plataforma"   badge={platName ? <span style={{ ...S.badge(platColor), fontSize: 10 }}>{platName}</span> : undefined} value={platName ? undefined : '-'} />
+            <Row label="Format dades" badge={<span style={{ ...S.badge(dfColor), fontSize: 10 }}>{dfLabel}</span>} />
+          </div>
+
+          {/* Right column */}
+          <div>
+            <Section title="Paràmetres d'execució" />
+            <Row
+              label="Durada"
+              badge={isIndefinite
+                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontWeight: 700, fontSize: 13 }}>∞ Indefinit (max 1h)</span>
+                : undefined}
+              value={!isIndefinite ? (scenario.duration ? `${scenario.duration} s` : '-') : undefined}
+            />
+            <Row label="Ràtio"
+              badge={isIndefinite
+                ? <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontStyle: 'italic' }}>valor per defecte</span>
+                : undefined}
+              value={!isIndefinite ? (scenario.rate ? `${scenario.rate} msg/s` : '-') : undefined}
+            />
+            <Row label="Payload"
+              badge={isIndefinite
+                ? <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontStyle: 'italic' }}>valor per defecte</span>
+                : undefined}
+              value={!isIndefinite ? (scenario.payloadSize ? `${scenario.payloadSize} B` : '-') : undefined}
+            />
+            <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleDateString('ca-ES') : '-'} />
           </div>
         </div>
-        <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6, flexShrink: 0 }}><CloseIcon /></button>
-      </div>
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Configuració</div>
-        <Row label="Arquitectura" value={scenario.architecture} />
-        <Row label="Protocol"     value={scenario.protocol} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Plataforma</span>
-          {platName
-            ? <span style={{ ...S.badge(platColor), fontSize: 10 }}>{platName}</span>
-            : <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)' }}>-</span>}
-        </div>
-        <Row label="Durada"   value={scenario.duration    ? `${scenario.duration}s`         : '-'} />
-        <Row label="Ratio"    value={scenario.rate        ? `${scenario.rate} msg/s`        : '-'} />
-        <Row label="Payload"  value={scenario.payloadSize ? `${scenario.payloadSize} bytes` : '-'} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Format dades</span>
-          <span style={{ ...S.badge(dfColor), fontSize: 10 }}>{dfLabel}</span>
-        </div>
-      </div>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Metadades</div>
-        <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleString('ca-ES') : '-'} />
-        <Row label="Tipus" value={scenario.predefined ? 'Sistema' : 'Personalitzat'} />
-      </div>
-      <div style={{ display: 'flex', gap: 6, borderTop: '1px solid var(--border)', paddingTop: 14, flexWrap: 'wrap' }}>
-        {isRunning ? (
-          <button onClick={onStop} style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', color: 'var(--error)', borderRadius: 6, padding: '6px 10px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font)' }}>
-            <StopIcon /> Aturar
-          </button>
-        ) : (
-          <button onClick={onExecute} style={{ ...S.btnPrimary, fontSize: 12, padding: '6px 10px', background: 'var(--success)', boxShadow: 'none' }}>
-            <PlayIcon /> Executar
-          </button>
+
+        {/* Indefinite mode notice */}
+        {isIndefinite && (
+          <div style={{ margin: '0 24px 8px', padding: '10px 14px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+            <strong style={{ color: 'var(--accent)' }}>Mode Indefinit:</strong> S'utilitzen els ràtio i payload per defecte del format <strong>{dfLabel}</strong>. L'execució s'atura manualment o transcorreguda 1 hora.
+          </div>
         )}
-        <button onClick={onDuplicate} title="Duplicar" style={{ ...S.btn, fontSize: 12, padding: '6px 10px' }}><DuplicateIcon /> Copia</button>
-        <button onClick={onEdit}   style={{ ...S.btn, fontSize: 12, padding: '6px 10px' }}><EditIcon /> Editar</button>
-        <button onClick={onDelete} style={{ ...S.btn, fontSize: 12, padding: '6px 10px', color: 'var(--error)', borderColor: 'var(--error)' }}><TrashIcon /></button>
+
+        {/* Footer actions */}
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' as const, justifyContent: 'flex-end' }}>
+          <button onClick={onDuplicate} style={{ ...S.btn, fontSize: 13 }}><DuplicateIcon /> Duplicar</button>
+          <button onClick={onEdit}      style={{ ...S.btn, fontSize: 13 }}><EditIcon /> Editar</button>
+          <button onClick={onDelete}    style={{ ...S.btn, fontSize: 13, color: 'var(--error)', borderColor: 'var(--error)' }}><TrashIcon /> Eliminar</button>
+          <div style={{ flex: 1 }} />
+          {isRunning ? (
+            <button onClick={() => { onStop(); onClose(); }}
+              style={{ ...S.btn, fontSize: 13, background: 'rgba(239,68,68,0.1)', borderColor: 'var(--error)', color: 'var(--error)' }}>
+              <StopIcon /> Aturar execució
+            </button>
+          ) : (
+            <button onClick={() => { onExecute(); onClose(); }}
+              style={{ ...S.btnPrimary, fontSize: 13 }}>
+              <PlayIcon /> Executar ara
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

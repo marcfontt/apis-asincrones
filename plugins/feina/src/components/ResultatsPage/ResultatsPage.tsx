@@ -172,7 +172,6 @@ const IconClock = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="no
 const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
 const IconTrophy = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="8 22 12 17 16 22" /><line x1="12" y1="17" x2="12" y2="11" /><path d="M6.5 4H17.5L17 9a5 5 0 0 1-10 0z" /></svg>;
 const IconChevron = ({ open }: { open: boolean }) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>;
-const IconHash = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="4" y1="9" x2="20" y2="9" /><line x1="4" y1="15" x2="20" y2="15" /><line x1="10" y1="3" x2="8" y2="21" /><line x1="16" y1="3" x2="14" y2="21" /></svg>;
 const IconAward = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><polyline points="8.56 2.75 4 6 4 12 8.56 9.25" /><polyline points="15.44 2.75 20 6 20 12 15.44 9.25" /><polyline points="9 16.7 12 19 15 16.7" /></svg>;
 const IconFilter = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
 const IconRefresh = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
@@ -329,7 +328,7 @@ const MetricGlossary = () => {
 
             {/* Per-format weight bars */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 16 }}>
-              {Object.entries(FORMAT_WEIGHTS).filter(([k]) => k !== 'default').map(([fmt, weights]) => {
+              {Object.entries(FORMAT_WEIGHTS).map(([fmt, weights]) => {
                 const label = DATA_FORMAT_LABELS[fmt] || fmt;
                 const color = DATA_FORMAT_COLORS[fmt] || '#6b7280';
                 const allWeights = [
@@ -362,7 +361,11 @@ const MetricGlossary = () => {
             </div>
 
             <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              <strong style={{ color: 'var(--text-primary)' }}>Per què pesos diferents per format?</strong> Un stream de vídeo 4K prioritza latència i P99 (els talls de vídeo es noten immediatament), mentre que un pipeline IoT pot tolerar latències moderades però necessita throughput alt. El format financer equilibra latència i fiabilitat per garantir transaccions correctes.
+              <strong style={{ color: 'var(--text-primary)' }}>Per format:</strong>{' '}
+              <strong>Per defecte</strong> usa pesos equilibrats (referència base, cap optimització específica).{' '}
+              <strong>Vídeo 4K/8K</strong> maximitza throughput (40%) i penalitza errors ≥ 2% — els talls de reproducció s'aprecien immediatament.{' '}
+              <strong>Financer</strong> penalitza errors durament (40%) — una transacció errònia és un problema real.{' '}
+              <strong>IoT</strong> equilibra throughput alt i tolerància moderada a errors, ja que s'assumeix redundància de sensors.
             </p>
           </div>
 
@@ -790,12 +793,12 @@ const HistorialTab = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14, marginBottom: 20 }}>
             {/* Escenaris comparats */}
             <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: '#3b82f614', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                <IconHash />
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: '#3b82f614', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+                {filteredSummary.length}
               </div>
               <div>
-                <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', fontFamily: 'var(--font-mono)' }}>{filteredSummary.length}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Escenaris comparats</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Escenaris comparats</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{filteredSummary.length} escenari{filteredSummary.length !== 1 ? 's' : ''} · puntuació format-aware</div>
               </div>
             </div>
 
@@ -1046,18 +1049,14 @@ const LiveTab = () => {
   useEffect(() => {
     if (!selectedRunId) { setMetrics([]); setPolling(false); return; }
     setMetrics([]); setPolling(true); setPollError('');
-    const sel = activeRuns.find(r => r.id === selectedRunId);
 
     const poll = async () => {
       try {
-        let data = await fetch(`${METRICS_BASE}/metrics?runId=${selectedRunId}`).then(r => r.json()).catch(() => null);
-        if (!data || !Array.isArray(data) || data.length === 0) {
-          if (sel?.scenarioId) {
-            data = await fetch(`${METRICS_BASE}/metrics?scenarioId=${sel.scenarioId}`).then(r => r.json()).catch(() => null);
-          }
-        }
+        // Always fetch by runId only — never fall back to scenarioId
+        // (fallback would show old historical data from previous runs)
+        const data = await fetch(`${METRICS_BASE}/metrics?runId=${selectedRunId}`).then(r => r.json()).catch(() => null);
         if (Array.isArray(data) && data.length > 0) {
-          setMetrics(data.slice(-120));
+          setMetrics(data);
           setLastUpdate(new Date());
           setPollError('');
         }
@@ -1198,7 +1197,7 @@ const LiveTab = () => {
                   {metrics.length} punts · actualització cada 3s
                 </span>
               </div>
-              <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+              <div style={{ maxHeight: 480, overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={S.tableHeader}>
@@ -1208,7 +1207,7 @@ const LiveTab = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {[...metrics].reverse().slice(0, 60).map((m, i) => (
+                    {[...metrics].reverse().map((m, i) => (
                       <tr key={i} style={S.tableRow}>
                         <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-disabled)' }}>
                           {m.timestamp ? new Date(m.timestamp).toLocaleTimeString('ca-ES') : '-'}

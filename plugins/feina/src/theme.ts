@@ -11,13 +11,10 @@ export const CATEGORY_COLORS: Record<string, string> = {
 
 // ── Global CSS: tokens (light + dark) + animations + utilities ────────────────
 export const GLOBAL_CSS = `
-  /* ── Google Fonts ── */
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
-
   /* ── Light mode tokens ── */
   :root {
-    --font:       'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --font-mono:  'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+    --font:       Arial, 'Helvetica Neue', Helvetica, sans-serif;
+    --font-mono:  'Courier New', Courier, monospace;
 
     --bg:          #f4f6f8;
     --bg-card:     #ffffff;

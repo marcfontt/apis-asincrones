@@ -681,9 +681,10 @@ export const ExecucionsPage = () => {
       {!loading && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
-            { label: 'Total',       value: runs.length,                                           color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execució', value: running.length,                                        color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
+            { label: 'Total',       value: runs.length,                                            color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
+            { label: 'En execució', value: running.length,                                         color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
             { label: 'Completats',  value: completed.filter(r => r.status === 'completed').length, color: 'var(--success)',        bg: 'rgba(34,197,94,0.08)' },
+            { label: 'Aturats',     value: runs.filter(r => r.status === 'cancelled').length,      color: '#94a3b8',               bg: 'rgba(148,163,184,0.08)' },
             { label: 'Errors',      value: runs.filter(r => r.status === 'error').length,          color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
