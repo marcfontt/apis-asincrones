@@ -77,6 +77,7 @@ const SK_STYLE = {
 };
 
 // ── SVG Icons ──────────────────────────────────────────────────────────────────
+const SearchIcon  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 const StopIcon    = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>;
 const TrashIcon   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 const TrashAllIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>;
@@ -161,12 +162,16 @@ const ConfirmModal = ({
 
 // ── RunTable ───────────────────────────────────────────────────────────────────
 const RunTable = ({
-  data, title, showStop, icon,
+  data, title, showStop, icon, totalCount,
+  searchValue, onSearchChange,
   onCancel, onRequestDelete, onBulkDelete, onDeleteAll,
   cancellingId, deletingIds, scenarioMap,
   selectedIds, onToggleSelect, onToggleAll,
 }: {
   data: any[]; title: string; showStop: boolean; icon: React.ReactNode;
+  totalCount?: number;
+  searchValue?: string;
+  onSearchChange?: (v: string) => void;
   onCancel: (run: any) => void;
   onRequestDelete: (run: any) => void;
   onBulkDelete: (ids: string[]) => void;
@@ -194,10 +199,31 @@ const RunTable = ({
     <div style={{ ...S.card, padding: 0, overflow: 'hidden', marginBottom: 24 }}>
       {/* Header */}
       <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
-          {title}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--text-secondary)' }}>{icon}</span>
+            {title}
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
+            {data.length}{totalCount !== undefined && totalCount !== data.length ? ` / ${totalCount}` : ''} registre{data.length !== 1 ? 's' : ''}
+          </span>
+          {/* Search for history */}
+          {onSearchChange && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--bg-subtle)', border: `1px solid ${searchValue ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 7, padding: '3px 9px', minWidth: 180, transition: 'border-color 0.15s' }}>
+              <span style={{ color: searchValue ? 'var(--accent)' : 'var(--text-disabled)', display: 'flex', flexShrink: 0 }}><SearchIcon /></span>
+              <input
+                type="text"
+                placeholder="Cerca a l'historial..."
+                value={searchValue || ''}
+                onChange={e => onSearchChange(e.target.value)}
+                style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }}
+              />
+              {searchValue && (
+                <button onClick={() => onSearchChange('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, display: 'flex', fontSize: 16, lineHeight: 1 }}>×</button>
+              )}
+            </div>
+          )}
+        </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {/* Bulk action toolbar - only visible when something is selected */}
@@ -226,9 +252,6 @@ const RunTable = ({
             </button>
           )}
 
-          <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 10px', borderRadius: 10, fontWeight: 600 }}>
-            {data.length} registre{data.length !== 1 ? 's' : ''}
-          </span>
         </div>
       </div>
 
@@ -417,6 +440,9 @@ export const ExecucionsPage = () => {
   const [deletingIds,   setDeletingIds]   = useState<Set<string>>(new Set());
   const [toast,         setToast]         = useState('');
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set());
+  const [historySearch, setHistorySearch] = useState('');
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [secsAgo,       setSecsAgo]       = useState(0);
 
   // Confirmation modal state
   const [confirmState, setConfirmState] = useState<{
@@ -442,7 +468,7 @@ export const ExecucionsPage = () => {
     setLoading(true);
     fetch(`${ORCHESTRATOR}/runs`)
       .then(r => r.json())
-      .then(data => { setRuns(Array.isArray(data) ? data : []); setLoading(false); })
+      .then(data => { setRuns(Array.isArray(data) ? data : []); setLoading(false); setLastRefreshed(new Date()); setSecsAgo(0); })
       .catch(() => setLoading(false));
   }, []);
 
@@ -451,6 +477,12 @@ export const ExecucionsPage = () => {
     const i = setInterval(fetchRuns, 8000);
     return () => clearInterval(i);
   }, [fetchRuns]);
+
+  // Ticker: increment secsAgo every second
+  useEffect(() => {
+    const t = setInterval(() => setSecsAgo(s => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
 
   useEffect(() => {
     if (!toast) return;
@@ -589,8 +621,17 @@ export const ExecucionsPage = () => {
     });
   };
 
-  const running   = runs.filter(r => r.status === 'running' || r.status === 'pending');
-  const completed = runs.filter(r => r.status !== 'running' && r.status !== 'pending');
+  const running      = runs.filter(r => r.status === 'running' || r.status === 'pending');
+  const completedAll = runs.filter(r => r.status !== 'running' && r.status !== 'pending');
+  const completed    = historySearch.trim()
+    ? completedAll.filter(r => {
+        const q = historySearch.trim().toLowerCase();
+        return (r.scenarioName || '').toLowerCase().includes(q)
+            || (r.architecture || '').toLowerCase().includes(q)
+            || (r.protocol     || '').toLowerCase().includes(q)
+            || (r.status       || '').toLowerCase().includes(q);
+      })
+    : completedAll;
 
   // Stop all running + pending executions
   const handleStopAll = () => {
@@ -661,19 +702,29 @@ export const ExecucionsPage = () => {
             Historial de benchmarks executats sobre el clúster AKS
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {running.length > 0 && (
-            <button
-              onClick={handleStopAll}
-              title="Atura totes les execucions en curs o pendents"
-              style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
-            >
-              <StopIcon /> Atura tot ({running.length})
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {running.length > 0 && (
+              <button
+                onClick={handleStopAll}
+                title="Atura totes les execucions en curs o pendents"
+                style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
+              >
+                <StopIcon /> Atura tot ({running.length})
+              </button>
+            )}
+            <button onClick={fetchRuns} style={{ ...S.btn, fontSize: 13 }}>
+              <RefreshIcon /> Actualitzar
             </button>
+          </div>
+          {lastRefreshed && !loading && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-disabled)' }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              {secsAgo < 5
+                ? <span style={{ color: 'var(--success)' }}>Actualitzat ara</span>
+                : `Actualitzat fa ${secsAgo}s · auto cada 8s`}
+            </div>
           )}
-          <button onClick={fetchRuns} style={{ ...S.btn, fontSize: 13 }}>
-            <RefreshIcon /> Actualitzar
-          </button>
         </div>
       </div>
 
@@ -727,9 +778,12 @@ export const ExecucionsPage = () => {
           />
           <RunTable
             data={completed}
+            totalCount={completedAll.length}
             title="Historial"
             showStop={false}
             icon={<ListIcon />}
+            searchValue={historySearch}
+            onSearchChange={setHistorySearch}
             onCancel={handleCancel}
             onRequestDelete={handleRequestDelete}
             onBulkDelete={handleBulkDelete}

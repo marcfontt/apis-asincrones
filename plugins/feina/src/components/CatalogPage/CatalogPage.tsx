@@ -1,5 +1,6 @@
 
 import { useEffect, useState } from 'react';
+import React from 'react';
 import { S, GLOBAL_CSS, CATEGORY_COLORS } from '../../theme';
 
 const API_BASE = '/api/proxy/catalog-service';
@@ -9,8 +10,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   protocol:     'Protocol',
   platform:     'Plataforma',
 };
-
-const ALL_CATEGORIES = ['protocol', 'platform', 'architecture'];
 
 // Versions conegudes per als components predefinits
 const KNOWN_VERSIONS: Record<string, string> = {
@@ -157,6 +156,15 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
   );
 };
 
+const SearchIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+
+// Category icon map
+const CAT_ICONS: Record<string, React.ReactNode> = {
+  protocol:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+  platform:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
+  architecture: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+};
+
 // ── Sort helpers ──────────────────────────────────────────────────────────────
 type SortDir = 'asc' | 'desc';
 
@@ -192,6 +200,7 @@ export const CatalogPage = () => {
   const [selectedComponent, setSelectedComponent] = useState<any | null>(null);
   const [sortKey,           setSortKey]           = useState<string | null>(null);
   const [sortDir,           setSortDir]           = useState<SortDir | null>(null);
+  const [searchQuery,       setSearchQuery]       = useState('');
 
   const handleSort = (sk: string) => {
     if (sortKey !== sk) { setSortKey(sk); setSortDir('asc'); return; }
@@ -211,9 +220,21 @@ export const CatalogPage = () => {
   useEffect(() => { fetchComponents(); }, []);
 
   // Nomes components predefinits, sense gateways
-  const real     = components.filter(c => c.predefined !== false && c.category !== 'gateway');
-  const filtered = activeFilter === 'all' ? real : real.filter(c => c.category === activeFilter);
+  const real = components.filter(c => c.predefined !== false && c.category !== 'gateway');
   const countByCategory = (cat: string) => real.filter(c => c.category === cat).length;
+
+  const filtered = real.filter(c => {
+    if (activeFilter !== 'all' && c.category !== activeFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const name  = (c.name        || '').toLowerCase();
+      const short = (c.shortName   || '').toLowerCase();
+      const desc  = (c.description || '').toLowerCase();
+      const cat   = (CATEGORY_LABELS[c.category] || c.category || '').toLowerCase();
+      if (!name.includes(q) && !short.includes(q) && !desc.includes(q) && !cat.includes(q)) return false;
+    }
+    return true;
+  });
 
   const sortedFiltered = sortKey == null
     ? filtered
@@ -256,47 +277,47 @@ export const CatalogPage = () => {
         </div>
       </div>
 
-      {/* Stats de categories */}
-      {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 12, marginBottom: 24 }}>
-          {[
-            { cat: 'all',          label: 'Total components', value: real.length,                  color: 'var(--text-secondary)', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
-            { cat: 'protocol',     label: 'Protocols',         value: countByCategory('protocol'),  color: CATEGORY_COLORS.protocol,  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> },
-            { cat: 'platform',     label: 'Plataformes',       value: countByCategory('platform'),  color: CATEGORY_COLORS.platform,  icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg> },
-            { cat: 'architecture', label: 'Arquitectures',     value: countByCategory('architecture'), color: CATEGORY_COLORS.architecture, icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg> },
-          ].map(s => (
+      {/* Stats + filtre per categoria */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 20 }}>
+        {[
+          { cat: 'all', label: 'Tots', value: real.length, color: 'var(--text-secondary)', bg: 'var(--bg-card)',
+            icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg> },
+          { cat: 'protocol',     label: 'Protocols',    value: countByCategory('protocol'),     color: CATEGORY_COLORS.protocol,     bg: CATEGORY_COLORS.protocol + '0e',     icon: CAT_ICONS.protocol },
+          { cat: 'platform',     label: 'Plataformes',  value: countByCategory('platform'),     color: CATEGORY_COLORS.platform,     bg: CATEGORY_COLORS.platform + '0e',     icon: CAT_ICONS.platform },
+          { cat: 'architecture', label: 'Arquitectures',value: countByCategory('architecture'), color: CATEGORY_COLORS.architecture, bg: CATEGORY_COLORS.architecture + '0e', icon: CAT_ICONS.architecture },
+        ].map(s => {
+          const isActive = activeFilter === s.cat;
+          return (
             <button
               key={s.cat}
-              onClick={() => setActiveFilter(s.cat)}
-              style={{ background: activeFilter === s.cat ? (s.cat === 'all' ? 'var(--bg-hover)' : s.color + '10') : 'var(--bg-card)', border: `1px solid ${activeFilter === s.cat ? (s.cat === 'all' ? 'var(--border)' : s.color + '40') : 'var(--border)'}`, borderRadius: 10, padding: '14px 18px', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all 0.15s ease', display: 'flex', alignItems: 'center', gap: 12 }}
+              onClick={() => { setActiveFilter(s.cat); setSearchQuery(''); }}
+              style={{
+                background: isActive ? (s.cat === 'all' ? 'var(--bg-hover)' : s.color + '15') : 'var(--bg-card)',
+                border: `1px solid ${isActive ? (s.cat === 'all' ? 'var(--border)' : s.color + '50') : 'var(--border)'}`,
+                borderRadius: 10, padding: '12px 16px', cursor: 'pointer',
+                textAlign: 'left', fontFamily: 'var(--font)', transition: 'all 0.15s ease',
+                display: 'flex', alignItems: 'center', gap: 10,
+                boxShadow: isActive ? `0 0 0 1px ${s.cat === 'all' ? 'transparent' : s.color + '20'}` : 'none',
+              }}
             >
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: s.cat === 'all' ? 'var(--bg-hover)' : s.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', color: s.cat === 'all' ? 'var(--text-secondary)' : s.color, flexShrink: 0 }}>
+              <div style={{
+                width: 34, height: 34, borderRadius: 8, flexShrink: 0,
+                background: s.cat === 'all' ? 'var(--bg-subtle)' : s.color + '18',
+                border: `1px solid ${s.cat === 'all' ? 'var(--border)' : s.color + '30'}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: s.cat === 'all' ? 'var(--text-secondary)' : s.color,
+              }}>
                 {s.icon}
               </div>
-              <div>
-                <div style={{ fontSize: 22, fontWeight: 800, color: s.cat === 'all' ? 'var(--text-primary)' : s.color, letterSpacing: '-0.02em', lineHeight: 1 }}>{s.value}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 3, fontWeight: 600 }}>{s.label}</div>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1,
+                  color: isActive ? (s.cat === 'all' ? 'var(--text-primary)' : s.color) : 'var(--text-primary)' }}>
+                  {loading ? '—' : s.value}
+                </div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: isActive && s.cat !== 'all' ? s.color : 'var(--text-secondary)', marginTop: 2, whiteSpace: 'nowrap' as const }}>
+                  {s.label}
+                </div>
               </div>
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Filtres de categoria */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
-        <button
-          onClick={() => setActiveFilter('all')}
-          style={{ ...S.chip(activeFilter === 'all'), fontSize: 13, padding: '6px 16px' }}
-        >
-          Tots ({real.length})
-        </button>
-        {ALL_CATEGORIES.map(cat => {
-          const active = activeFilter === cat;
-          const color  = CATEGORY_COLORS[cat];
-          return (
-            <button key={cat} onClick={() => setActiveFilter(cat)}
-              style={{ ...S.chip(active, color), fontSize: 13, padding: '6px 16px' }}>
-              {CATEGORY_LABELS[cat]} ({countByCategory(cat)})
             </button>
           );
         })}
@@ -306,21 +327,35 @@ export const CatalogPage = () => {
 
       <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
         {/* Strip superior */}
-        <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '-' : filtered.length}</span>
             <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
               component{filtered.length !== 1 ? 's' : ''}
-              {activeFilter !== 'all' && <span> · {CATEGORY_LABELS[activeFilter]}</span>}
+              {activeFilter !== 'all' && <span style={{ color: CATEGORY_COLORS[activeFilter] }}> · {CATEGORY_LABELS[activeFilter]}</span>}
             </span>
-            {activeFilter !== 'all' && !loading && (
+            {(activeFilter !== 'all' || searchQuery) && !loading && (
               <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10 }}>
                 de {real.length} totals
               </span>
             )}
+            {/* Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-subtle)', border: `1px solid ${searchQuery ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 7, padding: '4px 10px', minWidth: 190, transition: 'border-color 0.15s' }}>
+              <span style={{ color: searchQuery ? 'var(--accent)' : 'var(--text-disabled)', display: 'flex', flexShrink: 0 }}><SearchIcon /></span>
+              <input
+                type="text"
+                placeholder="Cerca per nom, protocol..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }}
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, display: 'flex', fontSize: 16, lineHeight: 1 }}>×</button>
+              )}
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>Clica una fila per veure els detalls</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>Clica per veure detalls</span>
             <button onClick={fetchComponents} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}>
               <RefreshIcon /> Actualitzar
             </button>
@@ -364,12 +399,8 @@ export const CatalogPage = () => {
                   className="card-hover"
                   style={{
                     ...S.tableRow,
-                    background: isSelected
-                      ? color + '10'
-                      : isHovered ? 'var(--bg-hover)' : 'transparent',
-                    borderLeft: isSelected
-                      ? `3px solid ${color}`
-                      : '3px solid transparent',
+                    background: isSelected ? color + '0d' : isHovered ? 'var(--bg-hover)' : 'transparent',
+                    borderLeft: `3px solid ${isSelected || isHovered ? color : 'transparent'}`,
                     cursor: 'pointer',
                     transition: 'background var(--transition), border-left-color var(--transition)',
                   }}
@@ -380,22 +411,31 @@ export const CatalogPage = () => {
                     setSelectedComponent(isSelected ? null : c);
                   }}
                 >
-                  <td style={{ ...S.td, fontWeight: 700 }}>{c.name || '-'}</td>
+                  <td style={{ ...S.td, fontWeight: 700 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 6, background: color + '15', border: `1px solid ${color}28`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color }}>
+                        {CAT_ICONS[c.category] || <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/></svg>}
+                      </div>
+                      {c.name || '-'}
+                    </div>
+                  </td>
                   <td style={S.td}>
                     {c.category
-                      ? <span style={{ ...S.badge(color) }}>{CATEGORY_LABELS[c.category] || c.category}</span>
+                      ? <span style={{ ...S.badge(color), fontSize: 11 }}>{CATEGORY_LABELS[c.category] || c.category}</span>
                       : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                   </td>
-                  <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {c.description || '-'}
+                  <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                    {c.description || <span style={{ color: 'var(--text-disabled)', fontStyle: 'italic' }}>Sense descripció</span>}
                   </td>
                   <td style={{ ...S.td, textAlign: 'center' }}>
                     {c.shortName
-                      ? <code style={{ background: color + '14', border: '1px solid ' + color + '30', padding: '2px 8px', borderRadius: 5, color, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700 }}>{c.shortName}</code>
-                      : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
+                      ? <code style={{ background: color + '14', border: '1px solid ' + color + '30', padding: '2px 9px', borderRadius: 5, color, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700 }}>{c.shortName}</code>
+                      : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
                   </td>
-                  <td style={{ ...S.td, textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 12, color: version ? 'var(--text-secondary)' : 'var(--text-disabled)' }}>
-                    {version || '-'}
+                  <td style={{ ...S.td, textAlign: 'center' }}>
+                    {version
+                      ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '2px 7px', borderRadius: 4 }}>v{version}</span>
+                      : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
                   </td>
                 </tr>
               );

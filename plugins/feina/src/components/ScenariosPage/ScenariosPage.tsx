@@ -863,6 +863,7 @@ export const ScenariosPage = () => {
   const [sortDir,          setSortDir]          = useState<SortDir | null>(null);
   const [selectedIds,      setSelectedIds]      = useState<Set<string>>(new Set());
   const [bulkExecuting,    setBulkExecuting]    = useState(false);
+  const [searchQuery,      setSearchQuery]      = useState('');
 
   const handleSort = (sk: string) => {
     if (sortKey !== sk) { setSortKey(sk); setSortDir('asc'); return; }
@@ -1062,9 +1063,17 @@ export const ScenariosPage = () => {
     if (filterProto      !== 'all' && s.protocol     !== filterProto)                            return false;
     if (filterPlatform   !== 'all' && normalizePlatform(s.platform || s.broker) !== filterPlatform) return false;
     if (filterDataFormat !== 'all' && (s.dataFormat || 'default') !== filterDataFormat)          return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      const name = (s.name || '').toLowerCase();
+      const arch = (s.architecture || '').toLowerCase();
+      const prot = (s.protocol || '').toLowerCase();
+      const plat = normalizePlatform(s.platform || s.broker).toLowerCase();
+      if (!name.includes(q) && !arch.includes(q) && !prot.includes(q) && !plat.includes(q)) return false;
+    }
     return true;
   });
-  const isFiltered = filterArch !== 'all' || filterProto !== 'all' || filterPlatform !== 'all' || filterDataFormat !== 'all';
+  const isFiltered = filterArch !== 'all' || filterProto !== 'all' || filterPlatform !== 'all' || filterDataFormat !== 'all' || searchQuery.trim() !== '';
 
   const sortedFiltered = sortKey == null
     ? filtered
@@ -1115,6 +1124,23 @@ export const ScenariosPage = () => {
         </button>
       </div>
 
+      {/* ── Stats strip ── */}
+      {!loading && (
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Total',       value: scenarios.length,                                                        color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
+            { label: 'En execució', value: Object.keys(runningMap).length,                                         color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
+            { label: 'Predefinits', value: scenarios.filter(s => s.predefined).length,                             color: 'var(--accent)',         bg: 'var(--accent-soft)' },
+            { label: 'Propis',      value: scenarios.filter(s => !s.predefined).length,                            color: 'var(--success)',        bg: 'rgba(34,197,94,0.08)' },
+          ].map(s => (
+            <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
+              <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
+              <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase' as const, letterSpacing: '0.05em', fontWeight: 600 }}>{s.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── Guia ── */}
       <ScenarioGuide />
 
@@ -1123,7 +1149,7 @@ export const ScenariosPage = () => {
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
           Escenaris predefinits recomanats
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(195px, 1fr))', gap: 12 }}>
           {PREDEFINED_PRESETS.map((preset, i) => {
             const dfColor = DATA_FORMAT_COLORS[preset.dataFormat] || '#6b7280';
             return (
@@ -1216,7 +1242,7 @@ export const ScenariosPage = () => {
 
           {isFiltered && (
             <button
-              onClick={() => { setFilterArch('all'); setFilterProto('all'); setFilterPlatform('all'); setFilterDataFormat('all'); }}
+              onClick={() => { setFilterArch('all'); setFilterProto('all'); setFilterPlatform('all'); setFilterDataFormat('all'); setSearchQuery(''); }}
               style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--error)', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 7, padding: '5px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font)', fontWeight: 600 }}>
               <CloseIcon /> Netejar filtres
             </button>
@@ -1228,7 +1254,7 @@ export const ScenariosPage = () => {
       <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>
         <div style={{ ...S.card, padding: 0, overflow: 'hidden', flex: selectedScenario ? '0 0 auto' : 1, width: selectedScenario ? 'calc(100% - 340px)' : '100%' }}>
           <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '-' : filtered.length}</span>
               <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>escenari{filtered.length !== 1 ? 's' : ''}</span>
               {isFiltered && !loading && (
@@ -1242,6 +1268,20 @@ export const ScenariosPage = () => {
                   {Object.keys(runningMap).length} en execució
                 </span>
               )}
+              {/* Search input */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', minWidth: 180 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-disabled)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input
+                  type="text"
+                  placeholder="Cerca escenaris..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }}
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, display: 'flex', fontSize: 14, lineHeight: 1 }}>×</button>
+                )}
+              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {/* Bulk execute bar */}

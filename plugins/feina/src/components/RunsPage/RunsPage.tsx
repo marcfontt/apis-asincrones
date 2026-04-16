@@ -44,6 +44,8 @@ export const RunsPage = () => {
   const [runs,    setRuns]    = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [hovered, setHovered] = useState<number | null>(null);
+  const [search,  setSearch]  = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const fetchRuns = () => {
     setLoading(true);
@@ -59,6 +61,18 @@ export const RunsPage = () => {
   const running   = runs.filter(r => r.status === 'running' || r.status === 'pending').length;
   const completed = runs.filter(r => r.status === 'completed').length;
   const errors    = runs.filter(r => r.status === 'error').length;
+
+  const displayedRuns = runs.filter(r => {
+    if (statusFilter !== 'all' && r.status !== statusFilter) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      return (r.scenarioName || '').toLowerCase().includes(q)
+          || (r.architecture  || '').toLowerCase().includes(q)
+          || (r.protocol      || '').toLowerCase().includes(q)
+          || (r.status        || '').toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   return (
     <div style={{ ...S.page }}>
@@ -98,11 +112,36 @@ export const RunsPage = () => {
 
       {/* Table */}
       <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
-        <div style={{ padding: '10px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>
-            {loading ? '-' : `${runs.length} registre${runs.length !== 1 ? 's' : ''}`}
-          </span>
-          <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>Clica una fila per copiar l'ID</span>
+        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>
+              {loading ? '-' : `${displayedRuns.length}`}
+              {!loading && displayedRuns.length !== runs.length && <span style={{ fontWeight: 400, color: 'var(--text-disabled)', fontSize: 12 }}> / {runs.length}</span>}
+              <span style={{ fontWeight: 400, color: 'var(--text-secondary)', fontSize: 13 }}> registre{displayedRuns.length !== 1 ? 's' : ''}</span>
+            </span>
+            {/* Status filter chips */}
+            {['all','running','completed','error','cancelled'].map(s => {
+              const cfg = STATUS_CONFIG[s] || { color: 'var(--text-secondary)', label: 'Tots' };
+              const active = statusFilter === s;
+              const label = s === 'all' ? 'Tots' : cfg.label;
+              return (
+                <button key={s} onClick={() => setStatusFilter(s)}
+                  style={{ padding: '3px 10px', borderRadius: 20, border: `1px solid ${active ? (s === 'all' ? 'var(--border)' : cfg.color + '60') : 'var(--border)'}`, background: active ? (s === 'all' ? 'var(--bg-hover)' : cfg.color + '15') : 'transparent', color: active && s !== 'all' ? cfg.color : 'var(--text-secondary)', fontSize: 11, fontWeight: active ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font)', transition: 'all 0.15s' }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {/* Search */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 5, background: 'var(--bg-subtle)', border: `1px solid ${search ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 7, padding: '4px 10px', minWidth: 180, transition: 'border-color 0.15s' }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={search ? 'var(--accent)' : 'var(--text-disabled)'} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Cerca per nom, protocol..." value={search} onChange={e => setSearch(e.target.value)}
+                style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }} />
+              {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, fontSize: 16, lineHeight: 1 }}>×</button>}
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>Clica per copiar ID</span>
+          </div>
         </div>
 
         {loading ? (
@@ -138,7 +177,13 @@ export const RunsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {runs.map((r, i) => {
+                {displayedRuns.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '40px 16px', textAlign: 'center' }}>
+                      <p style={{ color: 'var(--text-disabled)', margin: 0, fontSize: 13 }}>Cap resultat per als filtres actuals.</p>
+                    </td>
+                  </tr>
+                ) : displayedRuns.map((r, i) => {
                   const st       = STATUS_CONFIG[r.status] || { color: '#94a3b8', bg: 'transparent', label: r.status };
                   const isActive = r.status === 'running' || r.status === 'pending';
                   const archColor = ARCHITECTURE_COLORS[r.architecture] || 'var(--text-secondary)';
