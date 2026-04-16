@@ -107,8 +107,8 @@ app.get('/metrics/compare', async (req: Request, res: Response) => {
   }
 });
 
-// ── GET /metrics/summary — agregació per escenari ────────────────────────────
-// Retorna avg latency, throughput, errorRate agrupat per scenarioId
+// ── GET /metrics/summary — agregació per run (cada run = una fila) ───────────
+// Agrupa per runId per tenir historial per execucio independent del scenario
 app.get('/metrics/summary', async (_req: Request, res: Response) => {
   try {
     const result = await es.search({
@@ -116,12 +116,15 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
       body: {
         size: 0,
         aggs: {
-          by_scenario: {
-            terms: { field: 'scenarioId.keyword', size: 50 },
+          by_run: {
+            terms: { field: 'runId.keyword', size: 500 },
             aggs: {
+              scenario_id:    { terms: { field: 'scenarioId.keyword', size: 1 } },
               avg_latency:    { avg: { field: 'latency' } },
               avg_throughput: { avg: { field: 'throughput' } },
               avg_error_rate: { avg: { field: 'errorRate' } },
+              p50_latency:    { percentiles: { field: 'latency', percents: [50] } },
+              p99_latency:    { percentiles: { field: 'latency', percents: [99] } },
               architecture:   { terms: { field: 'architecture.keyword', size: 1 } },
               protocol:       { terms: { field: 'protocol.keyword', size: 1 } },
               broker:         { terms: { field: 'broker.keyword', size: 1 } },
@@ -133,13 +136,16 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
       },
     });
 
-    const buckets = (result.aggregations?.by_scenario as any)?.buckets ?? [];
+    const buckets = (result.aggregations?.by_run as any)?.buckets ?? [];
     const summary = buckets.map((b: any) => ({
-      scenarioId:    b.key,
+      runId:         b.key,
+      scenarioId:    b.scenario_id?.buckets?.[0]?.key,
       count:         b.doc_count,
       avgLatency:    b.avg_latency?.value,
       avgThroughput: b.avg_throughput?.value,
       avgErrorRate:  b.avg_error_rate?.value,
+      p50Latency:    b.p50_latency?.values?.['50.0'],
+      p99Latency:    b.p99_latency?.values?.['99.0'],
       architecture:  b.architecture?.buckets?.[0]?.key,
       protocol:      b.protocol?.buckets?.[0]?.key,
       broker:        b.broker?.buckets?.[0]?.key,

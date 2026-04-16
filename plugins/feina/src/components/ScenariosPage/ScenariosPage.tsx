@@ -800,7 +800,7 @@ const ScenarioGuide = () => {
               { n: '1', label: 'Tria una plataforma', sub: 'Kafka, RabbitMQ, NATS…', color: '#2563eb' },
               { n: '2', label: 'Selecciona arquitectura i protocol', sub: 'Compatibles amb la plataforma', color: '#7c3aed' },
               { n: '3', label: 'Configura la càrrega', sub: 'Durada · Ràtio · Payload · Format', color: '#16a34a' },
-              { n: '4', label: 'Executa a AKS', sub: 'Botó ▶ o execució en lot', color: '#f59e0b' },
+              { n: '4', label: 'Executa a AKS', sub: 'Boto "Executa" o en lot', color: '#f59e0b' },
               { n: '5', label: 'Analitza resultats', sub: 'Mètriques en directe i historial', color: '#22c55e' },
             ].map((step, i, arr) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>

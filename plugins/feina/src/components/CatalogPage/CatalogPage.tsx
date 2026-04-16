@@ -312,7 +312,7 @@ export const CatalogPage = () => {
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1,
                   color: isActive ? (s.cat === 'all' ? 'var(--text-primary)' : s.color) : 'var(--text-primary)' }}>
-                  {loading ? '—' : s.value}
+                  {loading ? '-' : s.value}
                 </div>
                 <div style={{ fontSize: 11, fontWeight: 600, color: isActive && s.cat !== 'all' ? s.color : 'var(--text-secondary)', marginTop: 2, whiteSpace: 'nowrap' as const }}>
                   {s.label}
@@ -430,12 +430,12 @@ export const CatalogPage = () => {
                   <td style={{ ...S.td, textAlign: 'center' }}>
                     {c.shortName
                       ? <code style={{ background: color + '14', border: '1px solid ' + color + '30', padding: '2px 9px', borderRadius: 5, color, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700 }}>{c.shortName}</code>
-                      : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
+                      : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                   </td>
                   <td style={{ ...S.td, textAlign: 'center' }}>
                     {version
                       ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '2px 7px', borderRadius: 4 }}>v{version}</span>
-                      : <span style={{ color: 'var(--text-disabled)' }}>—</span>}
+                      : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                   </td>
                 </tr>
               );

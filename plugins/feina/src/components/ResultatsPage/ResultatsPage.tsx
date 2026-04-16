@@ -110,7 +110,7 @@ const computeScores = (
     const fmt = dataFormatOf(s);
     const err = s.avgErrorRate ?? 0;
     const penalty = getErrorPenalty(fmt, err);
-    return new Map([[s.scenarioId, Math.round(100 * penalty)]]);
+    return new Map([[s.runId || s.scenarioId, Math.round(100 * penalty)]]);
   }
 
   const getP50 = (s: any) => s.p50Latency ?? percentileMap[s.scenarioId]?.p50 ?? null;
@@ -143,16 +143,17 @@ const computeScores = (
     const fmt = dataFormatOf(s);
     const w = FORMAT_WEIGHTS[fmt] ?? FORMAT_WEIGHTS['default'];
 
-    const normLat = safeDivide(getLat(s), minLat, maxLat, false); // lower lat = better
-    const normTput = safeDivide(getTput(s), minTp, maxTp, true);  // higher tput = better
-    const normErr = safeDivide(getErr(s), minErr, maxErr, false); // lower err = better
+    const normLat = safeDivide(getLat(s), minLat, maxLat, false);
+    const normTput = safeDivide(getTput(s), minTp, maxTp, true);
+    const normErr = safeDivide(getErr(s), minErr, maxErr, false);
     const normP50 = safeDivide(getP50(s), minP50, maxP50, false);
     const normP99 = safeDivide(getP99(s), minP99, maxP99, false);
 
     const composite = normLat * w.lat + normP50 * w.p50 + normP99 * w.p99 + normTput * w.tput + normErr * w.err;
     const penalty = getErrorPenalty(fmt, s.avgErrorRate ?? 0);
     const score = Math.round(composite * 100 * penalty);
-    map.set(s.scenarioId, Math.max(0, Math.min(100, score)));
+    // Key by runId when available (per-run scoring), fallback to scenarioId
+    map.set(s.runId || s.scenarioId, Math.max(0, Math.min(100, score)));
   });
   return map;
 };
@@ -314,7 +315,7 @@ const MetricGlossary = () => {
           {/* ── Scoring system explanation ── */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
-              Sistema de puntuació (0–100)
+              Sistema de puntuacio (0-100)
             </div>
             <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               La <strong style={{ color: 'var(--text-primary)' }}>Puntuació</strong> és un valor de 0 a 100 que resumeix el rendiment de l'escenari <em>en relació al format de dades que s'està provant</em>. Cada format prioritza mètriques diferent perquè les seves necessitats reals ho justifiquen:
@@ -363,15 +364,15 @@ const MetricGlossary = () => {
             <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               <strong style={{ color: 'var(--text-primary)' }}>Per format:</strong>{' '}
               <strong>Per defecte</strong> usa pesos equilibrats (referència base, cap optimització específica).{' '}
-              <strong>Vídeo 4K/8K</strong> maximitza throughput (40%) i penalitza errors ≥ 2% — els talls de reproducció s'aprecien immediatament.{' '}
-              <strong>Financer</strong> penalitza errors durament (40%) — una transacció errònia és un problema real.{' '}
+              <strong>Video 4K/8K</strong> maximitza throughput (40%) i penalitza errors d'1 2% o mes. Els talls de reproduccio s'aprecien immediatament.{' '}
+              <strong>Financer</strong> penalitza errors durament (40%). Una transaccio erronia es un problema real.{' '}
               <strong>IoT</strong> equilibra throughput alt i tolerància moderada a errors, ja que s'assumeix redundància de sensors.
             </p>
           </div>
 
           {/* ── Error penalty box ── */}
           <div style={{ padding: '14px 18px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.25)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 6 }}>⚠ Penalització exponencial per errors</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 6 }}>Penalitzacio exponencial per errors</div>
             <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               Si la taxa d'error supera el <strong>0.1%</strong>, s'aplica una penalització exponencial a la puntuació final: <code style={{ background: 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 11 }}>penalització = 1 − min(1, errorRate × 10)</code>.
               Això garanteix que un sistema ràpid però inestable no obtingui una bona puntuació. Un 10% d'error fa que la puntuació sigui 0 independentment de les altres mètriques.
@@ -561,9 +562,7 @@ const ScoreRing = ({ score, size = 36 }: { score: number; size?: number }) => {
 const HistorialTab = () => {
   const [summary, setSummary] = useState<any[]>([]);
   const [scenarios, setScenarios] = useState<any[]>([]);
-  const [runs, setRuns] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
-  const [percentileMap, setPercentileMap] = useState<Record<string, { p50: number | null; p99: number | null }>>({});
   const [filterPlatform, setFilterPlatform] = useState<string[]>([]);
   const [filterProtocol, setFilterProtocol] = useState<string[]>([]);
   const [filterArch, setFilterArch] = useState<string[]>([]);
@@ -573,52 +572,23 @@ const HistorialTab = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, scRes, runsRes] = await Promise.all([
+      const [sumRes, scRes] = await Promise.all([
         fetch(`${METRICS_BASE}/metrics/summary`).then(r => r.json()).catch(() => []),
         fetch(`${SCENARIOS_BASE}/scenarios`).then(r => r.json()).catch(() => []),
-        fetch(`${ORCHESTRATOR}/runs`).then(r => r.json()).catch(() => []),
       ]);
       setSummary(Array.isArray(sumRes) ? sumRes : []);
       setScenarios(Array.isArray(scRes) ? scRes : []);
-      setRuns(Array.isArray(runsRes) ? runsRes : []);
     } catch (_) { }
     setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // Calculate P50/P99 client-side from raw metrics
-  useEffect(() => {
-    if (!summary.length) return;
-    const uniqueIds = [...new Set(summary.map((s: any) => s.scenarioId).filter(Boolean))];
-    Promise.all(
-      uniqueIds.map(id =>
-        fetch(`${METRICS_BASE}/metrics?scenarioId=${id}`)
-          .then(r => r.json())
-          .then(data => {
-            if (!Array.isArray(data) || !data.length) return null;
-            const latArr = data.map((m: any) => m.latency ?? m.avgLatency ?? 0).filter((v: number) => v > 0);
-            return { id, p50: computePercentile(latArr, 50), p99: computePercentile(latArr, 99) };
-          })
-          .catch(() => null)
-      )
-    ).then(results => {
-      const map: Record<string, { p50: number | null; p99: number | null }> = {};
-      results.forEach(r => { if (r) map[r.id] = { p50: r.p50, p99: r.p99 }; });
-      setPercentileMap(map);
-    });
-  }, [summary]);
-
   const scenarioMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s]));
   const nameMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s.name || s.id?.slice(0, 10)]));
 
-  // Sync with orchestrator runs
-  const runScenarioIds = new Set(runs.map((r: any) => r.scenarioId).filter(Boolean));
-  const syncedSummary = loading
-    ? summary
-    : runs.length > 0
-      ? summary.filter(s => runScenarioIds.has(s.scenarioId))
-      : [];
+  // Show all runs from Elasticsearch directly - no orchestrator dependency
+  const syncedSummary = summary;
 
   // Derive the data format for a summary item
   const dataFormatOf = (s: any): string =>
@@ -645,12 +615,12 @@ const HistorialTab = () => {
   const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length + filterDataFormat.length;
   const clearFilters = () => { setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]); setFilterDataFormat([]); };
 
-  // ── Scoring: format-aware, normalized 0-100 ──
-  const scoreMap = computeScores(filteredSummary, percentileMap, dataFormatOf);
+  // Scoring: p50/p99 now come from the server-side summary aggregation
+  const scoreMap = computeScores(filteredSummary, {}, dataFormatOf);
 
   // Sort by score descending (higher = better)
   const sorted = [...filteredSummary].sort((a, b) =>
-    (scoreMap.get(b.scenarioId) ?? 0) - (scoreMap.get(a.scenarioId) ?? 0)
+    (scoreMap.get(b.runId || b.scenarioId) ?? 0) - (scoreMap.get(a.runId || a.scenarioId) ?? 0)
   );
   const best = sorted[0];
 
@@ -805,7 +775,7 @@ const HistorialTab = () => {
             {/* Guanyador (best by score) */}
             {best && (
               <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(34,197,94,0.04) 100%)', borderColor: 'rgba(34,197,94,0.25)' }}>
-                <ScoreRing score={scoreMap.get(best.scenarioId) ?? 0} size={52} />
+                <ScoreRing score={scoreMap.get(best.runId || best.scenarioId) ?? 0} size={52} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <span style={{ color: '#f59e0b' }}><IconAward /></span>
@@ -875,10 +845,9 @@ const HistorialTab = () => {
                     const platColor = PLATFORM_COLORS[platform] || 'var(--text-secondary)';
                     const df = dataFormatOf(s);
                     const dfColor = DATA_FORMAT_COLORS[df] || '#64748b';
-                    const computed = percentileMap[s.scenarioId];
-                    const p50Val = s.p50Latency ?? computed?.p50;
-                    const p99Val = s.p99Latency ?? computed?.p99;
-                    const score = scoreMap.get(s.scenarioId) ?? 0;
+                    const p50Val = s.p50Latency ?? null;
+                    const p99Val = s.p99Latency ?? null;
+                    const score = scoreMap.get(s.runId || s.scenarioId) ?? 0;
                     const errRate = s.avgErrorRate ?? 0;
 
                     return (
@@ -1010,8 +979,8 @@ const RunCard = ({
         {run.protocol && <span style={{ ...S.badge(PROTOCOL_COLORS[run.protocol] || '#16a34a'), fontSize: 10 }}>{run.protocol}</span>}
         {run.architecture && <span style={{ ...S.badge(ARCHITECTURE_COLORS[run.architecture] || '#2563eb'), fontSize: 10 }}>{run.architecture}</span>}
         {platform && <span style={{ ...S.badge(platColor), fontSize: 10 }}>{platform}</span>}
-        {run.dataFormat && run.dataFormat !== 'default' && (
-          <span style={{ ...S.badge(DATA_FORMAT_COLORS[run.dataFormat] || '#8b5cf6'), fontSize: 10 }}>{DATA_FORMAT_LABELS[run.dataFormat] || run.dataFormat}</span>
+        {run.dataFormat && (
+          <span style={{ ...S.badge(DATA_FORMAT_COLORS[run.dataFormat] || '#64748b'), fontSize: 10 }}>{DATA_FORMAT_LABELS[run.dataFormat] || run.dataFormat}</span>
         )}
       </div>
       {/* Status text */}

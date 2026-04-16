@@ -28,6 +28,27 @@ const latencies: number[] = [];
 const startTime = Date.now();
 let running = true;
 
+// Graceful shutdown: send final metric on SIGTERM (K8s sends this before SIGKILL)
+async function gracefulShutdown() {
+  if (!running) return;
+  running = false;
+  // Wait 2s for in-flight produce/consume cycles to finish
+  await new Promise(r => setTimeout(r, 2000));
+  const final = snapshot(true);
+  log(`=== SIGTERM: sent=${final.messages_sent} recv=${final.messages_recv} lat=${final.latency}ms ===`);
+  await postMetric(final);
+}
+
+process.on('SIGTERM', async () => {
+  await gracefulShutdown();
+  process.exit(0);
+});
+
+process.on('SIGINT', async () => {
+  await gracefulShutdown();
+  process.exit(0);
+});
+
 const log = (msg: string) => console.log(`[${new Date().toISOString()}] ${msg}`);
 
 // ── BUG 3 FIX: Latència sub-ms amb performance.now() ──────────────────────
