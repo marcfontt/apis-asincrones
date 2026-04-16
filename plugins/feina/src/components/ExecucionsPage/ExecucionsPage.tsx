@@ -450,6 +450,8 @@ export const ExecucionsPage = () => {
     title: string;
     message: React.ReactNode;
     onConfirm: () => void;
+    confirmLabel?: string;
+    danger?: boolean;
   }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   useEffect(() => { document.title = 'Execucions | APIs Asíncrones'; }, []);
@@ -639,6 +641,8 @@ export const ExecucionsPage = () => {
     setConfirmState({
       open: true,
       title: 'Atura totes les execucions',
+      confirmLabel: 'Atura',
+      danger: false,
       message: (
         <>
           Segur que vols aturar <strong>{running.length} execució{running.length !== 1 ? 'ns' : ''}</strong> en curs o pendents?
@@ -682,6 +686,8 @@ export const ExecucionsPage = () => {
         message={confirmState.message}
         onConfirm={confirmState.onConfirm}
         onCancel={closeConfirm}
+        confirmLabel={confirmState.confirmLabel}
+        danger={confirmState.danger}
       />
 
       {/* Toast */}

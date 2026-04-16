@@ -69,7 +69,7 @@ app.get('/metrics', async (req: Request, res: Response) => {
 
     const result = await es.search({
       index: INDEX,
-      body: { query, size: 1000, sort: [{ timestamp: { order: 'asc' } }] },
+      body: { query, size: 10000, sort: [{ timestamp: { order: 'asc' } }] },
     });
 
     const hits = (result.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...h._source }));
@@ -94,7 +94,7 @@ app.get('/metrics/compare', async (req: Request, res: Response) => {
         index: INDEX,
         body: {
           query: { match: { scenarioId: sid } },
-          size: 1000,
+          size: 10000,
           sort: [{ timestamp: { order: 'asc' } }],
         },
       });

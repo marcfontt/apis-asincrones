@@ -317,7 +317,7 @@ const MetricGlossary = () => {
               Sistema de puntuació (0–100)
             </div>
             <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              La <strong style={{ color: 'var(--text-primary)' }}>puntuació global (Score)</strong> és un valor de 0 a 100 que resumeix el rendiment de l'escenari <em>en relació al format de dades que s'està provant</em>. Cada format prioritza mètriques diferent perquè les seves necessitats reals ho justifiquen:
+              La <strong style={{ color: 'var(--text-primary)' }}>Puntuació</strong> és un valor de 0 a 100 que resumeix el rendiment de l'escenari <em>en relació al format de dades que s'està provant</em>. Cada format prioritza mètriques diferent perquè les seves necessitats reals ho justifiquen:
             </p>
             <div style={{ marginBottom: 14, padding: '10px 16px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
               <span style={{ color: '#22c55e', fontWeight: 700 }}>Score</span> = (<span style={{ color: '#f59e0b' }}>latència_norm</span> × w_lat + <span style={{ color: '#22c55e' }}>throughput_norm</span> × w_tput + <span style={{ color: '#ef4444' }}>error_norm</span> × w_err + <span style={{ color: '#06b6d4' }}>P50_norm</span> × w_p50 + <span style={{ color: '#8b5cf6' }}>P99_norm</span> × w_p99) × <span style={{ color: '#ef4444' }}>penalització_error</span>
@@ -407,7 +407,7 @@ const HBarChart = ({
     <div style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h3 style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{title}</h3>
-        <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: lowerIsBetter ? 'rgba(59,130,246,0.1)' : 'rgba(34,197,94,0.1)', color: lowerIsBetter ? '#3b82f6' : '#22c55e', fontWeight: 700 }}>
+        <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: (color || '#3b82f6') + '18', color: color || '#3b82f6', fontWeight: 700 }}>
           {lowerIsBetter ? 'Menor és millor' : 'Major és millor'}
         </span>
       </div>
@@ -793,7 +793,7 @@ const HistorialTab = () => {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14, marginBottom: 20 }}>
             {/* Escenaris comparats */}
             <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 42, height: 42, borderRadius: 10, background: '#3b82f614', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 800, fontFamily: 'var(--font-mono)' }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: '#3b82f614', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 800, fontFamily: 'var(--font)' }}>
                 {filteredSummary.length}
               </div>
               <div>
@@ -848,18 +848,19 @@ const HistorialTab = () => {
               <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris · puntuació format-aware (0-100)</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <style>{`.cmp-tbl th,.cmp-tbl td{padding:7px 8px!important}`}</style>
+              <table className="cmp-tbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={S.tableHeader}>
                     <th style={S.th}>Escenari</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Puntuació</th>
-                    <th style={{ ...S.th, textAlign: 'right' }}>Latència avg</th>
+                    <th style={{ ...S.th, textAlign: 'right' }}>Lat. avg</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P50</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P99</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Throughput</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Error %</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Mostres</th>
-                    <th style={{ ...S.th, textAlign: 'center' }}>Arquitectura</th>
+                    <th style={{ ...S.th, textAlign: 'center' }}>Arq.</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Protocol</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Plataforma</th>
                   </tr>
@@ -1009,6 +1010,9 @@ const RunCard = ({
         {run.protocol && <span style={{ ...S.badge(PROTOCOL_COLORS[run.protocol] || '#16a34a'), fontSize: 10 }}>{run.protocol}</span>}
         {run.architecture && <span style={{ ...S.badge(ARCHITECTURE_COLORS[run.architecture] || '#2563eb'), fontSize: 10 }}>{run.architecture}</span>}
         {platform && <span style={{ ...S.badge(platColor), fontSize: 10 }}>{platform}</span>}
+        {run.dataFormat && run.dataFormat !== 'default' && (
+          <span style={{ ...S.badge(DATA_FORMAT_COLORS[run.dataFormat] || '#8b5cf6'), fontSize: 10 }}>{DATA_FORMAT_LABELS[run.dataFormat] || run.dataFormat}</span>
+        )}
       </div>
       {/* Status text */}
       <div style={{ marginTop: 8, fontSize: 11, color: isRunning ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>

@@ -106,7 +106,7 @@ const EMPTY_FORM = {
 };
 
 const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
-  idle:      { color: '#94a3b8', label: 'Llest',       bg: 'rgba(148,163,184,0.1)' },
+  idle:      { color: '#10b981', label: 'Llest',       bg: 'rgba(16,185,129,0.10)' },
   pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  },
   running:   { color: '#3b82f6', label: 'En execució', bg: 'rgba(59,130,246,0.1)'  },
   completed: { color: '#22c55e', label: 'Completat',   bg: 'rgba(34,197,94,0.1)'   },
@@ -1128,10 +1128,8 @@ export const ScenariosPage = () => {
       {!loading && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
-            { label: 'Total',       value: scenarios.length,                                                        color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execució', value: Object.keys(runningMap).length,                                         color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
-            { label: 'Predefinits', value: scenarios.filter(s => s.predefined).length,                             color: 'var(--accent)',         bg: 'var(--accent-soft)' },
-            { label: 'Propis',      value: scenarios.filter(s => !s.predefined).length,                            color: 'var(--success)',        bg: 'rgba(34,197,94,0.08)' },
+            { label: 'Total',       value: scenarios.length,              color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
+            { label: 'En execució', value: Object.keys(runningMap).length, color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>

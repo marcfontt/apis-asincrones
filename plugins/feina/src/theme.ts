@@ -317,7 +317,7 @@ export const S = {
     background:  color + '18',
     color,
     border:      '1px solid ' + color + '30',
-    fontFamily:  'var(--font-mono)',
+    fontFamily:  'var(--font)',
     whiteSpace:  'nowrap' as const,
   }),
 
