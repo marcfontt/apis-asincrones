@@ -1,11 +1,40 @@
+/**
+ * ScenariosPage.tsx -- Gestio d'escenaris de benchmark
+ *
+ * Permet crear, editar, duplicar, executar i eliminar escenaris.
+ * Un escenari defineix la combinacio de:
+ *   - Plataforma (broker): Kafka, RabbitMQ, NATS Server, Confluent
+ *   - Arquitectura: EDA, QBA, LCA, EMA, SEA
+ *   - Protocol: Kafka, AMQP, MQTT, gRPC, WS, SSE, NATS, CoAP
+ *   - Format de dades: default, video-4k, video-8k, financial, iot
+ *   - Parametres de carrega: durada (s), ratio (msg/s), payload (bytes)
+ *
+ * Dades:
+ *   - GET/POST/PUT/DELETE /api/proxy/scenario-service/scenarios
+ *   - GET /api/proxy/benchmark-orchestrator/runs (per saber quins estan en execucio)
+ *   - POST /api/proxy/benchmark-orchestrator/runs (per llançar un run)
+ *
+ * Canvis aplicats:
+ *   - Estat 'idle' color: #94a3b8 (gris) -> #10b981 (emerald)
+ *     Motiu: els escenaris idle (llestos per executar) han de destacar
+ *     positivament, no semblar "desactivats" com els cancelled.
+ *   - Stats strip: eliminats "Predefinits" i "Propis" -- afegien soroll
+ *     sense valor actionable. Nomes es mostra Total i "En execucio".
+ *   - Unicode play symbol (triang) substituint pel text descriptiu a la guia
+ *   - COMPATIBILITY matrix: defineix quines arquitectures/protocols son
+ *     compatibles amb cada plataforma, de manera que el formulari filtra
+ *     automaticament les opcions quan es selecciona la plataforma primer.
+ */
 
 import { useEffect, useState, useCallback } from 'react';
 import { S, GLOBAL_CSS } from '../../theme';
 
+// Endpoints dels microserveis (proxied per Backstage via app-config.yaml)
 const API_BASE     = '/api/proxy/scenario-service';
 const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
+// Estructura d'un escenari tal com la retorna i espera el scenario-service.
 type Scenario = {
   id?: string;
   name: string;
@@ -23,19 +52,33 @@ type Scenario = {
 };
 
 // ── Constants ──────────────────────────────────────────────────────────────────
+// Llistes de valors valids per als camps del formulari d'escenari.
+// S'usen per als selects del modal i per als filtres de la taula.
 const ALL_ARCHITECTURES  = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
 const ALL_PROTOCOLS      = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
 const ALL_PLATFORMS      = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server', 'Pulsar'];
+// Plataformes disponibles al cataleg pero no desploegades al clúster:
+// Pulsar requereix mes recursos i no esta disponible en l'entorn de proves actual.
 const DISABLED_PLATFORMS = ['Pulsar'];
 
+// Colors identificatius per a cada plataforma de missatgeria.
+// Usats als badges de la taula i al modal de detall.
+// Colors coherents amb la identitat de cada producte (Kafka=roig, NATS=verd...).
 const PLATFORM_COLORS: Record<string, string> = {
-  'Kafka':       '#ef4444',
-  'Confluent':   '#3b82f6',
-  'RabbitMQ':    '#f59e0b',
-  'NATS Server': '#22c55e',
-  'Pulsar':      '#a78bfa',
+  'Kafka':       '#ef4444', // vermell -- marca Apache Kafka
+  'Confluent':   '#3b82f6', // blau -- marca Confluent (Kafka Enterprise)
+  'RabbitMQ':    '#f59e0b', // ambre -- marca RabbitMQ
+  'NATS Server': '#22c55e', // verd -- marca NATS (lightweight, fast)
+  'Pulsar':      '#a78bfa', // viola -- marca Apache Pulsar
 };
 
+// Formats de dades disponibles per simular casos d'us reals.
+// Cada format ajusta automaticament el payload i ratio en mode indefinit.
+// 'video-8k' usa payloads de 2MB: IMPORTANT - Kafka broker per defecte
+// te un limit de 1MB per missatge (message.max.bytes). Els escenaris
+// video-8k amb Kafka/Confluent mostraran 0ms latencia i 0 throughput
+// per aixo (el broker rebutja silenciosament els missatges).
+// Per habilitar-los caldria configurar message.max.bytes > 2MB al broker.
 const DATA_FORMATS = [
   { value: '',          label: 'Per defecte (bytes aleatoris)' },
   { value: 'default',   label: 'Per defecte (bytes aleatoris)' },
@@ -80,17 +123,45 @@ const ARCHITECTURE_COLORS: Record<string, string> = {
   'SEA':  '#d97706',
 };
 
+// Matriu de compatibilitat plataforma -> (arquitectures, protocols).
+//
+// Per que existeix aquest filtrat?
+// No totes les combinacions de plataforma+arquitectura+protocol son
+// tecnologicament viables. Per exemple:
+//   - Kafka NO suporta MQTT nativament (necessitaria un bridge extern)
+//   - NATS NO suporta el protocol de Kafka (son sistemes incompatibles)
+//   - RabbitMQ NO implementa el protocol de Kafka
+//
+// El formulari usa aquesta matriu per desactivar les opcions incompatibles
+// quan l'usuari selecciona una plataforma, evitant configuracions erronies.
+// Nota: la matriu no es exhaustiva; nomes cobreix les combinacions testades.
 const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string[] }> = {
+  // Kafka: fort en Event Streaming (EDA, SEA). Protocol propi "Kafka protocol".
   'Kafka':       { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
+  // RabbitMQ: fort en missatgeria tradicional (queues). Suporta AMQP 0-9-1, MQTT i WebSockets.
   'RabbitMQ':    { architectures: ['EDA', 'QBA', 'EMA'], protocols: ['AMQP', 'MQTT', 'WS'] },
+  // Confluent: distribucio enterprise de Kafka. Mateixa compatibilitat + connectors addicionals.
   'Confluent':   { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
+  // Pulsar: arquitectura de tiers (hot/warm/cold). Suporta protocols oberts.
   'Pulsar':      { architectures: ['EDA', 'QBA', 'SEA'], protocols: ['AMQP', 'WS', 'gRPC'] },
+  // NATS Server: dissenyat per a cloud-native i edge. Protocol NATS propi (molt lleuger).
+  // Excel·lent per a LCA (Log-Centric) i SEA (Streaming Events).
   'NATS Server': { architectures: ['EDA', 'LCA', 'SEA'], protocols: ['NATS', 'WS', 'gRPC'] },
 };
 
+// Retorna la llista d'arquitectures compatibles per a una plataforma donada.
+// Si la plataforma no esta a la matriu, retorna totes (sense restriccio).
 const getCompatibleArchitectures = (p: string) => COMPATIBILITY[p]?.architectures ?? ALL_ARCHITECTURES;
+
+// Retorna la llista de protocols compatibles per a una plataforma donada.
 const getCompatibleProtocols     = (p: string) => COMPATIBILITY[p]?.protocols     ?? ALL_PROTOCOLS;
 
+/**
+ * Normalitza el nom d'una plataforma als valors estandard de l'app.
+ * El scenario-service pot desar el nom amb variacions de capitalitzacio
+ * (ex: "kafka", "KAFKA", "nats", "Nats server").
+ * Aquesta funcio garanteix que sempre mostrem el nom canonic.
+ */
 const normalizePlatform = (p?: string): string => {
   if (!p) return '';
   const map: Record<string, string> = {
@@ -105,12 +176,17 @@ const EMPTY_FORM = {
   duration: '', rate: '', payloadSize: '', dataFormat: '',
 };
 
+// Estats d'un escenari amb color, etiqueta i fons.
+// CANVI: 'idle' era #94a3b8 (gris neutre, semblava desactivat/cancelat).
+// Ara es #10b981 (emerald verd) per indicar que l'escenari esta LLEST per
+// executar-se -- una lectura positiva, no neutral. El gris s'ha reservat
+// per als estats realment inactius (cancelled a RunsPage).
 const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
-  idle:      { color: '#10b981', label: 'Llest',       bg: 'rgba(16,185,129,0.10)' },
-  pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  },
-  running:   { color: '#3b82f6', label: 'En execució', bg: 'rgba(59,130,246,0.1)'  },
-  completed: { color: '#22c55e', label: 'Completat',   bg: 'rgba(34,197,94,0.1)'   },
-  error:     { color: '#ef4444', label: 'Error',       bg: 'rgba(239,68,68,0.1)'   },
+  idle:      { color: '#10b981', label: 'Llest',       bg: 'rgba(16,185,129,0.10)' }, // verd: llest per executar
+  pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  }, // ambre: esperant inici al cluster
+  running:   { color: '#3b82f6', label: 'En execucio', bg: 'rgba(59,130,246,0.1)'  }, // blau: execucio activa
+  completed: { color: '#22c55e', label: 'Completat',   bg: 'rgba(34,197,94,0.1)'   }, // verd fort: finalitzat correctament
+  error:     { color: '#ef4444', label: 'Error',       bg: 'rgba(239,68,68,0.1)'   }, // vermell: ha fallat
 };
 
 const SK_STYLE = {
@@ -120,7 +196,20 @@ const SK_STYLE = {
   borderRadius: 4,
 };
 
-// ── Predefined Presets ─────────────────────────────────────────────────────────
+// ── Presets predefinits ────────────────────────────────────────────────────────
+// Configuracions de benchmark optimitzades per a casos d'us habituals.
+// No es creen directament com a escenaris -- son plantilles que pre-omplen
+// el formulari de creacio quan l'usuari fa clic a "Usar com a base".
+// Aixo permet al usuari partir d'una configuracio recomanada i ajustar-la.
+//
+// Cadascun representa una combinacio real:
+//   - Finances: AMQP + RabbitMQ -- missatgeria garantida, zero perdua
+//   - IoT:      NATS + NATS Server -- throughput maxim, payload minim
+//   - Video 4K: Kafka + Confluent -- alt throughput, tolera latencia
+//   - Ultra-low latency: gRPC + Kafka -- processat rapid, sincronic
+//   - Video 8K: Kafka + Confluent -- carrega maxima (NOTA: pot mostrar
+//               0ms/0 throughput si Kafka no esta configurat per a
+//               missatges >1MB. Veure comentari a DATA_FORMATS.)
 const PREDEFINED_PRESETS = [
   {
     name:         'Finances sense pèrdua',
@@ -262,6 +351,26 @@ const makeSelStyle = (active: boolean, accentColor?: string): React.CSSPropertie
 });
 
 // ── Modal: Crear / Editar ──────────────────────────────────────────────────────
+/**
+ * ScenarioModal -- Formulari per crear o editar un escenari.
+ *
+ * Mode 'create': formulari buit (o pre-omplert des d'un preset o URL params).
+ * Mode 'edit':   formulari pre-omplert amb les dades de l'escenari existent.
+ *
+ * Ordre recomanat al formulari:
+ *   1. Nom (identificatiu)
+ *   2. Plataforma (filtra les opcions d'arquitectura i protocol)
+ *   3. Arquitectura + Protocol (restringits per la plataforma)
+ *   4. Mode indefinit (toggle -- si actiu, desactiva durada/ratio/payload)
+ *   5. Durada / Ratio / Payload (si no es indefinit)
+ *   6. Format de dades
+ *
+ * Props:
+ *   mode:    'create' o 'edit'
+ *   initial: valors inicials del formulari (EMPTY_FORM per a creacio)
+ *   onClose: callback quan es tanca sense desar
+ *   onSaved: callback quan s'ha desat correctament (re-carrega la llista)
+ */
 const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   mode: 'create' | 'edit';
   initial: typeof EMPTY_FORM & { id?: string; createdAt?: string };
@@ -271,14 +380,23 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   const [form,       setForm]       = useState({ ...EMPTY_FORM, ...initial });
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState('');
-  // Indefinit flag — initialize from existing scenario duration
+  // Mode indefinit: actiu quan la durada inicial es >= 3600s (1 hora).
+  // En mode indefinit, durada/ratio/payload es desactiven i l'escenari
+  // s'executa amb valors per defecte del format fins ser aturat manualment.
   const [indefinite, setIndefinite] = useState(
     initial.duration !== undefined && initial.duration !== '' && Number(initial.duration) >= 3600
   );
 
+  /**
+   * Actualitza un camp del formulari.
+   * Cas especial per 'platform': reseteja arquitectura i protocol si
+   * els valors actuals son incompatibles amb la nova plataforma.
+   * Aixo evita que l'usuari enviï combinacions invalides.
+   */
   const set = (k: string, v: string) => {
     if (k === 'platform') {
       const ca = getCompatibleArchitectures(v), cp = getCompatibleProtocols(v);
+      // Manté l'arquitectura/protocol actual si son compatibles; sino els buida
       setForm(f => ({ ...f, platform: v, architecture: ca.includes(f.architecture) ? f.architecture : '', protocol: cp.includes(f.protocol) ? f.protocol : '' }));
     } else setForm(f => ({ ...f, [k]: v }));
   };
@@ -286,9 +404,15 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   const ca = getCompatibleArchitectures(form.platform);
   const cp = getCompatibleProtocols(form.platform);
 
+  /**
+   * Envia el formulari al scenario-service (POST per crear, PUT per editar).
+   * En mode indefinit, durada=3600 i rate/payloadSize=null (valors per defecte).
+   * predefined=false: els escenaris creats per usuari mai son "de sistema".
+   * status='idle': l'escenari comenca en estat llest, no s'executa automaticament.
+   */
   const handleSubmit = async () => {
     if (!form.name.trim() || !form.architecture || !form.protocol || !form.platform) {
-      setError('El nom, arquitectura, protocol i plataforma són obligatoris.'); return;
+      setError('El nom, arquitectura, protocol i plataforma son obligatoris.'); return;
     }
     setSaving(true); setError('');
     try {
@@ -297,13 +421,15 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
         architecture: form.architecture,
         protocol:     form.protocol,
         platform:     form.platform,
+        // Mode indefinit: durada fixa a 3600s (limit de seguretat), sense ratio/payload
         duration:     indefinite ? 3600 : (form.duration    ? Number(form.duration)    : undefined),
         rate:         indefinite ? null : (form.rate        ? Number(form.rate)        : undefined),
         payloadSize:  indefinite ? null : (form.payloadSize ? Number(form.payloadSize) : undefined),
         dataFormat:   form.dataFormat || 'default',
-        predefined:   false,
-        status:       'idle',
+        predefined:   false,   // mai un escenari d'usuari sera de sistema
+        status:       'idle',  // comenca en estat llest
       };
+      // Preserva createdAt en edicio per no perdre l'historial de quan es va crear
       if (mode === 'edit' && initial.createdAt) payload.createdAt = initial.createdAt;
       const url = mode === 'edit' && initial.id ? `${API_BASE}/scenarios/${initial.id}` : `${API_BASE}/scenarios`;
       const r = await fetch(url, {
@@ -843,6 +969,28 @@ const ScenarioGuide = () => {
 };
 
 // ── ScenariosPage ──────────────────────────────────────────────────────────────
+/**
+ * ScenariosPage -- Pagina principal de gestio d'escenaris.
+ *
+ * Estat local:
+ *   scenarios:        llista de tots els escenaris del scenario-service
+ *   loading:          true mentre carrega la llista inicial
+ *   error:            missatge d'error si la peticio falla
+ *   filterArch/Proto/Platform/DataFormat: filtres actius per la taula
+ *   hoveredRow:       index de la fila amb mouse damunt
+ *   selectedScenario: escenari seleccionat (mostra panell de detall lateral)
+ *   showModal:        true quan el modal crear/editar esta obert
+ *   editScenario:     dades inicials del modal (null=crear, objecte=editar)
+ *   deleteTarget:     escenari pendent d'eliminacio (mostra modal confirm)
+ *   executeTarget:    escenari pendent d'execucio (mostra modal ExecuteModal)
+ *   toast:            notificacio temporal (desapareix als 4s)
+ *   runningMap:       mapa scenarioId -> runId dels runs actius al cluster
+ *                     (actualitzat cada 6s per polling a l'orquestrador)
+ *   sortKey/sortDir:  columna i direccio d'ordenacio actuals
+ *   selectedIds:      set d'IDs seleccionats per execucio en lot (bulk)
+ *   bulkExecuting:    true mentre s'estan llançant els escenaris en lot
+ *   searchQuery:      text de cerca sobre nom/arquitectura/protocol/plataforma
+ */
 export const ScenariosPage = () => {
   const [scenarios,        setScenarios]        = useState<Scenario[]>([]);
   const [loading,          setLoading]          = useState(true);
@@ -858,9 +1006,13 @@ export const ScenariosPage = () => {
   const [deleteTarget,     setDeleteTarget]     = useState<Scenario | null>(null);
   const [executeTarget,    setExecuteTarget]    = useState<Scenario | null>(null);
   const [toast,            setToast]            = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  // runningMap: clau=scenarioId, valor=runId de l'execucio activa.
+  // S'usa per saber quins escenaris estan corrent ara mateix sense
+  // haver de consultar el scenario-service (que no te aquesta info).
   const [runningMap,       setRunningMap]       = useState<Record<string, string>>({});
   const [sortKey,          setSortKey]          = useState<string | null>(null);
   const [sortDir,          setSortDir]          = useState<SortDir | null>(null);
+  // selectedIds: set per a execucio en lot. Nomes escenaris no en execucio.
   const [selectedIds,      setSelectedIds]      = useState<Set<string>>(new Set());
   const [bulkExecuting,    setBulkExecuting]    = useState(false);
   const [searchQuery,      setSearchQuery]      = useState('');
@@ -873,6 +1025,16 @@ export const ScenariosPage = () => {
 
   useEffect(() => { document.title = 'Escenaris | APIs Asíncrones'; }, []);
 
+  /**
+   * Carrega el mapa d'execucions actives des de l'orquestrador.
+   * Filtra nomes els runs amb status 'running' o 'pending' i construeix
+   * un mapa scenarioId -> runId per poder identificar rapidament quins
+   * escenaris estan en execucio sense fer N peticions individuals.
+   *
+   * S'executa en muntar el component i cada 6s (polling lleuger).
+   * 6s es un bon balanç: prou rapid per detectar canvis d'estat,
+   * prou lent per no saturar l'orquestrador amb peticions.
+   */
   const fetchRunningMap = useCallback(() => {
     fetch(`${ORCHESTRATOR}/runs`)
       .then(r => r.json())
@@ -884,15 +1046,22 @@ export const ScenariosPage = () => {
           setRunningMap(map);
         }
       })
-      .catch(() => {});
+      .catch(() => {}); // errors silenciosos: si falla no afecta la UI principal
   }, []);
 
   useEffect(() => {
     fetchRunningMap();
-    const i = setInterval(fetchRunningMap, 6000);
-    return () => clearInterval(i);
+    const i = setInterval(fetchRunningMap, 6000); // polling cada 6s
+    return () => clearInterval(i); // cleanup en desmuntar per evitar memory leaks
   }, [fetchRunningMap]);
 
+  /**
+   * Suport per a deep-linking des d'altres pagines:
+   * /escenaris?create=true&name=X&architecture=Y&...
+   * Obre el modal de creacio pre-omplert amb els parametres de la URL.
+   * S'usa des de CatalogPage ("Crear escenari") i HomePage.
+   * Un cop llegits els params, es neteja la URL per evitar re-obertures.
+   */
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get('create') === 'true') {
@@ -903,8 +1072,10 @@ export const ScenariosPage = () => {
         duration: params.get('duration') || '', rate: params.get('rate') || '',
         payloadSize: params.get('payloadSize') || '', dataFormat: '',
       };
+      // _prefill: flag intern per indicar que es un formulari pre-omplert
+      // sense ID, aixi el modal sap que es crear (no editar)
       if (prefill.name) setEditScenario({ ...prefill, _prefill: true });
-      window.history.replaceState({}, '', '/escenaris');
+      window.history.replaceState({}, '', '/escenaris'); // neteja URL
     }
   }, []);
 
@@ -964,15 +1135,21 @@ export const ScenariosPage = () => {
     } catch (e: any) { setToast({ message: 'Error en aturar: ' + e.message, type: 'error' }); }
   };
 
-  // Optimistic update quan un escenari comenca a executar-se
+  /**
+   * Actualitzacio optimista quan un escenari acaba de llançar-se.
+   * Afegeix immediatament el nou run al mapa sense esperar el proper
+   * polling (millor UX: l'indicador verd apareix a l'instant).
+   * Despres de 2s i 5s es confirma l'estat real amb l'orquestrador
+   * per assegurar consistencia si hi ha delays de Kubernetes.
+   */
   const handleScenarioStarted = (scenarioId: string, runId: string) => {
     setRunningMap(prev => ({ ...prev, [scenarioId]: runId }));
-    // Re-fetch amb delay per confirmar l'estat real
-    setTimeout(fetchRunningMap, 2000);
-    setTimeout(fetchRunningMap, 5000);
+    setTimeout(fetchRunningMap, 2000); // confirma despres del primer heartbeat
+    setTimeout(fetchRunningMap, 5000); // reconfirma quan el pod esta arrencat
   };
 
-  // ── Batch execution ──
+  // ── Seleccio per a execucio en lot ────────────────────────────────────────────
+  /** Toggle de seleccio d'un escenari individual per a execucio en lot. */
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const s = new Set(prev);
@@ -992,6 +1169,14 @@ export const ScenariosPage = () => {
     });
   };
 
+  /**
+   * Execucio en lot: llança tots els escenaris seleccionats sequencialment.
+   * Per que sequencial i no concurrent?
+   *   - Cada llançament crea un namespace i un Job a Kubernetes.
+   *   - Llançar molts Jobs alhora pot sobrecarregar el control plane d'AKS.
+   *   - 800ms de delay entre llançaments dona temps a l'API server per processar.
+   * Nomes s'executen escenaris no en execucio (runningMap filtra els actius).
+   */
   const handleBulkExecute = async () => {
     const toExecute = sortedFiltered.filter(s => s.id && selectedIds.has(s.id!) && !runningMap[s.id!]);
     if (toExecute.length === 0) return;
@@ -1015,7 +1200,7 @@ export const ScenariosPage = () => {
           okCount++;
         } else { errCount++; }
       } catch { errCount++; }
-      // Small delay between launches to avoid overwhelming the cluster
+      // Delay entre llançaments per no sobrecarregar l'API server de Kubernetes
       await new Promise(r => setTimeout(r, 800));
     }
     setBulkExecuting(false);
@@ -1124,12 +1309,20 @@ export const ScenariosPage = () => {
         </button>
       </div>
 
-      {/* ── Stats strip ── */}
+      {/* ── Stats strip ────────────────────────────────────────────────────────
+           CANVI: anteriorment hi havia 4 stats: Total, Predefinits, Propis,
+           En execucio. Els stats "Predefinits" i "Propis" s'han eliminat
+           perque eren soroll visual sense valor actionable:
+             - "Predefinits": el usuari no pot canviar quants n'hi ha
+             - "Propis": ja esta implic en Total - En execucio
+           Ara nomes es mostren Total (context general) i
+           "En execucio" (informacio d'estat en temps real, actionable).
+      ── */}
       {!loading && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
             { label: 'Total',       value: scenarios.length,              color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execució', value: Object.keys(runningMap).length, color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
+            { label: 'En execucio', value: Object.keys(runningMap).length, color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
