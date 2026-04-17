@@ -3,35 +3,38 @@
 # deploy-all.sh
 #
 # Full deploy pipeline for the APIs Asincrones Backstage portal and
-# supporting microservices. Run from the repo root after any source
-# change to rebuild images, push to ACR, and restart all pods.
+# supporting microservices. Designed to run from Azure Cloud Shell
+# (no local yarn/docker needed) using `az acr build` for cloud-side builds.
+#
+# Flow per service: az acr build -> kubectl rollout restart.
 #
 # Flags:
-#   --skip-build       Skip the yarn tsc + yarn build:backend step
-#                      (use when you only changed microservices, not Backstage)
-#   --only <svc>       Build and push only one service, then restart only that
-#                      deployment (e.g. --only backstage, --only metrics-api)
-#   --no-restart       Build + push only, do not touch the cluster
-#   --help             Show this message
+#   --only <svc>    Build+restart only one service (backstage, catalog-service,
+#                   scenario-service, benchmark-orchestrator, metrics-api)
+#   --no-restart    Build+push only, do not touch the cluster
+#   --restart-only  Skip all builds, only restart the deployments (force pull
+#                   :latest from ACR via imagePullPolicy: Always)
+#   --help          Show this message
 #
-# Requires: yarn, az cli, docker (running), kubectl configured for the AKS.
+# Requires: az CLI (logged in), kubectl configured for the AKS.
 # -----------------------------------------------------------------------------
 set -e
 
-ACR="feinaregistry.azurecr.io"
+ACR_NAME="feinaregistry"
+ACR="${ACR_NAME}.azurecr.io"
 NAMESPACE="apis-asincronas"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-SKIP_BUILD=0
 ONLY=""
 NO_RESTART=0
+RESTART_ONLY=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --skip-build) SKIP_BUILD=1; shift ;;
     --only) ONLY="$2"; shift 2 ;;
     --no-restart) NO_RESTART=1; shift ;;
+    --restart-only) RESTART_ONLY=1; shift ;;
     --help|-h)
-      sed -n '3,16p' "$0"; exit 0 ;;
+      sed -n '3,20p' "$0"; exit 0 ;;
     *) echo "Unknown arg: $1"; exit 1 ;;
   esac
 done
@@ -39,55 +42,61 @@ done
 echo "=== Deploy APIs Asincrones ==="
 echo "Directori: $REPO_DIR"
 [[ -n "$ONLY" ]] && echo "Mode: nomes $ONLY"
+[[ $RESTART_ONLY -eq 1 ]] && echo "Mode: nomes restart (no build)"
 
 # -----------------------------------------------------------------------------
-# STEP 0: Rebuild the Backstage frontend+backend bundle.
-# The backend Dockerfile does NOT compile TypeScript - it just packages
-# packages/backend/dist/bundle.tar.gz. So a fresh build here is MANDATORY
-# whenever plugins/feina/src/* changes, or the deployed image will contain
-# stale code even after rollout.
+# Service -> (Dockerfile path, build context) mapping.
+# backstage uses a multi-stage Dockerfile under packages/backend/ and the
+# build context must be the repo root so the Dockerfile can see all plugins.
+# Microservices build from their own package directory.
 # -----------------------------------------------------------------------------
-if [[ $SKIP_BUILD -eq 0 ]] && { [[ -z "$ONLY" ]] || [[ "$ONLY" == "backstage" ]]; }; then
-  echo ""
-  echo "--- Build local backstage (yarn tsc + build:backend) ---"
-  cd "$REPO_DIR"
-  yarn tsc
-  yarn build:backend
-  echo "  -> packages/backend/dist/bundle.tar.gz fresh"
-fi
-
-# 1. Login ACR
-echo ""
-echo "--- Login ACR ---"
-az acr login --name feinaregistry
-
-# 2. Build i push de cada servei
-echo ""
-echo "--- Build i Push imatges ---"
-
-# Backstage (build des de l'arrel) - skip if --only is set to something else
-if [[ -z "$ONLY" ]] || [[ "$ONLY" == "backstage" ]]; then
-  echo "Building backstage..."
-  docker build -t $ACR/backstage:latest -f packages/backend/Dockerfile $REPO_DIR
-  docker push $ACR/backstage:latest
-  echo "  -> backstage pushed"
-fi
-
-# Microserveis
+declare -A DOCKERFILES
+declare -A CONTEXTS
+DOCKERFILES[backstage]="packages/backend/Dockerfile"
+CONTEXTS[backstage]="."
 for svc in catalog-service scenario-service benchmark-orchestrator metrics-api; do
-  # Respect --only filter
-  if [[ -n "$ONLY" ]] && [[ "$ONLY" != "$svc" ]]; then continue; fi
-  if [ -f "$REPO_DIR/packages/$svc/Dockerfile" ]; then
-    echo "Building $svc..."
-    docker build -t $ACR/$svc:latest $REPO_DIR/packages/$svc
-    docker push $ACR/$svc:latest
-    echo "  -> $svc pushed"
-  else
-    echo "  !! Dockerfile no trobat per $svc, saltant..."
-  fi
+  DOCKERFILES[$svc]="packages/$svc/Dockerfile"
+  CONTEXTS[$svc]="packages/$svc"
 done
 
-# 3. Rollout restart de tots els deployments
+# Build order. If --only is set, it's just that one.
+if [[ -n "$ONLY" ]]; then
+  BUILD_LIST=("$ONLY")
+else
+  BUILD_LIST=(backstage catalog-service scenario-service benchmark-orchestrator metrics-api)
+fi
+
+# -----------------------------------------------------------------------------
+# STEP 1: ACR build per service (skipped if --restart-only).
+# `az acr build` uploads the source to ACR and builds the image there,
+# so no local docker/yarn toolchain is required.
+# -----------------------------------------------------------------------------
+if [[ $RESTART_ONLY -eq 0 ]]; then
+  echo ""
+  echo "--- Build i Push imatges (az acr build) ---"
+  cd "$REPO_DIR"
+  for svc in "${BUILD_LIST[@]}"; do
+    df="${DOCKERFILES[$svc]}"
+    ctx="${CONTEXTS[$svc]}"
+    if [[ ! -f "$REPO_DIR/$df" ]]; then
+      echo "  !! Dockerfile no trobat: $df -> skipping $svc"
+      continue
+    fi
+    echo ""
+    echo "Building $svc  (dockerfile=$df  context=$ctx)"
+    az acr build \
+      --registry "$ACR_NAME" \
+      --image "$svc:latest" \
+      --file "$df" \
+      "$ctx"
+    echo "  -> $svc pushed to $ACR"
+  done
+fi
+
+# -----------------------------------------------------------------------------
+# STEP 2: rollout restart. `imagePullPolicy: Always` + `:latest` tag means
+# the restart forces a fresh pull.
+# -----------------------------------------------------------------------------
 if [[ $NO_RESTART -eq 1 ]]; then
   echo ""
   echo "--- Skipping rollout (--no-restart) ---"
@@ -97,35 +106,41 @@ fi
 
 echo ""
 echo "--- Rollout restart ---"
-# List of deployments to restart. If --only was used, only that one.
 if [[ -n "$ONLY" ]]; then
   TARGETS=("$ONLY")
 else
-  # grafana and elasticsearch don't have images built here but we still
-  # restart them so they re-mount any updated config and get fresh connections.
+  # grafana + elasticsearch dont have images built here but still restart
+  # them so they pick up any config-map changes and new backend connections.
   TARGETS=(backstage catalog-service scenario-service benchmark-orchestrator metrics-api grafana elasticsearch)
 fi
 for svc in "${TARGETS[@]}"; do
-  kubectl rollout restart deployment/$svc -n $NAMESPACE 2>/dev/null || {
+  if ! kubectl get deployment/$svc -n "$NAMESPACE" >/dev/null 2>&1; then
     echo "  !! no deployment/$svc in namespace, skipping"
     continue
-  }
+  fi
+  kubectl rollout restart deployment/$svc -n "$NAMESPACE"
   echo "  -> $svc restarted"
 done
 
-# 4. Espera que tots estiguin Ready
+# -----------------------------------------------------------------------------
+# STEP 3: wait for rollouts to complete.
+# -----------------------------------------------------------------------------
 echo ""
 echo "--- Esperant pods ---"
 for svc in "${TARGETS[@]}"; do
-  # 180s for backstage (big image), 60s for the rest
+  if ! kubectl get deployment/$svc -n "$NAMESPACE" >/dev/null 2>&1; then
+    continue
+  fi
   TIMEOUT=60s
-  [[ "$svc" == "backstage" ]] && TIMEOUT=180s
-  kubectl rollout status deployment/$svc -n $NAMESPACE --timeout=$TIMEOUT 2>/dev/null || true
+  [[ "$svc" == "backstage" ]] && TIMEOUT=240s
+  kubectl rollout status deployment/$svc -n "$NAMESPACE" --timeout=$TIMEOUT || true
 done
 
-# 5. Estat final
+# -----------------------------------------------------------------------------
+# STEP 4: final state.
+# -----------------------------------------------------------------------------
 echo ""
 echo "--- Estat final ---"
-kubectl get pods -n $NAMESPACE
+kubectl get pods -n "$NAMESPACE"
 echo ""
 echo "=== Deploy completat ==="
