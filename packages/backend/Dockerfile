@@ -60,6 +60,11 @@ RUN apt-get update && \
         python3 g++ build-essential libsqlite3-dev && \
     rm -rf /var/lib/apt/lists/*
 
+# Create /app owned by the node user BEFORE switching user. Without this,
+# WORKDIR creates /app as root and subsequent COPY/RUN as `node` fail with
+# "Cannot mkdir: Permission denied". BuildKit would handle this automatically,
+# but `az acr build` uses the legacy docker builder by default.
+RUN mkdir -p /app && chown -R node:node /app
 USER node
 WORKDIR /app
 
