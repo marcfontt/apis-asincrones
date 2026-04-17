@@ -80,8 +80,7 @@ COPY --from=build --chown=node:node /build/packages/backend/dist/skeleton.tar.gz
 RUN tar xzf skeleton.tar.gz && rm skeleton.tar.gz
 RUN yarn workspaces focus --all --production && rm -rf "$(yarn cache clean)"
 
-# Copy examples (catalog seed data) and the app-config YAML files.
-COPY --from=build --chown=node:node /build/examples ./examples
+# Copy app-config YAML files.
 COPY --from=build --chown=node:node /build/app-config.yaml ./app-config.yaml
 COPY --from=build --chown=node:node /build/app-config.production.yaml ./app-config.production.yaml
 
