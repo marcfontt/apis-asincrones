@@ -967,6 +967,11 @@ const HistorialTab = () => {
   const [filterArch, setFilterArch] = useState<string[]>([]);
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
 
+  // Time range filter: hides runs older than the selected duration.
+  // Default "24h" avoids showing weeks of old data that inflate the history.
+  // Key maps to milliseconds; 'all' disables the filter entirely.
+  const [filterTimeRange, setFilterTimeRange] = useState<'1h' | '24h' | '7d' | 'all'>('24h');
+
   // Controls visibility of the secondary filters (protocol/platform/arch)
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -1090,6 +1095,17 @@ const HistorialTab = () => {
   const toggle = (list: string[], set: (v: string[]) => void, val: string) =>
     set(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
 
+  // Time-range cutoff. Runs whose latest activity is older than this
+  // are hidden. `startedAt` / `timestamp` / `lastSampleAt` field names
+  // are checked in that priority order.
+  const rangeMs: Record<string, number | null> = {
+    '1h': 60 * 60 * 1000,
+    '24h': 24 * 60 * 60 * 1000,
+    '7d': 7 * 24 * 60 * 60 * 1000,
+    'all': null,
+  };
+  const timeCutoff = rangeMs[filterTimeRange] != null ? Date.now() - (rangeMs[filterTimeRange] as number) : null;
+
   // Apply all active filters to the full summary set
   const filteredSummary = syncedSummary.filter(s => {
     const platform = normalizePlatform(s.platform || s.broker) || '';
@@ -1097,12 +1113,24 @@ const HistorialTab = () => {
     if (filterProtocol.length && !filterProtocol.includes(s.protocol || '')) return false;
     if (filterArch.length && !filterArch.includes(s.architecture || '')) return false;
     if (filterDataFormat.length && !filterDataFormat.includes(dataFormatOf(s))) return false;
+    if (timeCutoff != null) {
+      const raw = s.lastSampleAt ?? s.endedAt ?? s.startedAt ?? s.timestamp ?? s['@timestamp'];
+      if (raw != null && raw !== '') {
+        const t = typeof raw === 'number' ? raw : new Date(raw).getTime();
+        if (isFinite(t) && t < timeCutoff) return false;
+      }
+    }
     return true;
   });
 
-  // Total count of active filter selections across all filter groups
-  const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length + filterDataFormat.length;
-  const clearFilters = () => { setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]); setFilterDataFormat([]); };
+  // Total count of active filter selections across all filter groups.
+  // Time range counts if not 'all' (the default '24h' DOES count so the
+  // user sees there is an active filter hiding older data).
+  const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length + filterDataFormat.length + (filterTimeRange !== 'all' ? 1 : 0);
+  const clearFilters = () => {
+    setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]);
+    setFilterDataFormat([]); setFilterTimeRange('all');
+  };
 
   // Compute per-run scores for the filtered set.
   // `percentileMap` is used as a fallback when the server summary lacks
@@ -1155,9 +1183,33 @@ const HistorialTab = () => {
 
       {/* Filter bar */}
       <div style={{ ...S.card, marginBottom: 20 }}>
+        {/* Time range filter - primary filter to hide old runs. Default 24h
+            prevents the table from showing weeks of test data. */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+            Periode
+          </div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {([
+              { v: '1h' as const, l: 'Ultima hora' },
+              { v: '24h' as const, l: 'Ultimes 24h' },
+              { v: '7d' as const, l: 'Ultims 7 dies' },
+              { v: 'all' as const, l: 'Tot' },
+            ]).map(opt => (
+              <Chip
+                key={opt.v}
+                label={opt.l}
+                active={filterTimeRange === opt.v}
+                color="#06b6d4"
+                onClick={() => setFilterTimeRange(opt.v)}
+              />
+            ))}
+          </div>
+        </div>
+
         {/* Data format filter - always visible (primary filter, most commonly used) */}
         {availDataFormats.length > 0 && (
-          <div style={{ marginBottom: filtersOpen || availDataFormats.length > 0 ? 14 : 0 }}>
+          <div style={{ marginBottom: filtersOpen || availDataFormats.length > 0 ? 14 : 0, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Format de Dades</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {availDataFormats.map(f => (
@@ -1663,20 +1715,10 @@ const LiveTab = () => {
   // -------------------------------------------------------------------------
   const [liveSince, setLiveSince] = useState<number>(0);
 
-  // Look up the selected run's own startedAt, if the orchestrator provides it.
-  // Using the run's own timestamp is more accurate than wall-clock selection
-  // time (e.g. if the user selects a run that was just started server-side).
-  const selectedRun = activeRuns.find(r => r.id === selectedRunId);
-  const selectedRunStartedAt = selectedRun
-    ? Date.parse(
-        selectedRun.startedAt ||
-        selectedRun.started_at ||
-        selectedRun.createdAt ||
-        selectedRun.created_at ||
-        selectedRun.timestamp ||
-        ''
-      )
-    : NaN;
+  // (selectedRunStartedAt removed - the first-poll baseline trick in the
+  // metrics polling effect makes run-startedAt redundant. Kept the lookup
+  // of selectedRun for the RunCard UI in case it's needed later.)
+  // const selectedRun = activeRuns.find(r => r.id === selectedRunId);
 
   // Metrics polling: resets and restarts when selectedRunId changes
   useEffect(() => {
@@ -1687,26 +1729,61 @@ const LiveTab = () => {
       return;
     }
 
-    // Choose the latest of: server-reported startedAt, or now.
-    // Subtract 2s buffer so we do not accidentally exclude samples
-    // that were emitted very slightly before the boundary due to
-    // clock skew between server and browser.
-    const now = Date.now();
-    const startedAt = isFinite(selectedRunStartedAt) ? selectedRunStartedAt : now;
-    const boundary = Math.max(startedAt, now) - 2000;
-    setLiveSince(boundary);
-
+    // Initial boundary = now - 2s buffer. The first poll response is
+    // used to advance this boundary past any existing (stale) samples
+    // already stored for this runId — see `isFirstPoll` below.
+    setLiveSince(Date.now() - 2000);
     setMetrics([]);
     setPolling(true);
     setPollError('');
 
+    // FIRST POLL BASELINE TRICK:
+    //
+    // The backend appears to reuse runIds or otherwise return historical
+    // samples in the first /metrics?runId=X response. The user reports
+    // seeing 3000+ samples the moment a new scenario is started.
+    //
+    // Fix: the first poll's data is treated as a pre-existing stale
+    // baseline. We advance `liveSince` to the maximum timestamp in that
+    // batch +1ms so ONLY samples that arrive on subsequent polls pass
+    // the filter. Subsequent polls still store the full array (including
+    // the baseline), but the filter rejects anything older than liveSince.
+    //
+    // Robust timestamp parsing: handles numeric epoch, ISO string, and
+    // multiple field names (timestamp, time, @timestamp, ts).
+    let isFirstPoll = true;
+
+    const parseTs = (m: any): number => {
+      const raw = m.timestamp ?? m.time ?? m['@timestamp'] ?? m.ts;
+      if (raw == null || raw === '') return NaN;
+      if (typeof raw === 'number') return raw; // epoch ms
+      const n = new Date(raw).getTime();
+      return isFinite(n) ? n : NaN;
+    };
+
     const poll = async () => {
       try {
-        // Always fetch by runId only - never fall back to scenarioId.
-        // Falling back to scenarioId would show old historical data from
-        // previous runs of the same scenario, misleading the live view.
         const data = await fetch(`${METRICS_BASE}/metrics?runId=${selectedRunId}`).then(r => r.json()).catch(() => null);
-        if (Array.isArray(data) && data.length > 0) {
+        if (!Array.isArray(data)) return;
+
+        if (isFirstPoll) {
+          isFirstPoll = false;
+          // Advance liveSince past the max timestamp in the baseline batch.
+          // Anything from now on must be strictly newer.
+          const timestamps = data.map(parseTs).filter(t => isFinite(t) && t > 0);
+          if (timestamps.length > 0) {
+            const maxTs = Math.max(...timestamps);
+            setLiveSince(maxTs + 1);
+          }
+          // Keep the raw metrics stored so subsequent polls merge cleanly;
+          // the filter at render time will hide them.
+          setMetrics(data);
+          setLastUpdate(new Date());
+          setPollError('');
+          return;
+        }
+
+        if (data.length > 0) {
           setMetrics(data);
           setLastUpdate(new Date());
           setPollError('');
@@ -1714,19 +1791,24 @@ const LiveTab = () => {
       } catch (e: any) { setPollError(e.message); }
     };
 
-    poll(); // Immediate first fetch, then interval
+    poll(); // Immediate first fetch (acts as baseline), then interval
     const i = setInterval(poll, 3000);
     return () => { clearInterval(i); setPolling(false); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRunId]);
 
   // Apply the defensive timestamp filter: drop any sample older than
-  // `liveSince`. This is the key fix that prevents re-executed scenarios
-  // from showing stale samples from previous runs.
+  // `liveSince`. Robust parsing that handles numeric epoch-ms and
+  // ISO strings across multiple field names. Samples WITHOUT a parseable
+  // timestamp are REJECTED (previously accepted defensively, which let
+  // stale data through). Combined with the first-poll baseline trick
+  // this guarantees a clean start for every re-executed run.
   const filteredMetrics = metrics.filter(m => {
     if (!liveSince) return true; // no boundary yet, accept everything
-    const t = Date.parse(m.timestamp || m.time || m['@timestamp'] || '');
-    if (!isFinite(t)) return true; // no timestamp, accept defensively
+    const raw = m.timestamp ?? m.time ?? m['@timestamp'] ?? m.ts;
+    if (raw == null || raw === '') return false;
+    const t = typeof raw === 'number' ? raw : new Date(raw).getTime();
+    if (!isFinite(t)) return false;
     return t >= liveSince;
   });
 
