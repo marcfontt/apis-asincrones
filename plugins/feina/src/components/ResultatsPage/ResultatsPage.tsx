@@ -279,9 +279,9 @@ const computeScores = (
   }
 
   // Accessors - prefer server-side P50/P99 (p50Latency/p99Latency), fall back
-  // to legacy client-computed percentileMap for backward compatibility
-  const getP50 = (s: any) => s.p50Latency ?? percentileMap[s.scenarioId]?.p50 ?? null;
-  const getP99 = (s: any) => s.p99Latency ?? percentileMap[s.scenarioId]?.p99 ?? null;
+  // to client-computed percentileMap keyed by runId (or scenarioId for legacy)
+  const getP50 = (s: any) => s.p50Latency ?? percentileMap[s.runId]?.p50 ?? percentileMap[s.scenarioId]?.p50 ?? null;
+  const getP99 = (s: any) => s.p99Latency ?? percentileMap[s.runId]?.p99 ?? percentileMap[s.scenarioId]?.p99 ?? null;
   const getLat = (s: any) => s.avgLatency ?? null;
   const getTput = (s: any) => s.avgThroughput ?? null;
   const getErr = (s: any) => s.avgErrorRate ?? null;
@@ -956,6 +956,11 @@ const HistorialTab = () => {
   const [scenarios, setScenarios] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Client-side computed percentiles, keyed by runId. Populated lazily by
+  // fetching /metrics?runId=X for runs that lack p50Latency/p99Latency in the
+  // summary response. See the useEffect below for details.
+  const [percentileMap, setPercentileMap] = useState<Record<string, { p50: number | null; p99: number | null }>>({});
+
   // Filter state - each is an array of selected values (empty = no filter)
   const [filterPlatform, setFilterPlatform] = useState<string[]>([]);
   const [filterProtocol, setFilterProtocol] = useState<string[]>([]);
@@ -984,6 +989,74 @@ const HistorialTab = () => {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // -------------------------------------------------------------------------
+  // Client-side percentile fallback.
+  //
+  // The /metrics/summary endpoint is supposed to return server-computed
+  // p50Latency and p99Latency via Elasticsearch percentiles aggregation.
+  // In practice these fields are frequently missing (backend aggregation
+  // not populated, field renamed, etc.), which causes the table P50/P99
+  // columns to show "-".
+  //
+  // Fix: for any run whose summary doc lacks p50Latency/p99Latency, fetch
+  // its raw metrics by runId and compute the percentiles client-side.
+  // Results are cached in `percentileMap` keyed by runId so each run is
+  // only fetched once per page load.
+  //
+  // Performance: runs are fetched in parallel batches of 6 to avoid
+  // hammering the metrics-api with dozens of simultaneous requests.
+  // Runs without a runId (very old data) are skipped.
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (summary.length === 0) return;
+    // Only fetch percentiles for runs that need them and haven't been
+    // fetched yet. This makes the effect idempotent across re-renders.
+    const runsNeedingPercentiles = summary.filter(s => {
+      const rid = s.runId;
+      if (!rid) return false; // no stable key
+      if (percentileMap[rid]) return false; // already computed
+      if (s.p50Latency != null && s.p99Latency != null) return false; // server provided
+      return true;
+    });
+    if (runsNeedingPercentiles.length === 0) return;
+
+    let cancelled = false;
+    const BATCH_SIZE = 6;
+
+    const run = async () => {
+      for (let i = 0; i < runsNeedingPercentiles.length; i += BATCH_SIZE) {
+        if (cancelled) return;
+        const batch = runsNeedingPercentiles.slice(i, i + BATCH_SIZE);
+        const results = await Promise.all(batch.map(async (s: any) => {
+          try {
+            const data = await fetch(`${METRICS_BASE}/metrics?runId=${s.runId}`).then(r => r.json()).catch(() => null);
+            if (!Array.isArray(data) || data.length === 0) return { runId: s.runId, p50: null, p99: null };
+            const latencies = data.map((m: any) => m.latency ?? m.avgLatency ?? 0).filter((v: number) => v > 0);
+            return {
+              runId: s.runId,
+              p50: computePercentile(latencies, 50),
+              p99: computePercentile(latencies, 99),
+            };
+          } catch (_) {
+            return { runId: s.runId, p50: null, p99: null };
+          }
+        }));
+        if (cancelled) return;
+        // Merge the batch into percentileMap incrementally so the UI updates
+        // progressively as each batch completes (instead of waiting for all).
+        setPercentileMap(prev => {
+          const next = { ...prev };
+          for (const r of results) next[r.runId] = { p50: r.p50, p99: r.p99 };
+          return next;
+        });
+      }
+    };
+    run();
+
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [summary]);
 
   // Build lookup maps from scenario arrays for O(1) access by id
   const scenarioMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s]));
@@ -1032,9 +1105,10 @@ const HistorialTab = () => {
   const clearFilters = () => { setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]); setFilterDataFormat([]); };
 
   // Compute per-run scores for the filtered set.
-  // Passing empty {} for percentileMap because P50/P99 now come from the
-  // server-side summary (s.p50Latency / s.p99Latency) - no client computation needed.
-  const scoreMap = computeScores(filteredSummary, {}, dataFormatOf);
+  // `percentileMap` is used as a fallback when the server summary lacks
+  // p50Latency/p99Latency fields (see the percentile-fetching effect above).
+  // computeScores prefers s.p50Latency if present, falls back to map[runId].
+  const scoreMap = computeScores(filteredSummary, percentileMap, dataFormatOf);
 
   // Sort filtered scenarios by score descending - best first
   // Key uses runId first (new per-run grouping), fallback to scenarioId (legacy)
@@ -1285,11 +1359,18 @@ const HistorialTab = () => {
                     const df = dataFormatOf(s);
                     const dfColor = DATA_FORMAT_COLORS[df] || '#64748b';
 
-                    // P50/P99 now come from server-side Elasticsearch aggregations.
-                    // Previously these were computed client-side via percentileMap,
-                    // which required downloading all raw metric points.
-                    const p50Val = s.p50Latency ?? null;
-                    const p99Val = s.p99Latency ?? null;
+                    // P50/P99 resolution order:
+                    //   1. Server-side aggregation (s.p50Latency / s.p99Latency)
+                    //   2. Client-side fallback (percentileMap[runId]) - populated
+                    //      by the effect that fetches raw metrics when the server
+                    //      summary is missing percentile fields.
+                    //   3. null -> renders as "-" in the table.
+                    const pm = percentileMap[s.runId] || percentileMap[s.scenarioId];
+                    const p50Val = s.p50Latency ?? pm?.p50 ?? null;
+                    const p99Val = s.p99Latency ?? pm?.p99 ?? null;
+                    // Are we still loading the client-side fallback for this row?
+                    const percentilesLoading =
+                      s.p50Latency == null && s.p99Latency == null && !pm && !!s.runId;
 
                     // Use runId || scenarioId as scoreMap key (matches computeScores)
                     const score = scoreMap.get(s.runId || s.scenarioId) ?? 0;
@@ -1321,14 +1402,20 @@ const HistorialTab = () => {
                           {s.avgLatency != null ? <>{s.avgLatency.toFixed(2)}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-disabled)' }}>ms</span></> : '-'}
                         </td>
 
-                        {/* P50 - server-computed percentile, shown with cyan color */}
+                        {/* P50 - cyan color. Shows "..." while the client-side
+                            fallback fetches raw metrics, then the value. */}
                         <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#3b82f6' }}>
-                          {p50Val != null ? <>{p50Val.toFixed(2)}<span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>ms</span></> : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
+                          {p50Val != null
+                            ? <>{p50Val.toFixed(2)}<span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>ms</span></>
+                            : <span style={{ color: 'var(--text-disabled)' }}>{percentilesLoading ? '...' : '-'}</span>}
                         </td>
 
-                        {/* P99 - server-computed percentile, shown with purple (worst-case indicator) */}
+                        {/* P99 - purple (worst-case indicator). Same fallback
+                            semantics as P50. */}
                         <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7c3aed' }}>
-                          {p99Val != null ? <>{p99Val.toFixed(2)}<span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>ms</span></> : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
+                          {p99Val != null
+                            ? <>{p99Val.toFixed(2)}<span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>ms</span></>
+                            : <span style={{ color: 'var(--text-disabled)' }}>{percentilesLoading ? '...' : '-'}</span>}
                         </td>
 
                         {/* Throughput - green to match the throughput chart */}
@@ -1509,6 +1596,24 @@ const LiveTab = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [pollError, setPollError] = useState('');
 
+  // -------------------------------------------------------------------------
+  // Chart window selector.
+  //
+  // When a benchmark runs for a long time, the live chart accumulates
+  // hundreds or thousands of samples. At that point the SVG line becomes
+  // a dense blob where individual variations are invisible - the chart
+  // becomes useless.
+  //
+  // Fix: a windowSize selector that limits which samples are plotted.
+  // The user picks from 50 / 100 / 200 / 500 / all. The default is 100,
+  // which gives a clean readable chart while still showing recent history.
+  // Setting to "all" plots the entire sample array (old behaviour).
+  //
+  // Applies ONLY to the chart rendering and summary stat cards. The raw
+  // metrics table at the bottom still shows all samples.
+  // -------------------------------------------------------------------------
+  const [chartWindow, setChartWindow] = useState<number | 'all'>(100);
+
   /**
    * Fetches active and pending runs from the orchestrator.
    * Wrapped in useCallback so it can be used as an interval callback
@@ -1536,10 +1641,64 @@ const LiveTab = () => {
       setSelectedRunId(activeRuns[0].id);
   }, [activeRuns, selectedRunId]);
 
+  // -------------------------------------------------------------------------
+  // Defensive timestamp boundary for live samples.
+  //
+  // BUG CONTEXT: when a scenario is re-executed, the live view was
+  // showing samples from previous runs of the same scenario. Root cause
+  // is upstream (the orchestrator or metrics-api appears to return
+  // historical samples sharing the same scenarioId), but we cannot rely
+  // on fixing it there alone. This boundary is a defensive client-side
+  // filter that guarantees a fresh start regardless of backend behaviour:
+  //
+  //   1. When the user selects a run, we capture the current wall-clock
+  //      time as `liveSince`.
+  //   2. All samples received are filtered to only include those whose
+  //      timestamp is >= liveSince (with a small grace buffer so we do
+  //      not drop samples emitted slightly before selection).
+  //
+  // This ensures the live view ALWAYS starts from zero on each new run,
+  // regardless of any stale data the backend may return for the runId.
+  // The History tab is unaffected and still shows all historical data.
+  // -------------------------------------------------------------------------
+  const [liveSince, setLiveSince] = useState<number>(0);
+
+  // Look up the selected run's own startedAt, if the orchestrator provides it.
+  // Using the run's own timestamp is more accurate than wall-clock selection
+  // time (e.g. if the user selects a run that was just started server-side).
+  const selectedRun = activeRuns.find(r => r.id === selectedRunId);
+  const selectedRunStartedAt = selectedRun
+    ? Date.parse(
+        selectedRun.startedAt ||
+        selectedRun.started_at ||
+        selectedRun.createdAt ||
+        selectedRun.created_at ||
+        selectedRun.timestamp ||
+        ''
+      )
+    : NaN;
+
   // Metrics polling: resets and restarts when selectedRunId changes
   useEffect(() => {
-    if (!selectedRunId) { setMetrics([]); setPolling(false); return; }
-    setMetrics([]); setPolling(true); setPollError('');
+    if (!selectedRunId) {
+      setMetrics([]);
+      setPolling(false);
+      setLiveSince(0);
+      return;
+    }
+
+    // Choose the latest of: server-reported startedAt, or now.
+    // Subtract 2s buffer so we do not accidentally exclude samples
+    // that were emitted very slightly before the boundary due to
+    // clock skew between server and browser.
+    const now = Date.now();
+    const startedAt = isFinite(selectedRunStartedAt) ? selectedRunStartedAt : now;
+    const boundary = Math.max(startedAt, now) - 2000;
+    setLiveSince(boundary);
+
+    setMetrics([]);
+    setPolling(true);
+    setPollError('');
 
     const poll = async () => {
       try {
@@ -1558,13 +1717,30 @@ const LiveTab = () => {
     poll(); // Immediate first fetch, then interval
     const i = setInterval(poll, 3000);
     return () => { clearInterval(i); setPolling(false); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRunId]);
 
-  // Extract metric arrays from the raw data points, handling both field name variants
+  // Apply the defensive timestamp filter: drop any sample older than
+  // `liveSince`. This is the key fix that prevents re-executed scenarios
+  // from showing stale samples from previous runs.
+  const filteredMetrics = metrics.filter(m => {
+    if (!liveSince) return true; // no boundary yet, accept everything
+    const t = Date.parse(m.timestamp || m.time || m['@timestamp'] || '');
+    if (!isFinite(t)) return true; // no timestamp, accept defensively
+    return t >= liveSince;
+  });
+
+  // Apply the chart window: when not "all", only the last N samples are
+  // plotted. This keeps the chart readable as the sample count grows.
+  const windowedMetrics = chartWindow === 'all'
+    ? filteredMetrics
+    : filteredMetrics.slice(-chartWindow);
+
+  // Extract metric arrays from the windowed data points, handling both field name variants
   // (the API may return 'latency' or 'avgLatency' depending on document structure)
-  const lat = metrics.map(m => m.latency ?? m.avgLatency ?? 0);
-  const tput = metrics.map(m => m.throughput ?? m.avgThroughput ?? 0);
-  const err = metrics.map(m => m.errorRate ?? m.avgErrorRate ?? 0);
+  const lat = windowedMetrics.map(m => m.latency ?? m.avgLatency ?? 0);
+  const tput = windowedMetrics.map(m => m.throughput ?? m.avgThroughput ?? 0);
+  const err = windowedMetrics.map(m => m.errorRate ?? m.avgErrorRate ?? 0);
 
   // Helpers for computing summary statistics from the current metric arrays
   const avg = (a: number[]) => a.length ? (a.reduce((s, v) => s + v, 0) / a.length).toFixed(2) : '-';
@@ -1641,7 +1817,7 @@ const LiveTab = () => {
           {/* Summary stat cards (4 columns: samples, latency avg, throughput avg, error avg) */}
           <div aria-live="polite" aria-atomic="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {[
-              { l: 'Mostres rebudes', v: String(metrics.length), c: '#3b82f6' },
+              { l: 'Mostres rebudes', v: String(filteredMetrics.length), c: '#3b82f6' },
               { l: 'Latencia avg (ms)', v: `${avg(lat)}ms`, c: '#f59e0b' },
               { l: 'Throughput avg', v: avg(tput), c: '#22c55e' },
               { l: 'Error rate avg (%)', v: `${avg(err)}%`, c: '#ef4444' },
@@ -1654,7 +1830,7 @@ const LiveTab = () => {
           </div>
 
           {/* P50 + P99 cards - only shown after collecting enough samples for meaningful percentiles */}
-          {metrics.length >= 5 && (
+          {filteredMetrics.length >= 5 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
               {[
                 { l: 'P50 Latencia (mediana)', v: `${p50v(lat)}ms`, c: '#3b82f6', desc: '50% dels missatges arriben en menys d\'aquest temps' },
@@ -1674,7 +1850,49 @@ const LiveTab = () => {
             </div>
           )}
 
-          {/* Live sparkline charts - one per metric, 3-column grid */}
+          {/* Chart window selector - lets the user zoom into recent samples
+              when the dataset grows large. Sits above the charts as a small
+              pill-button group. The label shows the effective sample count
+              (actual windowed length vs total collected) so users understand
+              the scope. */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            marginBottom: 10, flexWrap: 'wrap', gap: 8,
+          }}>
+            <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Finestra del grafic
+              <span style={{ marginLeft: 8, color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 0 }}>
+                ({windowedMetrics.length} de {filteredMetrics.length} mostres)
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {([
+                { label: 'Ultimes 50', value: 50 as number | 'all' },
+                { label: 'Ultimes 100', value: 100 },
+                { label: 'Ultimes 200', value: 200 },
+                { label: 'Ultimes 500', value: 500 },
+                { label: 'Totes', value: 'all' as number | 'all' },
+              ] as { label: string; value: number | 'all' }[]).map(opt => {
+                const active = chartWindow === opt.value;
+                return (
+                  <button
+                    key={String(opt.value)}
+                    onClick={() => setChartWindow(opt.value)}
+                    style={{
+                      ...S.chip(active, 'var(--accent)'),
+                      fontSize: 11, padding: '4px 10px',
+                    }}
+                  >
+                    {opt.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Live sparkline charts - one per metric, 3-column grid.
+              Data arrays are sliced to `chartWindow` above to keep the
+              chart readable at high sample counts. */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
             {[
               { data: lat, color: '#f59e0b', label: 'Latencia (ms)', unit: 'ms' },
@@ -1688,13 +1906,13 @@ const LiveTab = () => {
           </div>
 
           {/* Recent metrics table - all samples in reverse chronological order */}
-          {metrics.length > 0 && (
+          {filteredMetrics.length > 0 && (
             <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ color: 'var(--text-secondary)' }}><IconPulse /></span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ultimes mesures</span>
                 <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-disabled)' }}>
-                  {metrics.length} punts - actualitzacio cada 3s
+                  {filteredMetrics.length} punts - actualitzacio cada 3s
                 </span>
               </div>
               {/* Scrollable table body - capped at 480px height to avoid page overflow */}
@@ -1709,7 +1927,7 @@ const LiveTab = () => {
                   </thead>
                   <tbody>
                     {/* Reverse order: newest metrics at top */}
-                    {[...metrics].reverse().map((m, i) => (
+                    {[...filteredMetrics].reverse().map((m, i) => (
                       <tr key={i} style={S.tableRow}>
                         <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-disabled)' }}>
                           {m.timestamp ? new Date(m.timestamp).toLocaleTimeString('ca-ES') : '-'}
