@@ -954,6 +954,12 @@ const HistorialTab = () => {
   const [summary, setSummary] = useState<any[]>([]);
   // Scenario definitions from /scenarios (for display names and metadata)
   const [scenarios, setScenarios] = useState<any[]>([]);
+  // Known runs from the orchestrator (/runs). Used to intersect the ES
+  // summary and hide orphans from Elasticsearch that no longer correspond
+  // to a run the orchestrator remembers. When the list is empty (orchestrator
+  // unreachable OR freshly restarted with no new runs) we fall back to
+  // showing raw ES data — better stale history than none.
+  const [knownRuns, setKnownRuns] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Client-side computed percentiles, keyed by runId. Populated lazily by
@@ -983,12 +989,16 @@ const HistorialTab = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, scRes] = await Promise.all([
+      const [sumRes, scRes, runsRes] = await Promise.all([
         fetch(`${METRICS_BASE}/metrics/summary`).then(r => r.json()).catch(() => []),
         fetch(`${SCENARIOS_BASE}/scenarios`).then(r => r.json()).catch(() => []),
+        // `null` signals "orchestrator unreachable" so we can distinguish
+        // that from "reachable but returned empty list".
+        fetch(`${ORCHESTRATOR}/runs`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
       setSummary(Array.isArray(sumRes) ? sumRes : []);
       setScenarios(Array.isArray(scRes) ? scRes : []);
+      setKnownRuns(Array.isArray(runsRes) ? runsRes : null);
     } catch (_) { }
     setLoading(false);
   }, []);
@@ -1067,12 +1077,24 @@ const HistorialTab = () => {
   const scenarioMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s]));
   const nameMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s.name || s.id?.slice(0, 10)]));
 
-  // Use all Elasticsearch summary data directly as the history source.
-  // Previously this was filtered against the orchestrator's in-memory run
-  // list, but the orchestrator loses state on pod restart - causing the
-  // history to appear empty after any restart. The fix is to not filter
-  // at all: Elasticsearch is the authoritative historical data store.
-  const syncedSummary = summary;
+  // History source. Two-tier strategy to give the user "historial = execucions"
+  // semantics without emptying the history after every orchestrator restart:
+  //
+  //   1. If the orchestrator's /runs endpoint returns a NON-EMPTY list, we
+  //      intersect the ES summary with it by runId. Runs that are only in
+  //      Elasticsearch (orphans from a previous orchestrator incarnation)
+  //      are hidden - user sees only runs the orchestrator actually tracked.
+  //
+  //   2. If /runs is unreachable (null) OR returned an empty list, we show
+  //      the raw ES summary. This covers: orchestrator just restarted (state
+  //      lost but history shouldn't vanish), orchestrator unreachable, or
+  //      genuinely no runs (both lists empty → nothing shown anyway).
+  const syncedSummary = (knownRuns && knownRuns.length > 0)
+    ? (() => {
+        const ids = new Set(knownRuns.map((r: any) => r.id || r.runId).filter(Boolean));
+        return summary.filter(s => s.runId && ids.has(s.runId));
+      })()
+    : summary;
 
   /**
    * Resolves the data format for a summary item.
@@ -1114,7 +1136,9 @@ const HistorialTab = () => {
     if (filterArch.length && !filterArch.includes(s.architecture || '')) return false;
     if (filterDataFormat.length && !filterDataFormat.includes(dataFormatOf(s))) return false;
     if (timeCutoff != null) {
-      const raw = s.lastSampleAt ?? s.endedAt ?? s.startedAt ?? s.timestamp ?? s['@timestamp'];
+      // Prefer endedAt (real run end) → startedAt → lastSampleAt → raw timestamp.
+      // metrics-api now populates endedAt/startedAt via min/max ts aggs.
+      const raw = s.endedAt ?? s.startedAt ?? s.lastSampleAt ?? s.timestamp ?? s['@timestamp'];
       if (raw != null && raw !== '') {
         const t = typeof raw === 'number' ? raw : new Date(raw).getTime();
         if (isFinite(t) && t < timeCutoff) return false;

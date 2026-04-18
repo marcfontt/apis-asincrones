@@ -130,6 +130,10 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
               broker:         { terms: { field: 'broker.keyword', size: 1 } },
               platform:       { terms: { field: 'platform.keyword', size: 1 } },
               dataFormat:     { terms: { field: 'dataFormat.keyword', size: 1 } },
+              // min/max timestamp per run so the UI can time-filter history
+              // against real run boundaries instead of guessing via last sample.
+              started_at:     { min: { field: 'timestamp' } },
+              ended_at:       { max: { field: 'timestamp' } },
             },
           },
         },
@@ -151,6 +155,9 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
       broker:        b.broker?.buckets?.[0]?.key,
       platform:      b.platform?.buckets?.[0]?.key,
       dataFormat:    b.dataFormat?.buckets?.[0]?.key,
+      // ISO strings preferred over epoch ms so the UI can Date.parse() directly
+      startedAt:     b.started_at?.value_as_string ?? (b.started_at?.value != null ? new Date(b.started_at.value).toISOString() : null),
+      endedAt:       b.ended_at?.value_as_string   ?? (b.ended_at?.value   != null ? new Date(b.ended_at.value).toISOString()   : null),
     }));
 
     res.json(summary);

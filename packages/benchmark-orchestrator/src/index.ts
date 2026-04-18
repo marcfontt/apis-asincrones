@@ -411,10 +411,20 @@ app.post('/runs/:id/cancel', async (req, res) => {
   }
   run.status = 'cancelled'; run.completedAt = new Date().toISOString();
   await updateScenarioStatus(run.scenarioId, 'idle', null);
-  if (k8sEnabled && run.namespace) {
-    try { await coreApi.deleteNamespace(run.namespace); } catch (_) { }
-  }
+  // Respond to the client immediately so the UI doesn't hang on the flush.
   res.json({ ok: true });
+  if (k8sEnabled && run.namespace) {
+    // Flush window: give the load-generator ~6s to send any in-flight
+    // samples to metrics-api before we tear down its namespace. Without
+    // this, "Aturar" drops trailing samples and the history count comes
+    // out lower than what the live tab showed (user-reported: live shows
+    // 1000, history shows ~100).
+    const ns = run.namespace;
+    setTimeout(async () => {
+      try { await coreApi.deleteNamespace(ns); }
+      catch (e) { console.warn(`[orchestrator] delayed deleteNamespace failed: ${(e as Error).message}`); }
+    }, 6000);
+  }
 });
 
 app.delete('/runs/:id', (req, res) => {
