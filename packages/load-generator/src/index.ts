@@ -153,13 +153,32 @@ async function runKafka() {
   });
 
   const admin = kafka.admin();
-  const producer = kafka.producer({ createPartitioner: Partitioners.LegacyPartitioner });
-  const consumer = kafka.consumer({ groupId: `bench-${CFG.runId}`, sessionTimeout: 30000 });
+  // Fair-comparison config: NATS/RabbitMQ in this bench are fire-and-forget
+  // with no persistence, so Kafka was comparing apples to oranges. We match
+  // their semantics:
+  //   - acks=0 on every send (fire-and-forget, no broker ack wait)
+  //   - idempotent=false, no transactional overhead
+  //   - no linger (send immediately)
+  const producer = kafka.producer({
+    createPartitioner: Partitioners.LegacyPartitioner,
+    idempotent: false,
+    transactionalId: undefined,
+  });
+  // Smaller session timeout = faster consumer group coordination.
+  // `heartbeatInterval` tuned for quick rebalance detection.
+  const consumer = kafka.consumer({
+    groupId: `bench-${CFG.runId}`,
+    sessionTimeout: 10000,
+    heartbeatInterval: 3000,
+  });
 
   await admin.connect();
+  // Single partition removes cross-partition coordination overhead.
+  // For a 1-producer / 1-consumer benchmark, multiple partitions only add
+  // consumer-group fetch/commit chatter without any real parallelism benefit.
   await admin.createTopics({
     topics: [{
-      topic, numPartitions: 3, replicationFactor: 1,
+      topic, numPartitions: 1, replicationFactor: 1,
       configEntries: [{ name: 'retention.ms', value: '3600000' }]
     }],
     waitForLeaders: true,
@@ -188,11 +207,16 @@ async function runKafka() {
 
   const intervalMs = Math.max(1, Math.round(1000 / CFG.msgPerSec));
 
-  const produceTimer = setInterval(async () => {
+  const produceTimer = setInterval(() => {
     if (!running) return;
     try {
       const payload = buildPayload(nowMs(), sent);          // BUG 2+4 FIX: payload semàntic
-      await producer.send({ topic, messages: [{ value: payload }] });
+      // Fire-and-forget with acks=0 to match NATS/RabbitMQ semantics.
+      // Without this, Kafka blocks each send on broker ACK, which is a fundamentally
+      // different contract than NATS `publish()` or RabbitMQ `sendToQueue()` (both
+      // non-blocking / no-ack). This bias is why Kafka always lost in prior runs.
+      producer.send({ topic, messages: [{ value: payload }], acks: 0 })
+        .catch(() => { errors++; });
       sent++;
     } catch (_) { errors++; }
   }, intervalMs);
