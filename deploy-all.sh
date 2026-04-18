@@ -54,16 +54,19 @@ declare -A DOCKERFILES
 declare -A CONTEXTS
 DOCKERFILES[backstage]="packages/backend/Dockerfile"
 CONTEXTS[backstage]="."
-for svc in catalog-service scenario-service benchmark-orchestrator metrics-api; do
+for svc in catalog-service scenario-service benchmark-orchestrator metrics-api load-generator; do
   DOCKERFILES[$svc]="packages/$svc/Dockerfile"
   CONTEXTS[$svc]="packages/$svc"
 done
 
 # Build order. If --only is set, it's just that one.
+# NOTE: load-generator is NOT a Deployment; it's an image pulled by
+# Kubernetes Jobs spawned by benchmark-orchestrator at run time. Include
+# it in BUILD_LIST but skip rollout restart (handled per-target below).
 if [[ -n "$ONLY" ]]; then
   BUILD_LIST=("$ONLY")
 else
-  BUILD_LIST=(backstage catalog-service scenario-service benchmark-orchestrator metrics-api)
+  BUILD_LIST=(backstage catalog-service scenario-service benchmark-orchestrator metrics-api load-generator)
 fi
 
 # -----------------------------------------------------------------------------
@@ -114,6 +117,11 @@ else
   TARGETS=(backstage catalog-service scenario-service benchmark-orchestrator metrics-api grafana elasticsearch)
 fi
 for svc in "${TARGETS[@]}"; do
+  # load-generator runs as an on-demand Job, not a Deployment - skip rollout.
+  if [[ "$svc" == "load-generator" ]]; then
+    echo "  -> load-generator image pushed; no Deployment to restart (Job uses :latest on next run)"
+    continue
+  fi
   if ! kubectl get deployment/$svc -n "$NAMESPACE" >/dev/null 2>&1; then
     echo "  !! no deployment/$svc in namespace, skipping"
     continue
