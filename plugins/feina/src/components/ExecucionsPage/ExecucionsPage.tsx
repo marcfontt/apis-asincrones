@@ -690,7 +690,7 @@ export const ExecucionsPage = () => {
   }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   // Set the browser tab title once on mount
-  useEffect(() => { document.title = 'Execucions | APIs Asincrones'; }, []);
+  useEffect(() => { document.title = 'Execucions | APIs Asíncrones'; }, []);
 
   /*
    * Fetch scenario definitions once on mount (no polling needed - scenarios

@@ -324,7 +324,7 @@ export const CatalogPage = () => {
   };
 
   // Titol del document
-  useEffect(() => { document.title = 'Cataleg | APIs Asincrones'; }, []);
+  useEffect(() => { document.title = 'Catàleg | APIs Asíncrones'; }, []);
 
   /**
    * Carrega tots els components del cataleg.
@@ -402,9 +402,8 @@ export const CatalogPage = () => {
       {/* ── Capçalera ────────────────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
-          {/* "Cataleg" amb accent grave: correccio aplicada (antic: "Cataleg") */}
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Cataleg de Components
+            Catàleg de Components
           </h1>
           <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
             Arquitectures, protocols i plataformes disponibles per construir escenaris

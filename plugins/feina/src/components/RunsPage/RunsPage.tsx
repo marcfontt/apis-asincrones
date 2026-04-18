@@ -143,7 +143,7 @@ export const RunsPage = () => {
 
   // Carregar en muntar el component i establir el titol del document
   useEffect(() => {
-    document.title = 'Historial Runs | APIs Asincrones';
+    document.title = 'Historial Runs | APIs Asíncrones';
     fetchRuns();
   }, []);
 

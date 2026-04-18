@@ -553,10 +553,10 @@ const MetricGlossary = () => {
           {/* Scoring system explanation section */}
           <div style={{ marginBottom: 20 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
-              Sistema de puntuacio (0-100)
+              Sistema de puntuació (0–100)
             </div>
             <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              La <strong style={{ color: 'var(--text-primary)' }}>Puntuacio</strong> es un valor de 0 a 100 que resumeix el rendiment de l'escenari <em>en relacio al format de dades que s'esta provant</em>. Cada format prioritza metriques diferent perque les seves necessitats reals ho justifiquen:
+              La <strong style={{ color: 'var(--text-primary)' }}>Puntuació</strong> és un valor de 0 a 100 que resumeix el rendiment de l'escenari <em>en relació al format de dades que s'està provant</em>. Cada format prioritza mètriques diferents perquè les seves necessitats reals ho justifiquen:
             </p>
             {/* Composite score formula displayed in a styled monospace block */}
             <div style={{ marginBottom: 14, padding: '10px 16px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
@@ -684,7 +684,7 @@ const HBarChart = ({
           Background: color + '18' = 9.4% opacity (hex 0x18 = 24, 24/255 ~ 9.4%)
         */}
         <span style={{ fontSize: 9, padding: '2px 8px', borderRadius: 10, background: (color || '#3b82f6') + '18', color: color || '#3b82f6', fontWeight: 700 }}>
-          {lowerIsBetter ? 'Menor es millor' : 'Major es millor'}
+          {lowerIsBetter ? 'Menor és millor' : 'Major és millor'}
         </span>
       </div>
       <div style={{ position: 'relative' }}>
@@ -1256,7 +1256,7 @@ const HistorialTab = () => {
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}
           >
             <IconFilter />
-            Mes filtres (Protocol, Plataforma, Arquitectura)
+            Més filtres (Protocol, Plataforma, Arquitectura)
             {/* Show active secondary filter count as a badge */}
             {(filterPlatform.length + filterProtocol.length + filterArch.length) > 0 && (
               <span style={{ background: 'var(--accent)', color: 'white', borderRadius: '50%', width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
@@ -1381,7 +1381,7 @@ const HistorialTab = () => {
             {/* Latency and throughput side by side */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div style={{ ...S.card }}>
-                <HBarChart data={latData} title="Latencia mitjana (ms)" unit="ms" color="#f59e0b" lowerIsBetter />
+                <HBarChart data={latData} title="Latència mitjana (ms)" unit="ms" color="#f59e0b" lowerIsBetter />
               </div>
               <div style={{ ...S.card }}>
                 <HBarChart data={tputData} title="Throughput mitja (msg/s)" unit="" color="#22c55e" lowerIsBetter={false} />
@@ -1410,7 +1410,7 @@ const HistorialTab = () => {
                 <thead>
                   <tr style={S.tableHeader}>
                     <th style={S.th}>Escenari</th>
-                    <th style={{ ...S.th, textAlign: 'center' }}>Puntuacio</th>
+                    <th style={{ ...S.th, textAlign: 'center' }}>Puntuació</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Lat. avg</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P50</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P99</th>
@@ -1534,7 +1534,7 @@ const HistorialTab = () => {
             </div>
             {/* Table footer: scoring methodology note */}
             <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-disabled)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span>Puntuacio 0-100 normalitzada - pesos adaptats al format de dades (financer: error x40%, video: throughput x40%, IoT: throughput x30%)</span>
+              <span>Puntuació 0–100 normalitzada — pesos adaptats al format de dades (financer: error ×40%, vídeo: throughput ×40%, IoT: throughput ×30%)</span>
               <span>P50/P99: calculats de les metriques en brut - <span style={{ fontStyle: 'italic' }}>-</span> = sense dades suficients</span>
             </div>
           </div>
@@ -2085,7 +2085,7 @@ export const ResultatsPage = () => {
   const [tab, setTab] = useState<'live' | 'historial'>('live');
 
   // Update browser tab title when the page mounts
-  useEffect(() => { document.title = 'Resultats | APIs Asincrones'; }, []);
+  useEffect(() => { document.title = 'Resultats | APIs Asíncrones'; }, []);
 
   /**
    * Generates tab button styles based on active state.

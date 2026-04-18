@@ -52,18 +52,18 @@ const IconChevron = ({ open }: { open: boolean }) => (
 // color: color identificatiu de la seccio (usat al top-border i icon background)
 // badge: text petit que descriu breument la seccio
 const PAGES = [
-  { href: '/catalog',    label: 'Cataleg',    desc: 'Arquitectures, protocols i plataformes disponibles.',           Icon: IconCatalog,   color: '#3b82f6', badge: '3 categories' },
-  { href: '/escenaris',  label: 'Escenaris',  desc: 'Crea combinacions de benchmark amb duracio, ratio i payload.',  Icon: IconScenarios, color: '#8b5cf6', badge: 'YAML + UI'   },
-  { href: '/execucions', label: 'Execucions', desc: 'Llanca escenaris contra AKS i monitoritza en temps real.',      Icon: IconRun,       color: '#22c55e', badge: 'AKS live'   },
-  { href: '/resultats',  label: 'Resultats',  desc: 'Compara latencia, throughput i errors entre escenaris.',        Icon: IconResults,   color: '#f59e0b', badge: 'Multi-factor' },
+  { href: '/catalog',    label: 'Catàleg',    desc: 'Arquitectures, protocols i plataformes disponibles.',           Icon: IconCatalog,   color: '#3b82f6', badge: '3 categories' },
+  { href: '/escenaris',  label: 'Escenaris',  desc: 'Crea combinacions de benchmark amb durada, ràtio i payload.',   Icon: IconScenarios, color: '#8b5cf6', badge: 'YAML + UI'   },
+  { href: '/execucions', label: 'Execucions', desc: 'Llança escenaris contra AKS i monitoritza en temps real.',      Icon: IconRun,       color: '#22c55e', badge: 'AKS live'   },
+  { href: '/resultats',  label: 'Resultats',  desc: 'Compara latència, throughput i errors entre escenaris.',        Icon: IconResults,   color: '#f59e0b', badge: 'Multi-factor' },
 ];
 
 // ── Capacitats de la plataforma (grid 2x3) ────────────────────────────────────
 const FEATURES = [
   { Icon: IconKafka,  title: 'Brokers reals',           desc: 'Kafka, RabbitMQ, NATS Server i Confluent sobre AKS.',          color: '#ef4444' },
-  { Icon: IconCloud,  title: 'Desplegament automatic',  desc: 'Escenaris convertits en Kubernetes Jobs i llancats al cluster.', color: '#3b82f6' },
-  { Icon: IconMetric, title: 'Metriques en temps real', desc: 'Latencia, throughput i errors recollits i mostrats en directe.', color: '#22c55e' },
-  { Icon: IconZap,    title: 'Puntuacio format-aware',  desc: 'Score 0-100 que pondera P99, throughput, errors i latencia.',   color: '#f59e0b' },
+  { Icon: IconCloud,  title: 'Desplegament automàtic',  desc: 'Escenaris convertits en Kubernetes Jobs i llançats al clúster.', color: '#3b82f6' },
+  { Icon: IconMetric, title: 'Mètriques en temps real', desc: 'Latència, throughput i errors recollits i mostrats en directe.', color: '#22c55e' },
+  { Icon: IconZap,    title: 'Puntuació format-aware',  desc: 'Score 0–100 que pondera P99, throughput, errors i latència.',   color: '#f59e0b' },
   { Icon: IconLayers, title: '5 arquitectures',         desc: 'EDA, QBA, LCA, EMA i SEA com a patrons de messaging.',          color: '#8b5cf6' },
   { Icon: IconAKS,    title: 'Azure Kubernetes Service',desc: 'Infraestructura escalable al nucli Azure amb namespaces aillats.',color: '#06b6d4' },
 ];
@@ -73,8 +73,8 @@ const FEATURES = [
 const GETTING_STARTED = [
   { step: 1, label: 'Explora el cataleg',   desc: 'Descobreix arquitectures, protocols i plataformes.',     href: '/catalog',    color: '#3b82f6', Icon: IconCatalog   },
   { step: 2, label: 'Crea un escenari',     desc: 'Combina broker, protocol i configuracio de test.',       href: '/escenaris',  color: '#8b5cf6', Icon: IconScenarios },
-  { step: 3, label: 'Executa el benchmark', desc: 'Llanca el Job a AKS i monitoritza en temps real.',       href: '/execucions', color: '#22c55e', Icon: IconRun       },
-  { step: 4, label: 'Analitza resultats',   desc: 'Compara escenaris per latencia, throughput i errors.',   href: '/resultats',  color: '#f59e0b', Icon: IconResults   },
+  { step: 3, label: 'Executa el benchmark', desc: 'Llança el Job a AKS i monitoritza en temps real.',       href: '/execucions', color: '#22c55e', Icon: IconRun       },
+  { step: 4, label: 'Analitza resultats',   desc: 'Compara escenaris per latència, throughput i errors.',   href: '/resultats',  color: '#f59e0b', Icon: IconResults   },
 ];
 
 // ── Preview del cataleg (categories i elements) ───────────────────────────────
@@ -86,10 +86,10 @@ const CATALOG_CATEGORIES = [
 
 // ── Contingut de la guia d'onboarding (col·lapsable) ──────────────────────────
 const ONBOARDING_STEPS = [
-  { Icon: IconCatalog,   color: '#3b82f6', title: 'Revisa el cataleg',    desc: 'Consulta arquitectures (EDA, QBA, LCA...), protocols (Kafka, MQTT, gRPC...) i plataformes disponibles.' },
-  { Icon: IconScenarios, color: '#8b5cf6', title: 'Defineix un escenari', desc: 'Combina plataforma, protocol i arquitectura. Configura duracio, ratio i payload. Tria mode indefinit per proves llargues.' },
-  { Icon: IconRun,       color: '#22c55e', title: 'Llanca el benchmark',  desc: "El sistema desplega un Job a AKS. Des d'Execucions pots seguir l'estat en temps real i aturar quan vulguis." },
-  { Icon: IconResults,   color: '#f59e0b', title: 'Compara resultats',    desc: 'A Resultats veus metriques en directe (latencia, throughput, errors). Compara escenaris amb puntuacio multi-factor.' },
+  { Icon: IconCatalog,   color: '#3b82f6', title: 'Revisa el catàleg',    desc: 'Consulta arquitectures (EDA, QBA, LCA…), protocols (Kafka, MQTT, gRPC…) i plataformes disponibles.' },
+  { Icon: IconScenarios, color: '#8b5cf6', title: 'Defineix un escenari', desc: 'Combina plataforma, protocol i arquitectura. Configura durada, ràtio i payload. Tria mode indefinit per proves llargues.' },
+  { Icon: IconRun,       color: '#22c55e', title: 'Llança el benchmark',  desc: "El sistema desplega un Job a AKS. Des d'Execucions pots seguir l'estat en temps real i aturar quan vulguis." },
+  { Icon: IconResults,   color: '#f59e0b', title: 'Compara resultats',    desc: 'A Resultats veus mètriques en directe (latència, throughput, errors). Compara escenaris amb puntuació multi-factor.' },
 ];
 
 // ── OnboardingGuide: panell col·lapsable amb els 4 passos de la plataforma ────
@@ -122,7 +122,7 @@ const OnboardingGuide = () => {
       {open && (
         <div style={{ padding: '0 20px 18px', borderTop: '1px solid var(--border)', paddingTop: 16 }}>
           <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            Plataforma per comparar arquitectures d'APIs asincrones desplegades sobre Azure Kubernetes Service.
+            Plataforma per comparar arquitectures d'APIs asíncrones desplegades sobre Azure Kubernetes Service.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
             {ONBOARDING_STEPS.map((step, i) => (
@@ -161,7 +161,7 @@ export const HomePage = () => {
   const [visible,   setVisible]   = useState(false);                 // per a l'animacio d'entrada
 
   useEffect(() => {
-    document.title = 'Home | APIs Asincrones';
+    document.title = 'Home | APIs Asíncrones';
     // Delay curt per activar l'animacio fadeUp just despres del primer render
     const t = setTimeout(() => setVisible(true), 30);
     return () => clearTimeout(t);
@@ -214,13 +214,13 @@ export const HomePage = () => {
 
           {/* Titol principal: nom de la plataforma amb accent de color */}
           <h1 style={{ margin: '0 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-            APIs Asincrones<br />
+            APIs Asíncrones<br />
             <span style={{ color: '#22c55e', fontWeight: 800 }}>Benchmark Platform</span>
           </h1>
 
           {/* Descripcio: resum de que fa la plataforma en 2 frases */}
           <p style={{ margin: '0 0 26px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 520 }}>
-            Compara arquitectures event-driven sobre Azure Kubernetes Service. Defineix escenaris, executa benchmarks i analitza P50, P99, throughput i latencia en temps real.
+            Compara arquitectures event-driven sobre Azure Kubernetes Service. Defineix escenaris, executa benchmarks i analitza P50, P99, throughput i latència en temps real.
           </p>
 
           {/* CTAs: tres botons d'accio */}
@@ -318,7 +318,7 @@ export const HomePage = () => {
           Clicar cada pas navega a la seccio corresponent. */}
       <div style={{ ...fade(180), ...S.card, marginBottom: 22 }}>
         <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 18 }}>
-          Com comecar
+          Com començar
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0, position: 'relative' }}>
           {/* Linia connector que uneix visualment els 4 passos */}
@@ -372,7 +372,7 @@ export const HomePage = () => {
         {/* Preview del cataleg: llista rapida de categories i elements */}
         <div style={{ ...S.card, display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.08em' }}>
-            Cataleg rapid
+            Catàleg ràpid
           </div>
           {CATALOG_CATEGORIES.map(cat => (
             <div key={cat.label}>
@@ -431,7 +431,7 @@ export const HomePage = () => {
       {/* Links rapids a les seccions principals, alineats a la dreta */}
       <div style={{ ...fade(320), ...S.card, display: 'flex', justifyContent: 'flex-end', flexWrap: 'wrap' as const, gap: 5, padding: '10px 18px' }}>
         {[
-          { label: 'Cataleg',    href: '/catalog'    },
+          { label: 'Catàleg',    href: '/catalog'    },
           { label: 'Escenaris',  href: '/escenaris'  },
           { label: 'Execucions', href: '/execucions' },
           { label: 'Resultats',  href: '/resultats'  },
