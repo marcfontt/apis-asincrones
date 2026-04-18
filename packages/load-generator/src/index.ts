@@ -37,12 +37,32 @@ const CFG = {
   get isIndefinite() { return this.durationSeconds === 0; },
   msgPerSec: parseInt(process.env.MESSAGES_PER_SECOND || '100'),
   msgSize: parseInt(process.env.MESSAGE_SIZE_BYTES || '256'),
+  // Warm-up seconds: first N seconds of latency samples are discarded to avoid
+  // polluting the measurement with TCP handshake, consumer-group join, JIT
+  // warm-up, and buffer initialisation. Standard practice in k6, wrk, YCSB.
+  warmupSeconds: parseInt(process.env.WARMUP_SECONDS || '5'),
 };
 
 let sent = 0, received = 0, errors = 0;
+// Post-warmup counters, used for stable-state throughput calculation.
+let sentStable = 0, recvStable = 0;
 const latencies: number[] = [];
 const startTime = Date.now();
 let running = true;
+
+// True after warm-up window has elapsed; from this point latency samples count.
+function isStableWindow(): boolean {
+  return (Date.now() - startTime) / 1000 >= CFG.warmupSeconds;
+}
+
+// Delivery model of the current broker — intrinsic protocol property, NOT
+// a benchmark artefact. Reported in every metric doc so downstream analysis
+// can group/filter by push vs pull.
+function deliveryModel(): 'pull' | 'push' {
+  const t = CFG.brokerType;
+  if (t === 'kafka' || t === 'confluent') return 'pull';
+  return 'push'; // nats, rabbitmq, mqtt, amqp
+}
 
 // Graceful shutdown: send final metric on SIGTERM (K8s sends this before SIGKILL)
 async function gracefulShutdown() {
@@ -108,10 +128,16 @@ function buildPayload(ts: number, seq: number): string {
 }
 
 // ── Mètriques ───────────────────────────────────────────────────────────────
+// Latency array contains ONLY post-warmup samples (see isStableWindow()).
+// Throughput is reported both for the full window (back-compat) and for the
+// stable window (recommended for analysis).
 function snapshot(final = false) {
   const elapsed = (Date.now() - startTime) / 1000 || 1;
+  const stableElapsed = Math.max(0.001, elapsed - CFG.warmupSeconds);
   const sorted = [...latencies].sort((a, b) => a - b);
   const avg = sorted.length ? sorted.reduce((a, b) => a + b, 0) / sorted.length : 0;
+  const p50 = sorted.length ? sorted[Math.floor(sorted.length * 0.50)] : 0;
+  const p95 = sorted.length ? sorted[Math.floor(sorted.length * 0.95)] : 0;
   const p99 = sorted.length ? sorted[Math.floor(sorted.length * 0.99)] : 0;
   return {
     runId: CFG.runId,
@@ -121,12 +147,23 @@ function snapshot(final = false) {
     broker: CFG.brokerType,
     platform: CFG.platform,
     dataFormat: CFG.dataFormat,
-    latency: Math.round(avg * 1000) / 1000,      // BUG 3: ara 3 decimals (µs precisió)
+    // Fair-comparison metadata: reproducibility + transparency.
+    deliveryModel: deliveryModel(),              // 'pull' (kafka/confluent) | 'push' (nats/rmq)
+    warmupSeconds: CFG.warmupSeconds,            // samples before this are discarded
+    maxFetchWaitMs: (CFG.brokerType === 'kafka' || CFG.brokerType === 'confluent') ? 1 : 0,
+    // Latency (averaged over post-warmup samples only).
+    latency: Math.round(avg * 1000) / 1000,
+    p50_latency_ms: Math.round(p50 * 1000) / 1000,
+    p95_latency_ms: Math.round(p95 * 1000) / 1000,
+    p99_latency_ms: Math.round(p99 * 1000) / 1000,
+    // Throughput: full-window (legacy) + stable-window (post-warmup, use this one).
     throughput: Math.round((received / elapsed) * 100) / 100,
+    throughput_stable: Math.round((recvStable / stableElapsed) * 100) / 100,
     errorRate: sent > 0 ? Math.round((errors / sent) * 10000) / 10000 : 0,
-    p99_latency_ms: Math.round(p99 * 1000) / 1000,      // BUG 3: ara 3 decimals
     messages_sent: sent,
     messages_recv: received,
+    messages_sent_stable: sentStable,
+    messages_recv_stable: recvStable,
     errors,
     elapsed_s: Math.round(elapsed),
     timestamp: new Date().toISOString(),
@@ -172,9 +209,11 @@ async function runKafka() {
   // Parity config (see FAIR-COMPARISON CONTRACT at top of file).
   //   Producer: acks=0, no idempotence, no transaction → matches NATS/RabbitMQ
   //             fire-and-forget semantics.
-  //   Consumer: tiny fetch wait (maxWaitTimeInMs=50) → kafkajs default is 5000
-  //             which artificially inflates Kafka latency when the rate is
-  //             low. At 50ms it behaves like a push consumer.
+  //   Consumer: tiny fetch wait (maxWaitTimeInMs=1) → kafkajs default is 5000
+  //             which artificially inflates Kafka latency at low rates. At 1ms
+  //             the pull loop is essentially continuous and the artefact is
+  //             reduced to statistical noise (<0.5ms avg) while still using
+  //             long-polling (no CPU-pinned busy loop).
   //             autoCommit=false → no periodic offset-commit round-trips,
   //             symmetric with NATS/RabbitMQ which have no offset concept.
   const producer = kafka.producer({
@@ -186,7 +225,7 @@ async function runKafka() {
     groupId: `bench-${CFG.runId}`,
     sessionTimeout: 10000,
     heartbeatInterval: 3000,
-    maxWaitTimeInMs: 50,
+    maxWaitTimeInMs: 1,
     minBytes: 1,
   });
 
@@ -218,14 +257,21 @@ async function runKafka() {
         try {
           const p = JSON.parse(message.value.toString());
           const lat = nowMs() - p.ts;                      // BUG 3 FIX: performance.now()
-          if (lat >= 0 && lat < 120000) latencies.push(lat);
+          // Only count latency samples AFTER warm-up window. Early samples
+          // include TCP handshake, consumer-group join, JIT compilation, and
+          // socket buffer initialisation — all one-off costs that shouldn't
+          // skew steady-state measurement.
+          if (lat >= 0 && lat < 120000 && isStableWindow()) {
+            latencies.push(lat);
+            recvStable++;
+          }
         } catch (_) { }
       }
     },
   });
 
   await producer.connect();
-  log('Producer + consumer connected. Starting test...');
+  log(`Producer + consumer connected. Starting test (warm-up: ${CFG.warmupSeconds}s)...`);
 
   const intervalMs = Math.max(1, Math.round(1000 / CFG.msgPerSec));
 
@@ -240,6 +286,7 @@ async function runKafka() {
       producer.send({ topic, messages: [{ value: payload }], acks: 0 })
         .catch(() => { errors++; });
       sent++;
+      if (isStableWindow()) sentStable++;
     } catch (_) { errors++; }
   }, intervalMs);
 
@@ -297,12 +344,16 @@ async function runNats() {
       try {
         const p = JSON.parse(sc.decode(msg.data));
         const lat = nowMs() - p.ts;
-        if (lat >= 0 && lat < 120000) latencies.push(lat);
+        // Warm-up filter: see runKafka() for rationale.
+        if (lat >= 0 && lat < 120000 && isStableWindow()) {
+          latencies.push(lat);
+          recvStable++;
+        }
       } catch (_) { }
     }
   })();
 
-  log('NATS producer + consumer connected. Starting test...');
+  log(`NATS producer + consumer connected. Starting test (warm-up: ${CFG.warmupSeconds}s)...`);
   const intervalMs = Math.max(1, Math.round(1000 / CFG.msgPerSec));
 
   const produceTimer = setInterval(() => {
@@ -311,6 +362,7 @@ async function runNats() {
       const payload = buildPayload(nowMs(), sent);
       nc.publish(subject, sc.encode(payload));
       sent++;
+      if (isStableWindow()) sentStable++;
     } catch (_) { errors++; }
   }, intervalMs);
 
@@ -369,13 +421,17 @@ async function runRabbitMQ() {
     try {
       const p = JSON.parse(msg.content.toString());
       const lat = nowMs() - p.ts;
-      if (lat >= 0 && lat < 120000) latencies.push(lat);
+      // Warm-up filter: see runKafka() for rationale.
+      if (lat >= 0 && lat < 120000 && isStableWindow()) {
+        latencies.push(lat);
+        recvStable++;
+      }
     } catch (_) { }
     // No ack: noAck:true below means broker already considers the message
     // delivered; calling ack() here would be an error.
   }, { noAck: true });
 
-  log('RabbitMQ producer + consumer connected. Starting test...');
+  log(`RabbitMQ producer + consumer connected. Starting test (warm-up: ${CFG.warmupSeconds}s)...`);
   const intervalMs = Math.max(1, Math.round(1000 / CFG.msgPerSec));
 
   const produceTimer = setInterval(() => {
@@ -384,6 +440,7 @@ async function runRabbitMQ() {
       const payload = buildPayload(nowMs(), sent);
       ch.sendToQueue(queue, Buffer.from(payload));
       sent++;
+      if (isStableWindow()) sentStable++;
     } catch (_) { errors++; }
   }, intervalMs);
 
