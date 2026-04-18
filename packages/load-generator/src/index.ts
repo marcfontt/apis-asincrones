@@ -4,6 +4,22 @@ import * as amqp from 'amqplib';
 import * as http from 'http';
 import { performance } from 'perf_hooks';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FAIR-COMPARISON CONTRACT (applies to Kafka, Confluent, NATS, RabbitMQ).
+// Every runner MUST honour these rules so the only variation is the protocol
+// itself, not the guarantees layered on top of it.
+//
+//   Producer:   fire-and-forget, no broker ACK, no publisher confirm.
+//   Consumer:   single subscription, NO per-message ACK back to the broker,
+//               push-style delivery (no artificial fetch wait).
+//   Storage:    ephemeral; no disk persistence, no replication, 1 shard.
+//   Topology:   1 producer + 1 consumer sharing the same process.
+//
+// If you add a broker runner, follow the same contract. Durability/ordering
+// guarantees belong to a future `reliability` axis (`fast|safe|durable`),
+// NOT to this "fast" mode.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ── Configuració ────────────────────────────────────────────────────────────
 const CFG = {
   scenarioId: process.env.SCENARIO_ID || 'unknown',
@@ -153,23 +169,25 @@ async function runKafka() {
   });
 
   const admin = kafka.admin();
-  // Fair-comparison config: NATS/RabbitMQ in this bench are fire-and-forget
-  // with no persistence, so Kafka was comparing apples to oranges. We match
-  // their semantics:
-  //   - acks=0 on every send (fire-and-forget, no broker ack wait)
-  //   - idempotent=false, no transactional overhead
-  //   - no linger (send immediately)
+  // Parity config (see FAIR-COMPARISON CONTRACT at top of file).
+  //   Producer: acks=0, no idempotence, no transaction → matches NATS/RabbitMQ
+  //             fire-and-forget semantics.
+  //   Consumer: tiny fetch wait (maxWaitTimeInMs=50) → kafkajs default is 5000
+  //             which artificially inflates Kafka latency when the rate is
+  //             low. At 50ms it behaves like a push consumer.
+  //             autoCommit=false → no periodic offset-commit round-trips,
+  //             symmetric with NATS/RabbitMQ which have no offset concept.
   const producer = kafka.producer({
     createPartitioner: Partitioners.LegacyPartitioner,
     idempotent: false,
     transactionalId: undefined,
   });
-  // Smaller session timeout = faster consumer group coordination.
-  // `heartbeatInterval` tuned for quick rebalance detection.
   const consumer = kafka.consumer({
     groupId: `bench-${CFG.runId}`,
     sessionTimeout: 10000,
     heartbeatInterval: 3000,
+    maxWaitTimeInMs: 50,
+    minBytes: 1,
   });
 
   await admin.connect();
@@ -189,6 +207,10 @@ async function runKafka() {
   await consumer.connect();
   await consumer.subscribe({ topic, fromBeginning: false });
   consumer.run({
+    // autoCommit=false: no offset-commit traffic. Symmetric with NATS pub/sub
+    // and RabbitMQ `noAck:true`, which also keep zero consumer-side state
+    // on the broker.
+    autoCommit: false,
     eachMessage: async ({ message }) => {
       if (!running) return;
       received++;
@@ -329,14 +351,19 @@ async function runRabbitMQ() {
   log(`=== Load Generator (RabbitMQ/AMQP) ===`);
   log(`Format: ${CFG.dataFormat}  |  MsgSize: ${CFG.msgSize}B  |  Rate: ${CFG.msgPerSec} msg/s`);
 
+  // Parity config (see FAIR-COMPARISON CONTRACT at top of file).
+  //   Queue: durable=false (no disk), autoDelete=true (ephemeral per run).
+  //   Producer: sendToQueue without publisher confirms → fire-and-forget.
+  //   Consumer: noAck=true → no per-message ACK round-trip to broker,
+  //             symmetric with NATS pub/sub and Kafka acks=0 / autoCommit=false.
+  //   One connection with a single channel is enough; the broker already
+  //   multiplexes producer and consumer on the same TCP connection.
   const conn = await amqp.connect(amqpUrl);
-  const chProd = await conn.createChannel();
-  const chCons = await conn.createChannel();
+  const ch = await conn.createChannel();
 
-  await chProd.assertQueue(queue, { durable: false, autoDelete: true, arguments: { 'x-expires': 3600000 } });
-  await chCons.assertQueue(queue, { durable: false, autoDelete: true, arguments: { 'x-expires': 3600000 } });
+  await ch.assertQueue(queue, { durable: false, autoDelete: true, arguments: { 'x-expires': 3600000 } });
 
-  chCons.consume(queue, (msg: any) => {
+  ch.consume(queue, (msg: any) => {
     if (!msg || !running) return;
     received++;
     try {
@@ -344,8 +371,9 @@ async function runRabbitMQ() {
       const lat = nowMs() - p.ts;
       if (lat >= 0 && lat < 120000) latencies.push(lat);
     } catch (_) { }
-    chCons.ack(msg);
-  }, { noAck: false });
+    // No ack: noAck:true below means broker already considers the message
+    // delivered; calling ack() here would be an error.
+  }, { noAck: true });
 
   log('RabbitMQ producer + consumer connected. Starting test...');
   const intervalMs = Math.max(1, Math.round(1000 / CFG.msgPerSec));
@@ -354,7 +382,7 @@ async function runRabbitMQ() {
     if (!running) return;
     try {
       const payload = buildPayload(nowMs(), sent);
-      chProd.sendToQueue(queue, Buffer.from(payload));
+      ch.sendToQueue(queue, Buffer.from(payload));
       sent++;
     } catch (_) { errors++; }
   }, intervalMs);
