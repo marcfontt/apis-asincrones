@@ -432,6 +432,44 @@ app.post('/runs/:id/cancel', async (req, res) => {
   }
 });
 
+// POST /runs/reset — Nuke all runs (in-memory) and cascade-wipe ES mostres.
+// Used by the "Reinicia tot" UI button to return Historial to zero in one
+// action. Active runs are cancelled first (k8s namespaces torn down), then
+// the in-memory map is cleared and metrics-api is asked to drop every doc
+// in async-metrics. NOT idempotent-safe against in-flight starts: the UI
+// disables the button while calling to avoid races.
+app.post('/runs/reset', async (_req, res) => {
+  const activeNamespaces: string[] = [];
+  for (const run of runs.values()) {
+    if ((run.status === 'running' || run.status === 'pending') && run.namespace) {
+      activeNamespaces.push(run.namespace);
+    }
+  }
+  runs.clear();
+  // Fire-and-forget namespace teardown for any active runs. We don't await
+  // the delete because the UI already got its synchronous "reset done" ack.
+  if (k8sEnabled) {
+    for (const ns of activeNamespaces) {
+      coreApi.deleteNamespace(ns).catch(e =>
+        console.warn(`[orchestrator] reset: deleteNamespace(${ns}) failed: ${(e as Error).message}`)
+      );
+    }
+  }
+  let deleted = 0;
+  try {
+    const r = await fetch(`${METRICS_API_URL}/metrics/all`, { method: 'DELETE' });
+    if (r.ok) {
+      const body = await r.json().catch(() => ({}));
+      deleted = body.deleted ?? 0;
+    } else {
+      console.warn(`[orchestrator] reset: metrics /all returned ${r.status}`);
+    }
+  } catch (e) {
+    console.warn(`[orchestrator] reset: metrics wipe failed: ${(e as Error).message}`);
+  }
+  return res.json({ ok: true, runsCleared: true, metricsDeleted: deleted, namespacesTornDown: activeNamespaces.length });
+});
+
 app.delete('/runs/:id', async (req, res) => {
   const id = req.params.id;
   const hadInMemory = runs.has(id);

@@ -259,6 +259,24 @@ app.delete('/metrics/:id', async (req: Request, res: Response) => {
   }
 });
 
+// ── DELETE /metrics/all ───────────────────────────────────────────────────────
+// Nuke the entire async-metrics index. Used by the "Reinicia tot" button on
+// the Execucions page to reset history to zero in one shot. No archive, no
+// undo: samples are gone the moment this returns. The index is recreated
+// automatically on the next POST /metrics.
+app.delete('/metrics/all', async (_req: Request, res: Response) => {
+  try {
+    const result = await es.deleteByQuery({
+      index: INDEX,
+      refresh: true,
+      body: { query: { match_all: {} } },
+    });
+    res.json({ deleted: (result as any).deleted ?? 0 });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── DELETE /metrics/run/:runId ────────────────────────────────────────────────
 // Deletes ALL metric snapshots that belong to a given runId. Used by the UI
 // when the user deletes a history row that was only known to Elasticsearch

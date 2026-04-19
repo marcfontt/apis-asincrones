@@ -49,14 +49,20 @@ const METRICS_BASE   = '/api/proxy/metrics-api';
  * Maps each orchestrator run status string to the visual token set used in
  * the status badge: a foreground color, a translucent background, and the
  * Catalan display label.
- * "cancelled" is labelled "Aturat" (stopped) rather than the raw API value
- * because end-users initiated the stop - it was not an unexpected cancellation.
+ *
+ * "cancelled" is rendered identically to "completed" on purpose: from the
+ * user's perspective a run that was stopped by hand and one that ran to
+ * completion are both "finished" — they produced samples, they live in
+ * Historial, they count the same for comparison. Surfacing a separate
+ * "Aturat" bucket only created confusion (and an empty tab when cancels
+ * didn't cleanly flush). The internal 'cancelled' string is still kept in
+ * the run record so the orchestrator/metrics pipeline can tell them apart.
  * ---------------------------------------------------------------------------*/
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
   pending:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',  label: 'Pendent' },
   running:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', label: 'En execució' },
   completed: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  label: 'Completat' },
-  cancelled: { color: '#94a3b8', bg: 'rgba(148,163,184,0.10)',label: 'Aturat' },
+  cancelled: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  label: 'Completat' },
   error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.10)',  label: 'Error' },
 };
 
@@ -1080,6 +1086,50 @@ export const ExecucionsPage = () => {
   };
 
   /*
+   * handleResetAll
+   * Danger action: wipes the orchestrator's in-memory run list AND the full
+   * async-metrics index in Elasticsearch. After this returns, both
+   * Execucions and Historial read as if the cluster had just been installed.
+   * Confirmation is mandatory — the action is irreversible and destroys
+   * benchmark history across ALL scenarios, not just the visible ones.
+   */
+  const handleResetAll = () => {
+    setConfirmState({
+      open: true,
+      title: 'Reinicia tot',
+      confirmLabel: 'Reinicia',
+      danger: true,
+      message: (
+        <>
+          Aquesta acció <strong>esborra totes les execucions i totes les mostres</strong> del cluster.
+          <br />
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>
+            No es pot desfer. Historial i Execucions quedaran buits. Les execucions actives es cancel·laran.
+          </span>
+        </>
+      ),
+      onConfirm: async () => {
+        closeConfirm();
+        setCancellingId('__all__');
+        try {
+          const r = await fetch(`${ORCHESTRATOR}/runs/reset`, { method: 'POST' });
+          if (!r.ok) {
+            showToast(`Error reiniciant: HTTP ${r.status}`);
+            return;
+          }
+          const body = await r.json().catch(() => ({}));
+          showToast(`Reinici complet: ${body.metricsDeleted ?? 0} mostres eliminades.`);
+          fetchRuns();
+        } catch (e) {
+          showToast(`Error reiniciant: ${(e as Error).message}`);
+        } finally {
+          setCancellingId(null);
+        }
+      },
+    });
+  };
+
+  /*
    * SkRow (skeleton loading row)
    * Renders a single shimmer placeholder row for the loading state.
    * The column widths (as percentages of the cell) are approximate matches
@@ -1148,6 +1198,15 @@ export const ExecucionsPage = () => {
             <button onClick={fetchRuns} style={{ ...S.btn, fontSize: 13 }}>
               <RefreshIcon /> Actualitzar
             </button>
+            {runs.length > 0 && (
+              <button
+                onClick={handleResetAll}
+                title="Esborra totes les execucions i mostres del cluster"
+                style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
+              >
+                Reinicia tot
+              </button>
+            )}
           </div>
           {/* "Last refreshed" label - hidden during loading to avoid showing stale time */}
           {lastRefreshed && !loading && (
@@ -1169,8 +1228,7 @@ export const ExecucionsPage = () => {
           {[
             { label: 'Total',       value: runs.length,                                            color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
             { label: 'En execucio', value: running.length,                                         color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
-            { label: 'Completats',  value: completed.filter(r => r.status === 'completed').length, color: 'var(--success)',        bg: 'rgba(34,197,94,0.08)' },
-            { label: 'Aturats',     value: runs.filter(r => r.status === 'cancelled').length,      color: '#94a3b8',               bg: 'rgba(148,163,184,0.08)' },
+            { label: 'Completats',  value: runs.filter(r => r.status === 'completed' || r.status === 'cancelled').length, color: 'var(--success)', bg: 'rgba(34,197,94,0.08)' },
             { label: 'Errors',      value: runs.filter(r => r.status === 'error').length,          color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
