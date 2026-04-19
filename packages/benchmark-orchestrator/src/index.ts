@@ -13,6 +13,11 @@ const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenari
 const ACR_SERVER = process.env.ACR_SERVER || 'feinaregistry.azurecr.io';
 const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
 const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincronas';
+// Used by DELETE /runs/:id to cascade-delete the run's metrics from
+// Elasticsearch via metrics-api. Without this, deleting a run in the UI
+// only drops the orchestrator's in-memory record; the historical mostres
+// stay in ES forever and keep polluting the Historial view.
+const METRICS_API_URL = process.env.METRICS_API_URL || 'http://metrics-api:3004';
 
 const kc = new k8s.KubeConfig();
 let k8sEnabled = false;
@@ -427,9 +432,22 @@ app.post('/runs/:id/cancel', async (req, res) => {
   }
 });
 
-app.delete('/runs/:id', (req, res) => {
-  if (!runs.has(req.params.id)) return res.status(404).json({ error: 'Not found' });
-  runs.delete(req.params.id);
+app.delete('/runs/:id', async (req, res) => {
+  const id = req.params.id;
+  const hadInMemory = runs.has(id);
+  runs.delete(id);
+  // Cascade: drop every metric snapshot tied to this runId from ES via
+  // metrics-api. Without this, the orchestrator's in-memory row disappears
+  // but the mostres stay in ES forever and keep polluting Historial.
+  try {
+    const r = await fetch(`${METRICS_API_URL}/metrics/run/${id}`, { method: 'DELETE' });
+    if (!r.ok && r.status !== 404) {
+      console.warn(`[orchestrator] cascade-delete metrics for ${id} returned ${r.status}`);
+    }
+  } catch (e) {
+    console.warn(`[orchestrator] cascade-delete metrics for ${id} failed: ${(e as Error).message}`);
+  }
+  if (!hadInMemory) return res.status(404).json({ error: 'Not found in orchestrator (metrics wiped if any)' });
   return res.json({ ok: true });
 });
 

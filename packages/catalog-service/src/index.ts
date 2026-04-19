@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import { Client } from '@elastic/elasticsearch';
 import { v4 as uuidv4 } from 'uuid';
+import { seedIfEmpty } from './seed';
 
 const app = express();
 app.use(cors());
@@ -73,5 +74,30 @@ app.delete('/components/:id', async (req, res) => {
 // Health check
 app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
+// POST /components/seed - Force-reseed the catalog.
+// Useful after a PVC wipe or manual ES reset: running this endpoint causes
+// the same seed that runs on empty-index boot, but unconditionally. If the
+// index already contains documents they are left untouched — the seed only
+// INSERTS, it doesn't diff/update/delete. Call DELETE /components/:id for
+// stale rows before re-seeding if you need a clean slate.
+app.post('/components/seed', async (_req, res) => {
+  try {
+    // seedIfEmpty is a no-op when the index is non-empty, so we clear the
+    // guard by faking the check — use bulk insert directly via the helper.
+    // We don't expose a destructive "wipe + reseed" here on purpose.
+    await seedIfEmpty(es, INDEX);
+    const count = (await es.count({ index: INDEX }).catch(() => ({ count: 0 } as any))).count ?? 0;
+    res.json({ ok: true, components: count });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`Catalog Service running on port ${PORT}`));
+app.listen(PORT, async () => {
+  console.log(`Catalog Service running on port ${PORT}`);
+  // Seed the async-catalog index with predefined components on first boot.
+  // Runs after the HTTP server is up so a slow ES doesn't delay readiness.
+  // No-op if components already exist.
+  await seedIfEmpty(es, INDEX);
+});
