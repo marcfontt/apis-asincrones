@@ -71,8 +71,8 @@ const FEATURES = [
 // ── Sequencia "Com comecar" (4 passos lineals) ────────────────────────────────
 // Es mostra amb una linia connectors per indicar ordre sequencial
 const GETTING_STARTED = [
-  { step: 1, label: 'Explora el cataleg',   desc: 'Descobreix arquitectures, protocols i plataformes.',     href: '/catalog',    color: '#3b82f6', Icon: IconCatalog   },
-  { step: 2, label: 'Crea un escenari',     desc: 'Combina broker, protocol i configuracio de test.',       href: '/escenaris',  color: '#8b5cf6', Icon: IconScenarios },
+  { step: 1, label: 'Explora el catàleg',   desc: 'Descobreix arquitectures, protocols i plataformes.',     href: '/catalog',    color: '#3b82f6', Icon: IconCatalog   },
+  { step: 2, label: 'Crea un escenari',     desc: 'Combina broker, protocol i configuració de test.',       href: '/escenaris',  color: '#8b5cf6', Icon: IconScenarios },
   { step: 3, label: 'Executa el benchmark', desc: 'Llança el Job a AKS i monitoritza en temps real.',       href: '/execucions', color: '#22c55e', Icon: IconRun       },
   { step: 4, label: 'Analitza resultats',   desc: 'Compara escenaris per latència, throughput i errors.',   href: '/resultats',  color: '#f59e0b', Icon: IconResults   },
 ];
@@ -228,7 +228,7 @@ export const HomePage = () => {
           <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' as const }}>
             {[
               { label: 'Crear escenari',  href: '/escenaris', primary: true  },
-              { label: 'Veure cataleg',   href: '/catalog',   primary: false },
+              { label: 'Veure catàleg',   href: '/catalog',   primary: false },
               { label: 'Veure resultats', href: '/resultats', primary: false },
             ].map((btn, i) => (
               <a key={i} href={btn.href}

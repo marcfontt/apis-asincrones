@@ -37,6 +37,12 @@ import { S, GLOBAL_CSS } from '../../theme'; // S = reusable React style objects
  * ---------------------------------------------------------------------------*/
 const ORCHESTRATOR   = '/api/proxy/benchmark-orchestrator';
 const SCENARIOS_BASE = '/api/proxy/scenario-service';
+// Metrics API serves the persistent run history from Elasticsearch. We need it
+// here because the orchestrator keeps runs in memory only — after a pod restart
+// its /runs list is empty, even though the runs are still in ES. Without this
+// fallback the Execucions page shows 0 rows while the Historial/Resultats tab
+// shows 163 — a jarring inconsistency for the user.
+const METRICS_BASE   = '/api/proxy/metrics-api';
 
 /* ---------------------------------------------------------------------------
  * STATUS_CONFIG
@@ -538,9 +544,13 @@ const RunTable = ({
                       </td>
                     )}
 
-                    {/* Scenario name - falls back to a truncated ID if no name is available */}
+                    {/* Scenario name - resolves via scenarioMap for synthetic (ES-only) rows
+                        where `scenarioName` was set to the raw scenarioId during merge.
+                        Falls back to a truncated ID if neither the run nor the scenario
+                        definition provides a friendly name. */}
                     <td style={{ ...S.td, fontWeight: 700, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {r.scenarioName || <span style={{ color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{r.scenarioId?.slice(0, 10) || '-'}</span>}
+                      {(sc?.name || (r.scenarioName && r.scenarioName !== r.scenarioId ? r.scenarioName : null))
+                        ?? <span style={{ color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>{r.scenarioId?.slice(0, 10) || r.id?.slice(0, 10) || '-'}</span>}
                     </td>
 
                     {/* Architecture badge - uses ARCHITECTURE_COLORS for color, defaults to blue */}
@@ -715,10 +725,57 @@ export const ExecucionsPage = () => {
    */
   const fetchRuns = useCallback(() => {
     setLoading(true);
-    fetch(`${ORCHESTRATOR}/runs`)
-      .then(r => r.json())
-      .then(data => {
-        setRuns(Array.isArray(data) ? data : []);
+    // Fetch BOTH sources in parallel:
+    //   1. Orchestrator /runs   -> source of truth for live/pending/just-finished runs,
+    //                              but only holds them in memory (lost on pod restart).
+    //   2. Metrics-API /summary -> persistent ES history, one row per runId.
+    //
+    // Merge strategy:
+    //   - Orchestrator runs ALWAYS win when the runId exists in both lists
+    //     (fresher status info: running/pending vs. completed).
+    //   - ES-only rows are materialized into run-shaped objects so they appear
+    //     in the history table alongside the orchestrator ones.
+    //   - Result is sorted by startedAt desc so recent runs stay on top.
+    Promise.all([
+      fetch(`${ORCHESTRATOR}/runs`).then(r => r.ok ? r.json() : []).catch(() => []),
+      fetch(`${METRICS_BASE}/metrics/summary`).then(r => r.ok ? r.json() : []).catch(() => []),
+    ])
+      .then(([orchData, summaryData]) => {
+        const orchRuns: any[] = Array.isArray(orchData) ? orchData : [];
+        const summary:  any[] = Array.isArray(summaryData) ? summaryData : [];
+
+        const orchIds = new Set(orchRuns.map(r => r.id));
+        // For each ES summary that is NOT already in the orchestrator list,
+        // synthesize a completed run object. Unknown fields stay undefined —
+        // the table renderer already handles missing badges gracefully.
+        const synthetic = summary
+          .filter((s: any) => s.runId && !orchIds.has(s.runId))
+          .map((s: any) => ({
+            id:            s.runId,
+            scenarioId:    s.scenarioId,
+            scenarioName:  s.scenarioId, // resolved to friendly name later via scenarioMap
+            architecture:  s.architecture,
+            protocol:      s.protocol,
+            platform:      s.platform || s.broker,
+            broker:        s.broker,
+            dataFormat:    s.dataFormat,
+            deliveryModel: s.deliveryModel,
+            // ES-only runs are always historical. Accept the status recorded at run end;
+            // if missing, assume 'completed' (a snapshot existed so the run happened).
+            status:        s.status || 'completed',
+            startedAt:     s.startedAt,
+            completedAt:   s.endedAt,
+            // Tag synthetic rows so delete/cancel can route to the right backend.
+            _source:       'metrics',
+          }));
+
+        const merged = [...orchRuns, ...synthetic].sort((a, b) => {
+          const at = a.startedAt ? Date.parse(a.startedAt) : 0;
+          const bt = b.startedAt ? Date.parse(b.startedAt) : 0;
+          return bt - at;
+        });
+
+        setRuns(merged);
         setLoading(false);
         setLastRefreshed(new Date()); // record when this fresh data arrived
         setSecsAgo(0);               // reset the elapsed-time counter
@@ -811,7 +868,13 @@ export const ExecucionsPage = () => {
         closeConfirm();
         markDeleting(run.id); // start fade-out immediately
         try {
-          await fetch(`${ORCHESTRATOR}/runs/${run.id}`, { method: 'DELETE' });
+          // ES-only (synthetic) rows don't exist in orchestrator memory, so we
+          // ask metrics-api to drop every doc with that runId. Orchestrator-tracked
+          // rows go through orchestrator which itself owns the cleanup logic.
+          const url = run._source === 'metrics'
+            ? `${METRICS_BASE}/metrics/run/${run.id}`
+            : `${ORCHESTRATOR}/runs/${run.id}`;
+          await fetch(url, { method: 'DELETE' });
           // Remove from local state - no re-fetch needed for a single delete
           setRuns(prev => prev.filter(r => r.id !== run.id));
           setSelectedIds(prev => { const s = new Set(prev); s.delete(run.id); return s; });
@@ -843,8 +906,17 @@ export const ExecucionsPage = () => {
       onConfirm: async () => {
         closeConfirm();
         ids.forEach(markDeleting); // fade all selected rows immediately
+        // Route each delete to the backend that actually owns the record:
+        //   _source === 'metrics' -> ES only, go through metrics-api
+        //   otherwise             -> orchestrator (it will also clean up ES)
         const results = await Promise.allSettled(
-          ids.map(id => fetch(`${ORCHESTRATOR}/runs/${id}`, { method: 'DELETE' }))
+          ids.map(id => {
+            const target = runs.find(r => r.id === id);
+            const url = target?._source === 'metrics'
+              ? `${METRICS_BASE}/metrics/run/${id}`
+              : `${ORCHESTRATOR}/runs/${id}`;
+            return fetch(url, { method: 'DELETE' });
+          })
         );
         // Only remove runs whose delete requests succeeded
         const deleted = ids.filter((_, i) => results[i].status === 'fulfilled');
@@ -886,8 +958,15 @@ export const ExecucionsPage = () => {
         closeConfirm();
         const ids = finished.map((r: any) => r.id).filter(Boolean);
         ids.forEach(markDeleting);
+        // Same split as handleBulkDelete: metrics-api for ES-only rows,
+        // orchestrator for everything it still remembers.
         const results = await Promise.allSettled(
-          ids.map((id: string) => fetch(`${ORCHESTRATOR}/runs/${id}`, { method: 'DELETE' }))
+          finished.map((r: any) => {
+            const url = r._source === 'metrics'
+              ? `${METRICS_BASE}/metrics/run/${r.id}`
+              : `${ORCHESTRATOR}/runs/${r.id}`;
+            return fetch(url, { method: 'DELETE' });
+          })
         );
         const deleted = ids.filter((_: string, i: number) => results[i].status === 'fulfilled');
         setRuns(prev => prev.filter(r => !deleted.includes(r.id)));

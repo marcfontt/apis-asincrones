@@ -111,6 +111,25 @@ app.get('/metrics/compare', async (req: Request, res: Response) => {
 // Agrupa per runId per tenir historial per execucio independent del scenario
 app.get('/metrics/summary', async (_req: Request, res: Response) => {
   try {
+    // ──────────────────────────────────────────────────────────────────────
+    // IMPORTANT: why we read from the LAST doc, not average across docs.
+    //
+    // The load-generator posts a cumulative snapshot every 5 seconds and a
+    // final cumulative snapshot at run end. EACH doc's `latency`,
+    // `throughput`, `errorRate`, `p50_latency_ms`, `p95_latency_ms`,
+    // `p99_latency_ms` is a RUNNING AVERAGE over samples seen so far in the
+    // run — NOT a per-interval measurement.
+    //
+    // Averaging a running-average across docs biases the result toward the
+    // earliest measurements (when the window is small and avg is typically
+    // higher). The correct "final answer" for any cumulative field lives in
+    // the LAST doc of the run. We pick it with top_hits sorted by timestamp
+    // desc, size 1.
+    //
+    // `messages_sent`/`messages_recv` are monotonic counters → the last
+    // doc's value is the true run total, and is used as `count` so the UI
+    // shows real message counts instead of "number of snapshot docs".
+    // ──────────────────────────────────────────────────────────────────────
     const result = await es.search({
       index: INDEX,
       body: {
@@ -119,17 +138,24 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
           by_run: {
             terms: { field: 'runId.keyword', size: 500 },
             aggs: {
-              scenario_id:    { terms: { field: 'scenarioId.keyword', size: 1 } },
-              avg_latency:    { avg: { field: 'latency' } },
-              avg_throughput: { avg: { field: 'throughput' } },
-              avg_error_rate: { avg: { field: 'errorRate' } },
-              p50_latency:    { percentiles: { field: 'latency', percents: [50] } },
-              p99_latency:    { percentiles: { field: 'latency', percents: [99] } },
-              architecture:   { terms: { field: 'architecture.keyword', size: 1 } },
-              protocol:       { terms: { field: 'protocol.keyword', size: 1 } },
-              broker:         { terms: { field: 'broker.keyword', size: 1 } },
-              platform:       { terms: { field: 'platform.keyword', size: 1 } },
-              dataFormat:     { terms: { field: 'dataFormat.keyword', size: 1 } },
+              // Pick the final snapshot of each run. All cumulative fields
+              // are read from here. Avoids the "average of running-averages"
+              // bias that corrupts the history vs. live comparison.
+              last_doc: {
+                top_hits: {
+                  size: 1,
+                  sort: [{ timestamp: { order: 'desc' } }],
+                  _source: [
+                    'scenarioId', 'architecture', 'protocol', 'broker', 'platform', 'dataFormat',
+                    'latency', 'throughput', 'errorRate', 'status',
+                    'p50_latency_ms', 'p95_latency_ms', 'p99_latency_ms',
+                    'messages_sent', 'messages_recv',
+                    'messages_sent_stable', 'messages_recv_stable',
+                    'throughput_stable',
+                    'deliveryModel', 'warmupSeconds',
+                  ],
+                },
+              },
               // min/max timestamp per run so the UI can time-filter history
               // against real run boundaries instead of guessing via last sample.
               started_at:     { min: { field: 'timestamp' } },
@@ -141,24 +167,40 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
     });
 
     const buckets = (result.aggregations?.by_run as any)?.buckets ?? [];
-    const summary = buckets.map((b: any) => ({
-      runId:         b.key,
-      scenarioId:    b.scenario_id?.buckets?.[0]?.key,
-      count:         b.doc_count,
-      avgLatency:    b.avg_latency?.value,
-      avgThroughput: b.avg_throughput?.value,
-      avgErrorRate:  b.avg_error_rate?.value,
-      p50Latency:    b.p50_latency?.values?.['50.0'],
-      p99Latency:    b.p99_latency?.values?.['99.0'],
-      architecture:  b.architecture?.buckets?.[0]?.key,
-      protocol:      b.protocol?.buckets?.[0]?.key,
-      broker:        b.broker?.buckets?.[0]?.key,
-      platform:      b.platform?.buckets?.[0]?.key,
-      dataFormat:    b.dataFormat?.buckets?.[0]?.key,
-      // ISO strings preferred over epoch ms so the UI can Date.parse() directly
-      startedAt:     b.started_at?.value_as_string ?? (b.started_at?.value != null ? new Date(b.started_at.value).toISOString() : null),
-      endedAt:       b.ended_at?.value_as_string   ?? (b.ended_at?.value   != null ? new Date(b.ended_at.value).toISOString()   : null),
-    }));
+    const summary = buckets.map((b: any) => {
+      // Pull the final cumulative snapshot for this run. All per-run stats
+      // are read from here (see block comment above for the rationale).
+      const last = b.last_doc?.hits?.hits?.[0]?._source ?? {};
+      return {
+        runId:         b.key,
+        scenarioId:    last.scenarioId,
+        // `count` = real messages received (monotonic counter). Falls back
+        // to the snapshot-doc count only if the field is missing (very old
+        // history data without the new schema).
+        count:         last.messages_recv ?? b.doc_count,
+        messagesSent:  last.messages_sent ?? null,
+        messagesRecv:  last.messages_recv ?? null,
+        // Cumulative averages from the FINAL snapshot, not avg-of-avgs.
+        avgLatency:    last.latency,
+        avgThroughput: last.throughput_stable ?? last.throughput,
+        avgErrorRate:  last.errorRate,
+        // Percentiles computed per-run by the load-generator over its
+        // post-warm-up latency array. Already the correct per-run answer.
+        p50Latency:    last.p50_latency_ms,
+        p95Latency:    last.p95_latency_ms,
+        p99Latency:    last.p99_latency_ms,
+        architecture:  last.architecture,
+        protocol:      last.protocol,
+        broker:        last.broker,
+        platform:      last.platform,
+        dataFormat:    last.dataFormat,
+        deliveryModel: last.deliveryModel,
+        status:        last.status,
+        // ISO strings preferred over epoch ms so the UI can Date.parse() directly
+        startedAt:     b.started_at?.value_as_string ?? (b.started_at?.value != null ? new Date(b.started_at.value).toISOString() : null),
+        endedAt:       b.ended_at?.value_as_string   ?? (b.ended_at?.value   != null ? new Date(b.ended_at.value).toISOString()   : null),
+      };
+    });
 
     res.json(summary);
   } catch (err: any) {
@@ -214,6 +256,24 @@ app.delete('/metrics/:id', async (req: Request, res: Response) => {
   } catch (err: any) {
     if (err.meta?.statusCode === 404) res.status(404).json({ error: 'Metric not found' });
     else res.status(500).json({ error: err.message });
+  }
+});
+
+// ── DELETE /metrics/run/:runId ────────────────────────────────────────────────
+// Deletes ALL metric snapshots that belong to a given runId. Used by the UI
+// when the user deletes a history row that was only known to Elasticsearch
+// (the orchestrator forgot it because its in-memory map was cleared on a
+// pod restart). Without this, such rows could not be deleted at all.
+app.delete('/metrics/run/:runId', async (req: Request, res: Response) => {
+  try {
+    const result = await es.deleteByQuery({
+      index: INDEX,
+      refresh: true,
+      body: { query: { match: { runId: req.params.runId } } },
+    });
+    res.json({ deleted: (result as any).deleted ?? 0 });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
   }
 });
 

@@ -184,6 +184,39 @@ const normalizePlatform = (p?: string): string => {
 };
 
 // ---------------------------------------------------------------------------
+// Delivery model (intrinsic protocol property, NOT a benchmark artefact)
+// ---------------------------------------------------------------------------
+
+/**
+ * Returns the broker's delivery model:
+ *   - 'pull'   Kafka / Confluent (consumer fetches from broker)
+ *   - 'push'   NATS / RabbitMQ / Pulsar (broker pushes to consumer)
+ *
+ * Reported in the load-generator metric docs via `deliveryModel`. The UI
+ * prefers that server-side value when present, but falls back to inferring
+ * from platform/broker so older history records still render a badge.
+ *
+ * Documented in the FairComparisonPanel so readers understand why residual
+ * latency differences between pull and push brokers are intrinsic to the
+ * protocol and not a benchmark configuration issue.
+ */
+const deliveryModelOf = (s: any): 'pull' | 'push' | null => {
+  // 1. Prefer server-side value (load-generator >= fdcf64d embeds this).
+  if (s?.deliveryModel === 'pull' || s?.deliveryModel === 'push') return s.deliveryModel;
+  // 2. Fall back to platform/broker lookup for older records.
+  const raw = (s?.platform || s?.broker || '').toString().toLowerCase();
+  if (raw.includes('kafka') || raw.includes('confluent')) return 'pull';
+  if (raw.includes('nats') || raw.includes('rabbit') || raw.includes('pulsar') || raw.includes('mqtt') || raw.includes('amqp')) return 'push';
+  return null;
+};
+
+/** Badge styling for delivery model — pull uses amber, push uses teal. */
+const DELIVERY_MODEL_META: Record<'pull' | 'push', { label: string; color: string; bg: string }> = {
+  pull: { label: 'pull',  color: '#d97706', bg: 'rgba(217,119,6,0.10)' },
+  push: { label: 'push',  color: '#0ea5e9', bg: 'rgba(14,165,233,0.10)' },
+};
+
+// ---------------------------------------------------------------------------
 // Format-aware scoring system
 // ---------------------------------------------------------------------------
 
@@ -459,7 +492,7 @@ const METRIC_DEFINITIONS = [
     short: 'Percentatge de missatges que no s\'han pogut processar correctament.',
     detail: `La taxa d'error expressa quina fraccio dels missatges enviats ha fallat o s'ha perdut. En sistemes de missatgeria asincrona, els errors poden venir de diverses fonts: perdua de connexio, cua plena (backpressure), timeouts, o errors de seriacoi/deserialitzacio.
     El benchmark aplica una penalitzacio exponencial si la taxa d'error supera el 0.1%. Aixo reflecteix la realitat: un sistema rapid pero poc fiable es inutilitzable en produccio.
-    La taxa d'error es la metrica amb major impacte negatiu en la puntuacio global.`,
+    La taxa d'error es la metrica amb major impacte negatiu en la puntuacio.`,
     formula: 'errorRate = (missatges_fallats / missatges_enviats) x 100',
   },
 ];
@@ -619,6 +652,101 @@ const MetricGlossary = () => {
               Si la taxa d'error supera el <strong>0.1%</strong>, s'aplica una penalitzacio exponencial a la puntuacio final: <code style={{ background: 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 11 }}>penalitzacio = 1 - min(1, errorRate x 10)</code>.
               Aixo garanteix que un sistema rapid pero inestable no obtingui una bona puntuacio. Un 10% d'error fa que la puntuacio sigui 0 independentment de les altres metriques.
             </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ---------------------------------------------------------------------------
+// FairComparisonPanel - methodological transparency panel
+// ---------------------------------------------------------------------------
+
+/**
+ * FairComparisonPanel - collapsible info box documenting the fair-comparison
+ * contract enforced by the load-generator.
+ *
+ * The benchmark treats Kafka, Confluent, NATS and RabbitMQ symmetrically:
+ * fire-and-forget producers, single partition / no persistence / no ack,
+ * warm-up window, percentile-based latency reporting. Residual differences
+ * (pull vs push) are intrinsic to the protocol, not the benchmark config.
+ *
+ * Placed directly below MetricGlossary so readers have methodology context
+ * before reading the numbers. Collapsed by default to keep the first render
+ * lightweight.
+ */
+const FairComparisonPanel = () => {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ ...S.card, marginBottom: 20, borderLeft: '3px solid #0ea5e9', padding: '16px 20px' }}>
+      <button onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: '#0ea5e9' }}><IconInfo /></span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Metodologia — comparació justa entre plataformes</span>
+        </div>
+        <IconChevron open={open} />
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 18, animation: 'fadeUp 0.3s ease' }}>
+          <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+            Totes les plataformes s'executen sota un <strong style={{ color: 'var(--text-primary)' }}>contracte de comparació</strong> que
+            neutralitza les diferències de configuració. Les variacions que veus als resultats reflecteixen el protocol en sí, no
+            avantatges artificials d'un broker sobre un altre.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginBottom: 16 }}>
+            {/* Card 1: Contracte d'equitat */}
+            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ background: '#22c55e20', color: '#22c55e', borderRadius: 6, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>=</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Contracte d'equitat</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                Productors <em>fire-and-forget</em> (Kafka <code style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>acks=0</code>, NATS Core, RabbitMQ sense publisher-confirms, consumer <code style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>noAck:true</code>). Una sola partició, sense persistència, un canal per run.
+              </p>
+            </div>
+
+            {/* Card 2: Warm-up */}
+            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ background: '#f59e0b20', color: '#f59e0b', borderRadius: 6, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>~</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Finestra de warm-up (5 s)</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                Els primers 5 segons de cada execució es descarten per ignorar el cost inicial de <em>session-setup</em> (JVM warm-up, TCP handshake, rebalance). Només els samples en <em>steady-state</em> compten per al score.
+              </p>
+            </div>
+
+            {/* Card 3: Percentils */}
+            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ background: '#8b5cf620', color: '#8b5cf6', borderRadius: 6, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>P95</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>P50 / P95 / P99</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                La mitjana pot ocultar <em>tail latency</em>. P50 = típica, P95 = pitjor cas habitual, P99 = pitjor cas real. Una diferència gran entre P50 i P99 indica un sistema inestable, encara que la mitjana sembli bona.
+              </p>
+            </div>
+
+            {/* Card 4: Pull vs Push */}
+            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ ...S.badge(DELIVERY_MODEL_META.pull.color), fontSize: 9 }}>pull</span>
+                <span style={{ ...S.badge(DELIVERY_MODEL_META.push.color), fontSize: 9 }}>push</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginLeft: 2 }}>Model de lliurament</span>
+              </div>
+              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                <strong style={{ color: DELIVERY_MODEL_META.pull.color }}>Kafka/Confluent</strong> són <em>pull</em> (el consumidor sondeja). <strong style={{ color: DELIVERY_MODEL_META.push.color }}>NATS/RabbitMQ</strong> són <em>push</em> (el broker empeny). Això afegeix ~1 ms de fetch-wait als pull, intrínsec al protocol — no a la configuració.
+              </p>
+            </div>
+          </div>
+
+          <div style={{ padding: '12px 16px', background: 'rgba(14, 165, 233, 0.06)', borderRadius: 8, border: '1px solid rgba(14, 165, 233, 0.22)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+            <strong style={{ color: '#0ea5e9' }}>Com llegir els números:</strong>{' '}
+            una plataforma <em>pull</em> amb latència ~1 ms més alta que una <em>push</em> no és <em>pitjor</em> — és el tradeoff del seu model.
+            Utilitza la puntuació adaptativa al format per decidir quina combinació encaixa millor amb el teu cas d'ús real.
           </div>
         </div>
       )}
@@ -965,7 +1093,7 @@ const HistorialTab = () => {
   // Client-side computed percentiles, keyed by runId. Populated lazily by
   // fetching /metrics?runId=X for runs that lack p50Latency/p99Latency in the
   // summary response. See the useEffect below for details.
-  const [percentileMap, setPercentileMap] = useState<Record<string, { p50: number | null; p99: number | null }>>({});
+  const [percentileMap, setPercentileMap] = useState<Record<string, { p50: number | null; p95: number | null; p99: number | null }>>({});
 
   // Filter state - each is an array of selected values (empty = no filter)
   const [filterPlatform, setFilterPlatform] = useState<string[]>([]);
@@ -1031,7 +1159,7 @@ const HistorialTab = () => {
       const rid = s.runId;
       if (!rid) return false; // no stable key
       if (percentileMap[rid]) return false; // already computed
-      if (s.p50Latency != null && s.p99Latency != null) return false; // server provided
+      if (s.p50Latency != null && s.p95Latency != null && s.p99Latency != null) return false; // server provided
       return true;
     });
     if (runsNeedingPercentiles.length === 0) return;
@@ -1046,15 +1174,16 @@ const HistorialTab = () => {
         const results = await Promise.all(batch.map(async (s: any) => {
           try {
             const data = await fetch(`${METRICS_BASE}/metrics?runId=${s.runId}`).then(r => r.json()).catch(() => null);
-            if (!Array.isArray(data) || data.length === 0) return { runId: s.runId, p50: null, p99: null };
+            if (!Array.isArray(data) || data.length === 0) return { runId: s.runId, p50: null, p95: null, p99: null };
             const latencies = data.map((m: any) => m.latency ?? m.avgLatency ?? 0).filter((v: number) => v > 0);
             return {
               runId: s.runId,
               p50: computePercentile(latencies, 50),
+              p95: computePercentile(latencies, 95),
               p99: computePercentile(latencies, 99),
             };
           } catch (_) {
-            return { runId: s.runId, p50: null, p99: null };
+            return { runId: s.runId, p50: null, p95: null, p99: null };
           }
         }));
         if (cancelled) return;
@@ -1062,7 +1191,7 @@ const HistorialTab = () => {
         // progressively as each batch completes (instead of waiting for all).
         setPercentileMap(prev => {
           const next = { ...prev };
-          for (const r of results) next[r.runId] = { p50: r.p50, p99: r.p99 };
+          for (const r of results) next[r.runId] = { p50: r.p50, p95: r.p95, p99: r.p99 };
           return next;
         });
       }
@@ -1204,6 +1333,10 @@ const HistorialTab = () => {
     <div>
       {/* Educational glossary panel - collapsed by default */}
       <MetricGlossary />
+
+      {/* Fair-comparison methodology panel - documents the contract enforced
+          by the load-generator (fire-and-forget, warm-up, pull-vs-push). */}
+      <FairComparisonPanel />
 
       {/* Filter bar */}
       <div style={{ ...S.card, marginBottom: 20 }}>
@@ -1369,6 +1502,12 @@ const HistorialTab = () => {
                     {best.architecture && <span style={{ ...S.badge(ARCHITECTURE_COLORS[best.architecture] || '#2563eb'), fontSize: 10 }}>{best.architecture}</span>}
                     {(() => { const p = normalizePlatform(best.platform || best.broker); return p ? <span style={{ ...S.badge(PLATFORM_COLORS[p] || '#d97706'), fontSize: 10 }}>{p}</span> : null; })()}
                     {(() => { const df = dataFormatOf(best); return <span style={{ ...S.badge(DATA_FORMAT_COLORS[df] || '#64748b'), fontSize: 10 }}>{DATA_FORMAT_LABELS[df] || df}</span>; })()}
+                    {(() => {
+                      const dm = deliveryModelOf(best);
+                      if (!dm) return null;
+                      const meta = DELIVERY_MODEL_META[dm];
+                      return <span style={{ ...S.badge(meta.color), fontSize: 10 }}>{meta.label}</span>;
+                    })()}
                   </div>
                 </div>
               </div>
@@ -1413,6 +1552,7 @@ const HistorialTab = () => {
                     <th style={{ ...S.th, textAlign: 'center' }}>Puntuació</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Lat. avg</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P50</th>
+                    <th style={{ ...S.th, textAlign: 'right' }}>P95</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P99</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Throughput</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Error %</th>
@@ -1435,18 +1575,19 @@ const HistorialTab = () => {
                     const df = dataFormatOf(s);
                     const dfColor = DATA_FORMAT_COLORS[df] || '#64748b';
 
-                    // P50/P99 resolution order:
-                    //   1. Server-side aggregation (s.p50Latency / s.p99Latency)
+                    // P50/P95/P99 resolution order:
+                    //   1. Server-side aggregation (s.p50Latency / s.p95Latency / s.p99Latency)
                     //   2. Client-side fallback (percentileMap[runId]) - populated
                     //      by the effect that fetches raw metrics when the server
                     //      summary is missing percentile fields.
                     //   3. null -> renders as "-" in the table.
                     const pm = percentileMap[s.runId] || percentileMap[s.scenarioId];
                     const p50Val = s.p50Latency ?? pm?.p50 ?? null;
+                    const p95Val = s.p95Latency ?? pm?.p95 ?? null;
                     const p99Val = s.p99Latency ?? pm?.p99 ?? null;
                     // Are we still loading the client-side fallback for this row?
                     const percentilesLoading =
-                      s.p50Latency == null && s.p99Latency == null && !pm && !!s.runId;
+                      s.p50Latency == null && s.p95Latency == null && s.p99Latency == null && !pm && !!s.runId;
 
                     // Use runId || scenarioId as scoreMap key (matches computeScores)
                     const score = scoreMap.get(s.runId || s.scenarioId) ?? 0;
@@ -1486,6 +1627,14 @@ const HistorialTab = () => {
                             : <span style={{ color: 'var(--text-disabled)' }}>{percentilesLoading ? '...' : '-'}</span>}
                         </td>
 
+                        {/* P95 - violet (common-worst-case indicator). Same fallback
+                            semantics as P50/P99. */}
+                        <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#8b5cf6' }}>
+                          {p95Val != null
+                            ? <>{p95Val.toFixed(2)}<span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>ms</span></>
+                            : <span style={{ color: 'var(--text-disabled)' }}>{percentilesLoading ? '...' : '-'}</span>}
+                        </td>
+
                         {/* P99 - purple (worst-case indicator). Same fallback
                             semantics as P50. */}
                         <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: '#7c3aed' }}>
@@ -1521,10 +1670,25 @@ const HistorialTab = () => {
                             : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                         </td>
 
-                        {/* Platform badge */}
+                        {/* Platform badge + delivery-model sub-label.
+                            Delivery model (pull/push) is shown as a small
+                            sub-label below the platform, keeping the column
+                            count unchanged and avoiding horizontal overflow. */}
                         <td style={{ ...S.td, textAlign: 'center' }}>
                           {platform ? <span style={{ ...S.badge(platColor), fontSize: 11 }}>{platform}</span>
                             : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
+                          {(() => {
+                            const dm = deliveryModelOf(s);
+                            if (!dm) return null;
+                            const meta = DELIVERY_MODEL_META[dm];
+                            return (
+                              <div style={{ marginTop: 3, display: 'flex', justifyContent: 'center' }}>
+                                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: meta.bg, color: meta.color, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                                  {meta.label}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </td>
                       </tr>
                     );
@@ -1535,7 +1699,13 @@ const HistorialTab = () => {
             {/* Table footer: scoring methodology note */}
             <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-disabled)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               <span>Puntuació 0–100 normalitzada — pesos adaptats al format de dades (financer: error ×40%, vídeo: throughput ×40%, IoT: throughput ×30%)</span>
-              <span>P50/P99: calculats de les metriques en brut - <span style={{ fontStyle: 'italic' }}>-</span> = sense dades suficients</span>
+              <span>P50/P95/P99: calculats de les metriques en brut - <span style={{ fontStyle: 'italic' }}>-</span> = sense dades suficients</span>
+              <span>
+                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: DELIVERY_MODEL_META.pull.bg, color: DELIVERY_MODEL_META.pull.color, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>pull</span>
+                <span style={{ margin: '0 4px' }}>/</span>
+                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: DELIVERY_MODEL_META.push.bg, color: DELIVERY_MODEL_META.push.color, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>push</span>
+                <span style={{ marginLeft: 6 }}>= model de lliurament (pull afegeix ~1 ms de fetch-wait, intrínsec al protocol)</span>
+              </span>
             </div>
           </div>
         </>
@@ -1570,6 +1740,7 @@ const RunCard = ({
   run: any; selected: boolean; onClick: () => void;
 }) => {
   const isRunning = run.status === 'running';
+  const isCompleted = run.status === 'completed';
   const platform = normalizePlatform(run.platform || run.broker);
   const platColor = PLATFORM_COLORS[platform] || '#7c3aed';
   return (
@@ -1592,12 +1763,15 @@ const RunCard = ({
         boxShadow: selected ? '0 0 0 3px rgba(37,99,235,0.12)' : 'var(--shadow-sm)',
       }}
     >
-      {/* Status dot + scenario name */}
+      {/* Status dot + scenario name.
+          Three states:
+            - running   → green pulsing
+            - completed → grey (static, final-state view)
+            - pending   → amber (queued) */}
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 8 }}>
         <span style={{
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0, marginTop: 4,
-          // Green pulsing = actively running; amber static = queued/pending
-          background: isRunning ? '#22c55e' : '#f59e0b',
+          background: isRunning ? '#22c55e' : isCompleted ? '#94a3b8' : '#f59e0b',
           boxShadow: isRunning ? '0 0 0 2px rgba(34,197,94,0.25)' : 'none',
           animation: isRunning ? 'pulseDot 1.8s ease infinite' : 'none',
           display: 'inline-block',
@@ -1622,11 +1796,19 @@ const RunCard = ({
         {run.dataFormat && (
           <span style={{ ...S.badge(DATA_FORMAT_COLORS[run.dataFormat] || '#64748b'), fontSize: 10 }}>{DATA_FORMAT_LABELS[run.dataFormat] || run.dataFormat}</span>
         )}
+        {/* Delivery model badge (pull/push) — documents the protocol family
+            so users understand residual latency differences between brokers. */}
+        {(() => {
+          const dm = deliveryModelOf(run);
+          if (!dm) return null;
+          const meta = DELIVERY_MODEL_META[dm];
+          return <span style={{ ...S.badge(meta.color), fontSize: 10 }}>{meta.label}</span>;
+        })()}
       </div>
 
       {/* Status text label below badges */}
-      <div style={{ marginTop: 8, fontSize: 11, color: isRunning ? '#22c55e' : '#f59e0b', fontWeight: 600 }}>
-        {isRunning ? 'En execucio' : 'Pendent'}
+      <div style={{ marginTop: 8, fontSize: 11, color: isRunning ? '#22c55e' : isCompleted ? '#94a3b8' : '#f59e0b', fontWeight: 600 }}>
+        {isRunning ? 'En execucio' : isCompleted ? 'Finalitzat' : 'Pendent'}
       </div>
     </button>
   );
@@ -1709,132 +1891,94 @@ const LiveTab = () => {
     return () => clearInterval(i);
   }, [fetchActive]);
 
-  // Auto-select logic: pick first available run if nothing is selected,
-  // or if the selected run has disappeared from the active list
+  // Auto-select logic: pick first available run ONLY when nothing is
+  // selected. We intentionally DO NOT auto-switch when the currently-
+  // selected run completes: the user must still see its final snapshot
+  // (including the "status:completed" doc posted by load-generator on
+  // SIGTERM / natural end-of-run). If we auto-switched, the polling
+  // effect cleanup would wipe the metrics array and the user would
+  // never see the run's endgame.
+  //
+  // When the selected run leaves activeRuns we keep polling /metrics?
+  // runId=X for a short grace window (handled in the polling effect)
+  // so the "completed" snapshot is captured, then the view is frozen.
   useEffect(() => {
     if (!selectedRunId && activeRuns.length > 0) setSelectedRunId(activeRuns[0].id);
-    if (selectedRunId && !activeRuns.find(r => r.id === selectedRunId) && activeRuns.length > 0)
-      setSelectedRunId(activeRuns[0].id);
   }, [activeRuns, selectedRunId]);
 
-  // -------------------------------------------------------------------------
-  // Defensive timestamp boundary for live samples.
-  //
-  // BUG CONTEXT: when a scenario is re-executed, the live view was
-  // showing samples from previous runs of the same scenario. Root cause
-  // is upstream (the orchestrator or metrics-api appears to return
-  // historical samples sharing the same scenarioId), but we cannot rely
-  // on fixing it there alone. This boundary is a defensive client-side
-  // filter that guarantees a fresh start regardless of backend behaviour:
-  //
-  //   1. When the user selects a run, we capture the current wall-clock
-  //      time as `liveSince`.
-  //   2. All samples received are filtered to only include those whose
-  //      timestamp is >= liveSince (with a small grace buffer so we do
-  //      not drop samples emitted slightly before selection).
-  //
-  // This ensures the live view ALWAYS starts from zero on each new run,
-  // regardless of any stale data the backend may return for the runId.
-  // The History tab is unaffected and still shows all historical data.
-  // -------------------------------------------------------------------------
-  const [liveSince, setLiveSince] = useState<number>(0);
+  // True once the selected run has left activeRuns — drives the
+  // "Finalitzat" banner and the grace-window polling behaviour.
+  const selectedRunFinished = !!selectedRunId && !activeRuns.find(r => r.id === selectedRunId);
 
-  // (selectedRunStartedAt removed - the first-poll baseline trick in the
-  // metrics polling effect makes run-startedAt redundant. Kept the lookup
-  // of selectedRun for the RunCard UI in case it's needed later.)
-  // const selectedRun = activeRuns.find(r => r.id === selectedRunId);
-
-  // Metrics polling: resets and restarts when selectedRunId changes
+  // Metrics polling: resets and restarts when selectedRunId changes.
+  //
+  // No defensive timestamp filter is needed because runId is unique per
+  // execution (orchestrator generates a fresh randomUUID for every run,
+  // see packages/benchmark-orchestrator/src/index.ts). That means
+  // /metrics?runId=X returns ONLY this run's docs — there is no stale
+  // data to filter out. The previous "first-poll baseline trick" was
+  // dropping the genuine first 5-10 seconds of every run; removed.
   useEffect(() => {
     if (!selectedRunId) {
       setMetrics([]);
       setPolling(false);
-      setLiveSince(0);
       return;
     }
 
-    // Initial boundary = now - 2s buffer. The first poll response is
-    // used to advance this boundary past any existing (stale) samples
-    // already stored for this runId — see `isFirstPoll` below.
-    setLiveSince(Date.now() - 2000);
     setMetrics([]);
     setPolling(true);
     setPollError('');
-
-    // FIRST POLL BASELINE TRICK:
-    //
-    // The backend appears to reuse runIds or otherwise return historical
-    // samples in the first /metrics?runId=X response. The user reports
-    // seeing 3000+ samples the moment a new scenario is started.
-    //
-    // Fix: the first poll's data is treated as a pre-existing stale
-    // baseline. We advance `liveSince` to the maximum timestamp in that
-    // batch +1ms so ONLY samples that arrive on subsequent polls pass
-    // the filter. Subsequent polls still store the full array (including
-    // the baseline), but the filter rejects anything older than liveSince.
-    //
-    // Robust timestamp parsing: handles numeric epoch, ISO string, and
-    // multiple field names (timestamp, time, @timestamp, ts).
-    let isFirstPoll = true;
-
-    const parseTs = (m: any): number => {
-      const raw = m.timestamp ?? m.time ?? m['@timestamp'] ?? m.ts;
-      if (raw == null || raw === '') return NaN;
-      if (typeof raw === 'number') return raw; // epoch ms
-      const n = new Date(raw).getTime();
-      return isFinite(n) ? n : NaN;
-    };
 
     const poll = async () => {
       try {
         const data = await fetch(`${METRICS_BASE}/metrics?runId=${selectedRunId}`).then(r => r.json()).catch(() => null);
         if (!Array.isArray(data)) return;
-
-        if (isFirstPoll) {
-          isFirstPoll = false;
-          // Advance liveSince past the max timestamp in the baseline batch.
-          // Anything from now on must be strictly newer.
-          const timestamps = data.map(parseTs).filter(t => isFinite(t) && t > 0);
-          if (timestamps.length > 0) {
-            const maxTs = Math.max(...timestamps);
-            setLiveSince(maxTs + 1);
-          }
-          // Keep the raw metrics stored so subsequent polls merge cleanly;
-          // the filter at render time will hide them.
-          setMetrics(data);
-          setLastUpdate(new Date());
-          setPollError('');
-          return;
-        }
-
-        if (data.length > 0) {
-          setMetrics(data);
-          setLastUpdate(new Date());
-          setPollError('');
-        }
+        // Store everything the backend returns for this runId. Since the
+        // runId is unique, every doc belongs to this run.
+        setMetrics(data);
+        setLastUpdate(new Date());
+        setPollError('');
       } catch (e: any) { setPollError(e.message); }
     };
 
-    poll(); // Immediate first fetch (acts as baseline), then interval
+    poll(); // Immediate first fetch
     const i = setInterval(poll, 3000);
     return () => { clearInterval(i); setPolling(false); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRunId]);
 
-  // Apply the defensive timestamp filter: drop any sample older than
-  // `liveSince`. Robust parsing that handles numeric epoch-ms and
-  // ISO strings across multiple field names. Samples WITHOUT a parseable
-  // timestamp are REJECTED (previously accepted defensively, which let
-  // stale data through). Combined with the first-poll baseline trick
-  // this guarantees a clean start for every re-executed run.
-  const filteredMetrics = metrics.filter(m => {
-    if (!liveSince) return true; // no boundary yet, accept everything
-    const raw = m.timestamp ?? m.time ?? m['@timestamp'] ?? m.ts;
-    if (raw == null || raw === '') return false;
-    const t = typeof raw === 'number' ? raw : new Date(raw).getTime();
-    if (!isFinite(t)) return false;
-    return t >= liveSince;
-  });
+  // Grace-window polling after run completion:
+  //
+  // When a run leaves activeRuns, the load-generator is shutting down and
+  // will POST one last snapshot (status:'completed') within ~2 seconds.
+  // We keep polling every 3s for ~15s to catch that final doc, then stop.
+  // This guarantees the Live view shows the SAME final numbers that the
+  // History tab will show (both read the last snapshot of the run).
+  useEffect(() => {
+    if (!selectedRunFinished || !selectedRunId) return;
+    let cancelled = false;
+    let ticks = 0;
+    const TICK_MS = 3000;
+    const MAX_TICKS = 6; // ~18s grace window
+    const tick = async () => {
+      if (cancelled || ticks++ >= MAX_TICKS) return;
+      try {
+        const data = await fetch(`${METRICS_BASE}/metrics?runId=${selectedRunId}`).then(r => r.json()).catch(() => null);
+        if (Array.isArray(data) && !cancelled) {
+          setMetrics(data);
+          setLastUpdate(new Date());
+        }
+      } catch (_) { }
+      if (!cancelled && ticks < MAX_TICKS) setTimeout(tick, TICK_MS);
+    };
+    setTimeout(tick, TICK_MS);
+    return () => { cancelled = true; };
+  }, [selectedRunFinished, selectedRunId]);
+
+  // No client-side filter needed: every doc returned belongs to this
+  // runId, so we render them all. This fixes the bug where the first
+  // 5-10 seconds of every run were silently dropped.
+  const filteredMetrics = metrics;
 
   // Apply the chart window: when not "all", only the last N samples are
   // plotted. This keeps the chart readable as the sample count grows.
@@ -1858,22 +2002,33 @@ const LiveTab = () => {
     <div>
       {/* Scenario picker card - shows all active/pending runs */}
       <div style={{ ...S.card, marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: activeRuns.length > 0 ? 14 : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (activeRuns.length > 0 || selectedRunFinished) ? 14 : 0 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Escenari en execucio
           </div>
-          {/* Live status indicator - green pulsing dot when actively polling */}
+          {/* Status indicator:
+              - Green pulsing: actively polling an active run → "En directe"
+              - Amber static:  selected run just finished, view frozen → "Finalitzat"
+              - Grey static:   no run selected / no data → "Inactiu" */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: polling && activeRuns.length > 0 ? '#22c55e' : '#94a3b8',
-              display: 'inline-block',
-              boxShadow: polling && activeRuns.length > 0 ? '0 0 8px #22c55e80' : 'none',
-              animation: polling && activeRuns.length > 0 ? 'pulseDot 2s ease infinite' : 'none',
-            }} />
-            <span style={{ fontSize: 13, color: polling && activeRuns.length > 0 ? '#22c55e' : 'var(--text-disabled)', fontWeight: 600 }}>
-              {polling && activeRuns.length > 0 ? 'En directe' : 'Inactiu'}
-            </span>
+            {(() => {
+              const live = polling && activeRuns.length > 0 && !selectedRunFinished;
+              const finished = selectedRunFinished;
+              const color = live ? '#22c55e' : finished ? '#f59e0b' : '#94a3b8';
+              const label = live ? 'En directe' : finished ? 'Finalitzat' : 'Inactiu';
+              return (
+                <>
+                  <span style={{
+                    width: 8, height: 8, borderRadius: '50%',
+                    background: color,
+                    display: 'inline-block',
+                    boxShadow: live ? '0 0 8px #22c55e80' : 'none',
+                    animation: live ? 'pulseDot 2s ease infinite' : 'none',
+                  }} />
+                  <span style={{ fontSize: 13, color, fontWeight: 600 }}>{label}</span>
+                </>
+              );
+            })()}
             {lastUpdate && (
               <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>
                 - actualitzat {lastUpdate.toLocaleTimeString('ca-ES')}
@@ -1882,8 +2037,13 @@ const LiveTab = () => {
           </div>
         </div>
 
-        {/* Run picker - horizontal scrollable row of RunCards */}
-        {activeRuns.length === 0 ? (
+        {/* Run picker - horizontal scrollable row of RunCards.
+            When the selected run has just finished we synthesize a virtual
+            card at the end (status:'completed') so the user can still see
+            which run their frozen metrics belong to. The card is
+            non-selectable once removed from activeRuns — clicking it is a
+            no-op; clicking another (real) active card switches away. */}
+        {activeRuns.length === 0 && !selectedRunFinished ? (
           <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>Cap escenari actiu.</div>
         ) : (
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
@@ -1895,6 +2055,24 @@ const LiveTab = () => {
                 onClick={() => setSelectedRunId(r.id)}
               />
             ))}
+            {selectedRunFinished && (() => {
+              // Build a synthetic "finished" RunCard from the last metrics
+              // doc so users see the metadata of the run whose final state
+              // is currently frozen on screen.
+              const last = metrics[metrics.length - 1] || {};
+              const ghost = {
+                id: selectedRunId,
+                status: 'completed',
+                scenarioName: last.scenarioId ? `(finalitzat)` : '(finalitzat)',
+                protocol: last.protocol,
+                architecture: last.architecture,
+                platform: last.platform || last.broker,
+                broker: last.broker,
+                dataFormat: last.dataFormat,
+                deliveryModel: last.deliveryModel,
+              };
+              return <RunCard key={`ghost-${selectedRunId}`} run={ghost} selected onClick={() => { }} />;
+            })()}
           </div>
         )}
 
@@ -1906,8 +2084,12 @@ const LiveTab = () => {
         )}
       </div>
 
-      {/* Empty state: no active runs */}
-      {activeRuns.length === 0 ? (
+      {/* Empty state: no active runs AND no just-finished run to freeze-view.
+          When a run has just finished (selectedRunFinished) we skip the
+          empty state and render the full metrics layout so the user sees
+          the frozen final numbers while the grace-window polling captures
+          the load-generator's "status:completed" snapshot. */}
+      {activeRuns.length === 0 && !selectedRunFinished ? (
         <div style={{ ...S.card, textAlign: 'center', padding: 72 }}>
           <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}><IconSignal /></div>
           <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 8 }}>Cap execucio activa</div>
