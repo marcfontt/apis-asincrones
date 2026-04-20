@@ -44,6 +44,24 @@ echo "Directori: $REPO_DIR"
 [[ -n "$ONLY" ]] && echo "Mode: nomes $ONLY"
 [[ $RESTART_ONLY -eq 1 ]] && echo "Mode: nomes restart (no build)"
 
+# Validate --only value early so we fail fast with a clear message instead of
+# silently skipping everything. The UI/frontend is deployed as 'backstage'
+# (plugins are bundled into packages/backend), NOT as 'frontend'.
+VALID_SERVICES=(backstage catalog-service scenario-service benchmark-orchestrator metrics-api load-generator)
+if [[ -n "$ONLY" ]]; then
+  valid=0
+  for v in "${VALID_SERVICES[@]}"; do [[ "$v" == "$ONLY" ]] && valid=1 && break; done
+  if [[ $valid -eq 0 ]]; then
+    echo ""
+    echo "ERROR: '$ONLY' no es un servei valid."
+    echo "Serveis disponibles: ${VALID_SERVICES[*]}"
+    echo ""
+    echo "NOTA: el frontend (plugin feina) es desplega com a part de 'backstage':"
+    echo "  ./deploy-all.sh --only backstage"
+    exit 1
+  fi
+fi
+
 # -----------------------------------------------------------------------------
 # Service -> (Dockerfile path, build context) mapping.
 # backstage uses a multi-stage Dockerfile under packages/backend/ and the
