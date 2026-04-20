@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Client } from '@elastic/elasticsearch';
 import { v4 as uuidv4 } from 'uuid';
+import { shouldIncludeRunInHistory } from './historySummary';
 
 const app = express();
 app.use(express.json());
@@ -200,7 +201,12 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
         startedAt:     b.started_at?.value_as_string ?? (b.started_at?.value != null ? new Date(b.started_at.value).toISOString() : null),
         endedAt:       b.ended_at?.value_as_string   ?? (b.ended_at?.value   != null ? new Date(b.ended_at.value).toISOString()   : null),
       };
-    });
+    }).filter((run: { status?: unknown; endedAt?: string | null }) =>
+      shouldIncludeRunInHistory({
+        status: run.status,
+        endedAt: run.endedAt,
+      }),
+    );
 
     res.json(summary);
   } catch (err: any) {

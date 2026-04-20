@@ -40,6 +40,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
 import { S, GLOBAL_CSS } from '../../theme';
+import { getLiveMessageCount } from './liveMetrics';
 
 // ---------------------------------------------------------------------------
 // API base URLs - routed through Backstage proxy to avoid CORS issues
@@ -1687,6 +1688,8 @@ const LiveTab = () => {
   // runId, so we render them all. This fixes the bug where the first
   // 5-10 seconds of every run were silently dropped.
   const filteredMetrics = metrics;
+  const livePointCount = filteredMetrics.length;
+  const liveMessageCount = getLiveMessageCount(filteredMetrics);
 
   // Apply the chart window: when not "all", only the last N samples are
   // plotted. This keeps the chart readable as the sample count grows.
@@ -1810,10 +1813,14 @@ const LiveTab = () => {
         </div>
       ) : (
         <>
+          <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+            El comptador superior mostra missatges acumulats del run seleccionat. Els gràfics i la taula inferior mostren punts de telemetria publicats cada 3 segons.
+          </div>
+
           {/* Summary stat cards (4 columns: samples, latency avg, throughput avg, error avg) */}
           <div aria-live="polite" aria-atomic="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {[
-              { l: 'Mostres rebudes', v: String(filteredMetrics.length), c: '#3b82f6' },
+              { l: 'Missatges rebuts', v: String(liveMessageCount), c: '#3b82f6' },
               { l: 'Latencia avg (ms)', v: `${avg(lat)}ms`, c: '#f59e0b' },
               { l: 'Throughput avg', v: avg(tput), c: '#22c55e' },
               { l: 'Error rate avg (%)', v: `${avg(err)}%`, c: '#ef4444' },
@@ -1858,7 +1865,7 @@ const LiveTab = () => {
             <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               Finestra del grafic
               <span style={{ marginLeft: 8, color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 0 }}>
-                ({windowedMetrics.length} de {filteredMetrics.length} mostres)
+                ({windowedMetrics.length} de {livePointCount} punts)
               </span>
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1908,7 +1915,7 @@ const LiveTab = () => {
                 <span style={{ color: 'var(--text-secondary)' }}><IconPulse /></span>
                 <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ultimes mesures</span>
                 <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-disabled)' }}>
-                  {filteredMetrics.length} punts - actualitzacio cada 3s
+                  {livePointCount} punts - actualitzacio cada 3s
                 </span>
               </div>
               {/* Scrollable table body - capped at 480px height to avoid page overflow */}

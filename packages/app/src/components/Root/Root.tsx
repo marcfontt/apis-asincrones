@@ -59,7 +59,9 @@ const DARK_MODE_CSS = `
   [data-theme="dark"] nav[class*="Sidebar"],
   [data-theme="dark"] aside[class*="Sidebar"],
   [data-theme="dark"] div[class*="BackstageSidebar"] {
+    background: #0d1117 !important;
     background-color: #0d1117 !important;
+    background-image: none !important;
     border-right: 1px solid #21262d !important;
   }
 
@@ -68,7 +70,9 @@ const DARK_MODE_CSS = `
      the light/dark background. Target it directly. */
   [data-theme="dark"] [class*="navigation"],
   [data-theme="dark"] [data-sidebar] {
+    background: #0d1117 !important;
     background-color: #0d1117 !important;
+    background-image: none !important;
   }
 
   /* Items de navegació del sidebar: text i icona */

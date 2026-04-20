@@ -347,6 +347,14 @@ export const CatalogPage = () => {
 
   // Helper: comptador per categoria (per als botons de filtre)
   const countByCategory = (cat: string) => real.filter(c => c.category === cat).length;
+  const architectureCount = countByCategory('architecture');
+  const protocolCount = countByCategory('protocol');
+  const platformCount = countByCategory('platform');
+  const baseCombinationCount = architectureCount * protocolCount * platformCount;
+  const activeFilterLabel = activeFilter === 'all' ? 'Tot el catàleg' : (CATEGORY_LABELS[activeFilter] || activeFilter);
+  const selectedColor = selectedComponent
+    ? (CATEGORY_COLORS[selectedComponent.category] || 'var(--accent)')
+    : 'var(--accent)';
 
   // Filtratge per categoria + cerca de text
   const filtered = real.filter(c => {
@@ -463,6 +471,67 @@ export const CatalogPage = () => {
             </button>
           );
         })}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 20 }}>
+        <div style={{ ...S.card, background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(14,165,233,0.08) 100%)', borderColor: 'rgba(14,165,233,0.22)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+            Combinacions base
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: '#0ea5e9', letterSpacing: '-0.03em', fontFamily: 'var(--font-mono)' }}>
+            {loading ? '-' : baseCombinationCount}
+          </div>
+          <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+            {architectureCount} arquitectures x {protocolCount} protocols x {platformCount} plataformes disponibles per construir escenaris base.
+          </div>
+        </div>
+
+        <div style={{ ...S.card }}>
+          <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+            Vista actual
+          </div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', fontFamily: 'var(--font-mono)' }}>
+            {loading ? '-' : filtered.length}
+          </div>
+          <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+            {activeFilterLabel}
+            {searchQuery.trim() && (
+              <span> · cerca: "{searchQuery.trim()}"</span>
+            )}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-disabled)' }}>
+            {loading ? 'Carregant catàleg...' : `${real.length} components publicats al catàleg operatiu.`}
+          </div>
+        </div>
+
+        <div style={{ ...S.card, borderColor: selectedComponent ? `${selectedColor}40` : 'var(--border)', background: selectedComponent ? `linear-gradient(135deg, var(--bg-card) 0%, ${selectedColor}0c 100%)` : 'var(--bg-card)' }}>
+          <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+            {selectedComponent ? 'Component seleccionat' : 'Proper pas'}
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: selectedComponent ? selectedColor : 'var(--text-primary)', letterSpacing: '-0.02em', minHeight: 28 }}>
+            {selectedComponent ? selectedComponent.name : 'Tria un component'}
+          </div>
+          <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+            {selectedComponent
+              ? `Pots portar ${selectedComponent.name} a Escenaris per muntar una nova execució amb aquest focus.`
+              : 'Selecciona una fila per obrir el detall i després saltar directament a la creació d\'escenaris.'}
+          </div>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            {selectedComponent?.category && (
+              <span style={{ ...S.badge(selectedColor), fontSize: 11 }}>
+                {CATEGORY_LABELS[selectedComponent.category] || selectedComponent.category}
+              </span>
+            )}
+            {selectedComponent?.shortName && (
+              <code style={{ background: selectedColor + '12', border: `1px solid ${selectedColor}26`, color: selectedColor, padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700 }}>
+                {selectedComponent.shortName}
+              </code>
+            )}
+            <a href="/escenaris?create=true" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 700, fontSize: 12 }}>
+              Crear escenari
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Missatge d'error (si la peticio ha fallat) */}
