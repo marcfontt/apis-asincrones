@@ -1,0 +1,29 @@
+# NATS server ConfigMap — increase max_payload to 4 MB so video-8k (2 MB) messages
+# are not silently rejected (default NATS limit is 1 MB).
+#
+# Apply with:
+#   kubectl apply -f k8s/brokers/nats-config.yaml
+#
+# If NATS was installed via Helm (helm install nats nats/nats -n brokers), use:
+#   helm upgrade nats nats/nats -n brokers --reuse-values \
+#     --set config.max_payload=4MB
+#
+# After applying, restart the NATS pods to pick up the new config:
+#   kubectl rollout restart deployment/nats -n brokers  (or statefulset/nats)
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nats-config
+  namespace: brokers
+data:
+  nats.conf: |
+    # Allow messages up to 4 MB (default is 1 MB).
+    # video-8k payloads are ~2 MB; 4 MB gives headroom for future formats.
+    max_payload: 4MB
+
+    # JetStream enabled (matches existing -js flag used in prior deploy)
+    jetstream: enabled
+
+    # HTTP monitoring port
+    http_port: 8222

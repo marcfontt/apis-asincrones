@@ -236,7 +236,10 @@ async function runKafka() {
   await admin.createTopics({
     topics: [{
       topic, numPartitions: 1, replicationFactor: 1,
-      configEntries: [{ name: 'retention.ms', value: '3600000' }]
+      configEntries: [
+        { name: 'retention.ms', value: '3600000' },
+        { name: 'max.message.bytes', value: '4194304' }, // 4 MB — covers video-8k (2 MB) with headroom
+      ],
     }],
     waitForLeaders: true,
   });
