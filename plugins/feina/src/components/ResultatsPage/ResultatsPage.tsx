@@ -814,7 +814,6 @@ const HistorialTab = () => {
   // to a run the orchestrator remembers. When the list is empty (orchestrator
   // unreachable OR freshly restarted with no new runs) we fall back to
   // showing raw ES data — better stale history than none.
-  const [knownRuns, setKnownRuns] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(false);
 
   // Client-side computed percentiles, keyed by runId. Populated lazily by
@@ -839,16 +838,12 @@ const HistorialTab = () => {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [sumRes, scRes, runsRes] = await Promise.all([
+      const [sumRes, scRes] = await Promise.all([
         fetch(`${METRICS_BASE}/metrics/summary`).then(r => r.json()).catch(() => []),
         fetch(`${SCENARIOS_BASE}/scenarios`).then(r => r.json()).catch(() => []),
-        // `null` signals "orchestrator unreachable" so we can distinguish
-        // that from "reachable but returned empty list".
-        fetch(`${ORCHESTRATOR}/runs`).then(r => r.ok ? r.json() : null).catch(() => null),
       ]);
       setSummary(Array.isArray(sumRes) ? sumRes : []);
       setScenarios(Array.isArray(scRes) ? scRes : []);
-      setKnownRuns(Array.isArray(runsRes) ? runsRes : null);
     } catch (_) { }
     setLoading(false);
   }, []);
@@ -928,25 +923,9 @@ const HistorialTab = () => {
   const scenarioMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s]));
   const nameMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s.name || s.id?.slice(0, 10)]));
 
-  // History source. Three-tier strategy so "historial = execucions" is always
-  // consistent and resets actually clear the view:
-  //
-  //   null  → orchestrator unreachable (network error / pod down):
-  //           fall back to raw ES data so history survives restarts.
-  //   []    → orchestrator returned an empty list (after reset, or genuinely
-  //           no runs yet): show NOTHING. This is the key fix for the "23k
-  //           mostres after reset" bug — when the orchestrator is clean, the
-  //           view must also be clean, regardless of what ES still holds.
-  //   [...]  → orchestrator has runs: intersect with ES by runId so only
-  //           runs the orchestrator actually tracked are visible.
-  const syncedSummary = knownRuns === null
-    ? summary   // unreachable → ES fallback (history survives pod restarts)
-    : knownRuns.length > 0
-      ? (() => {
-          const ids = new Set(knownRuns.map((r: any) => r.id || r.runId).filter(Boolean));
-          return summary.filter(s => s.runId && ids.has(s.runId));
-        })()
-      : [];     // empty orchestrator list → nothing shown (respects reset)
+  // History is sourced only from persisted metrics. This guarantees that only
+  // executed scenarios with stored summary documents appear in this tab.
+  const syncedSummary = summary.filter(s => !!s.scenarioId);
 
   /**
    * Resolves the data format for a summary item.
@@ -986,35 +965,103 @@ const HistorialTab = () => {
     setFilterDataFormat([]);
   };
 
-  // Compute per-run scores for the filtered set.
+  const aggregateScenarioHistory = (items: any[]) => {
+    const groups = new Map<string, any>();
+
+    items.forEach(item => {
+      const scenarioId = item.scenarioId;
+      if (!scenarioId) return;
+
+      const sampleCount = Number(item.messagesRecv ?? item.count ?? 0) || 0;
+      const sentCount = Number(item.messagesSent ?? sampleCount) || 0;
+      const sampleWeight = Math.max(sampleCount, 1);
+      const sentWeight = Math.max(sentCount, 1);
+      const ts = Date.parse(item.endedAt || item.startedAt || '') || 0;
+
+      if (!groups.has(scenarioId)) {
+        groups.set(scenarioId, {
+          scenarioId,
+          latest: item,
+          latestTs: ts,
+          runCount: 0,
+          totalSamples: 0,
+          latencySum: 0,
+          latencyWeight: 0,
+          throughputSum: 0,
+          throughputWeight: 0,
+          errorSum: 0,
+          errorWeight: 0,
+        });
+      }
+
+      const group = groups.get(scenarioId)!;
+      group.runCount += 1;
+      group.totalSamples += sampleCount;
+
+      if (item.avgLatency != null) {
+        group.latencySum += item.avgLatency * sampleWeight;
+        group.latencyWeight += sampleWeight;
+      }
+      if (item.avgThroughput != null) {
+        group.throughputSum += item.avgThroughput * sampleWeight;
+        group.throughputWeight += sampleWeight;
+      }
+      if (item.avgErrorRate != null) {
+        group.errorSum += item.avgErrorRate * sentWeight;
+        group.errorWeight += sentWeight;
+      }
+      if (ts >= group.latestTs) {
+        group.latest = item;
+        group.latestTs = ts;
+      }
+    });
+
+    return Array.from(groups.values()).map(group => {
+      const latest = group.latest;
+      return {
+        ...latest,
+        runId: latest.runId,
+        scenarioId: group.scenarioId,
+        count: group.totalSamples,
+        totalSamples: group.totalSamples,
+        runCount: group.runCount,
+        avgLatency: group.latencyWeight > 0 ? group.latencySum / group.latencyWeight : latest.avgLatency,
+        avgThroughput: group.throughputWeight > 0 ? group.throughputSum / group.throughputWeight : latest.avgThroughput,
+        avgErrorRate: group.errorWeight > 0 ? group.errorSum / group.errorWeight : latest.avgErrorRate,
+        latestRunId: latest.runId,
+        latestStartedAt: latest.startedAt,
+        latestEndedAt: latest.endedAt,
+      };
+    });
+  };
+
+  const scenarioHistory = aggregateScenarioHistory(filteredSummary);
+  const totalScenarioHistory = aggregateScenarioHistory(syncedSummary);
+  const totalSamples = scenarioHistory.reduce((sum, s) => sum + (Number(s.totalSamples ?? s.count ?? 0) || 0), 0);
+  const totalRuns = filteredSummary.length;
+
+  // Compute per-scenario scores for the filtered set.
   // `percentileMap` is used as a fallback when the server summary lacks
   // p50Latency/p99Latency fields (see the percentile-fetching effect above).
-  // computeScores prefers s.p50Latency if present, falls back to map[runId].
-  const scoreMap = computeScores(filteredSummary, percentileMap, dataFormatOf);
+  const scoreMap = computeScores(scenarioHistory, percentileMap, dataFormatOf);
 
-  // Sort filtered scenarios by score descending - best first
-  // Key uses runId first (new per-run grouping), fallback to scenarioId (legacy)
-  const sorted = [...filteredSummary].sort((a, b) =>
+  // Sort filtered scenarios by score descending - best first.
+  const sorted = [...scenarioHistory].sort((a, b) =>
     (scoreMap.get(b.runId || b.scenarioId) ?? 0) - (scoreMap.get(a.runId || a.scenarioId) ?? 0)
   );
-  // The top-sorted item is the overall winner
   const best = sorted[0];
 
   // Prepare chart data - each chart is independently sorted by its own metric
   // so that the best performer for THAT metric always appears at the top.
-
-  // Latency chart: ascending (lower = better)
-  const latData = [...filteredSummary]
+  const latData = [...scenarioHistory]
     .sort((a, b) => (a.avgLatency ?? 9999) - (b.avgLatency ?? 9999))
     .map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 10) || '?', value: s.avgLatency ?? 0 }));
 
-  // Throughput chart: descending (higher = better)
-  const tputData = [...filteredSummary]
+  const tputData = [...scenarioHistory]
     .sort((a, b) => (b.avgThroughput ?? 0) - (a.avgThroughput ?? 0))
     .map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 10) || '?', value: s.avgThroughput ?? 0 }));
 
-  // Error rate chart: ascending (lower = better)
-  const errData = [...filteredSummary]
+  const errData = [...scenarioHistory]
     .sort((a, b) => (a.avgErrorRate ?? 0) - (b.avgErrorRate ?? 0))
     .map(s => ({ label: nameMap[s.scenarioId] || s.scenarioId?.slice(0, 10) || '?', value: s.avgErrorRate ?? 0 }));
 
@@ -1072,9 +1119,9 @@ const HistorialTab = () => {
           {/* Right side: filter count + clear + refresh buttons */}
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             {/* Show filtered count when a filter is active */}
-            {filteredSummary.length !== syncedSummary.length && (
+            {scenarioHistory.length !== totalScenarioHistory.length && (
               <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                Mostrant <strong>{filteredSummary.length}</strong> de {syncedSummary.length}
+                Mostrant <strong>{scenarioHistory.length}</strong> de {totalScenarioHistory.length} escenaris
               </span>
             )}
             {activeFilters > 0 && (
@@ -1132,24 +1179,50 @@ const HistorialTab = () => {
       )}
 
       {/* Empty state: runs exist but all are filtered out by the active filters */}
-      {filteredSummary.length === 0 && syncedSummary.length > 0 && (
+      {scenarioHistory.length === 0 && syncedSummary.length > 0 && (
         <div style={{ ...S.card, textAlign: 'center', padding: 40 }}>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Cap resultat coincideix amb els filtres actuals.</div>
         </div>
       )}
 
-      {filteredSummary.length > 0 && (
+      {scenarioHistory.length > 0 && (
         <>
-          {/* Summary stat cards: run count + best performer */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 14, marginBottom: 20 }}>
-            {/* Run count card */}
+          <div style={{ ...S.card, marginBottom: 14, padding: '12px 16px', borderLeft: '3px solid #3b82f6', background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(59,130,246,0.04) 100%)' }}>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 4 }}>Historial acumulat per escenari</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              Cada fila representa un escenari executat. Les mostres totals sumen totes les seves execucions registrades, mentre que les mètriques de rendiment es comparen sobre l&apos;històric visible.
+            </div>
+          </div>
+
+          {/* Summary stat cards: scenario count + run count + total samples + best performer */}
+          <div style={{ display: 'grid', gridTemplateColumns: best ? '1fr 1fr 1fr 2fr' : '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
             <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ width: 42, height: 42, borderRadius: 10, background: '#3b82f614', color: '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 800, fontFamily: 'var(--font)' }}>
-                {filteredSummary.length}
+                {scenarioHistory.length}
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Escenaris comparats</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{filteredSummary.length} escenari{filteredSummary.length !== 1 ? 's' : ''}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Escenaris executats</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{scenarioHistory.length} escenari{scenarioHistory.length !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+
+            <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: '#22c55e14', color: '#22c55e', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 800, fontFamily: 'var(--font)' }}>
+                {totalRuns}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Execucions registrades</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{totalRuns} run{totalRuns !== 1 ? 's' : ''}</div>
+              </div>
+            </div>
+
+            <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 42, height: 42, borderRadius: 10, background: '#f59e0b14', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 800, fontFamily: 'var(--font)' }}>
+                {totalSamples}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Mostres totals</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Suma acumulada de totes les execucions visibles</div>
               </div>
             </div>
 
@@ -1203,7 +1276,7 @@ const HistorialTab = () => {
           <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Taula comparativa completa</span>
-              <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris</span>
+              <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris executats</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               {/*
@@ -1223,7 +1296,7 @@ const HistorialTab = () => {
                     <th style={{ ...S.th, textAlign: 'right' }}>P99</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Throughput</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Error %</th>
-                    <th style={{ ...S.th, textAlign: 'right' }}>Mostres</th>
+                    <th style={{ ...S.th, textAlign: 'right' }}>Mostres totals</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Arq.</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Protocol</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Plataforma</th>
@@ -1272,6 +1345,7 @@ const HistorialTab = () => {
                           </div>
                           {/* Data format shown as a colored sub-label below the scenario name */}
                           <div style={{ fontSize: 10, color: dfColor, fontWeight: 600, marginTop: 2 }}>{DATA_FORMAT_LABELS[df] || df}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 2 }}>{s.runCount} execucio{s.runCount !== 1 ? 'ns' : ''}</div>
                         </td>
 
                         {/* Score column - circular ring visualization */}
@@ -1320,9 +1394,9 @@ const HistorialTab = () => {
                           {s.avgErrorRate?.toFixed(3) ?? '-'}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-disabled)' }}>%</span>
                         </td>
 
-                        {/* Sample count - how many metric data points contributed to this aggregate */}
+                        {/* Total samples accumulated across all executions of the scenario */}
                         <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-disabled)' }}>
-                          {s.count ?? '-'}
+                          {s.totalSamples ?? s.count ?? '-'}
                         </td>
 
                         {/* Architecture badge */}

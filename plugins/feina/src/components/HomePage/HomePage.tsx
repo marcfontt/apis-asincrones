@@ -20,6 +20,11 @@
 import { useEffect, useState } from 'react';
 import { S, GLOBAL_CSS } from '../../theme';
 
+const CATALOG_BASE = '/api/proxy/catalog-service';
+const SCENARIOS_BASE = '/api/proxy/scenario-service';
+const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
+const METRICS_BASE = '/api/proxy/metrics-api';
+
 // ── Icones SVG en linia ───────────────────────────────────────────────────────
 // Usem SVG en linia per no dependre de cap llibreria d'icones externa.
 // Cada icona es un functional component que retorna un <svg>.
@@ -159,12 +164,62 @@ export const HomePage = () => {
   const [hovFooter, setHovFooter] = useState<string | null>(null);   // links del footer
   const [hovStep,   setHovStep]   = useState<number | null>(null);   // passos "com comecar"
   const [visible,   setVisible]   = useState(false);                 // per a l'animacio d'entrada
+  const [portalStats, setPortalStats] = useState({
+    loading: true,
+    components: 0,
+    scenarios: 0,
+    activeRuns: 0,
+    historicalScenarios: 0,
+    totalSamples: 0,
+  });
 
   useEffect(() => {
     document.title = 'Home | APIs Asíncrones';
     // Delay curt per activar l'animacio fadeUp just despres del primer render
     const t = setTimeout(() => setVisible(true), 30);
     return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadPortalStats = async () => {
+      try {
+        const [componentsRes, scenariosRes, activeRunsRes, summaryRes] = await Promise.all([
+          fetch(`${CATALOG_BASE}/components`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${SCENARIOS_BASE}/scenarios`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${ORCHESTRATOR}/runs/active`).then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(`${METRICS_BASE}/metrics/summary`).then(r => r.ok ? r.json() : []).catch(() => []),
+        ]);
+
+        if (cancelled) return;
+
+        const components = Array.isArray(componentsRes)
+          ? componentsRes.filter((c: any) => c.predefined !== false && c.category !== 'gateway').length
+          : 0;
+        const scenarios = Array.isArray(scenariosRes) ? scenariosRes.length : 0;
+        const activeRuns = Array.isArray(activeRunsRes) ? activeRunsRes.length : 0;
+        const summary = Array.isArray(summaryRes) ? summaryRes : [];
+        const historicalScenarios = new Set(summary.map((s: any) => s.scenarioId).filter(Boolean)).size;
+        const totalSamples = summary.reduce((sum: number, s: any) =>
+          sum + (Number(s.messagesRecv ?? s.count ?? 0) || 0), 0);
+
+        setPortalStats({
+          loading: false,
+          components,
+          scenarios,
+          activeRuns,
+          historicalScenarios,
+          totalSamples,
+        });
+      } catch (_) {
+        if (!cancelled) setPortalStats(prev => ({ ...prev, loading: false }));
+      }
+    };
+
+    loadPortalStats();
+    const i = setInterval(loadPortalStats, 30000);
+    return () => { cancelled = true; clearInterval(i); };
   }, []);
 
   // fade: helper que retorna un estil CSS per a l'animacio d'entrada
@@ -257,6 +312,44 @@ export const HomePage = () => {
       {/* ── GUIA D'ONBOARDING (col·lapsable) ───────────────────────────────── */}
       {/* Col·lapsada per defecte per no sobrecarregar la pantalla inicial */}
       <div style={fade(40)}><OnboardingGuide /></div>
+
+      <div style={{ ...fade(70), ...S.card, marginBottom: 22 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 14, flexWrap: 'wrap' as const }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 6 }}>
+              Estat actual
+            </div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>Panell operatiu del portal</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.55 }}>
+              Resum del que hi ha definit i executat ara mateix. S&apos;actualitza automàticament cada 30 segons.
+            </div>
+          </div>
+          <a href="/resultats" style={{ ...S.btn, fontSize: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+            Veure Historial <IconArrow />
+          </a>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
+          {[
+            { label: 'Components', value: portalStats.components, color: '#3b82f6', desc: 'Catàleg disponible' },
+            { label: 'Escenaris', value: portalStats.scenarios, color: '#8b5cf6', desc: 'Configuracions definides' },
+            { label: 'Actius', value: portalStats.activeRuns, color: '#22c55e', desc: 'Execucions en curs' },
+            { label: 'Amb històric', value: portalStats.historicalScenarios, color: '#f59e0b', desc: 'Escenaris ja executats' },
+            { label: 'Mostres totals', value: portalStats.totalSamples, color: '#06b6d4', desc: 'Acumulades a resultats' },
+          ].map(stat => (
+            <div key={stat.label} style={{ border: '1px solid var(--border)', background: 'var(--bg-subtle)', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: stat.color, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8 }}>
+                {stat.label}
+              </div>
+              <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', fontFamily: 'var(--font-mono)' }}>
+                {portalStats.loading ? '-' : stat.value}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.45 }}>
+                {stat.desc}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* ── TARGETES D'ACCES RAPID ─────────────────────────────────────────── */}
       {/* Grid de 4 targetes, una per seccio principal de l'app.
@@ -435,7 +528,6 @@ export const HomePage = () => {
           { label: 'Escenaris',  href: '/escenaris'  },
           { label: 'Execucions', href: '/execucions' },
           { label: 'Resultats',  href: '/resultats'  },
-          { label: 'Historial',  href: '/runs'       },
         ].map(link => (
           <a key={link.href} href={link.href}
             style={{

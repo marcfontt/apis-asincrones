@@ -1185,6 +1185,13 @@ export const ExecucionsPage = () => {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8 }}>
+            <a
+              href="/resultats"
+              style={{ ...S.btn, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              title="Obre la comparativa històrica per escenari"
+            >
+              <ListIcon /> Veure Resultats
+            </a>
             {/* "Atura tot" button - only shown when there are active runs to stop */}
             {running.length > 0 && (
               <button
@@ -1236,6 +1243,17 @@ export const ExecucionsPage = () => {
               <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{s.label}</span>
             </div>
           ))}
+        </div>
+      )}
+
+      {!loading && runs.length > 0 && (
+        <div style={{ ...S.card, marginBottom: 24, padding: '12px 16px', borderLeft: '3px solid #3b82f6', background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(59,130,246,0.04) 100%)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+            Relació entre Execucions i Resultats
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+            Aquesta pàgina mostra execucions individuals. A <a href="/resultats" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Resultats</a>, l&apos;historial acumula aquestes execucions per escenari i suma les seves mostres totals.
+          </div>
         </div>
       )}
 

@@ -653,6 +653,16 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
   const card:    React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 460, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' };
 
   const platDisplay = normalizePlatform(scenario.platform || scenario.broker);
+  const effectiveDuration = scenario.duration ?? null;
+  const effectiveRate = scenario.rate ?? 100;
+  const effectivePayload = scenario.payloadSize ?? 256;
+  const estimatedMessages = effectiveDuration ? effectiveDuration * effectiveRate : null;
+  const estimatedPayloadBytes = estimatedMessages != null ? estimatedMessages * effectivePayload : null;
+  const formatBytes = (bytes: number) => {
+    if (bytes < 1024) return `${bytes}B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)}KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)}MB`;
+  };
 
   if (state === 'confirm') return (
     <div style={overlay}><div style={card}>
@@ -675,6 +685,30 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
             <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{v || '-'}</strong>
           </div>
         ))}
+      </div>
+      <div style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.28)', borderRadius: 8, padding: '12px 16px', marginBottom: 20 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
+          Previsio de carrega
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Missatges estimats</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+              {estimatedMessages != null ? estimatedMessages : 'Indefinit'}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Volum aprox.</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+              {estimatedPayloadBytes != null ? formatBytes(estimatedPayloadBytes) : 'Variable'}
+            </div>
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.55 }}>
+          {estimatedMessages != null
+            ? `Amb ${effectiveRate} msg/s durant ${effectiveDuration}s, aquest run hauria de generar aproximadament ${estimatedMessages} mostres si no l'atures abans.`
+            : `L'escenari es llancara en mode indefinit. El directe comencara a zero i l'historial acumulat dependra del moment en que l'aturis.`}
+        </div>
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Cancel·la</button>
@@ -709,6 +743,9 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Tanca</button>
+        <button onClick={() => { window.location.href = '/resultats'; }} style={{ ...S.btn, fontSize: 13 }}>
+          Veure Resultats
+        </button>
         <button onClick={() => { window.location.href = '/execucions'; }} style={{ ...S.btnPrimary, fontSize: 13 }}>
           Veure Execucions
         </button>
