@@ -957,7 +957,7 @@ export const ExecucionsPage = () => {
         <>
           Segur que vols eliminar <strong>totes les {finished.length} execucions</strong> de l'historial?
           <br />
-          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucions en curs no s'eliminaran. Aquesta accio no es pot desfer.</span>
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucions en curs no s'eliminaran. Aquesta acció no es pot desfer.</span>
         </>
       ),
       onConfirm: async () => {
@@ -1258,7 +1258,7 @@ export const ExecucionsPage = () => {
           {/* Live runs table - showStop=true enables stop buttons and hides checkboxes */}
           <RunTable
             data={running}
-            title="En execucio / Pendents"
+            title="En execució / Pendents"
             showStop={true}
             icon={<ActivityIcon />}
             onCancel={handleCancel}

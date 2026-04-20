@@ -184,39 +184,6 @@ const normalizePlatform = (p?: string): string => {
 };
 
 // ---------------------------------------------------------------------------
-// Delivery model (intrinsic protocol property, NOT a benchmark artefact)
-// ---------------------------------------------------------------------------
-
-/**
- * Returns the broker's delivery model:
- *   - 'pull'   Kafka / Confluent (consumer fetches from broker)
- *   - 'push'   NATS / RabbitMQ / Pulsar (broker pushes to consumer)
- *
- * Reported in the load-generator metric docs via `deliveryModel`. The UI
- * prefers that server-side value when present, but falls back to inferring
- * from platform/broker so older history records still render a badge.
- *
- * Documented in the FairComparisonPanel so readers understand why residual
- * latency differences between pull and push brokers are intrinsic to the
- * protocol and not a benchmark configuration issue.
- */
-const deliveryModelOf = (s: any): 'pull' | 'push' | null => {
-  // 1. Prefer server-side value (load-generator >= fdcf64d embeds this).
-  if (s?.deliveryModel === 'pull' || s?.deliveryModel === 'push') return s.deliveryModel;
-  // 2. Fall back to platform/broker lookup for older records.
-  const raw = (s?.platform || s?.broker || '').toString().toLowerCase();
-  if (raw.includes('kafka') || raw.includes('confluent')) return 'pull';
-  if (raw.includes('nats') || raw.includes('rabbit') || raw.includes('pulsar') || raw.includes('mqtt') || raw.includes('amqp')) return 'push';
-  return null;
-};
-
-/** Badge styling for delivery model — pull uses amber, push uses teal. */
-const DELIVERY_MODEL_META: Record<'pull' | 'push', { label: string; color: string; bg: string }> = {
-  pull: { label: 'pull',  color: '#d97706', bg: 'rgba(217,119,6,0.10)' },
-  push: { label: 'push',  color: '#0ea5e9', bg: 'rgba(14,165,233,0.10)' },
-};
-
-// ---------------------------------------------------------------------------
 // Format-aware scoring system
 // ---------------------------------------------------------------------------
 
@@ -415,6 +382,103 @@ const IconFilter = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="n
 
 /** Small refresh/reload icon used in the "Actualitzar" button. */
 const IconRefresh = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
+
+/** Info icon used in MetricGlossary header. */
+const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
+
+/**
+ * MetricGlossary — collapsible reference panel that explains each metric,
+ * the composite scoring formula, and per-format weight tables.
+ * Helps users interpret the comparative table without leaving the page.
+ */
+const MetricGlossary = () => {
+  const [open, setOpen] = React.useState(false);
+  const fmtLabel: Record<string, string> = {
+    'default': 'Default', 'financial': 'Financer', 'video-4k': 'Vídeo 4K', 'video-8k': 'Vídeo 8K', 'iot': 'IoT',
+  };
+  const metricLabel: Record<string, string> = { lat: 'Lat. avg', p50: 'P50', p99: 'P99', tput: 'Throughput', err: 'Error %' };
+  const metricColor: Record<string, string> = { lat: '#f59e0b', p50: '#3b82f6', p99: '#7c3aed', tput: '#22c55e', err: '#ef4444' };
+
+  return (
+    <div style={{ ...S.card, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)' }}
+      >
+        <span style={{ color: '#3b82f6' }}><IconInfo /></span>
+        <span style={{ fontWeight: 700, fontSize: 13, flex: 1, textAlign: 'left' }}>Guia de mètriques i puntuació</span>
+        <IconChevron open={open} />
+      </button>
+      {open && (
+        <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border)' }}>
+          {/* Metric definitions */}
+          <div style={{ marginTop: 14, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Definicions</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
+              {[
+                { color: '#f59e0b', label: 'Latència mitjana (ms)', desc: 'Temps mitjà entre l\'enviament d\'un missatge i la seva recepció. Menor = millor.' },
+                { color: '#3b82f6', label: 'P50 (mediana)', desc: 'El 50% dels missatges arriben en menys d\'aquest temps. Representa el cas típic.' },
+                { color: '#8b5cf6', label: 'P95', desc: 'El 95% dels missatges arriben per sota d\'aquest llindar. Detecta pics de latència.' },
+                { color: '#7c3aed', label: 'P99', desc: 'El 99% dels missatges arriben per sota. Mesura els pitjors casos pràctics.' },
+                { color: '#22c55e', label: 'Throughput (msg/s)', desc: 'Missatges processats per segon. Major = millor. Crític per a formats d\'alta freqüència.' },
+                { color: '#ef4444', label: 'Taxa d\'error (%)', desc: 'Percentatge de missatges fallits o perduts. Activa penalitzacions a la puntuació si supera el llindar del format.' },
+              ].map(({ color, label, desc }) => (
+                <div key={label} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px' }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color, marginBottom: 3 }}>{label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Scoring formula */}
+          <div style={{ marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Fórmula de puntuació (0–100)</div>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.7 }}>
+              <div><strong>Puntuació = Σ (wₖ × score_normalitzat(mètrica_k)) × penalització_error × 100</strong></div>
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-secondary)' }}>
+                Cada mètrica es normalitza en [0,1] respecte al millor valor observat al conjunt. Els pesos (wₖ) varien per format de dades.
+                La penalització d'error es multiplica al final si la taxa d'error supera el llindar del format.
+              </div>
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-disabled)' }}>
+                Penalitzacions: Financer &gt;0.1% → ×0.55 · Vídeo &gt;2% → ×0.75 · IoT &gt;0.5% → ×0.80 · Default &gt;1% → ×0.70
+              </div>
+            </div>
+          </div>
+
+          {/* Per-format weight table */}
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Pesos per format de dades</div>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-surface)' }}>
+                    <th style={{ ...S.th, textAlign: 'left', padding: '6px 10px' }}>Format</th>
+                    {(['lat', 'p50', 'p99', 'tput', 'err'] as const).map(k => (
+                      <th key={k} style={{ ...S.th, textAlign: 'center', padding: '6px 8px', color: metricColor[k] }}>{metricLabel[k]}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(FORMAT_WEIGHTS).map(([fmt, w]) => (
+                    <tr key={fmt} style={S.tableRow}>
+                      <td style={{ ...S.td, fontWeight: 600, padding: '5px 10px' }}>{fmtLabel[fmt] || fmt}</td>
+                      {(['lat', 'p50', 'p99', 'tput', 'err'] as const).map(k => (
+                        <td key={k} style={{ ...S.td, textAlign: 'center', padding: '5px 8px', fontFamily: 'var(--font-mono)', color: metricColor[k] }}>
+                          {Math.round(w[k] * 100)}%
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 // ---------------------------------------------------------------------------
 // ---------------------------------------------------------------------------
@@ -1085,7 +1149,7 @@ const HistorialTab = () => {
               </div>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Escenaris comparats</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{filteredSummary.length} escenari{filteredSummary.length !== 1 ? 's' : ''} - puntuacio format-aware</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{filteredSummary.length} escenari{filteredSummary.length !== 1 ? 's' : ''}</div>
               </div>
             </div>
 
@@ -1108,12 +1172,6 @@ const HistorialTab = () => {
                     {best.architecture && <span style={{ ...S.badge(ARCHITECTURE_COLORS[best.architecture] || '#2563eb'), fontSize: 10 }}>{best.architecture}</span>}
                     {(() => { const p = normalizePlatform(best.platform || best.broker); return p ? <span style={{ ...S.badge(PLATFORM_COLORS[p] || '#d97706'), fontSize: 10 }}>{p}</span> : null; })()}
                     {(() => { const df = dataFormatOf(best); return <span style={{ ...S.badge(DATA_FORMAT_COLORS[df] || '#64748b'), fontSize: 10 }}>{DATA_FORMAT_LABELS[df] || df}</span>; })()}
-                    {(() => {
-                      const dm = deliveryModelOf(best);
-                      if (!dm) return null;
-                      const meta = DELIVERY_MODEL_META[dm];
-                      return <span style={{ ...S.badge(meta.color), fontSize: 10 }}>{meta.label}</span>;
-                    })()}
                   </div>
                 </div>
               </div>
@@ -1122,7 +1180,7 @@ const HistorialTab = () => {
 
           {/* Metric bar charts - always horizontal layout */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Rendiment Metric</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Rendiment Mètric</div>
             {/* Latency and throughput side by side */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div style={{ ...S.card }}>
@@ -1138,11 +1196,14 @@ const HistorialTab = () => {
             </div>
           </div>
 
+          {/* Metric glossary — collapsible reference panel */}
+          <MetricGlossary />
+
           {/* Full comparison table */}
           <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Taula comparativa completa</span>
-              <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris - puntuacio format-aware (0-100)</span>
+              <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               {/*
@@ -1276,25 +1337,10 @@ const HistorialTab = () => {
                             : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                         </td>
 
-                        {/* Platform badge + delivery-model sub-label.
-                            Delivery model (pull/push) is shown as a small
-                            sub-label below the platform, keeping the column
-                            count unchanged and avoiding horizontal overflow. */}
+                        {/* Platform badge */}
                         <td style={{ ...S.td, textAlign: 'center' }}>
                           {platform ? <span style={{ ...S.badge(platColor), fontSize: 11 }}>{platform}</span>
                             : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
-                          {(() => {
-                            const dm = deliveryModelOf(s);
-                            if (!dm) return null;
-                            const meta = DELIVERY_MODEL_META[dm];
-                            return (
-                              <div style={{ marginTop: 3, display: 'flex', justifyContent: 'center' }}>
-                                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: meta.bg, color: meta.color, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-                                  {meta.label}
-                                </span>
-                              </div>
-                            );
-                          })()}
                         </td>
                       </tr>
                     );
@@ -1302,11 +1348,7 @@ const HistorialTab = () => {
                 </tbody>
               </table>
             </div>
-            {/* Table footer: percentile note */}
-            <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-disabled)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span>Puntuació 0–100 normalitzada — pesos adaptats al format de dades</span>
-              <span>P50/P95/P99: calculats de les mètriques en brut · <span style={{ fontStyle: 'italic' }}>–</span> = sense dades suficients</span>
-            </div>
+
           </div>
         </>
       )}
@@ -1396,19 +1438,11 @@ const RunCard = ({
         {run.dataFormat && (
           <span style={{ ...S.badge(DATA_FORMAT_COLORS[run.dataFormat] || '#64748b'), fontSize: 10 }}>{DATA_FORMAT_LABELS[run.dataFormat] || run.dataFormat}</span>
         )}
-        {/* Delivery model badge (pull/push) — documents the protocol family
-            so users understand residual latency differences between brokers. */}
-        {(() => {
-          const dm = deliveryModelOf(run);
-          if (!dm) return null;
-          const meta = DELIVERY_MODEL_META[dm];
-          return <span style={{ ...S.badge(meta.color), fontSize: 10 }}>{meta.label}</span>;
-        })()}
       </div>
 
       {/* Status text label below badges */}
       <div style={{ marginTop: 8, fontSize: 11, color: isRunning ? '#22c55e' : isCompleted ? '#94a3b8' : '#f59e0b', fontWeight: 600 }}>
-        {isRunning ? 'En execucio' : isCompleted ? 'Finalitzat' : 'Pendent'}
+        {isRunning ? 'En execució' : isCompleted ? 'Finalitzat' : 'Pendent'}
       </div>
     </button>
   );
@@ -1679,7 +1713,7 @@ const LiveTab = () => {
         {/* Error banner - shown when metrics fetch fails */}
         {pollError && (
           <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid var(--error)', borderRadius: 6, fontSize: 12, color: 'var(--error)' }}>
-            Error en carregar metriques: {pollError}
+            Error en carregar mètriques: {pollError}
           </div>
         )}
       </div>
@@ -1692,9 +1726,9 @@ const LiveTab = () => {
       {activeRuns.length === 0 && !selectedRunFinished ? (
         <div style={{ ...S.card, textAlign: 'center', padding: 72 }}>
           <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}><IconSignal /></div>
-          <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 8 }}>Cap execucio activa</div>
+          <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 8 }}>Cap execució activa</div>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 380, margin: '0 auto 20px' }}>
-            Inicia un escenari des de la pagina <strong>Escenaris</strong> i aqui apareiran les metriques en temps real: latencia, throughput, P50 i P99.
+            Inicia un escenari des de la pàgina <strong>Escenaris</strong> i aquí apareixeran les mètriques en temps real: latència, throughput, P50 i P99.
           </div>
           <a href="/escenaris" style={{ ...S.btnPrimary as React.CSSProperties, textDecoration: 'none', display: 'inline-flex' }}>
             Anar a Escenaris
