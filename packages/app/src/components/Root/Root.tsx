@@ -43,25 +43,47 @@ const DARK_MODE_CSS = `
   }
 
   /* ── 2. Sidebar / Drawer lateral ───────────────────────────────────── */
-  /* El sidebar de Backstage és un MUI Drawer amb paper intern */
+  /* Backstage 0.18.x uses multiple possible class-name patterns depending on
+     the MUI version and build mode. We cast a wide net here so the sidebar
+     always renders in our dark navy regardless of the exact classname hash. */
+
+  /* MUI Drawer (the actual DOM node wrapping the sidebar) */
   [data-theme="dark"] [class*="MuiDrawer-paper"],
   [data-theme="dark"] [class*="MuiDrawer-paperAnchorDockedLeft"],
+  /* Backstage-generated sidebar class names (v1.x) */
   [data-theme="dark"] [class*="BackstageSidebar-drawer"],
+  [data-theme="dark"] [class*="BackstageSidebar-"],
+  [data-theme="dark"] [class*="BackstageOldSidebar-"],
+  [data-theme="dark"] [class*="privateBackstageSidebar"],
+  /* Generic structural selectors as final fallback */
   [data-theme="dark"] nav[class*="Sidebar"],
-  [data-theme="dark"] aside[class*="Sidebar"] {
+  [data-theme="dark"] aside[class*="Sidebar"],
+  [data-theme="dark"] div[class*="BackstageSidebar"] {
     background-color: #0d1117 !important;
     border-right: 1px solid #21262d !important;
   }
 
+  /* Also override the MUI theme's navigation color that Backstage injects.
+     Backstage applies a separate <style> tag with .navigation-xxx that has
+     the light/dark background. Target it directly. */
+  [data-theme="dark"] [class*="navigation"],
+  [data-theme="dark"] [data-sidebar] {
+    background-color: #0d1117 !important;
+  }
+
   /* Items de navegació del sidebar: text i icona */
   [data-theme="dark"] [class*="BackstageSidebarItem-root"],
+  [data-theme="dark"] [class*="BackstageSidebarItem-"],
   [data-theme="dark"] [class*="makeStyles-buttonItem"],
-  [data-theme="dark"] [class*="SidebarItem-root"] {
+  [data-theme="dark"] [class*="SidebarItem-root"],
+  [data-theme="dark"] [class*="privateBackstageSidebarItem"] {
     color: #8b949e !important;
   }
   [data-theme="dark"] [class*="BackstageSidebarItem-root"] svg,
+  [data-theme="dark"] [class*="BackstageSidebarItem-"] svg,
   [data-theme="dark"] [class*="makeStyles-buttonItem"] svg,
-  [data-theme="dark"] [class*="SidebarItem-root"] svg {
+  [data-theme="dark"] [class*="SidebarItem-root"] svg,
+  [data-theme="dark"] [class*="privateBackstageSidebarItem"] svg {
     color: #8b949e !important;
     fill: #8b949e !important;
   }
@@ -71,25 +93,29 @@ const DARK_MODE_CSS = `
   [data-theme="dark"] [class*="makeStyles-selected"],
   [data-theme="dark"] [class*="SidebarItem-root"][aria-current="page"],
   [data-theme="dark"] [class*="SidebarItem-root"].active,
-  [data-theme="dark"] [class*="Sidebar"][aria-selected="true"] {
+  [data-theme="dark"] [class*="Sidebar"][aria-selected="true"],
+  [data-theme="dark"] [class*="privateBackstageSidebarItem"][aria-current="page"] {
     color: #e6edf3 !important;
     background-color: rgba(88, 166, 255, 0.10) !important;
   }
   [data-theme="dark"] [class*="BackstageSidebarItem-selected"] svg,
-  [data-theme="dark"] [class*="makeStyles-selected"] svg {
+  [data-theme="dark"] [class*="makeStyles-selected"] svg,
+  [data-theme="dark"] [class*="privateBackstageSidebarItem"][aria-current="page"] svg {
     color: #58a6ff !important;
     fill: #58a6ff !important;
   }
 
   /* Divisors del sidebar */
   [data-theme="dark"] [class*="BackstageSidebarDivider"],
-  [data-theme="dark"] [class*="SidebarDivider"] {
+  [data-theme="dark"] [class*="SidebarDivider"],
+  [data-theme="dark"] [class*="privateBackstageSidebarDivider"] {
     background-color: #21262d !important;
   }
 
   /* Zona del logo (capçalera del sidebar) */
   [data-theme="dark"] [class*="BackstageSidebarLogo"],
-  [data-theme="dark"] [class*="SidebarLogo"] {
+  [data-theme="dark"] [class*="SidebarLogo"],
+  [data-theme="dark"] [class*="privateBackstageSidebarLogo"] {
     border-bottom: 1px solid #21262d !important;
   }
 

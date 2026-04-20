@@ -397,8 +397,6 @@ const IconPulse = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="no
 /** Small clock icon used in the History tab button. */
 const IconClock = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
 
-/** Small info circle icon used in the MetricGlossary toggle button. */
-const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
 
 /** Small trophy icon marking the best-performing scenario in charts/tables. */
 const IconTrophy = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="8 22 12 17 16 22" /><line x1="12" y1="17" x2="12" y2="11" /><path d="M6.5 4H17.5L17 9a5 5 0 0 1-10 0z" /></svg>;
@@ -497,262 +495,6 @@ const METRIC_DEFINITIONS = [
   },
 ];
 
-/**
- * MetricGlossary component - collapsible educational panel.
- *
- * Renders an accordion with:
- *   - Clickable metric cards (one per metric) that expand to show full
- *     definitions, formulas, and directional guidance.
- *   - Per-format weight bar charts showing how each format prioritizes metrics.
- *   - Explanation of the error penalty system.
- *
- * Placed at the top of HistorialTab so users understand the scoring context
- * before reading the comparison table.
- */
-const MetricGlossary = () => {
-  // Controls whether the entire glossary panel is open or collapsed
-  const [open, setOpen] = useState(false);
-  // Controls which individual metric card is expanded (null = none)
-  const [activeMetric, setActiveMetric] = useState<string | null>(null);
-
-  return (
-    <div style={{ ...S.card, marginBottom: 20, borderLeft: '3px solid #3b82f6', padding: '16px 20px' }}>
-      {/* Toggle button for the entire glossary */}
-      <button onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#3b82f6' }}><IconInfo /></span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Guia de metriques i sistema de puntuacio</span>
-        </div>
-        <IconChevron open={open} />
-      </button>
-
-      {open && (
-        <div style={{ marginTop: 20, animation: 'fadeUp 0.3s ease' }}>
-
-          {/* Metric definition cards - one per metric in METRIC_DEFINITIONS */}
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
-              Definicio de metriques
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10, marginBottom: 16 }}>
-              {METRIC_DEFINITIONS.map(m => (
-                <button
-                  key={m.key}
-                  // Toggle: clicking again collapses the same card
-                  onClick={() => setActiveMetric(activeMetric === m.key ? null : m.key)}
-                  style={{
-                    background: activeMetric === m.key ? m.color + '12' : 'var(--bg-subtle)',
-                    border: `1px solid ${activeMetric === m.key ? m.color + '50' : 'var(--border)'}`,
-                    borderRadius: 10,
-                    padding: '12px 14px',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font)',
-                    transition: 'all 0.15s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                    <span style={{ background: m.color + '20', color: m.color, borderRadius: 6, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{m.icon}</span>
-                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{m.name}</span>
-                    <span style={{ marginLeft: 'auto', fontSize: 10, color: m.lowerBetter ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{m.lowerBetter ? '(v) millor' : '(^) millor'}</span>
-                  </div>
-                  <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{m.short}</p>
-                </button>
-              ))}
-            </div>
-
-            {/* Expanded metric detail panel - only shown for the active metric */}
-            {activeMetric && (() => {
-              const m = METRIC_DEFINITIONS.find(x => x.key === activeMetric)!;
-              return (
-                <div style={{ background: m.color + '08', border: `1px solid ${m.color}30`, borderRadius: 10, padding: '16px 20px', animation: 'fadeUp 0.2s ease' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                    <span style={{ background: m.color + '20', color: m.color, borderRadius: 7, width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>{m.icon}</span>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{m.name}</span>
-                    <span style={{ ...S.badge(m.color), fontSize: 10 }}>{m.unit}</span>
-                    <span style={{ fontSize: 11, color: m.lowerBetter ? '#ef4444' : '#22c55e', fontWeight: 600 }}>{m.lowerBetter ? '(v) valor baix = millor' : '(^) valor alt = millor'}</span>
-                  </div>
-                  {/* Multi-line detail text (pre-line preserves newlines in the template literal) */}
-                  <p style={{ margin: '0 0 12px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65, whiteSpace: 'pre-line' }}>{m.detail}</p>
-                  {/* Formula displayed in monospace with brand color */}
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: m.color, background: m.color + '10', padding: '6px 12px', borderRadius: 6, display: 'inline-block', border: `1px solid ${m.color}25` }}>
-                    {m.formula}
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-
-          {/* Scoring system explanation section */}
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 12 }}>
-              Sistema de puntuació (0–100)
-            </div>
-            <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              La <strong style={{ color: 'var(--text-primary)' }}>Puntuació</strong> és un valor de 0 a 100 que resumeix el rendiment de l'escenari <em>en relació al format de dades que s'està provant</em>. Cada format prioritza mètriques diferents perquè les seves necessitats reals ho justifiquen:
-            </p>
-            {/* Composite score formula displayed in a styled monospace block */}
-            <div style={{ marginBottom: 14, padding: '10px 16px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
-              <span style={{ color: '#22c55e', fontWeight: 700 }}>Score</span> = (<span style={{ color: '#f59e0b' }}>latencia_norm</span> x w_lat + <span style={{ color: '#22c55e' }}>throughput_norm</span> x w_tput + <span style={{ color: '#ef4444' }}>error_norm</span> x w_err + <span style={{ color: '#06b6d4' }}>P50_norm</span> x w_p50 + <span style={{ color: '#8b5cf6' }}>P99_norm</span> x w_p99) x <span style={{ color: '#ef4444' }}>penalitzacio_error</span>
-            </div>
-            <p style={{ margin: '0 0 14px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              On cada metrica es <strong>normalitza</strong> entre 0 i 1 respecte a tots els escenaris comparats (el millor obte 1.0, el pitjor 0.0). Aixo fa que la puntuacio sigui sempre <em>relativa</em>: si tots els escenaris van molt malament, el millor d'ells seguira tenint 100 punts.
-            </p>
-
-            {/* Per-format weight bar charts - one card per FORMAT_WEIGHTS entry */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16, marginBottom: 16 }}>
-              {Object.entries(FORMAT_WEIGHTS).map(([fmt, weights]) => {
-                const label = DATA_FORMAT_LABELS[fmt] || fmt;
-                const color = DATA_FORMAT_COLORS[fmt] || '#6b7280';
-                // Build the weight list for display - filter out zero-weight entries
-                const allWeights = [
-                  { name: 'Latencia',   w: weights.lat,  c: '#f59e0b' },
-                  { name: 'Throughput', w: weights.tput, c: '#22c55e' },
-                  { name: 'Errors',     w: weights.err,  c: '#ef4444' },
-                  { name: 'P50',        w: weights.p50 ?? 0, c: '#06b6d4' },
-                  { name: 'P99',        w: weights.p99 ?? 0, c: '#8b5cf6' },
-                ];
-                return (
-                  <div key={fmt} style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: 14 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                      <span style={{ ...S.badge(color), fontSize: 10 }}>{label}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 600 }}>Pesos</span>
-                    </div>
-                    {/* Horizontal bar for each metric weight - width is proportional to weight value */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                      {allWeights.filter(x => x.w > 0).map(item => (
-                        <div key={item.name} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ fontSize: 11, fontWeight: 600, width: 72, color: 'var(--text-secondary)', flexShrink: 0 }}>{item.name}</span>
-                          <div style={{ flex: 1, height: 5, background: 'var(--bg-border)', borderRadius: 3, overflow: 'hidden' }}>
-                            <div style={{ width: `${item.w * 100}%`, height: '100%', background: item.c, borderRadius: 3 }} />
-                          </div>
-                          <span style={{ fontSize: 11, fontWeight: 700, width: 32, textAlign: 'right', color: item.c }}>{Math.round(item.w * 100)}%</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Per-format narrative description */}
-            <p style={{ margin: '0 0 8px', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              <strong style={{ color: 'var(--text-primary)' }}>Per format:</strong>{' '}
-              <strong>Per defecte</strong> usa pesos equilibrats (referencia base, cap optimitzacio especifica).{' '}
-              <strong>Video 4K/8K</strong> maximitza throughput (40%) i penalitza errors d'1 2% o mes. Els talls de reproduccio s'aprecien immediatament.{' '}
-              <strong>Financer</strong> penalitza errors durament (40%). Una transaccio erronea es un problema real.{' '}
-              <strong>IoT</strong> equilibra throughput alt i tolerancia moderada a errors, ja que s'assumeix redundancia de sensors.
-            </p>
-          </div>
-
-          {/* Error penalty explanation box */}
-          <div style={{ padding: '14px 18px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: 8, border: '1px solid rgba(239, 68, 68, 0.25)' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#ef4444', marginBottom: 6 }}>Penalitzacio exponencial per errors</div>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Si la taxa d'error supera el <strong>0.1%</strong>, s'aplica una penalitzacio exponencial a la puntuacio final: <code style={{ background: 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: 4, fontFamily: 'var(--font-mono)', fontSize: 11 }}>penalitzacio = 1 - min(1, errorRate x 10)</code>.
-              Aixo garanteix que un sistema rapid pero inestable no obtingui una bona puntuacio. Un 10% d'error fa que la puntuacio sigui 0 independentment de les altres metriques.
-            </p>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-// ---------------------------------------------------------------------------
-// FairComparisonPanel - methodological transparency panel
-// ---------------------------------------------------------------------------
-
-/**
- * FairComparisonPanel - collapsible info box documenting the fair-comparison
- * contract enforced by the load-generator.
- *
- * The benchmark treats Kafka, Confluent, NATS and RabbitMQ symmetrically:
- * fire-and-forget producers, single partition / no persistence / no ack,
- * warm-up window, percentile-based latency reporting. Residual differences
- * (pull vs push) are intrinsic to the protocol, not the benchmark config.
- *
- * Placed directly below MetricGlossary so readers have methodology context
- * before reading the numbers. Collapsed by default to keep the first render
- * lightweight.
- */
-const FairComparisonPanel = () => {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ ...S.card, marginBottom: 20, borderLeft: '3px solid #0ea5e9', padding: '16px 20px' }}>
-      <button onClick={() => setOpen(o => !o)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ color: '#0ea5e9' }}><IconInfo /></span>
-          <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Metodologia — comparació justa entre plataformes</span>
-        </div>
-        <IconChevron open={open} />
-      </button>
-
-      {open && (
-        <div style={{ marginTop: 18, animation: 'fadeUp 0.3s ease' }}>
-          <p style={{ margin: '0 0 14px', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-            Totes les plataformes s'executen sota un <strong style={{ color: 'var(--text-primary)' }}>contracte de comparació</strong> que
-            neutralitza les diferències de configuració. Les variacions que veus als resultats reflecteixen el protocol en sí, no
-            avantatges artificials d'un broker sobre un altre.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12, marginBottom: 16 }}>
-            {/* Card 1: Contracte d'equitat */}
-            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ background: '#22c55e20', color: '#22c55e', borderRadius: 6, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>=</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Contracte d'equitat</span>
-              </div>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                Productors <em>fire-and-forget</em> (Kafka <code style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>acks=0</code>, NATS Core, RabbitMQ sense publisher-confirms, consumer <code style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>noAck:true</code>). Una sola partició, sense persistència, un canal per run.
-              </p>
-            </div>
-
-            {/* Card 2: Warm-up */}
-            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ background: '#f59e0b20', color: '#f59e0b', borderRadius: 6, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>~</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Finestra de warm-up (5 s)</span>
-              </div>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                Els primers 5 segons de cada execució es descarten per ignorar el cost inicial de <em>session-setup</em> (JVM warm-up, TCP handshake, rebalance). Només els samples en <em>steady-state</em> compten per al score.
-              </p>
-            </div>
-
-            {/* Card 3: Percentils */}
-            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ background: '#8b5cf620', color: '#8b5cf6', borderRadius: 6, width: 26, height: 26, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 800, fontFamily: 'var(--font-mono)', flexShrink: 0 }}>P95</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>P50 / P95 / P99</span>
-              </div>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                La mitjana pot ocultar <em>tail latency</em>. P50 = típica, P95 = pitjor cas habitual, P99 = pitjor cas real. Una diferència gran entre P50 i P99 indica un sistema inestable, encara que la mitjana sembli bona.
-              </p>
-            </div>
-
-            {/* Card 4: Pull vs Push */}
-            <div style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ ...S.badge(DELIVERY_MODEL_META.pull.color), fontSize: 9 }}>pull</span>
-                <span style={{ ...S.badge(DELIVERY_MODEL_META.push.color), fontSize: 9 }}>push</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginLeft: 2 }}>Model de lliurament</span>
-              </div>
-              <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                <strong style={{ color: DELIVERY_MODEL_META.pull.color }}>Kafka/Confluent</strong> són <em>pull</em> (el consumidor sondeja). <strong style={{ color: DELIVERY_MODEL_META.push.color }}>NATS/RabbitMQ</strong> són <em>push</em> (el broker empeny). Això afegeix ~1 ms de fetch-wait als pull, intrínsec al protocol — no a la configuració.
-              </p>
-            </div>
-          </div>
-
-          <div style={{ padding: '12px 16px', background: 'rgba(14, 165, 233, 0.06)', borderRadius: 8, border: '1px solid rgba(14, 165, 233, 0.22)', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-            <strong style={{ color: '#0ea5e9' }}>Com llegir els números:</strong>{' '}
-            una plataforma <em>pull</em> amb latència ~1 ms més alta que una <em>push</em> no és <em>pitjor</em> — és el tradeoff del seu model.
-            Utilitza la puntuació adaptativa al format per decidir quina combinació encaixa millor amb el teu cas d'ús real.
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
 
 // ---------------------------------------------------------------------------
 // HBarChart - horizontal bar chart component
@@ -1101,11 +843,6 @@ const HistorialTab = () => {
   const [filterArch, setFilterArch] = useState<string[]>([]);
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
 
-  // Time range filter: hides runs older than the selected duration.
-  // Default "24h" avoids showing weeks of old data that inflate the history.
-  // Key maps to milliseconds; 'all' disables the filter entirely.
-  const [filterTimeRange, setFilterTimeRange] = useState<'1h' | '24h' | '7d' | 'all'>('24h');
-
   // Controls visibility of the secondary filters (protocol/platform/arch)
   const [filtersOpen, setFiltersOpen] = useState(false);
 
@@ -1206,24 +943,25 @@ const HistorialTab = () => {
   const scenarioMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s]));
   const nameMap = Object.fromEntries(scenarios.map((s: any) => [s.id, s.name || s.id?.slice(0, 10)]));
 
-  // History source. Two-tier strategy to give the user "historial = execucions"
-  // semantics without emptying the history after every orchestrator restart:
+  // History source. Three-tier strategy so "historial = execucions" is always
+  // consistent and resets actually clear the view:
   //
-  //   1. If the orchestrator's /runs endpoint returns a NON-EMPTY list, we
-  //      intersect the ES summary with it by runId. Runs that are only in
-  //      Elasticsearch (orphans from a previous orchestrator incarnation)
-  //      are hidden - user sees only runs the orchestrator actually tracked.
-  //
-  //   2. If /runs is unreachable (null) OR returned an empty list, we show
-  //      the raw ES summary. This covers: orchestrator just restarted (state
-  //      lost but history shouldn't vanish), orchestrator unreachable, or
-  //      genuinely no runs (both lists empty → nothing shown anyway).
-  const syncedSummary = (knownRuns && knownRuns.length > 0)
-    ? (() => {
-        const ids = new Set(knownRuns.map((r: any) => r.id || r.runId).filter(Boolean));
-        return summary.filter(s => s.runId && ids.has(s.runId));
-      })()
-    : summary;
+  //   null  → orchestrator unreachable (network error / pod down):
+  //           fall back to raw ES data so history survives restarts.
+  //   []    → orchestrator returned an empty list (after reset, or genuinely
+  //           no runs yet): show NOTHING. This is the key fix for the "23k
+  //           mostres after reset" bug — when the orchestrator is clean, the
+  //           view must also be clean, regardless of what ES still holds.
+  //   [...]  → orchestrator has runs: intersect with ES by runId so only
+  //           runs the orchestrator actually tracked are visible.
+  const syncedSummary = knownRuns === null
+    ? summary   // unreachable → ES fallback (history survives pod restarts)
+    : knownRuns.length > 0
+      ? (() => {
+          const ids = new Set(knownRuns.map((r: any) => r.id || r.runId).filter(Boolean));
+          return summary.filter(s => s.runId && ids.has(s.runId));
+        })()
+      : [];     // empty orchestrator list → nothing shown (respects reset)
 
   /**
    * Resolves the data format for a summary item.
@@ -1246,17 +984,6 @@ const HistorialTab = () => {
   const toggle = (list: string[], set: (v: string[]) => void, val: string) =>
     set(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
 
-  // Time-range cutoff. Runs whose latest activity is older than this
-  // are hidden. `startedAt` / `timestamp` / `lastSampleAt` field names
-  // are checked in that priority order.
-  const rangeMs: Record<string, number | null> = {
-    '1h': 60 * 60 * 1000,
-    '24h': 24 * 60 * 60 * 1000,
-    '7d': 7 * 24 * 60 * 60 * 1000,
-    'all': null,
-  };
-  const timeCutoff = rangeMs[filterTimeRange] != null ? Date.now() - (rangeMs[filterTimeRange] as number) : null;
-
   // Apply all active filters to the full summary set
   const filteredSummary = syncedSummary.filter(s => {
     const platform = normalizePlatform(s.platform || s.broker) || '';
@@ -1264,25 +991,14 @@ const HistorialTab = () => {
     if (filterProtocol.length && !filterProtocol.includes(s.protocol || '')) return false;
     if (filterArch.length && !filterArch.includes(s.architecture || '')) return false;
     if (filterDataFormat.length && !filterDataFormat.includes(dataFormatOf(s))) return false;
-    if (timeCutoff != null) {
-      // Prefer endedAt (real run end) → startedAt → lastSampleAt → raw timestamp.
-      // metrics-api now populates endedAt/startedAt via min/max ts aggs.
-      const raw = s.endedAt ?? s.startedAt ?? s.lastSampleAt ?? s.timestamp ?? s['@timestamp'];
-      if (raw != null && raw !== '') {
-        const t = typeof raw === 'number' ? raw : new Date(raw).getTime();
-        if (isFinite(t) && t < timeCutoff) return false;
-      }
-    }
     return true;
   });
 
   // Total count of active filter selections across all filter groups.
-  // Time range counts if not 'all' (the default '24h' DOES count so the
-  // user sees there is an active filter hiding older data).
-  const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length + filterDataFormat.length + (filterTimeRange !== 'all' ? 1 : 0);
+  const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length + filterDataFormat.length;
   const clearFilters = () => {
     setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]);
-    setFilterDataFormat([]); setFilterTimeRange('all');
+    setFilterDataFormat([]);
   };
 
   // Compute per-run scores for the filtered set.
@@ -1331,42 +1047,11 @@ const HistorialTab = () => {
 
   return (
     <div>
-      {/* Educational glossary panel - collapsed by default */}
-      <MetricGlossary />
-
-      {/* Fair-comparison methodology panel - documents the contract enforced
-          by the load-generator (fire-and-forget, warm-up, pull-vs-push). */}
-      <FairComparisonPanel />
-
       {/* Filter bar */}
       <div style={{ ...S.card, marginBottom: 20 }}>
-        {/* Time range filter - primary filter to hide old runs. Default 24h
-            prevents the table from showing weeks of test data. */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-            Periode
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {([
-              { v: '1h' as const, l: 'Ultima hora' },
-              { v: '24h' as const, l: 'Ultimes 24h' },
-              { v: '7d' as const, l: 'Ultims 7 dies' },
-              { v: 'all' as const, l: 'Tot' },
-            ]).map(opt => (
-              <Chip
-                key={opt.v}
-                label={opt.l}
-                active={filterTimeRange === opt.v}
-                color="#06b6d4"
-                onClick={() => setFilterTimeRange(opt.v)}
-              />
-            ))}
-          </div>
-        </div>
-
         {/* Data format filter - always visible (primary filter, most commonly used) */}
         {availDataFormats.length > 0 && (
-          <div style={{ marginBottom: filtersOpen || availDataFormats.length > 0 ? 14 : 0, borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+          <div style={{ marginBottom: filtersOpen || availDataFormats.length > 0 ? 14 : 0 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Format de Dades</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {availDataFormats.map(f => (
@@ -1696,16 +1381,10 @@ const HistorialTab = () => {
                 </tbody>
               </table>
             </div>
-            {/* Table footer: scoring methodology note */}
+            {/* Table footer: percentile note */}
             <div style={{ padding: '10px 20px', borderTop: '1px solid var(--border)', fontSize: 11, color: 'var(--text-disabled)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <span>Puntuació 0–100 normalitzada — pesos adaptats al format de dades (financer: error ×40%, vídeo: throughput ×40%, IoT: throughput ×30%)</span>
-              <span>P50/P95/P99: calculats de les metriques en brut - <span style={{ fontStyle: 'italic' }}>-</span> = sense dades suficients</span>
-              <span>
-                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: DELIVERY_MODEL_META.pull.bg, color: DELIVERY_MODEL_META.pull.color, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>pull</span>
-                <span style={{ margin: '0 4px' }}>/</span>
-                <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 8, background: DELIVERY_MODEL_META.push.bg, color: DELIVERY_MODEL_META.push.color, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase' }}>push</span>
-                <span style={{ marginLeft: 6 }}>= model de lliurament (pull afegeix ~1 ms de fetch-wait, intrínsec al protocol)</span>
-              </span>
+              <span>Puntuació 0–100 normalitzada — pesos adaptats al format de dades</span>
+              <span>P50/P95/P99: calculats de les mètriques en brut · <span style={{ fontStyle: 'italic' }}>–</span> = sense dades suficients</span>
             </div>
           </div>
         </>
