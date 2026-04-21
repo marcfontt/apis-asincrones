@@ -1,25 +1,13 @@
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"metrics-api","namespace":"apis-asincronas"},"spec":{"ports":[{"port":3004,"targetPort":3004}],"selector":{"app":"metrics-api"},"type":"ClusterIP"}}
   name: metrics-api
   namespace: apis-asincronas
 spec:
-  clusterIP: 10.0.226.33
-  clusterIPs:
-  - 10.0.226.33
-  internalTrafficPolicy: Cluster
-  ipFamilies:
-  - IPv4
-  ipFamilyPolicy: SingleStack
+  type: ClusterIP
+  selector:
+    app: metrics-api
   ports:
   - port: 3004
     protocol: TCP
     targetPort: 3004
-  selector:
-    app: metrics-api
-  sessionAffinity: None
-  type: ClusterIP
-  loadBalancer: {}

@@ -1,4 +1,4 @@
-# `plugins/feina`
+# `plugins/async-benchmark`
 
 Plugin principal del portal de benchmark d'APIs asíncrones.
 

@@ -20,7 +20,7 @@
 # -----------------------------------------------------------------------------
 set -e
 
-ACR_NAME="feinaregistry"
+ACR_NAME="asyncbenchmarkregistry"
 ACR="${ACR_NAME}.azurecr.io"
 NAMESPACE="apis-asincronas"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -56,7 +56,7 @@ if [[ -n "$ONLY" ]]; then
     echo "ERROR: '$ONLY' no es un servei valid."
     echo "Serveis disponibles: ${VALID_SERVICES[*]}"
     echo ""
-    echo "NOTA: el frontend (plugin feina) es desplega com a part de 'backstage':"
+    echo "NOTA: el frontend del portal es desplega com a part de 'backstage':"
     echo "  ./deploy-all.sh --only backstage"
     exit 1
   fi

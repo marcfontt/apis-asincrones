@@ -2,7 +2,7 @@
 set -e
 
 NAMESPACE="apis-asincronas"
-ACR="feinaregistry.azurecr.io"
+ACR="asyncbenchmarkregistry.azurecr.io"
 RG="aks-tests"
 AKS="apis-asincronas"
 
@@ -22,7 +22,7 @@ kubectl apply -f k8s/storage/elasticsearch-pvc.yaml
 kubectl apply -f k8s/storage/grafana-pvc.yaml
 
 # 5. ACR Secret
-az acr login --name feinaregistry
+az acr login --name "${ACR%%.azurecr.io}"
 kubectl create secret generic acr-secret \
   --from-file=.dockerconfigjson=$HOME/.docker/config.json \
   --type=kubernetes.io/dockerconfigjson \

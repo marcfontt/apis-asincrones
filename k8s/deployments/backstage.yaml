@@ -1,8 +1,6 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  annotations:
-    deployment.kubernetes.io/revision: "5"
   name: backstage
   namespace: apis-asincronas
 spec:
@@ -19,13 +17,16 @@ spec:
     type: RollingUpdate
   template:
     metadata:
-      annotations:
-        kubectl.kubernetes.io/restartedAt: "2026-03-16T11:49:03Z"
       labels:
         app: backstage
     spec:
+      imagePullSecrets:
+      - name: acr-secret
       containers:
-      - env:
+      - name: backstage
+        image: asyncbenchmarkregistry.azurecr.io/backstage:latest
+        imagePullPolicy: Always
+        env:
         - name: NODE_ENV
           value: production
         - name: APP_CONFIG_app_baseUrl
@@ -38,8 +39,9 @@ spec:
           value: development
         - name: APP_CONFIG_auth_providers_guest_dangerouslyAllowOutsideDevelopment
           value: "true"
-        image: feinaregistry.azurecr.io/backstage:latest
-        imagePullPolicy: Always
+        ports:
+        - containerPort: 7007
+          protocol: TCP
         livenessProbe:
           failureThreshold: 3
           httpGet:
@@ -48,12 +50,7 @@ spec:
             scheme: HTTP
           initialDelaySeconds: 90
           periodSeconds: 30
-          successThreshold: 1
           timeoutSeconds: 1
-        name: backstage
-        ports:
-        - containerPort: 7007
-          protocol: TCP
         readinessProbe:
           failureThreshold: 5
           httpGet:
@@ -62,7 +59,6 @@ spec:
             scheme: HTTP
           initialDelaySeconds: 45
           periodSeconds: 10
-          successThreshold: 1
           timeoutSeconds: 1
         resources:
           limits:
@@ -71,12 +67,3 @@ spec:
           requests:
             cpu: 250m
             memory: 512Mi
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
-      dnsPolicy: ClusterFirst
-      imagePullSecrets:
-      - name: acr-secret
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      terminationGracePeriodSeconds: 30

@@ -19,7 +19,7 @@ spec:
         - name: acr-secret
       containers:
         - name: backstage
-          image: feinaregistry.azurecr.io/backstage:latest
+          image: asyncbenchmarkregistry.azurecr.io/backstage:latest
           imagePullPolicy: Always
           ports:
             - name: http

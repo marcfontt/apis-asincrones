@@ -10,7 +10,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3002;
 const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenario-service:3002';
-const ACR_SERVER = process.env.ACR_SERVER || 'feinaregistry.azurecr.io';
+const ACR_SERVER = process.env.ACR_SERVER || 'asyncbenchmarkregistry.azurecr.io';
 const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
 const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincronas';
 // Used by DELETE /runs/:id to cascade-delete the run's metrics from

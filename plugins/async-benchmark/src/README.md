@@ -1,4 +1,4 @@
-# `plugins/feina/src`
+# `plugins/async-benchmark/src`
 
 ## Jerarquia interna
 

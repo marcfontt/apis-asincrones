@@ -1,16 +1,20 @@
 apiVersion: kafka.strimzi.io/v1
 kind: Kafka
 metadata:
-    kubectl.kubernetes.io/last-applied-configuration: |
-    strimzi.io/kraft: enabled
-    strimzi.io/node-pools: enabled
   name: kafka-cluster
   namespace: kafka-strimzi
+  annotations:
+    strimzi.io/kraft: enabled
+    strimzi.io/node-pools: enabled
 spec:
-  entityOperator:
-    topicOperator: {}
-    userOperator: {}
   kafka:
+    version: 4.1.1
+    metadataVersion: 4.1-IV0
+    listeners:
+    - name: plain
+      port: 9092
+      tls: false
+      type: internal
     config:
       default.replication.factor: 1
       min.insync.replicas: 1
@@ -19,36 +23,6 @@ spec:
       transaction.state.log.replication.factor: 1
       message.max.bytes: "4194304"
       replica.fetch.max.bytes: "4194304"
-    listeners:
-    - name: plain
-      port: 9092
-      tls: false
-      type: internal
-    metadataVersion: 4.1-IV0
-    version: 4.1.1
-  clusterId: 6-1BXqbxQWawHenLK5uuaA
-  conditions:
-  - lastTransitionTime: "2026-03-18T10:31:46.311008106Z"
-    message: A Kafka cluster with a single broker node and ephemeral storage will
-      lose topic messages after any restart or rolling update.
-    reason: KafkaStorage
-    type: Warning
-  - lastTransitionTime: "2026-03-18T10:31:46.311098598Z"
-    message: A Kafka cluster with a single controller node and ephemeral storage will
-      lose data after any restart or rolling update.
-    reason: KafkaStorage
-    type: Warning
-  - lastTransitionTime: "2026-03-18T10:32:43.001420705Z"
-    type: Ready
-  kafkaMetadataVersion: 4.1-IV0
-  kafkaNodePools:
-  - name: dual-role
-  kafkaVersion: 4.1.1
-  listeners:
-  - addresses:
-    - host: kafka-cluster-kafka-bootstrap.kafka-strimzi.svc
-      port: 9092
-    bootstrapServers: kafka-cluster-kafka-bootstrap.kafka-strimzi.svc:9092
-    name: plain
-  observedGeneration: 1
-  operatorLastSuccessfulVersion: 0.51.0
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}

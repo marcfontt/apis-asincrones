@@ -1,34 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"v1","kind":"Service","metadata":{"annotations":{},"name":"backstage-service","namespace":"apis-asincronas"},"spec":{"ports":[{"name":"http","port":80,"protocol":"TCP","targetPort":7007}],"selector":{"app":"backstage"},"type":"LoadBalancer"}}
-  finalizers:
-  - service.kubernetes.io/load-balancer-cleanup
   name: backstage-service
   namespace: apis-asincronas
 spec:
-  allocateLoadBalancerNodePorts: true
-  clusterIP: 10.0.27.164
-  clusterIPs:
-  - 10.0.27.164
-  externalTrafficPolicy: Cluster
-  internalTrafficPolicy: Cluster
-  ipFamilies:
-  - IPv4
-  ipFamilyPolicy: SingleStack
+  type: LoadBalancer
+  selector:
+    app: backstage
   ports:
   - name: http
-    nodePort: 30304
     port: 80
     protocol: TCP
     targetPort: 7007
-  selector:
-    app: backstage
-  sessionAffinity: None
-  type: LoadBalancer
-  loadBalancer:
-    ingress:
-    - ip: 20.23.94.191
-      ipMode: VIP
