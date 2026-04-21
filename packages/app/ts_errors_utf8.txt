@@ -18,7 +18,7 @@
 [7m3[0m import * as amqp from 'amqplib';
 [7m [0m [91m                      ~~~~~~~~~[0m
 
-[96m../../plugins/feina/src/components/ResultatsPage/ResultatsPage.tsx[0m:[93m220[0m:[93m9[0m - [91merror[0m[90m TS6133: [0m'gradId' is declared but its value is never read.
+[96m../../plugins/async-benchmark/src/pages/ResultatsPage.tsx[0m:[93m220[0m:[93m9[0m - [91merror[0m[90m TS6133: [0m'gradId' is declared but its value is never read.
 
 [7m220[0m   const gradId = 'lg-' + label.replace(/\s/g, '');
 [7m   [0m [91m        ~~~~~~[0m
@@ -29,4 +29,4 @@ Found 5 errors in 3 files.
 Errors  Files
      2  ../benchmark-orchestrator/src/index.ts[90m:252[0m
      2  ../load-generator/src/index.ts[90m:2[0m
-     1  ../../plugins/feina/src/components/ResultatsPage/ResultatsPage.tsx[90m:220[0m
+     1  ../../plugins/async-benchmark/src/pages/ResultatsPage.tsx[90m:220[0m

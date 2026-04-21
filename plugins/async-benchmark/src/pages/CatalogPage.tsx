@@ -23,7 +23,7 @@
 
 import { useEffect, useState } from 'react';
 import React from 'react';
-import { S, GLOBAL_CSS, CATEGORY_COLORS } from '../../theme';
+import { S, GLOBAL_CSS, CATEGORY_COLORS } from '../theme';
 
 // Endpoint del servei de cataleg (proxied per Backstage)
 const API_BASE = '/api/proxy/catalog-service';
@@ -562,7 +562,7 @@ export const CatalogPage = () => {
               <span style={{ color: searchQuery ? 'var(--accent)' : 'var(--text-disabled)', display: 'flex', flexShrink: 0 }}><SearchIcon /></span>
               <input
                 type="text"
-                placeholder="Cerca per nom, protocol..."
+                placeholder="Cerca per nom, categoria, protocol o plataforma"
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }}

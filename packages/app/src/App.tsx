@@ -17,7 +17,7 @@ import { orgPlugin } from '@backstage/plugin-org';
 import { apis } from './apis';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
-import { HomePage, CatalogPage, ScenariosPage, ExecucionsPage, ResultatsPage } from '../../../plugins/feina/src/plugin';
+import { HomePage, CatalogPage, ScenariosPage, ExecucionsPage, ResultatsPage } from '../../../plugins/async-benchmark/src/plugin';
 
 const lightPortalTheme = createUnifiedTheme({
   palette: palettes.light,

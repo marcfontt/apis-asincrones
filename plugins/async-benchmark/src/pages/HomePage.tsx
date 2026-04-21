@@ -18,7 +18,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { S, GLOBAL_CSS } from '../../theme';
+import { S, GLOBAL_CSS } from '../theme';
 
 const CATALOG_BASE = '/api/proxy/catalog-service';
 const SCENARIOS_BASE = '/api/proxy/scenario-service';
@@ -170,7 +170,7 @@ export const HomePage = () => {
     scenarios: 0,
     activeRuns: 0,
     historicalScenarios: 0,
-    totalSamples: 0,
+    totalMeasures: 0,
   });
 
   useEffect(() => {
@@ -201,8 +201,8 @@ export const HomePage = () => {
         const activeRuns = Array.isArray(activeRunsRes) ? activeRunsRes.length : 0;
         const summary = Array.isArray(summaryRes) ? summaryRes : [];
         const historicalScenarios = new Set(summary.map((s: any) => s.scenarioId).filter(Boolean)).size;
-        const totalSamples = summary.reduce((sum: number, s: any) =>
-          sum + (Number(s.messagesRecv ?? s.count ?? 0) || 0), 0);
+        const totalMeasures = summary.reduce((sum: number, s: any) =>
+          sum + (Number(s.pointCount ?? s.measureCount ?? 0) || 0), 0);
 
         setPortalStats({
           loading: false,
@@ -210,7 +210,7 @@ export const HomePage = () => {
           scenarios,
           activeRuns,
           historicalScenarios,
-          totalSamples,
+          totalMeasures,
         });
       } catch (_) {
         if (!cancelled) setPortalStats(prev => ({ ...prev, loading: false }));
@@ -325,7 +325,7 @@ export const HomePage = () => {
             </div>
           </div>
           <a href="/resultats" style={{ ...S.btn, fontSize: 12, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-            Veure Historial <IconArrow />
+            Veure Resultats <IconArrow />
           </a>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10 }}>
@@ -334,7 +334,7 @@ export const HomePage = () => {
             { label: 'Escenaris', value: portalStats.scenarios, color: '#8b5cf6', desc: 'Configuracions definides' },
             { label: 'Actius', value: portalStats.activeRuns, color: '#22c55e', desc: 'Execucions en curs' },
             { label: 'Amb històric', value: portalStats.historicalScenarios, color: '#f59e0b', desc: 'Escenaris ja executats' },
-            { label: 'Mostres totals', value: portalStats.totalSamples, color: '#06b6d4', desc: 'Acumulades a resultats' },
+            { label: 'Mesures registrades', value: portalStats.totalMeasures, color: '#06b6d4', desc: 'Punts de telemetria acumulats a Resultats' },
           ].map(stat => (
             <div key={stat.label} style={{ border: '1px solid var(--border)', background: 'var(--bg-subtle)', borderRadius: 10, padding: '12px 14px' }}>
               <div style={{ fontSize: 10, fontWeight: 700, color: stat.color, textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8 }}>

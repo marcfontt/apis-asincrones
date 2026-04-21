@@ -175,10 +175,15 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
       return {
         runId:         b.key,
         scenarioId:    last.scenarioId,
-        // `count` = real messages received (monotonic counter). Falls back
-        // to the snapshot-doc count only if the field is missing (very old
-        // history data without the new schema).
+        // `count` keeps backwards compatibility with the old UI contract:
+        // real messages received (monotonic counter). Falls back to the
+        // snapshot-doc count only if the field is missing (very old data).
         count:         last.messages_recv ?? b.doc_count,
+        // `pointCount` / `measureCount` represent telemetry documents for
+        // this run. The history UI uses this to show accumulated measures
+        // instead of confusing them with delivered messages.
+        pointCount:    b.doc_count,
+        measureCount:  b.doc_count,
         messagesSent:  last.messages_sent ?? null,
         messagesRecv:  last.messages_recv ?? null,
         // Cumulative averages from the FINAL snapshot, not avg-of-avgs.

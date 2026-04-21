@@ -8,7 +8,7 @@
  * index on first boot (or after a data-loss event — e.g. a wiped PVC).
  *
  * These are the SAME values the UI's scenario builder expects
- * (see plugins/feina/src/components/ScenariosPage/ScenariosPage.tsx and
+ * (see plugins/async-benchmark/src/pages/ScenariosPage.tsx and
  *  CatalogPage.tsx). If you add a new architecture/protocol/platform,
  * add it here so the catalog reflects reality.
  *

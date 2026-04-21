@@ -29,7 +29,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import React from 'react';
-import { S, GLOBAL_CSS } from '../../theme'; // S = reusable React style objects, GLOBAL_CSS = keyframe animations etc.
+import { S, GLOBAL_CSS } from '../theme'; // S = reusable React style objects, GLOBAL_CSS = keyframe animations etc.
 
 /* ---------------------------------------------------------------------------
  * API base paths - routed through the Backstage proxy so the browser never
@@ -415,7 +415,7 @@ const RunTable = ({
               <span style={{ color: searchValue ? 'var(--accent)' : 'var(--text-disabled)', display: 'flex', flexShrink: 0 }}><SearchIcon /></span>
               <input
                 type="text"
-                placeholder="Cerca a l'historial..."
+                placeholder="Cerca per escenari, plataforma, protocol o estat"
                 value={searchValue || ''}
                 onChange={e => onSearchChange(e.target.value)}
                 style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }}
@@ -1252,7 +1252,7 @@ export const ExecucionsPage = () => {
             Relació entre Execucions i Resultats
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            Aquesta pàgina mostra execucions individuals. A <a href="/resultats" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Resultats</a>, l&apos;historial acumula aquestes execucions per escenari i suma les seves mostres totals.
+            Aquesta pàgina mostra execucions individuals. A <a href="/resultats" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Resultats</a>, l&apos;historial agrupa aquestes execucions per escenari i suma les seves mesures registrades.
           </div>
         </div>
       )}

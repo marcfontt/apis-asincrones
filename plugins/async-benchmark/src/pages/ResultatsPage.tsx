@@ -39,8 +39,9 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
-import { S, GLOBAL_CSS } from '../../theme';
-import { getLiveMessageCount } from './liveMetrics';
+import { S, GLOBAL_CSS } from '../theme';
+import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
+import { aggregateScenarioHistory, getScenarioMeasureCount } from '../shared/results/historyMetrics';
 
 // ---------------------------------------------------------------------------
 // API base URLs - routed through Backstage proxy to avoid CORS issues
@@ -381,6 +382,9 @@ const IconAward = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="no
 /** Small funnel filter icon used in the secondary filters toggle button. */
 const IconFilter = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
 
+/** Small search icon used in live/history quick-search inputs. */
+const SearchIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+
 /** Small refresh/reload icon used in the "Actualitzar" button. */
 const IconRefresh = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
 
@@ -393,9 +397,9 @@ const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
  * Helps users interpret the comparative table without leaving the page.
  */
 const MetricGlossary = () => {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = React.useState(true);
   const fmtLabel: Record<string, string> = {
-    'default': 'Default', 'financial': 'Financer', 'video-4k': 'Vídeo 4K', 'video-8k': 'Vídeo 8K', 'iot': 'IoT',
+    'default': 'Per defecte', 'financial': 'Financer', 'video-4k': 'Vídeo 4K', 'video-8k': 'Vídeo 8K', 'iot': 'IoT',
   };
   const metricLabel: Record<string, string> = { lat: 'Lat. avg', p50: 'P50', p99: 'P99', tput: 'Throughput', err: 'Error %' };
   const metricColor: Record<string, string> = { lat: '#f59e0b', p50: '#3b82f6', p99: '#7c3aed', tput: '#22c55e', err: '#ef4444' };
@@ -407,11 +411,19 @@ const MetricGlossary = () => {
         style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)' }}
       >
         <span style={{ color: '#3b82f6' }}><IconInfo /></span>
-        <span style={{ fontWeight: 700, fontSize: 13, flex: 1, textAlign: 'left' }}>Guia de mètriques i puntuació</span>
+        <span style={{ fontWeight: 700, fontSize: 13, flex: 1, textAlign: 'left' }}>Guia de mesures, mètriques i puntuació</span>
         <IconChevron open={open} />
       </button>
       {open && (
         <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border)' }}>
+          <div style={{ marginTop: 14, padding: '12px 14px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.18)', borderRadius: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Com interpretar aquesta pàgina</div>
+            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+              A l&apos;historial, cada fila agrupa totes les execucions visibles d&apos;un escenari. Les <strong style={{ color: 'var(--text-primary)' }}>mesures</strong> són punts de telemetria guardats durant l&apos;execució.
+              Els <strong style={{ color: 'var(--text-primary)' }}>missatges</strong> es mantenen separats i només es mostren a la vista <strong style={{ color: 'var(--text-primary)' }}>En directe</strong> per evitar confondre&apos;ls amb les mesures històriques.
+            </div>
+          </div>
+
           {/* Metric definitions */}
           <div style={{ marginTop: 14, marginBottom: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Definicions</div>
@@ -432,17 +444,16 @@ const MetricGlossary = () => {
             </div>
           </div>
 
-          {/* Scoring formula */}
+          {/* Scoring guide */}
           <div style={{ marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Fórmula de puntuació (0–100)</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Com funciona la puntuació</div>
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.7 }}>
-              <div><strong>Puntuació = Σ (wₖ × score_normalitzat(mètrica_k)) × penalització_error × 100</strong></div>
+              <div><strong>La puntuació compara només els escenaris visibles amb els filtres actuals.</strong></div>
               <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-secondary)' }}>
-                Cada mètrica es normalitza en [0,1] respecte al millor valor observat al conjunt. Els pesos (wₖ) varien per format de dades.
-                La penalització d'error es multiplica al final si la taxa d'error supera el llindar del format.
+                Primer es compara cada mètrica amb la resta d&apos;escenaris visibles. Després s&apos;apliquen pesos diferents segons el format de dades: un cas financer no prioritza el mateix que un cas de vídeo o IoT.
               </div>
               <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-disabled)' }}>
-                Penalitzacions: Financer &gt;0.1% → ×0.55 · Vídeo &gt;2% → ×0.75 · IoT &gt;0.5% → ×0.80 · Default &gt;1% → ×0.70
+                Si la taxa d&apos;error supera el llindar del format, la puntuació baixa encara que la latència o el throughput siguin bons. Llindars: Financer &gt; 0.1% · Vídeo &gt; 2% · IoT &gt; 0.5% · Per defecte &gt; 1%.
               </div>
             </div>
           </div>
@@ -827,6 +838,7 @@ const HistorialTab = () => {
   const [filterProtocol, setFilterProtocol] = useState<string[]>([]);
   const [filterArch, setFilterArch] = useState<string[]>([]);
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
+  const [historySearch, setHistorySearch] = useState('');
 
   // Controls visibility of the secondary filters (protocol/platform/arch)
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -956,89 +968,30 @@ const HistorialTab = () => {
     if (filterProtocol.length && !filterProtocol.includes(s.protocol || '')) return false;
     if (filterArch.length && !filterArch.includes(s.architecture || '')) return false;
     if (filterDataFormat.length && !filterDataFormat.includes(dataFormatOf(s))) return false;
+    if (historySearch.trim()) {
+      const query = historySearch.trim().toLowerCase();
+      const scenarioName = String(nameMap[s.scenarioId] || s.scenarioId || '').toLowerCase();
+      const protocol = String(s.protocol || '').toLowerCase();
+      const architecture = String(s.architecture || '').toLowerCase();
+      const dataFormat = String(DATA_FORMAT_LABELS[dataFormatOf(s)] || dataFormatOf(s) || '').toLowerCase();
+      if (![scenarioName, platform.toLowerCase(), protocol, architecture, dataFormat].some(value => value.includes(query))) {
+        return false;
+      }
+    }
     return true;
   });
 
   // Total count of active filter selections across all filter groups.
-  const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length + filterDataFormat.length;
+  const activeFilters = filterPlatform.length + filterProtocol.length + filterArch.length + filterDataFormat.length + (historySearch.trim() ? 1 : 0);
   const clearFilters = () => {
     setFilterPlatform([]); setFilterProtocol([]); setFilterArch([]);
     setFilterDataFormat([]);
-  };
-
-  const aggregateScenarioHistory = (items: any[]) => {
-    const groups = new Map<string, any>();
-
-    items.forEach(item => {
-      const scenarioId = item.scenarioId;
-      if (!scenarioId) return;
-
-      const sampleCount = Number(item.messagesRecv ?? item.count ?? 0) || 0;
-      const sentCount = Number(item.messagesSent ?? sampleCount) || 0;
-      const sampleWeight = Math.max(sampleCount, 1);
-      const sentWeight = Math.max(sentCount, 1);
-      const ts = Date.parse(item.endedAt || item.startedAt || '') || 0;
-
-      if (!groups.has(scenarioId)) {
-        groups.set(scenarioId, {
-          scenarioId,
-          latest: item,
-          latestTs: ts,
-          runCount: 0,
-          totalSamples: 0,
-          latencySum: 0,
-          latencyWeight: 0,
-          throughputSum: 0,
-          throughputWeight: 0,
-          errorSum: 0,
-          errorWeight: 0,
-        });
-      }
-
-      const group = groups.get(scenarioId)!;
-      group.runCount += 1;
-      group.totalSamples += sampleCount;
-
-      if (item.avgLatency != null) {
-        group.latencySum += item.avgLatency * sampleWeight;
-        group.latencyWeight += sampleWeight;
-      }
-      if (item.avgThroughput != null) {
-        group.throughputSum += item.avgThroughput * sampleWeight;
-        group.throughputWeight += sampleWeight;
-      }
-      if (item.avgErrorRate != null) {
-        group.errorSum += item.avgErrorRate * sentWeight;
-        group.errorWeight += sentWeight;
-      }
-      if (ts >= group.latestTs) {
-        group.latest = item;
-        group.latestTs = ts;
-      }
-    });
-
-    return Array.from(groups.values()).map(group => {
-      const latest = group.latest;
-      return {
-        ...latest,
-        runId: latest.runId,
-        scenarioId: group.scenarioId,
-        count: group.totalSamples,
-        totalSamples: group.totalSamples,
-        runCount: group.runCount,
-        avgLatency: group.latencyWeight > 0 ? group.latencySum / group.latencyWeight : latest.avgLatency,
-        avgThroughput: group.throughputWeight > 0 ? group.throughputSum / group.throughputWeight : latest.avgThroughput,
-        avgErrorRate: group.errorWeight > 0 ? group.errorSum / group.errorWeight : latest.avgErrorRate,
-        latestRunId: latest.runId,
-        latestStartedAt: latest.startedAt,
-        latestEndedAt: latest.endedAt,
-      };
-    });
+    setHistorySearch('');
   };
 
   const scenarioHistory = aggregateScenarioHistory(filteredSummary);
   const totalScenarioHistory = aggregateScenarioHistory(syncedSummary);
-  const totalSamples = scenarioHistory.reduce((sum, s) => sum + (Number(s.totalSamples ?? s.count ?? 0) || 0), 0);
+  const totalMeasures = scenarioHistory.reduce((sum, s) => sum + getScenarioMeasureCount(s), 0);
   const totalRuns = filteredSummary.length;
 
   // Compute per-scenario scores for the filtered set.
@@ -1080,6 +1033,8 @@ const HistorialTab = () => {
 
   return (
     <div>
+      <MetricGlossary />
+
       {/* Filter bar */}
       <div style={{ ...S.card, marginBottom: 20 }}>
         {/* Data format filter - always visible (primary filter, most commonly used) */}
@@ -1099,6 +1054,31 @@ const HistorialTab = () => {
             </div>
           </div>
         )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 220, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px' }}>
+            <span style={{ color: 'var(--text-disabled)', display: 'flex' }}><IconFilter /></span>
+            <input
+              type="text"
+              value={historySearch}
+              onChange={e => setHistorySearch(e.target.value)}
+              placeholder="Cerca per escenari, plataforma, protocol o format"
+              style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--text-primary)' }}
+            />
+            {historySearch && (
+              <button
+                onClick={() => setHistorySearch('')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, fontSize: 14, lineHeight: 1 }}
+                aria-label="Netejar cerca"
+              >
+                ×
+              </button>
+            )}
+          </div>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            {filteredSummary.length} execucions visibles
+          </span>
+        </div>
 
         {/* Divider + toggle button for secondary filters (protocol, platform, arch) */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: availDataFormats.length > 0 ? '1px solid var(--border)' : 'none', paddingTop: availDataFormats.length > 0 ? 14 : 0 }}>
@@ -1188,13 +1168,6 @@ const HistorialTab = () => {
 
       {scenarioHistory.length > 0 && (
         <>
-          <div style={{ ...S.card, marginBottom: 14, padding: '12px 16px', borderLeft: '3px solid #3b82f6', background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(59,130,246,0.04) 100%)' }}>
-            <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 4 }}>Historial acumulat per escenari</div>
-            <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-              Cada fila representa un escenari executat. Les mostres totals sumen totes les seves execucions registrades, mentre que les mètriques de rendiment es comparen sobre l&apos;històric visible.
-            </div>
-          </div>
-
           {/* Summary stat cards: scenario count + run count + total samples + best performer */}
           <div style={{ display: 'grid', gridTemplateColumns: best ? '1fr 1fr 1fr 2fr' : '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
             <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -1219,11 +1192,11 @@ const HistorialTab = () => {
 
             <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16 }}>
               <div style={{ width: 42, height: 42, borderRadius: 10, background: '#f59e0b14', color: '#f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 18, fontWeight: 800, fontFamily: 'var(--font)' }}>
-                {totalSamples}
+                {totalMeasures}
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Mostres totals</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Suma acumulada de totes les execucions visibles</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Mesures registrades</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Punts de telemetria acumulats a les execucions visibles</div>
               </div>
             </div>
 
@@ -1271,7 +1244,6 @@ const HistorialTab = () => {
           </div>
 
           {/* Metric glossary — collapsible reference panel */}
-          <MetricGlossary />
 
           {/* Full comparison table */}
           <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
@@ -1297,7 +1269,7 @@ const HistorialTab = () => {
                     <th style={{ ...S.th, textAlign: 'right' }}>P99</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Throughput</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Error %</th>
-                    <th style={{ ...S.th, textAlign: 'right' }}>Mostres totals</th>
+                    <th style={{ ...S.th, textAlign: 'right' }}>Mesures totals</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Arq.</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Protocol</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Plataforma</th>
@@ -1395,9 +1367,9 @@ const HistorialTab = () => {
                           {s.avgErrorRate?.toFixed(3) ?? '-'}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-disabled)' }}>%</span>
                         </td>
 
-                        {/* Total samples accumulated across all executions of the scenario */}
+                        {/* Total telemetry measures accumulated across all executions of the scenario */}
                         <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-disabled)' }}>
-                          {s.totalSamples ?? s.count ?? '-'}
+                          {getScenarioMeasureCount(s) || '-'}
                         </td>
 
                         {/* Architecture badge */}
@@ -1556,6 +1528,8 @@ const LiveTab = () => {
   const [activeRuns, setActiveRuns] = useState<any[]>([]);
   // ID of the currently selected run (drives metrics polling)
   const [selectedRunId, setSelectedRunId] = useState('');
+  // Quick search over active runs (scenario name, platform, protocol, format...)
+  const [liveSearch, setLiveSearch] = useState('');
   // Raw metric data points for the selected run
   const [metrics, setMetrics] = useState<any[]>([]);
   // Whether the metrics polling interval is active
@@ -1611,9 +1585,33 @@ const LiveTab = () => {
   // When the selected run leaves activeRuns we keep polling /metrics?
   // runId=X for a short grace window (handled in the polling effect)
   // so the "completed" snapshot is captured, then the view is frozen.
+  const visibleActiveRuns = activeRuns.filter((run: any) => {
+    if (!liveSearch.trim()) return true;
+    const query = liveSearch.trim().toLowerCase();
+    const haystack = [
+      run.scenarioName,
+      run.scenarioId,
+      normalizePlatform(run.platform || run.broker),
+      run.protocol,
+      run.architecture,
+      DATA_FORMAT_LABELS[run.dataFormat || 'default'] || run.dataFormat || 'default',
+    ]
+      .map(value => String(value || '').toLowerCase())
+      .join(' ');
+    return haystack.includes(query);
+  });
+
   useEffect(() => {
-    if (!selectedRunId && activeRuns.length > 0) setSelectedRunId(activeRuns[0].id);
-  }, [activeRuns, selectedRunId]);
+    if (!selectedRunId && visibleActiveRuns.length > 0) setSelectedRunId(visibleActiveRuns[0].id);
+  }, [visibleActiveRuns, selectedRunId]);
+
+  useEffect(() => {
+    const runFinished = !!selectedRunId && !activeRuns.find((run: any) => run.id === selectedRunId);
+    if (runFinished) return;
+    if (visibleActiveRuns.length > 0 && !visibleActiveRuns.find((run: any) => run.id === selectedRunId)) {
+      setSelectedRunId(visibleActiveRuns[0].id);
+    }
+  }, [activeRuns, visibleActiveRuns, selectedRunId]);
 
   // True once the selected run has left activeRuns — drives the
   // "Finalitzat" banner and the grace-window polling behaviour.
@@ -1713,7 +1711,7 @@ const LiveTab = () => {
     <div>
       {/* Scenario picker card - shows all active/pending runs */}
       <div style={{ ...S.card, marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (activeRuns.length > 0 || selectedRunFinished) ? 14 : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (visibleActiveRuns.length > 0 || selectedRunFinished) ? 14 : 0 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Escenari en execucio
           </div>
@@ -1748,6 +1746,33 @@ const LiveTab = () => {
           </div>
         </div>
 
+        {activeRuns.length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 220, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px' }}>
+              <span style={{ color: 'var(--text-disabled)', display: 'flex' }}><SearchIcon /></span>
+              <input
+                type="text"
+                value={liveSearch}
+                onChange={e => setLiveSearch(e.target.value)}
+                placeholder="Troba un escenari en directe per nom, plataforma, protocol o format"
+                style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--text-primary)' }}
+              />
+              {liveSearch && (
+                <button
+                  onClick={() => setLiveSearch('')}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, fontSize: 14, lineHeight: 1 }}
+                  aria-label="Netejar cerca"
+                >
+                  ×
+                </button>
+              )}
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+              {visibleActiveRuns.length} de {activeRuns.length} visibles
+            </span>
+          </div>
+        )}
+
         {/* Run picker - horizontal scrollable row of RunCards.
             When the selected run has just finished we synthesize a virtual
             card at the end (status:'completed') so the user can still see
@@ -1756,9 +1781,11 @@ const LiveTab = () => {
             no-op; clicking another (real) active card switches away. */}
         {activeRuns.length === 0 && !selectedRunFinished ? (
           <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>Cap escenari actiu.</div>
+        ) : activeRuns.length > 0 && visibleActiveRuns.length === 0 ? (
+          <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>Cap execució coincideix amb la cerca actual.</div>
         ) : (
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-            {activeRuns.map(r => (
+            {visibleActiveRuns.map(r => (
               <RunCard
                 key={r.id}
                 run={r}
@@ -1814,7 +1841,7 @@ const LiveTab = () => {
       ) : (
         <>
           <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            El comptador superior mostra missatges acumulats del run seleccionat. Els gràfics i la taula inferior mostren punts de telemetria publicats cada 3 segons.
+            El comptador superior mostra missatges acumulats del run seleccionat. Els gràfics i la taula inferior mostren mesures de telemetria publicades cada 3 segons. Quan canvies d&apos;execució, tant els missatges com les mesures tornen a començar des de zero per a aquell run.
           </div>
 
           {/* Summary stat cards (4 columns: samples, latency avg, throughput avg, error avg) */}
@@ -1863,9 +1890,9 @@ const LiveTab = () => {
             marginBottom: 10, flexWrap: 'wrap', gap: 8,
           }}>
             <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Finestra del grafic
+              Finestra de mesures
               <span style={{ marginLeft: 8, color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 0 }}>
-                ({windowedMetrics.length} de {livePointCount} punts)
+                ({windowedMetrics.length} de {livePointCount} mesures)
               </span>
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -1913,9 +1940,9 @@ const LiveTab = () => {
             <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ color: 'var(--text-secondary)' }}><IconPulse /></span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ultimes mesures</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Últimes mesures</span>
                 <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-disabled)' }}>
-                  {livePointCount} punts - actualitzacio cada 3s
+                  {livePointCount} mesures - actualització cada 3s
                 </span>
               </div>
               {/* Scrollable table body - capped at 480px height to avoid page overflow */}

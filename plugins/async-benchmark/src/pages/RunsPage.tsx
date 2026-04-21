@@ -22,7 +22,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { S, GLOBAL_CSS } from '../../theme';
+import { S, GLOBAL_CSS } from '../theme';
 
 // Endpoint de l'orquestrador (proxied per Backstage)
 const API_BASE = '/api/proxy/benchmark-orchestrator';

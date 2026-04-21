@@ -27,7 +27,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { S, GLOBAL_CSS } from '../../theme';
+import { S, GLOBAL_CSS } from '../theme';
 
 // Endpoints dels microserveis (proxied per Backstage via app-config.yaml)
 const API_BASE     = '/api/proxy/scenario-service';
@@ -1501,7 +1501,7 @@ export const ScenariosPage = () => {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-disabled)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
                 <input
                   type="text"
-                  placeholder="Cerca escenaris..."
+                  placeholder="Cerca per nom, arquitectura, protocol, plataforma o format"
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }}
