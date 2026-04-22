@@ -45,6 +45,7 @@ export const GLOBAL_CSS = `
     --bg-card:     #ffffff;
     --bg-hover:    #f8fafc;
     --bg-subtle:   #f8fafc;
+    --bg-surface:  #f8fafc;
 
     /* Text: jerarquia de tres nivells */
     --text-primary:   #0f172a;  /* titols i contingut principal */
@@ -79,6 +80,7 @@ export const GLOBAL_CSS = `
     --bg-card:     #0f1117;   /* targetes lleugerament mes clares */
     --bg-hover:    #161921;   /* hover states */
     --bg-subtle:   #0b0d12;   /* fons secundari per capçaleres de taula */
+    --bg-surface:  #12161f;   /* superfícies informatives i targetes internes */
 
     /* Text: blanc amb varies opacitats per jerarquia */
     --text-primary:   #f0f6fc;  /* quasi blanc, maxim contrast */

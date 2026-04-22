@@ -40,6 +40,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
 import { S, GLOBAL_CSS } from '../theme';
+import { EDUCATION } from '../shared/content/education';
 import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
 import { aggregateScenarioHistory, getScenarioMeasureCount } from '../shared/results/historyMetrics';
 
@@ -398,6 +399,7 @@ const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
  */
 const MetricGlossary = () => {
   const [open, setOpen] = React.useState(true);
+  const guide = EDUCATION.resultsGuide;
   const fmtLabel: Record<string, string> = {
     'default': 'Per defecte', 'financial': 'Financer', 'video-4k': 'Vídeo 4K', 'video-8k': 'Vídeo 8K', 'iot': 'IoT',
   };
@@ -411,7 +413,7 @@ const MetricGlossary = () => {
         style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)' }}
       >
         <span style={{ color: '#3b82f6' }}><IconInfo /></span>
-        <span style={{ fontWeight: 700, fontSize: 13, flex: 1, textAlign: 'left' }}>Guia de mesures, mètriques i puntuació</span>
+        <span style={{ fontWeight: 700, fontSize: 13, flex: 1, textAlign: 'left' }}>{guide.title}</span>
         <IconChevron open={open} />
       </button>
       {open && (
@@ -419,26 +421,30 @@ const MetricGlossary = () => {
           <div style={{ marginTop: 14, padding: '12px 14px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.18)', borderRadius: 10 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Com interpretar aquesta pàgina</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-              A l&apos;historial, cada fila agrupa totes les execucions visibles d&apos;un escenari. Les <strong style={{ color: 'var(--text-primary)' }}>mesures</strong> són punts de telemetria guardats durant l&apos;execució.
-              Els <strong style={{ color: 'var(--text-primary)' }}>missatges</strong> es mantenen separats i només es mostren a la vista <strong style={{ color: 'var(--text-primary)' }}>En directe</strong> per evitar confondre&apos;ls amb les mesures històriques.
+              {guide.intro}
+            </div>
+          </div>
+
+          <div style={{ marginTop: 14, marginBottom: 12 }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Glossari ràpid</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
+              {guide.terminology.map(item => (
+                <div key={item.title} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 10px' }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: item.accent, marginBottom: 4 }}>{item.title}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{item.description}</div>
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Metric definitions */}
           <div style={{ marginTop: 14, marginBottom: 12 }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Definicions</div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Mètriques que veus a la taula</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
-              {[
-                { color: '#f59e0b', label: 'Latència mitjana (ms)', desc: 'Temps mitjà entre l\'enviament d\'un missatge i la seva recepció. Menor = millor.' },
-                { color: '#3b82f6', label: 'P50 (mediana)', desc: 'El 50% dels missatges arriben en menys d\'aquest temps. Representa el cas típic.' },
-                { color: '#8b5cf6', label: 'P95', desc: 'El 95% dels missatges arriben per sota d\'aquest llindar. Detecta pics de latència.' },
-                { color: '#7c3aed', label: 'P99', desc: 'El 99% dels missatges arriben per sota. Mesura els pitjors casos pràctics.' },
-                { color: '#22c55e', label: 'Throughput (msg/s)', desc: 'Missatges processats per segon. Major = millor. Crític per a formats d\'alta freqüència.' },
-                { color: '#ef4444', label: 'Taxa d\'error (%)', desc: 'Percentatge de missatges fallits o perduts. Activa penalitzacions a la puntuació si supera el llindar del format.' },
-              ].map(({ color, label, desc }) => (
-                <div key={label} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontWeight: 700, fontSize: 12, color, marginBottom: 3 }}>{label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{desc}</div>
+              {guide.metricDefinitions.map(item => (
+                <div key={item.title} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px' }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: item.accent, marginBottom: 3 }}>{item.title}</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.description}</div>
                 </div>
               ))}
             </div>
@@ -447,13 +453,20 @@ const MetricGlossary = () => {
           {/* Scoring guide */}
           <div style={{ marginBottom: 12 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Com funciona la puntuació</div>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.7 }}>
-              <div><strong>La puntuació compara només els escenaris visibles amb els filtres actuals.</strong></div>
-              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-secondary)' }}>
-                Primer es compara cada mètrica amb la resta d&apos;escenaris visibles. Després s&apos;apliquen pesos diferents segons el format de dades: un cas financer no prioritza el mateix que un cas de vídeo o IoT.
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px' }}>
+              <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.7, fontWeight: 700, marginBottom: 8 }}>
+                La puntuació ordena els escenaris visibles; no és una nota absoluta vàlida fora dels filtres actuals.
               </div>
-              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-disabled)' }}>
-                Si la taxa d&apos;error supera el llindar del format, la puntuació baixa encara que la latència o el throughput siguin bons. Llindars: Financer &gt; 0.1% · Vídeo &gt; 2% · IoT &gt; 0.5% · Per defecte &gt; 1%.
+              <div style={{ display: 'grid', gap: 6 }}>
+                {guide.scoringPrinciples.map(point => (
+                  <div key={point} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#3b82f6', marginTop: 6, flexShrink: 0 }} />
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{point}</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{ marginTop: 8, fontSize: 11, color: 'var(--text-disabled)', lineHeight: 1.6 }}>
+                {guide.thresholds}
               </div>
             </div>
           </div>

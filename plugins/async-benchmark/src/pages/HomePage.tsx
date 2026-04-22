@@ -19,6 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { S, GLOBAL_CSS } from '../theme';
+import { EDUCATION } from '../shared/content/education';
 
 const CATALOG_BASE = '/api/proxy/catalog-service';
 const SCENARIOS_BASE = '/api/proxy/scenario-service';
@@ -155,6 +156,119 @@ const OnboardingGuide = () => {
 };
 
 // ── HomePage: component principal ─────────────────────────────────────────────
+const LearningOverview = () => (
+  <div style={{ ...S.card, marginBottom: 20 }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 18, flexWrap: 'wrap' as const }}>
+      <div style={{ maxWidth: 760 }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--accent)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 6 }}>
+          {EDUCATION.syncVsAsync.eyebrow}
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+          Entendre el portal abans d'executar res
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
+          {EDUCATION.syncVsAsync.description}
+        </div>
+      </div>
+      <div style={{ minWidth: 220, maxWidth: 260, padding: '12px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-surface)' }}>
+        <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 8 }}>
+          Idea clau
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+          El portal no serveix només per llançar benchmarks. Serveix per <strong style={{ color: 'var(--text-primary)' }}>aprendre quina combinació d'arquitectura, protocol i plataforma encaixa millor</strong> segons el cas d'ús.
+        </div>
+      </div>
+    </div>
+
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 10 }}>
+        {EDUCATION.syncVsAsync.title}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+        {EDUCATION.syncVsAsync.items.map(item => (
+          <div key={item.title} style={{ border: `1px solid ${item.accent}26`, background: `linear-gradient(180deg, ${item.accent}0c, var(--bg-card))`, borderRadius: 12, padding: 16 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 9px', borderRadius: 999, background: item.accent + '14', color: item.accent, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' as const, marginBottom: 10 }}>
+              {item.title}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.65, marginBottom: 12 }}>
+              {item.summary}
+            </div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {item.bullets.map(bullet => (
+                <div key={bullet} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: item.accent, marginTop: 6, flexShrink: 0 }} />
+                  <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{bullet}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div style={{ height: 1, background: 'var(--border)', margin: '18px 0' }} />
+
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 6 }}>
+        {EDUCATION.asyncFlow.eyebrow}
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+        {EDUCATION.asyncFlow.title}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+        {EDUCATION.asyncFlow.description}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
+        {EDUCATION.asyncFlow.steps.map((step, index) => (
+          <div key={step.label} style={{ border: '1px solid var(--border)', background: 'var(--bg-surface)', borderRadius: 10, padding: '14px 12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'center', marginBottom: 8 }}>
+              <span style={{ fontSize: 10, fontWeight: 700, color: step.accent, letterSpacing: '0.06em', textTransform: 'uppercase' as const }}>
+                Pas {index + 1}
+              </span>
+              <span style={{ fontSize: 10, color: 'var(--text-disabled)', fontFamily: 'var(--font-mono)' }}>
+                0{index + 1}
+              </span>
+            </div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+              {step.label}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {step.description}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <div style={{ height: 1, background: 'var(--border)', margin: '18px 0' }} />
+
+    <div>
+      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 6 }}>
+        {EDUCATION.concepts.eyebrow}
+      </div>
+      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+        {EDUCATION.concepts.title}
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 12 }}>
+        {EDUCATION.concepts.description}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+        {EDUCATION.concepts.items.map(item => (
+          <div key={item.title} style={{ borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', padding: '14px 12px', boxShadow: 'var(--shadow-sm)' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.accent, display: 'inline-block' }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{item.title}</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {item.description}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+);
+
 export const HomePage = () => {
   // Estats de hover per a diverses seccions (per als efectes visuals)
   // Cada un trac quina targeta/element esta en hover per aplicar estils dinamics
@@ -311,6 +425,7 @@ export const HomePage = () => {
 
       {/* ── GUIA D'ONBOARDING (col·lapsable) ───────────────────────────────── */}
       {/* Col·lapsada per defecte per no sobrecarregar la pantalla inicial */}
+      <div style={fade(30)}><LearningOverview /></div>
       <div style={fade(40)}><OnboardingGuide /></div>
 
       <div style={{ ...fade(70), ...S.card, marginBottom: 22 }}>
