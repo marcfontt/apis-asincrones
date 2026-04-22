@@ -47,7 +47,6 @@ const KNOWN_VERSIONS: Record<string, string> = {
   'rabbitmq':       '3.13',
   'nats server':    '2.10',
   'nats':           '2.10',
-  'pulsar':         '3.2',
   'emqx':           '5.6',
   'activemq':       '6.1',
   'mqtt':           '5.0',

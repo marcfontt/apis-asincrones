@@ -57,10 +57,9 @@ type Scenario = {
 // S'usen per als selects del modal i per als filtres de la taula.
 const ALL_ARCHITECTURES  = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
 const ALL_PROTOCOLS      = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
-const ALL_PLATFORMS      = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server', 'Pulsar'];
-// Plataformes disponibles al cataleg pero no desploegades al clúster:
-// Pulsar requereix mes recursos i no esta disponible en l'entorn de proves actual.
-const DISABLED_PLATFORMS = ['Pulsar'];
+const ALL_PLATFORMS      = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server'];
+// Plataformes disponibles al cataleg pero no desploegades al clúster (cap actualment).
+const DISABLED_PLATFORMS: string[] = [];
 
 // Colors identificatius per a cada plataforma de missatgeria.
 // Usats als badges de la taula i al modal de detall.
@@ -70,7 +69,6 @@ const PLATFORM_COLORS: Record<string, string> = {
   'Confluent':   '#3b82f6', // blau -- marca Confluent (Kafka Enterprise)
   'RabbitMQ':    '#f59e0b', // ambre -- marca RabbitMQ
   'NATS Server': '#22c55e', // verd -- marca NATS (lightweight, fast)
-  'Pulsar':      '#a78bfa', // viola -- marca Apache Pulsar
 };
 
 // Formats de dades disponibles per simular casos d'us reals.
@@ -143,8 +141,6 @@ const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string
   'RabbitMQ':    { architectures: ['EDA', 'QBA', 'EMA'], protocols: ['AMQP', 'MQTT', 'WS'] },
   // Confluent: distribucio enterprise de Kafka. Mateixa compatibilitat + connectors addicionals.
   'Confluent':   { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
-  // Pulsar: arquitectura de tiers (hot/warm/cold). Suporta protocols oberts.
-  'Pulsar':      { architectures: ['EDA', 'QBA', 'SEA'], protocols: ['AMQP', 'WS', 'gRPC'] },
   // NATS Server: dissenyat per a cloud-native i edge. Protocol NATS propi (molt lleuger).
   // Excel·lent per a LCA (Log-Centric) i SEA (Streaming Events).
   'NATS Server': { architectures: ['EDA', 'LCA', 'SEA'], protocols: ['NATS', 'WS', 'gRPC'] },
@@ -167,7 +163,7 @@ const normalizePlatform = (p?: string): string => {
   if (!p) return '';
   const map: Record<string, string> = {
     'kafka': 'Kafka', 'rabbitmq': 'RabbitMQ', 'rabbit': 'RabbitMQ',
-    'confluent': 'Confluent', 'nats': 'NATS Server', 'nats server': 'NATS Server', 'pulsar': 'Pulsar',
+    'confluent': 'Confluent', 'nats': 'NATS Server', 'nats server': 'NATS Server',
   };
   return map[p.toLowerCase()] ?? p;
 };
@@ -546,7 +542,9 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
               <div>
                 <div>Mode Indefinit</div>
                 <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-disabled)', marginTop: 1 }}>
-                  {indefinite ? "L'escenari s'executarà un màxim d'1 hora" : "Activa per executar sense límit de temps (max 1h)"}
+                  {indefinite
+                    ? "Actiu: l'escenari funciona fins que l'atures (màx. 1h de seguretat). Durada/ràtio/payload queden inactius."
+                    : "Executa l'escenari sense límit de temps fins aturar-lo manualment (màx. 1h de seguretat)."}
                 </div>
               </div>
               {indefinite && <span style={{ marginLeft: 'auto', fontSize: 18 }}>∞</span>}

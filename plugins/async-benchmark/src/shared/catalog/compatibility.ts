@@ -2,9 +2,9 @@ export const ALL_ARCHITECTURES = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
 
 export const ALL_PROTOCOLS = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
 
-export const ALL_PLATFORMS = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server', 'Pulsar'];
+export const ALL_PLATFORMS = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server'];
 
-export const DISABLED_PLATFORMS = ['Pulsar'];
+export const DISABLED_PLATFORMS: string[] = [];
 
 export type CompatibilityEntry = {
   architectures: string[];
@@ -23,10 +23,6 @@ export const COMPATIBILITY: Record<string, CompatibilityEntry> = {
   Confluent: {
     architectures: ['EDA', 'SEA', 'QBA'],
     protocols: ['Kafka', 'AMQP', 'gRPC'],
-  },
-  Pulsar: {
-    architectures: ['EDA', 'QBA', 'SEA'],
-    protocols: ['AMQP', 'WS', 'gRPC'],
   },
   'NATS Server': {
     architectures: ['EDA', 'LCA', 'SEA'],

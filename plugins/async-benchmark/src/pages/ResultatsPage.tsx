@@ -145,7 +145,6 @@ const PLATFORM_COLORS: Record<string, string> = {
   'Confluent': '#3b82f6',
   'RabbitMQ': '#f59e0b',
   'NATS Server': '#22c55e',
-  'Pulsar': '#a78bfa',
 };
 
 /**
@@ -192,7 +191,6 @@ const normalizePlatform = (p?: string): string => {
     'rabbitmq': 'RabbitMQ',
     'nats server': 'NATS Server',
     'nats': 'NATS Server',
-    'pulsar': 'Pulsar',
   };
   return map[p.toLowerCase()] ?? p;
 };
@@ -397,9 +395,6 @@ const IconFilter = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="n
 /** Small search icon used in live/history quick-search inputs. */
 const SearchIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
 
-/** Small refresh/reload icon used in the "Actualitzar" button. */
-const IconRefresh = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><polyline points="1 20 1 14 7 14" /><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
-
 /** Info icon used in MetricGlossary header. */
 const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
 
@@ -408,8 +403,19 @@ const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="non
  * the composite scoring formula, and per-format weight tables.
  * Helps users interpret the comparative table without leaving the page.
  */
+const METRIC_GLOSSARY_STORAGE_KEY = 'asyncbenchmark:metricGlossary:open';
+
 const MetricGlossary = () => {
-  const [open, setOpen] = React.useState(true);
+  const [open, setOpen] = React.useState<boolean>(() => {
+    try {
+      return window.localStorage.getItem(METRIC_GLOSSARY_STORAGE_KEY) === 'true';
+    } catch {
+      return false;
+    }
+  });
+  React.useEffect(() => {
+    try { window.localStorage.setItem(METRIC_GLOSSARY_STORAGE_KEY, String(open)); } catch { /* ignore */ }
+  }, [open]);
   const guide = EDUCATION.resultsGuide;
   const fmtLabel: Record<string, string> = {
     'default': 'Per defecte', 'financial': 'Financer', 'video-4k': 'Vídeo 4K', 'video-8k': 'Vídeo 8K', 'iot': 'IoT',
@@ -888,6 +894,13 @@ const HistorialTab = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  // Periodic background refresh so new runs appear without user action.
+  // Interval of 30s balances freshness against backend load.
+  useEffect(() => {
+    const id = window.setInterval(() => { fetchData(); }, 30000);
+    return () => window.clearInterval(id);
+  }, [fetchData]);
+
   // -------------------------------------------------------------------------
   // Client-side percentile fallback.
   //
@@ -1149,9 +1162,6 @@ const HistorialTab = () => {
                 Esborra tots
               </button>
             )}
-            <button onClick={fetchData} style={{ ...S.btn, fontSize: 12, padding: '5px 12px', gap: 5 }}>
-              <IconRefresh /> Actualitzar
-            </button>
           </div>
         </div>
 
