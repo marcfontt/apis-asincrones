@@ -3,6 +3,7 @@ import cors from 'cors';
 import * as k8s from '@kubernetes/client-node';
 import * as http from 'http';
 import { randomUUID } from 'crypto';
+import { getMonitorMaxAttempts, isIndefiniteDuration } from './runTiming';
 
 const app = express();
 app.use(cors());
@@ -226,7 +227,7 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
   const scenarioDuration = rAny?.duration;
   const scenarioRate = rAny?.rate;
   const scenarioPayloadSize = rAny?.payloadSize;
-  const isIndefinite = scenarioDuration == null || scenarioDuration === 0;
+  const isIndefinite = isIndefiniteDuration(scenarioDuration);
   const durationSeconds = isIndefinite ? '0' : String(scenarioDuration);
   const messagesPerSec = scenarioRate != null && scenarioRate > 0 ? String(scenarioRate) : String(fmtConfig.messagesPerSecond);
   const messageSizeBytes = scenarioPayloadSize != null && scenarioPayloadSize > 0 ? String(scenarioPayloadSize) : String(fmtConfig.messageSizeBytes);
@@ -287,12 +288,20 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
   console.log(`[orchestrator] Job ${jobName} created  format=${fmt}  duration=${durationSeconds}s  size=${messageSizeBytes}B  rate=${messagesPerSec}msg/s`);
 }
 
-async function monitorJob(runId: string, namespace: string, jobName: string, scenarioId: string) {
+async function monitorJob(
+  runId: string,
+  namespace: string,
+  jobName: string,
+  scenarioId: string,
+  expectedDurationSeconds?: number | null,
+) {
   let attempts = 0;
+  const maxAttempts = getMonitorMaxAttempts(expectedDurationSeconds);
   const poll = async () => {
     const run = runs.get(runId);
     if (!run || run.status === 'cancelled') return;
-    if (++attempts > 180) {
+    attempts += 1;
+    if (maxAttempts !== null && attempts > maxAttempts) {
       run.status = 'failed'; run.completedAt = new Date().toISOString();
       await updateScenarioStatus(scenarioId, 'idle', null); return;
     }
@@ -397,7 +406,7 @@ app.post('/runs', (req, res) => {
       await deployScenario(runId, scenarioId, run.scenarioName);
       const r = runs.get(runId);
       if (r && r.status === 'running' && r.namespace && r.jobName) {
-        monitorJob(runId, r.namespace, r.jobName, scenarioId);
+        monitorJob(runId, r.namespace, r.jobName, scenarioId, (r as any).duration);
       }
     } catch (e) {
       console.error(`[orchestrator] Deploy failed: ${(e as Error).message}`);

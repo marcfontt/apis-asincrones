@@ -3,6 +3,8 @@ import { connect as natsConnect, StringCodec } from 'nats';
 import * as amqp from 'amqplib';
 import * as http from 'http';
 import { performance } from 'perf_hooks';
+import { retryKafkaStartupStep, waitForKafkaTopicReady } from './kafkaInit';
+import { getNatsPayloadPreflightError } from './natsPreflight';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FAIR-COMPARISON CONTRACT (applies to Kafka, Confluent, NATS, RabbitMQ).
@@ -191,9 +193,101 @@ function postMetric(doc: object): Promise<void> {
   });
 }
 
+async function prepareKafkaTopic(admin: any, topic: string): Promise<void> {
+  await admin.connect();
+  await retryKafkaStartupStep(async () => {
+    await admin.createTopics({
+      topics: [{
+        topic, numPartitions: 1, replicationFactor: 1,
+        configEntries: [
+          { name: 'retention.ms', value: '3600000' },
+          { name: 'max.message.bytes', value: '4194304' },
+        ],
+      }],
+      waitForLeaders: true,
+    });
+
+    await waitForKafkaTopicReady(
+      () => admin.fetchTopicMetadata({ topics: [topic] }),
+      { topic, retries: 12, delayMs: 250 },
+    );
+  }, {
+    retries: 4,
+    delayMs: 500,
+    stepName: `topic setup for ${topic}`,
+  });
+  await admin.disconnect();
+}
+
+async function startKafkaConsumer(consumer: any, topic: string): Promise<void> {
+  await retryKafkaStartupStep(async () => {
+    let connected = false;
+    try {
+      await consumer.connect();
+      connected = true;
+      await consumer.subscribe({ topic, fromBeginning: false });
+      await consumer.run({
+        autoCommit: false,
+        eachMessage: async ({ message }: { message: { value?: Buffer | null } }) => {
+          if (!running) return;
+
+          let isProbe = false;
+          if (message.value) {
+            try {
+              const p = JSON.parse(message.value.toString());
+              isProbe = Boolean(p.probe);
+              if (!isProbe) {
+                const lat = nowMs() - p.ts;
+                if (lat >= 0 && lat < 120000 && isStableWindow()) {
+                  latencies.push(lat);
+                  recvStable++;
+                }
+              }
+            } catch (_) { }
+          }
+
+          if (!isProbe) {
+            received++;
+          }
+        },
+      });
+    } catch (error) {
+      if (connected) {
+        try { await consumer.disconnect(); } catch (_) { }
+      }
+      throw error;
+    }
+  }, {
+    retries: 4,
+    delayMs: 500,
+    stepName: `consumer startup for ${topic}`,
+  });
+}
+
+async function warmKafkaProducer(producer: any, topic: string, probePayload: string): Promise<void> {
+  await retryKafkaStartupStep(async () => {
+    let connected = false;
+    try {
+      await producer.connect();
+      connected = true;
+      await producer.send({ topic, messages: [{ value: probePayload }], acks: 0 });
+    } catch (error) {
+      if (connected) {
+        try { await producer.disconnect(); } catch (_) { }
+      }
+      throw error;
+    }
+  }, {
+    retries: 4,
+    delayMs: 500,
+    stepName: `producer warm-up for ${topic}`,
+  });
+}
+
 // ── Runner: Kafka ─────────────────────────────────────────────────────────
 async function runKafka() {
   const topic = `benchmark-${CFG.runId}`;
+  const probePayload = JSON.stringify({ probe: true, ts: nowMs() });
   log(`=== Load Generator (Kafka) ===`);
   log(`Format: ${CFG.dataFormat}  |  MsgSize: ${CFG.msgSize}B  |  Rate: ${CFG.msgPerSec} msg/s`);
 
@@ -229,51 +323,12 @@ async function runKafka() {
     minBytes: 1,
   });
 
-  await admin.connect();
-  // Single partition removes cross-partition coordination overhead.
-  // For a 1-producer / 1-consumer benchmark, multiple partitions only add
-  // consumer-group fetch/commit chatter without any real parallelism benefit.
-  await admin.createTopics({
-    topics: [{
-      topic, numPartitions: 1, replicationFactor: 1,
-      configEntries: [
-        { name: 'retention.ms', value: '3600000' },
-        { name: 'max.message.bytes', value: '4194304' }, // 4 MB — covers video-8k (2 MB) with headroom
-      ],
-    }],
-    waitForLeaders: true,
-  });
-  await admin.disconnect();
-  log(`Topic ${topic} created`);
+  await prepareKafkaTopic(admin, topic);
+  log(`Topic ${topic} created and stabilized`);
 
-  await consumer.connect();
-  await consumer.subscribe({ topic, fromBeginning: false });
-  consumer.run({
-    // autoCommit=false: no offset-commit traffic. Symmetric with NATS pub/sub
-    // and RabbitMQ `noAck:true`, which also keep zero consumer-side state
-    // on the broker.
-    autoCommit: false,
-    eachMessage: async ({ message }) => {
-      if (!running) return;
-      received++;
-      if (message.value) {
-        try {
-          const p = JSON.parse(message.value.toString());
-          const lat = nowMs() - p.ts;                      // BUG 3 FIX: performance.now()
-          // Only count latency samples AFTER warm-up window. Early samples
-          // include TCP handshake, consumer-group join, JIT compilation, and
-          // socket buffer initialisation — all one-off costs that shouldn't
-          // skew steady-state measurement.
-          if (lat >= 0 && lat < 120000 && isStableWindow()) {
-            latencies.push(lat);
-            recvStable++;
-          }
-        } catch (_) { }
-      }
-    },
-  });
+  await startKafkaConsumer(consumer, topic);
 
-  await producer.connect();
+  await warmKafkaProducer(producer, topic, probePayload);
   log(`Producer + consumer connected. Starting test (warm-up: ${CFG.warmupSeconds}s)...`);
 
   const intervalMs = Math.max(1, Math.round(1000 / CFG.msgPerSec));
@@ -337,6 +392,21 @@ async function runNats() {
   const natsUrl = process.env.NATS_URL || 'nats://nats.brokers.svc.cluster.local:4222';
   const nc = await natsConnect({ servers: natsUrl });
   const sc = StringCodec();
+  const payloadError = getNatsPayloadPreflightError(CFG.msgSize, nc.info);
+
+  if (payloadError) {
+    errors = Math.max(errors, 1);
+    log(`FATAL: ${payloadError}`);
+    await postMetric({
+      ...snapshot(true),
+      status: 'failed',
+      errorCode: 'NATS_MAX_PAYLOAD_EXCEEDED',
+      errorDetail: payloadError,
+      natsMaxPayloadBytes: nc.info?.max_payload ?? null,
+    });
+    await nc.close();
+    throw new Error(payloadError);
+  }
 
   // Subscriptor (consumer)
   const sub = nc.subscribe(subject);
