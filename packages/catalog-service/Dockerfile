@@ -2,11 +2,11 @@ FROM node:22-slim
 
 WORKDIR /app
 
-COPY package.json ./
+COPY packages/catalog-service/package.json ./package.json
 RUN npm install
 
-COPY src/ ./src/
-COPY tsconfig.json ./
+COPY packages/catalog-service/src/ ./src/
+COPY packages/catalog-service/tsconfig.json ./tsconfig.json
 
 RUN npx tsc
 

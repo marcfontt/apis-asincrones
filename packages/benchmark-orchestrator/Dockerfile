@@ -1,14 +1,14 @@
 FROM node:22-slim AS builder
 WORKDIR /app
-COPY package.json ./
+COPY packages/benchmark-orchestrator/package.json ./package.json
 RUN npm install
-COPY tsconfig.json ./
-COPY src/ ./src/
+COPY packages/benchmark-orchestrator/tsconfig.json ./tsconfig.json
+COPY packages/benchmark-orchestrator/src/ ./src/
 RUN npx tsc
 
 FROM node:22-slim
 WORKDIR /app
-COPY package.json ./
+COPY packages/benchmark-orchestrator/package.json ./package.json
 RUN npm install --omit=dev
 COPY --from=builder /app/dist ./dist
 ENV PORT=3003
