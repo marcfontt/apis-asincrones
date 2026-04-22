@@ -28,6 +28,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { S, GLOBAL_CSS } from '../theme';
+import { CompatibilityMatrix } from '../components/CompatibilityMatrix';
 
 // Endpoints dels microserveis (proxied per Backstage via app-config.yaml)
 const API_BASE     = '/api/proxy/scenario-service';
@@ -992,6 +993,14 @@ const ScenarioGuide = () => {
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.desc}</p>
               </div>
             ))}
+          </div>
+
+          <div style={{ marginTop: 12 }}>
+            <CompatibilityMatrix
+              compact
+              title="Quines combinacions admet el portal"
+              description="Aquesta referencia es la mateixa que has de seguir al formulari. Si tries una plataforma, l'app nomes hauria d'oferir les arquitectures i protocols compatibles."
+            />
           </div>
 
           {/* Mode indefinit destacat */}

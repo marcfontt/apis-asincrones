@@ -30,6 +30,8 @@
 import { useEffect, useState, useCallback } from 'react';
 import React from 'react';
 import { S, GLOBAL_CSS } from '../theme'; // S = reusable React style objects, GLOBAL_CSS = keyframe animations etc.
+import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
+import { getRunMeasureCount, getRunMessageCount, getRunSentCount } from '../shared/results/historyMetrics';
 
 /* ---------------------------------------------------------------------------
  * API base paths - routed through the Backstage proxy so the browser never
@@ -252,6 +254,49 @@ const formatTime = (iso: string) =>
 const getStartTime = (r: any): string =>
   r.startedAt || r.started_at || r.createdAt || r.created_at || r.timestamp || '';
 
+const formatDateTime = (iso?: string) =>
+  !iso ? '-' : new Date(iso).toLocaleString('ca-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+
+const getRunDataFormat = (run: any, scenarioMap: Record<string, any>) =>
+  run.dataFormat || scenarioMap[run.scenarioId]?.dataFormat || 'default';
+
+const FilterChip = ({
+  label,
+  active,
+  color,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  color: string;
+  onClick: () => void;
+}) => (
+  <button
+    onClick={onClick}
+    style={{
+      borderRadius: 999,
+      border: `1px solid ${active ? `${color}55` : 'var(--border)'}`,
+      background: active ? `${color}16` : 'var(--bg-card)',
+      color: active ? color : 'var(--text-secondary)',
+      padding: '5px 10px',
+      fontSize: 11,
+      fontWeight: 700,
+      cursor: 'pointer',
+      fontFamily: 'var(--font)',
+      transition: 'all 0.15s ease',
+      whiteSpace: 'nowrap',
+    }}
+  >
+    {label}
+  </button>
+);
+
 /* ---------------------------------------------------------------------------
  * ConfirmModal
  *
@@ -361,7 +406,7 @@ const RunTable = ({
   searchValue, onSearchChange,
   onCancel, onRequestDelete, onBulkDelete, onDeleteAll,
   cancellingId, deletingIds, scenarioMap,
-  selectedIds, onToggleSelect, onToggleAll,
+  selectedIds, onToggleSelect, onToggleAll, selectedRunId, onSelectRun,
 }: {
   data: any[]; title: string; showStop: boolean; icon: React.ReactNode;
   totalCount?: number;
@@ -377,6 +422,8 @@ const RunTable = ({
   selectedIds: Set<string>;
   onToggleSelect: (id: string) => void;
   onToggleAll: (ids: string[], allSelected: boolean) => void;
+  selectedRunId?: string | null;
+  onSelectRun?: (run: any) => void;
 }) => {
   // Track which row the mouse is over to highlight it without global state
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
@@ -518,21 +565,27 @@ const RunTable = ({
                 const dfColor   = DATA_FORMAT_COLORS[df] || '#64748b'; // badge accent color
                 const isSelected = selectedIds.has(r.id);
                 const isDeleting = deletingIds.has(r.id); // fades the row during async delete
+                const isDetailSelected = selectedRunId === r.id;
 
                 return (
                   <tr
                     key={r.id || i}
                     onMouseEnter={() => setHoveredRow(i)}
                     onMouseLeave={() => setHoveredRow(null)}
+                    onClick={() => onSelectRun?.(r)}
                     style={{
                       ...S.tableRow,
                       // Selected rows get a subtle red tint; hovered rows get the default hover bg
                       background: isSelected
                         ? 'rgba(239,68,68,0.04)'
-                        : hoveredRow === i ? 'var(--bg-hover)' : 'transparent',
+                        : isDetailSelected
+                          ? 'rgba(37,99,235,0.06)'
+                          : hoveredRow === i ? 'var(--bg-hover)' : 'transparent',
                       // Fade the row while a delete request is in-flight to give instant feedback
                       opacity: isDeleting ? 0.45 : 1,
                       transition: 'background var(--transition), opacity 0.2s ease',
+                      borderLeft: `3px solid ${isDetailSelected ? 'var(--accent)' : 'transparent'}`,
+                      cursor: 'pointer',
                     }}
                   >
                     {/* Row-level checkbox - only in history table; active rows are not selectable */}
@@ -540,7 +593,7 @@ const RunTable = ({
                       <td style={{ ...S.td, width: 40, paddingLeft: 16, paddingRight: 8, textAlign: 'center' }}>
                         {!isActive && (
                           <button
-                            onClick={() => onToggleSelect(r.id)}
+                            onClick={event => { event.stopPropagation(); onToggleSelect(r.id); }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             title={isSelected ? 'Deseleccionar' : 'Seleccionar'}
                           >
@@ -611,7 +664,7 @@ const RunTable = ({
                         {/* Stop button - only for active runs in the live table */}
                         {showStop && isActive && (
                           <button
-                            onClick={() => onCancel(r)}
+                            onClick={event => { event.stopPropagation(); onCancel(r); }}
                             disabled={cancellingId === r.id}
                             title="Aturar execució"
                             style={{
@@ -631,7 +684,7 @@ const RunTable = ({
                         {/* Delete button - only for finished rows (not active) */}
                         {!isActive && (
                           <button
-                            onClick={() => onRequestDelete(r)}
+                            onClick={event => { event.stopPropagation(); onRequestDelete(r); }}
                             disabled={isDeleting}
                             title="Eliminar registre"
                             style={{
@@ -680,6 +733,13 @@ export const ExecucionsPage = () => {
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set());
   // Current value of the history search input
   const [historySearch, setHistorySearch] = useState('');
+  // Global run search applied to live and history lists
+  const [runSearch,     setRunSearch]     = useState('');
+  const [filterPlatform, setFilterPlatform] = useState<string[]>([]);
+  const [filterProtocol, setFilterProtocol] = useState<string[]>([]);
+  const [filterArchitecture, setFilterArchitecture] = useState<string[]>([]);
+  const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
+  const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   // Timestamp of the last successful data fetch (used for the "updated X seconds ago" label)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   // Seconds elapsed since lastRefreshed, incremented by a 1s interval
@@ -757,21 +817,15 @@ export const ExecucionsPage = () => {
         const synthetic = summary
           .filter((s: any) => s.runId && !orchIds.has(s.runId))
           .map((s: any) => ({
+            ...s,
             id:            s.runId,
             scenarioId:    s.scenarioId,
-            scenarioName:  s.scenarioId, // resolved to friendly name later via scenarioMap
-            architecture:  s.architecture,
-            protocol:      s.protocol,
+            scenarioName:  s.scenarioId,
             platform:      s.platform || s.broker,
             broker:        s.broker,
-            dataFormat:    s.dataFormat,
-            deliveryModel: s.deliveryModel,
-            // ES-only runs are always historical. Accept the status recorded at run end;
-            // if missing, assume 'completed' (a snapshot existed so the run happened).
             status:        s.status || 'completed',
             startedAt:     s.startedAt,
             completedAt:   s.endedAt,
-            // Tag synthetic rows so delete/cancel can route to the right backend.
             _source:       'metrics',
           }));
 
@@ -812,6 +866,12 @@ export const ExecucionsPage = () => {
     const t = setTimeout(() => setToast(''), 3500);
     return () => clearTimeout(t);
   }, [toast]);
+
+  useEffect(() => {
+    if (selectedRunId && !runs.find(run => run.id === selectedRunId)) {
+      setSelectedRunId(null);
+    }
+  }, [runs, selectedRunId]);
 
   /* ---------------------------------------------------------------------------
    * Local helpers
@@ -1017,29 +1077,61 @@ export const ExecucionsPage = () => {
     });
   };
 
+  const toggleFilter = (
+    _current: string[],
+    setState: React.Dispatch<React.SetStateAction<string[]>>,
+    value: string,
+  ) => {
+    setState(prev => prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]);
+  };
+
   /* ---------------------------------------------------------------------------
    * Derived data
    * ---------------------------------------------------------------------------*/
 
-  // Split runs into live (needs stop button) and finished (needs delete + checkbox)
-  const running      = runs.filter(r => r.status === 'running' || r.status === 'pending');
-  const completedAll = runs.filter(r => r.status !== 'running' && r.status !== 'pending');
+  const matchesGlobalFilters = (run: any) => {
+    const dataFormat = getRunDataFormat(run, scenarioMap);
+    const query = runSearch.trim().toLowerCase();
+    const values = [
+      String(scenarioMap[run.scenarioId]?.name || run.scenarioName || run.scenarioId || '').toLowerCase(),
+      String(run.architecture || '').toLowerCase(),
+      String(run.protocol || '').toLowerCase(),
+      String(normalizePlatform(run.platform || run.broker || '') || '').toLowerCase(),
+      String(DATA_FORMAT_LABELS[dataFormat] || dataFormat || '').toLowerCase(),
+      String(run.status || '').toLowerCase(),
+    ];
 
-  /*
-   * Apply the history search filter to finished runs.
-   * The filter is client-side because the full list is already in memory,
-   * and the orchestrator API does not expose a search endpoint.
-   * Matched fields: scenario name, architecture, protocol, status label.
-   */
-  const completed    = historySearch.trim()
+    if (query && !values.some(value => value.includes(query))) return false;
+    if (filterPlatform.length && !filterPlatform.includes(normalizePlatform(run.platform || run.broker || ''))) return false;
+    if (filterProtocol.length && !filterProtocol.includes(run.protocol || '')) return false;
+    if (filterArchitecture.length && !filterArchitecture.includes(run.architecture || '')) return false;
+    if (filterDataFormat.length && !filterDataFormat.includes(dataFormat)) return false;
+    return true;
+  };
+
+  const visibleRuns = runs.filter(matchesGlobalFilters);
+  const runningAll = runs.filter(r => r.status === 'running' || r.status === 'pending');
+  const completedBase = runs.filter(r => r.status !== 'running' && r.status !== 'pending');
+  const running = visibleRuns.filter(r => r.status === 'running' || r.status === 'pending');
+  const completedAll = visibleRuns.filter(r => r.status !== 'running' && r.status !== 'pending');
+
+  const completed = historySearch.trim()
     ? completedAll.filter(r => {
         const q = historySearch.trim().toLowerCase();
-        return (r.scenarioName || '').toLowerCase().includes(q)
+        return (scenarioMap[r.scenarioId]?.name || r.scenarioName || '').toLowerCase().includes(q)
             || (r.architecture || '').toLowerCase().includes(q)
-            || (r.protocol     || '').toLowerCase().includes(q)
-            || (r.status       || '').toLowerCase().includes(q);
+            || (r.protocol || '').toLowerCase().includes(q)
+            || (normalizePlatform(r.platform || r.broker || '') || '').toLowerCase().includes(q)
+            || (r.status || '').toLowerCase().includes(q);
       })
     : completedAll;
+
+  const selectedRun = selectedRunId ? runs.find(run => run.id === selectedRunId) || null : null;
+  const activeFilterCount = filterPlatform.length + filterProtocol.length + filterArchitecture.length + filterDataFormat.length + (runSearch.trim() ? 1 : 0);
+  const availablePlatforms = Array.from(new Set(runs.map(run => normalizePlatform(run.platform || run.broker || '')).filter(Boolean))).sort();
+  const availableProtocols = Array.from(new Set(runs.map(run => run.protocol).filter(Boolean))).sort();
+  const availableArchitectures = Array.from(new Set(runs.map(run => run.architecture).filter(Boolean))).sort();
+  const availableDataFormats = Array.from(new Set(runs.map(run => getRunDataFormat(run, scenarioMap)).filter(Boolean))).sort();
 
   /*
    * handleStopAll
@@ -1257,6 +1349,135 @@ export const ExecucionsPage = () => {
         </div>
       )}
 
+      {!loading && runs.length > 0 && (
+        <div style={{ ...S.card, marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Filtra execucions</div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
+                Aquesta cerca afecta els runs en viu i l'historial. La cerca de la taula d'historial continua disponible per a un segon nivell de filtratge.
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>
+                {visibleRuns.length} visibles de {runs.length}
+              </span>
+              {activeFilterCount > 0 && (
+                <button
+                  onClick={() => {
+                    setRunSearch('');
+                    setFilterPlatform([]);
+                    setFilterProtocol([]);
+                    setFilterArchitecture([]);
+                    setFilterDataFormat([]);
+                  }}
+                  style={{ ...S.btn, fontSize: 12, padding: '4px 10px' }}
+                >
+                  Neteja filtres
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', marginBottom: 14 }}>
+            <span style={{ color: runSearch ? 'var(--accent)' : 'var(--text-disabled)', display: 'flex' }}><SearchIcon /></span>
+            <input
+              type="text"
+              value={runSearch}
+              onChange={event => setRunSearch(event.target.value)}
+              placeholder="Cerca per escenari, plataforma, protocol, arquitectura o format"
+              style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--text-primary)' }}
+            />
+            {runSearch && (
+              <button
+                onClick={() => setRunSearch('')}
+                style={{ background: 'none', border: 'none', color: 'var(--text-disabled)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}
+              >
+                x
+              </button>
+            )}
+          </div>
+
+          {availablePlatforms.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Plataforma
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {availablePlatforms.map(value => (
+                  <FilterChip
+                    key={value}
+                    label={value}
+                    active={filterPlatform.includes(value)}
+                    color={PLATFORM_COLORS[value] || '#64748b'}
+                    onClick={() => toggleFilter(filterPlatform, setFilterPlatform, value)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+            {availableProtocols.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                  Protocol
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {availableProtocols.map(value => (
+                    <FilterChip
+                      key={value}
+                      label={value}
+                      active={filterProtocol.includes(value)}
+                      color={PROTOCOL_COLORS[value] || '#64748b'}
+                      onClick={() => toggleFilter(filterProtocol, setFilterProtocol, value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {availableArchitectures.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                  Arquitectura
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {availableArchitectures.map(value => (
+                    <FilterChip
+                      key={value}
+                      label={value}
+                      active={filterArchitecture.includes(value)}
+                      color={ARCHITECTURE_COLORS[value] || '#64748b'}
+                      onClick={() => toggleFilter(filterArchitecture, setFilterArchitecture, value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {availableDataFormats.length > 0 && (
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                  Format
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {availableDataFormats.map(value => (
+                    <FilterChip
+                      key={value}
+                      label={DATA_FORMAT_LABELS[value] || value}
+                      active={filterDataFormat.includes(value)}
+                      color={DATA_FORMAT_COLORS[value] || '#64748b'}
+                      onClick={() => toggleFilter(filterDataFormat, setFilterDataFormat, value)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Main content area - skeleton while loading, two RunTables when ready */}
       {loading ? (
         /* Skeleton loading state - mimics the real table structure */
@@ -1276,6 +1497,7 @@ export const ExecucionsPage = () => {
           {/* Live runs table - showStop=true enables stop buttons and hides checkboxes */}
           <RunTable
             data={running}
+            totalCount={runningAll.length}
             title="En execució / Pendents"
             showStop={true}
             icon={<ActivityIcon />}
@@ -1289,11 +1511,13 @@ export const ExecucionsPage = () => {
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
             onToggleAll={handleToggleAll}
+            selectedRunId={selectedRunId}
+            onSelectRun={run => setSelectedRunId(prev => prev === run.id ? null : run.id)}
           />
           {/* History table - showStop=false enables checkboxes and delete buttons */}
           <RunTable
             data={completed}          /* filtered by search query */
-            totalCount={completedAll.length} /* unfiltered count shown in the badge */
+            totalCount={completedBase.length} /* unfiltered count shown in the badge */
             title="Historial"
             showStop={false}
             icon={<ListIcon />}
@@ -1309,9 +1533,111 @@ export const ExecucionsPage = () => {
             selectedIds={selectedIds}
             onToggleSelect={handleToggleSelect}
             onToggleAll={handleToggleAll}
+            selectedRunId={selectedRunId}
+            onSelectRun={run => setSelectedRunId(prev => prev === run.id ? null : run.id)}
           />
         </>
       )}
+
+      {selectedRun && (() => {
+        const scenario = scenarioMap[selectedRun.scenarioId];
+        const scenarioName =
+          scenario?.name ||
+          (selectedRun.scenarioName && selectedRun.scenarioName !== selectedRun.scenarioId
+            ? selectedRun.scenarioName
+            : selectedRun.scenarioId || selectedRun.id || '-');
+        const platform = normalizePlatform(selectedRun.platform || selectedRun.broker || '');
+        const dataFormat = getRunDataFormat(selectedRun, scenarioMap);
+        const measureCount = getRunMeasureCount(selectedRun);
+        const messageCount = getRunMessageCount(selectedRun);
+        const sentCount = getRunSentCount(selectedRun);
+        const status = STATUS_CONFIG[selectedRun.status] || { color: '#94a3b8', label: selectedRun.status || 'Desconegut', bg: 'transparent' };
+        const runStartedAt = getStartTime(selectedRun);
+        const runEndedAt = selectedRun.completedAt || selectedRun.completed_at || selectedRun.updatedAt || selectedRun.updated_at || '';
+
+        return (
+          <MetricsDetailDrawer
+            open={!!selectedRun}
+            onClose={() => setSelectedRunId(null)}
+            eyebrow="Detall d'execucio"
+            title={scenarioName}
+            subtitle="Aquest panell resumeix la configuracio del run seleccionat, quantes mesures hi ha guardades i quin volum de missatges s'ha processat."
+            accent={status.color}
+            badges={[
+              { label: status.label, color: status.color },
+              ...(selectedRun.architecture ? [{ label: selectedRun.architecture, color: ARCHITECTURE_COLORS[selectedRun.architecture] || '#2563eb' }] : []),
+              ...(selectedRun.protocol ? [{ label: selectedRun.protocol, color: PROTOCOL_COLORS[selectedRun.protocol] || '#16a34a' }] : []),
+              ...(platform ? [{ label: platform, color: PLATFORM_COLORS[platform] || '#64748b' }] : []),
+              { label: DATA_FORMAT_LABELS[dataFormat] || dataFormat, color: DATA_FORMAT_COLORS[dataFormat] || '#64748b' },
+            ]}
+            stats={[
+              {
+                label: 'Mesures',
+                value: measureCount,
+                helper: 'Punts de telemetria persistits per aquest run.',
+                color: '#22c55e',
+              },
+              {
+                label: 'Missatges rebuts',
+                value: messageCount,
+                helper: 'Volum rebut pel consumidor o registrat a la telemetria final.',
+                color: '#3b82f6',
+              },
+              {
+                label: 'Missatges enviats',
+                value: sentCount,
+                helper: 'Volum enviat pel load-generator durant aquesta execucio.',
+                color: '#f59e0b',
+              },
+              {
+                label: 'Durada',
+                value: runStartedAt ? formatDuration(runStartedAt, runEndedAt || undefined) : '-',
+                helper: 'Temps transcorregut del run visible.',
+                color: 'var(--text-primary)',
+              },
+            ]}
+            sections={[
+              {
+                title: 'Configuracio',
+                items: [
+                  { label: 'Run ID', value: <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedRun.id || '-'}</code> },
+                  { label: 'Escenari', value: scenarioName },
+                  { label: 'Arquitectura', value: selectedRun.architecture || '-' },
+                  { label: 'Protocol', value: selectedRun.protocol || '-' },
+                  { label: 'Plataforma', value: platform || '-' },
+                  { label: 'Format', value: DATA_FORMAT_LABELS[dataFormat] || dataFormat },
+                ],
+              },
+              {
+                title: 'Timeline',
+                items: [
+                  { label: 'Inici', value: formatDateTime(runStartedAt) },
+                  { label: 'Fi', value: formatDateTime(runEndedAt) },
+                  { label: 'Font', value: selectedRun._source === 'metrics' ? 'Metrics API / Elasticsearch' : 'Orquestrador' },
+                  { label: 'Estat intern', value: selectedRun.status || '-' },
+                ],
+              },
+              {
+                title: 'Metriques disponibles',
+                items: [
+                  { label: 'Latencia avg', value: selectedRun.avgLatency != null ? `${Number(selectedRun.avgLatency).toFixed(2)} ms` : 'Encara no disponible' },
+                  { label: 'Throughput avg', value: selectedRun.avgThroughput != null ? `${Number(selectedRun.avgThroughput).toFixed(2)} msg/s` : 'Encara no disponible' },
+                  { label: 'Error rate', value: selectedRun.avgErrorRate != null ? `${Number(selectedRun.avgErrorRate).toFixed(3)} %` : 'Encara no disponible' },
+                ],
+              },
+            ]}
+          >
+            <div style={{ ...S.card, background: 'var(--bg-surface)', borderStyle: 'dashed' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
+                Com interpretar aquest run
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                Si la part d'en viu esta a zero quan tornes a executar un escenari, es correcte: el run es nou i els comptadors recomencen. Quan finalitza, les seves mesures passen a Resultats i s'acumulen a l'historial del mateix escenari.
+              </div>
+            </div>
+          </MetricsDetailDrawer>
+        );
+      })()}
     </div>
   );
 };

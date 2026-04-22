@@ -11,8 +11,17 @@ export const getRunMeasureCount = (item: HistoryMetricRecord): number =>
 export const getRunMessageCount = (item: HistoryMetricRecord): number =>
   toFiniteCount(item.messagesRecv ?? item.count ?? item.messages_recv);
 
+export const getRunSentCount = (item: HistoryMetricRecord): number =>
+  toFiniteCount(item.messagesSent ?? item.messages_sent ?? item.sentCount ?? getRunMessageCount(item));
+
 export const getScenarioMeasureCount = (item: HistoryMetricRecord): number =>
   toFiniteCount(item.totalMeasures ?? item.measureCount ?? item.pointCount ?? item.count);
+
+export const getScenarioMessageCount = (item: HistoryMetricRecord): number =>
+  toFiniteCount(item.totalMessagesReceived ?? item.messagesRecv ?? item.count ?? item.messages_recv);
+
+export const getScenarioSentCount = (item: HistoryMetricRecord): number =>
+  toFiniteCount(item.totalMessagesSent ?? item.messagesSent ?? item.messages_sent ?? getScenarioMessageCount(item));
 
 export const aggregateScenarioHistory = (items: HistoryMetricRecord[]): HistoryMetricRecord[] => {
   const groups = new Map<string, {
@@ -20,6 +29,8 @@ export const aggregateScenarioHistory = (items: HistoryMetricRecord[]): HistoryM
     latestTs: number;
     runCount: number;
     totalMeasures: number;
+    totalMessagesReceived: number;
+    totalMessagesSent: number;
     latencySum: number;
     latencyWeight: number;
     throughputSum: number;
@@ -34,7 +45,7 @@ export const aggregateScenarioHistory = (items: HistoryMetricRecord[]): HistoryM
 
     const measureCount = getRunMeasureCount(item);
     const messageCount = getRunMessageCount(item);
-    const sentCount = toFiniteCount(item.messagesSent ?? item.messages_sent ?? messageCount);
+    const sentCount = getRunSentCount(item);
     const metricWeight = Math.max(messageCount, 1);
     const errorWeight = Math.max(sentCount, 1);
     const ts = Date.parse(String(item.endedAt ?? item.startedAt ?? '')) || 0;
@@ -45,6 +56,8 @@ export const aggregateScenarioHistory = (items: HistoryMetricRecord[]): HistoryM
         latestTs: ts,
         runCount: 0,
         totalMeasures: 0,
+        totalMessagesReceived: 0,
+        totalMessagesSent: 0,
         latencySum: 0,
         latencyWeight: 0,
         throughputSum: 0,
@@ -57,6 +70,8 @@ export const aggregateScenarioHistory = (items: HistoryMetricRecord[]): HistoryM
     const group = groups.get(scenarioId)!;
     group.runCount += 1;
     group.totalMeasures += measureCount;
+    group.totalMessagesReceived += messageCount;
+    group.totalMessagesSent += sentCount;
 
     const avgLatency = Number(item.avgLatency);
     if (Number.isFinite(avgLatency)) {
@@ -90,6 +105,8 @@ export const aggregateScenarioHistory = (items: HistoryMetricRecord[]): HistoryM
       scenarioId,
       count: group.totalMeasures,
       totalMeasures: group.totalMeasures,
+      totalMessagesReceived: group.totalMessagesReceived,
+      totalMessagesSent: group.totalMessagesSent,
       runCount: group.runCount,
       avgLatency: group.latencyWeight > 0 ? group.latencySum / group.latencyWeight : latest.avgLatency,
       avgThroughput: group.throughputWeight > 0 ? group.throughputSum / group.throughputWeight : latest.avgThroughput,

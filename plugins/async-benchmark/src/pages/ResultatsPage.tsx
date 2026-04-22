@@ -40,9 +40,11 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
 import { S, GLOBAL_CSS } from '../theme';
+import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { EDUCATION } from '../shared/content/education';
 import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
 import { aggregateScenarioHistory, getScenarioMeasureCount } from '../shared/results/historyMetrics';
+import { buildScenarioHistoryDetail } from '../shared/results/scenarioDetail';
 
 // ---------------------------------------------------------------------------
 // API base URLs - routed through Backstage proxy to avoid CORS issues
@@ -85,6 +87,15 @@ const computePercentile = (arr: number[], p: number): number | null => {
   const idx = Math.max(0, Math.ceil((p / 100) * sorted.length) - 1);
   return sorted[idx];
 };
+
+const formatDateTime = (iso?: string) =>
+  !iso ? '-' : new Date(iso).toLocaleString('ca-ES', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
 
 /**
  * CSS-in-JS style object for skeleton loading shimmer animation.
@@ -852,6 +863,7 @@ const HistorialTab = () => {
   const [filterArch, setFilterArch] = useState<string[]>([]);
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
   const [historySearch, setHistorySearch] = useState('');
+  const [selectedScenarioId, setSelectedScenarioId] = useState('');
 
   // Controls visibility of the secondary filters (protocol/platform/arch)
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -1017,6 +1029,20 @@ const HistorialTab = () => {
     (scoreMap.get(b.runId || b.scenarioId) ?? 0) - (scoreMap.get(a.runId || a.scenarioId) ?? 0)
   );
   const best = sorted[0];
+  const selectedScenarioSummary = sorted.find(item => item.scenarioId === selectedScenarioId) || null;
+  const selectedScenarioRuns = selectedScenarioSummary
+    ? filteredSummary.filter(item => item.scenarioId === selectedScenarioSummary.scenarioId)
+    : [];
+  const selectedScenarioDetail = selectedScenarioSummary
+    ? buildScenarioHistoryDetail(
+        selectedScenarioSummary,
+        selectedScenarioRuns,
+        nameMap[selectedScenarioSummary.scenarioId] || selectedScenarioSummary.scenarioId || '-',
+      )
+    : null;
+  const selectedScenarioScore = selectedScenarioSummary
+    ? scoreMap.get(selectedScenarioSummary.runId || selectedScenarioSummary.scenarioId) ?? 0
+    : 0;
 
   // Prepare chart data - each chart is independently sorted by its own metric
   // so that the best performer for THAT metric always appears at the top.
@@ -1261,7 +1287,10 @@ const HistorialTab = () => {
           {/* Full comparison table */}
           <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Taula comparativa completa</span>
+              <div>
+                <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Taula comparativa completa</span>
+                <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 4 }}>Clica una fila per veure el detall ampliat de l'escenari.</div>
+              </div>
               <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris executats</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
@@ -1282,7 +1311,7 @@ const HistorialTab = () => {
                     <th style={{ ...S.th, textAlign: 'right' }}>P99</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Throughput</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Error %</th>
-                    <th style={{ ...S.th, textAlign: 'right' }}>Mesures totals</th>
+                    <th style={{ ...S.th, textAlign: 'right' }}>Mesures</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Arq.</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Protocol</th>
                     <th style={{ ...S.th, textAlign: 'center' }}>Plataforma</th>
@@ -1318,9 +1347,21 @@ const HistorialTab = () => {
                     // Use runId || scenarioId as scoreMap key (matches computeScores)
                     const score = scoreMap.get(s.runId || s.scenarioId) ?? 0;
                     const errRate = s.avgErrorRate ?? 0;
+                    const isSelected = selectedScenarioId === s.scenarioId;
 
                     return (
-                      <tr key={i} style={{ ...S.tableRow, background: isBest ? 'rgba(34,197,94,0.04)' : 'transparent' }}>
+                      <tr
+                        key={i}
+                        onClick={() => setSelectedScenarioId(prev => prev === s.scenarioId ? '' : s.scenarioId)}
+                        style={{
+                          ...S.tableRow,
+                          background: isSelected
+                            ? 'rgba(37,99,235,0.06)'
+                            : isBest ? 'rgba(34,197,94,0.04)' : 'transparent',
+                          borderLeft: `3px solid ${isSelected ? 'var(--accent)' : 'transparent'}`,
+                          cursor: 'pointer',
+                        }}
+                      >
                         {/* Scenario name + data format sub-label */}
                         <td style={{ ...S.td, fontWeight: 700, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -1410,6 +1451,91 @@ const HistorialTab = () => {
             </div>
 
           </div>
+
+          {selectedScenarioDetail && (
+            <MetricsDetailDrawer
+              open={!!selectedScenarioDetail}
+              onClose={() => setSelectedScenarioId('')}
+              eyebrow="Detall d'historial"
+              title={selectedScenarioDetail.scenarioName}
+              subtitle="Aquest resum agrega les execucions visibles del mateix escenari. Les mesures son punts de telemetria; els missatges indiquen el volum processat."
+              accent={PLATFORM_COLORS[normalizePlatform(selectedScenarioDetail.platform)] || 'var(--accent)'}
+              badges={[
+                { label: `${selectedScenarioDetail.runCount} execucions`, color: '#3b82f6' },
+                ...(selectedScenarioDetail.architecture ? [{ label: selectedScenarioDetail.architecture, color: ARCHITECTURE_COLORS[selectedScenarioDetail.architecture] || '#2563eb' }] : []),
+                ...(selectedScenarioDetail.protocol ? [{ label: selectedScenarioDetail.protocol, color: PROTOCOL_COLORS[selectedScenarioDetail.protocol] || '#16a34a' }] : []),
+                ...(selectedScenarioDetail.platform ? [{ label: normalizePlatform(selectedScenarioDetail.platform), color: PLATFORM_COLORS[normalizePlatform(selectedScenarioDetail.platform)] || '#64748b' }] : []),
+                { label: DATA_FORMAT_LABELS[selectedScenarioDetail.dataFormat] || selectedScenarioDetail.dataFormat, color: DATA_FORMAT_COLORS[selectedScenarioDetail.dataFormat] || '#64748b' },
+              ]}
+              stats={[
+                {
+                  label: 'Mesures',
+                  value: selectedScenarioDetail.totalMeasures,
+                  helper: 'Punts persistits de totes les execucions visibles.',
+                  color: '#22c55e',
+                },
+                {
+                  label: 'Missatges rebuts',
+                  value: selectedScenarioDetail.totalMessagesReceived,
+                  helper: 'Volum total rebut pels consumidors.',
+                  color: '#3b82f6',
+                },
+                {
+                  label: 'Missatges enviats',
+                  value: selectedScenarioDetail.totalMessagesSent,
+                  helper: 'Volum total enviat pel load-generator.',
+                  color: '#f59e0b',
+                },
+                {
+                  label: 'Puntuacio',
+                  value: selectedScenarioScore,
+                  helper: 'Score relatiu als escenaris visibles amb els filtres actuals.',
+                  color: 'var(--text-primary)',
+                },
+              ]}
+              sections={[
+                {
+                  title: 'Rendiment agregat',
+                  items: [
+                    { label: 'Latencia avg', value: selectedScenarioDetail.avgLatency != null ? `${Number(selectedScenarioDetail.avgLatency).toFixed(2)} ms` : '-' },
+                    { label: 'Throughput avg', value: selectedScenarioDetail.avgThroughput != null ? `${Number(selectedScenarioDetail.avgThroughput).toFixed(2)} msg/s` : '-' },
+                    { label: 'Error rate', value: selectedScenarioDetail.avgErrorRate != null ? `${Number(selectedScenarioDetail.avgErrorRate).toFixed(3)} %` : '-' },
+                    { label: 'Ultim run', value: selectedScenarioDetail.latestRunId ? <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedScenarioDetail.latestRunId}</code> : '-' },
+                  ],
+                },
+                {
+                  title: 'Finestra temporal',
+                  items: [
+                    { label: 'Primer inici', value: formatDateTime(selectedScenarioDetail.firstStartedAt) },
+                    { label: 'Ultim inici', value: formatDateTime(selectedScenarioDetail.latestStartedAt) },
+                    { label: 'Ultim final', value: formatDateTime(selectedScenarioDetail.latestEndedAt) },
+                    { label: 'Escenari ID', value: <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedScenarioDetail.scenarioId}</code> },
+                  ],
+                },
+                {
+                  title: 'Darrera execucio visible',
+                  items: [
+                    { label: 'P50', value: selectedScenarioDetail.latestRun?.p50Latency != null ? `${Number(selectedScenarioDetail.latestRun.p50Latency).toFixed(2)} ms` : '-' },
+                    { label: 'P95', value: selectedScenarioDetail.latestRun?.p95Latency != null ? `${Number(selectedScenarioDetail.latestRun.p95Latency).toFixed(2)} ms` : '-' },
+                    { label: 'P99', value: selectedScenarioDetail.latestRun?.p99Latency != null ? `${Number(selectedScenarioDetail.latestRun.p99Latency).toFixed(2)} ms` : '-' },
+                    { label: 'Mesures', value: selectedScenarioDetail.latestRun ? getScenarioMeasureCount(selectedScenarioDetail.latestRun) : '-' },
+                  ],
+                },
+              ]}
+            >
+              <div style={{ ...S.card, background: 'var(--bg-surface)', borderStyle: 'dashed' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <ScoreRing score={selectedScenarioScore} size={44} />
+                  <div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Com llegir aquest historial</div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                      Cada nova execucio d'aquest escenari recomenca en directe a zero, pero en acabar afegeix les seves mesures a l'historial visible d'aquest escenari.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </MetricsDetailDrawer>
+          )}
         </>
       )}
     </div>

@@ -24,6 +24,7 @@
 import { useEffect, useState } from 'react';
 import React from 'react';
 import { S, GLOBAL_CSS, CATEGORY_COLORS } from '../theme';
+import { CompatibilityMatrix } from '../components/CompatibilityMatrix';
 
 // Endpoint del servei de cataleg (proxied per Backstage)
 const API_BASE = '/api/proxy/catalog-service';
@@ -78,6 +79,12 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   architecture: 'Patron estructural que defineix com s\'organitzen els components del sistema i com interactuen entre ells.',
   protocol:     'Conjunt de regles de comunicacio que determinen com s\'envien i reben els missatges entre productors i consumidors.',
   platform:     'Infraestructura de missatgeria que actua com a broker, gestionant la distribucio dels missatges.',
+};
+
+const CATEGORY_IMPACTS: Record<string, string> = {
+  architecture: 'Canvia el patro de circulacio del missatge i, per tant, la latencia habitual i la capacitat de desacoblament.',
+  protocol: 'Canvia el llenguatge de transport i la manera d\'entregar o confirmar missatges. Afecta compatibilitat, latencia i fiabilitat.',
+  platform: 'Canvia la implementacio real que corre al cluster. Aqui es veu l\'impacte directe sobre throughput, percentils i estabilitat.',
 };
 
 // ── Skeleton loader style ──────────────────────────────────────────────────────
@@ -188,6 +195,17 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
         )}
 
         {/* ── Metadades tecniques ── */}
+        {CATEGORY_IMPACTS[component.category] && (
+          <div style={{ marginBottom: 20, padding: '12px 14px', background: `${color}0c`, borderRadius: 8, border: `1px solid ${color}26` }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: color, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+              Impacte al benchmark
+            </div>
+            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {CATEGORY_IMPACTS[component.category]}
+            </p>
+          </div>
+        )}
+
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
             Detalls tecnics
@@ -422,6 +440,31 @@ export const CatalogPage = () => {
       {/* ── Botons de filtre per categoria ───────────────────────────────── */}
       {/* Actuen com a comptadors i com a filtres simultaniament.
           Clicar un boto estableix activeFilter i neteja la cerca. */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 20 }}>
+        {[
+          { key: 'architecture', title: 'Arquitectura', color: CATEGORY_COLORS.architecture, body: CATEGORY_DESCRIPTIONS.architecture, impact: CATEGORY_IMPACTS.architecture },
+          { key: 'protocol', title: 'Protocol', color: CATEGORY_COLORS.protocol, body: CATEGORY_DESCRIPTIONS.protocol, impact: CATEGORY_IMPACTS.protocol },
+          { key: 'platform', title: 'Plataforma', color: CATEGORY_COLORS.platform, body: CATEGORY_DESCRIPTIONS.platform, impact: CATEGORY_IMPACTS.platform },
+        ].map(item => (
+          <div key={item.key} style={{ ...S.card, borderTop: `3px solid ${item.color}` }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: item.color, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
+              {item.title}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>
+              {item.body}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.55 }}>
+              {item.impact}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <CompatibilityMatrix
+        title="Combinacions compatibles del portal"
+        description="Resumeix quines plataformes tenen sentit amb cada arquitectura i protocol abans de crear un escenari. La mateixa logica es fa servir al formulari d'Escenaris."
+      />
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
           {
