@@ -2,18 +2,18 @@ FROM node:22-slim AS builder
 
 WORKDIR /app
 
-COPY packages/scenario-service/package.json ./package.json
+COPY package.json ./package.json
 RUN npm install
 
-COPY packages/scenario-service/tsconfig.json ./tsconfig.json
-COPY packages/scenario-service/src/ ./src/
+COPY tsconfig.json ./tsconfig.json
+COPY src/ ./src/
 RUN npx tsc
 
 FROM node:22-slim
 
 WORKDIR /app
 
-COPY packages/scenario-service/package.json ./package.json
+COPY package.json ./package.json
 RUN npm install --omit=dev
 
 COPY --from=builder /app/dist ./dist
