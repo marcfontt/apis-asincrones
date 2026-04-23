@@ -25,6 +25,7 @@ type MetricsDetailDrawerProps = {
   eyebrow?: string;
   title: string;
   subtitle?: string;
+  monoId?: string;
   accent?: string;
   badges?: DrawerBadge[];
   stats?: DrawerStat[];
@@ -32,6 +33,11 @@ type MetricsDetailDrawerProps = {
   children?: React.ReactNode;
   onClose: () => void;
 };
+
+const MODAL_KEYFRAMES = `
+@keyframes asyncbench-modal-in { from { opacity: 0; transform: translateY(8px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes asyncbench-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
+`;
 
 const CloseIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -45,6 +51,7 @@ export const MetricsDetailDrawer = ({
   eyebrow,
   title,
   subtitle,
+  monoId,
   accent = 'var(--accent)',
   badges = [],
   stats = [],
@@ -52,6 +59,13 @@ export const MetricsDetailDrawer = ({
   children,
   onClose,
 }: MetricsDetailDrawerProps) => {
+  React.useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
 
   return (
@@ -69,8 +83,12 @@ export const MetricsDetailDrawer = ({
         justifyContent: 'center',
         backdropFilter: 'blur(6px)',
         padding: 24,
+        animation: 'asyncbench-backdrop-in 160ms ease-out',
       }}
+      role="dialog"
+      aria-modal="true"
     >
+      <style>{MODAL_KEYFRAMES}</style>
       <aside
         style={{
           width: '100%',
@@ -82,6 +100,7 @@ export const MetricsDetailDrawer = ({
           borderRadius: 16,
           boxShadow: 'var(--shadow-lg)',
           padding: 28,
+          animation: 'asyncbench-modal-in 220ms cubic-bezier(0.2, 0.8, 0.2, 1)',
           fontFamily: 'var(--font)',
           color: 'var(--text-primary)',
         }}
@@ -105,8 +124,28 @@ export const MetricsDetailDrawer = ({
             <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)' }}>
               {title}
             </div>
+            {monoId && (
+              <div style={{ marginTop: 8 }}>
+                <code
+                  style={{
+                    display: 'inline-block',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 11,
+                    color: 'var(--text-secondary)',
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    padding: '2px 8px',
+                    letterSpacing: '0.02em',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {monoId}
+                </code>
+              </div>
+            )}
             {subtitle && (
-              <p style={{ margin: '8px 0 0', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <p style={{ margin: '10px 0 0', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
                 {subtitle}
               </p>
             )}
@@ -140,16 +179,27 @@ export const MetricsDetailDrawer = ({
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 7,
                   borderRadius: 999,
-                  padding: '5px 10px',
+                  padding: '5px 11px 5px 9px',
                   fontSize: 11,
                   fontWeight: 700,
-                  color: badge.color,
-                  background: `${badge.color}14`,
-                  border: `1px solid ${badge.color}26`,
+                  letterSpacing: '0.02em',
+                  color: 'var(--text-primary)',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border)',
                 }}
               >
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: '50%',
+                    background: badge.color,
+                    boxShadow: `0 0 0 2px ${badge.color}22`,
+                  }}
+                />
                 {badge.label}
               </span>
             ))}

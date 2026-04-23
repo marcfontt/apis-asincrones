@@ -1555,6 +1555,7 @@ export const ExecucionsPage = () => {
             onClose={() => setSelectedRunId(null)}
             eyebrow="Detall d'execucio"
             title={scenarioName}
+            monoId={selectedRun.id || undefined}
             subtitle="Aquest panell resumeix la configuracio del run seleccionat, quantes mesures hi ha guardades i quin volum de missatges s'ha processat."
             accent={status.color}
             badges={[

@@ -1468,6 +1468,7 @@ const HistorialTab = () => {
               onClose={() => setSelectedScenarioId('')}
               eyebrow="Detall d'historial"
               title={selectedScenarioDetail.scenarioName}
+              monoId={selectedScenarioDetail.scenarioId || undefined}
               subtitle="Aquest resum agrega les execucions visibles del mateix escenari. Les mesures son punts de telemetria; els missatges indiquen el volum processat."
               accent={PLATFORM_COLORS[normalizePlatform(selectedScenarioDetail.platform)] || 'var(--accent)'}
               badges={[
