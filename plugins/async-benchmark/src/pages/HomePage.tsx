@@ -17,9 +17,90 @@
  *  - Targetes amb hover lift (translateY -3px) per millor feedback
  */
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { S, GLOBAL_CSS } from '../theme';
 import { EDUCATION } from '../shared/content/education';
+
+// ── Microinteraccions reutilitzables ─────────────────────────────────────────
+
+/** Respecta la preferencia de l'usuari per reduir el moviment (accessibilitat). */
+const useReducedMotion = () => {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const m = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setReduced(m.matches);
+    sync();
+    m.addEventListener('change', sync);
+    return () => m.removeEventListener('change', sync);
+  }, []);
+  return reduced;
+};
+
+/** Rotador tipus typewriter: cicla paraules escrivint i esborrant lletra a lletra. */
+const Typewriter = ({ words, color }: { words: string[]; color: string }) => {
+  const reduced = useReducedMotion();
+  const [index, setIndex] = useState(0);
+  const [text, setText] = useState(reduced ? words[0] : '');
+  const [phase, setPhase] = useState<'typing' | 'holding' | 'deleting'>('typing');
+
+  useEffect(() => {
+    if (reduced) { setText(words[index]); return undefined; }
+    const current = words[index % words.length];
+    let timer: number;
+    if (phase === 'typing') {
+      if (text.length < current.length) {
+        timer = window.setTimeout(() => setText(current.slice(0, text.length + 1)), 70);
+      } else {
+        timer = window.setTimeout(() => setPhase('holding'), 900);
+      }
+    } else if (phase === 'holding') {
+      timer = window.setTimeout(() => setPhase('deleting'), 400);
+    } else {
+      if (text.length > 0) {
+        timer = window.setTimeout(() => setText(current.slice(0, text.length - 1)), 35);
+      } else {
+        setIndex(i => (i + 1) % words.length);
+        setPhase('typing');
+        return undefined;
+      }
+    }
+    return () => window.clearTimeout(timer);
+  }, [phase, text, index, words, reduced]);
+
+  return (
+    <span style={{ color, fontWeight: 800, display: 'inline-flex', alignItems: 'baseline' }}>
+      <span>{text}</span>
+      {!reduced && <span aria-hidden="true" style={{ display: 'inline-block', width: 3, height: '0.9em', marginLeft: 4, background: color, animation: 'asyncbench-caret 1s steps(2) infinite', verticalAlign: 'baseline' }} />}
+    </span>
+  );
+};
+
+/** Comptador numeric animat: anima de 0 fins al valor objectiu amb easing. */
+const StreamingNumber = ({ value, duration = 900 }: { value: number; duration?: number }) => {
+  const reduced = useReducedMotion();
+  const [display, setDisplay] = useState(reduced ? value : 0);
+  const prev = useRef(0);
+
+  useEffect(() => {
+    if (reduced) { setDisplay(value); return undefined; }
+    const start = prev.current;
+    const delta = value - start;
+    if (delta === 0) { setDisplay(value); return undefined; }
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - t0) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplay(Math.round(start + delta * eased));
+      if (t < 1) raf = requestAnimationFrame(tick);
+      else prev.current = value;
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value, duration, reduced]);
+
+  return <>{display.toLocaleString('ca-ES')}</>;
+};
 
 const CATALOG_BASE = '/api/proxy/catalog-service';
 const SCENARIOS_BASE = '/api/proxy/scenario-service';
@@ -349,6 +430,12 @@ export const HomePage = () => {
     <div style={{ ...S.page, maxWidth: 1200, paddingBottom: 56 }}>
       {/* Injeccio del CSS global (fonts, animacions, tokens) */}
       <style>{GLOBAL_CSS}</style>
+      <style>{`
+        @keyframes asyncbench-caret { 50% { opacity: 0; } }
+        @media (prefers-reduced-motion: reduce) {
+          .asyncbench-pages-grid a { transition: none !important; transform: none !important; }
+        }
+      `}</style>
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
       {/* Seccio principal: presenta la plataforma i dona els CTAs clau.
@@ -381,15 +468,17 @@ export const HomePage = () => {
             Plataforma de Benchmark - AKS Live
           </div>
 
-          {/* Titol principal: nom de la plataforma amb accent de color */}
+          {/* Titol principal: nom de la plataforma amb rotador tipus typewriter */}
           <h1 style={{ margin: '0 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-            APIs Asíncrones<br />
-            <span style={{ color: '#22c55e', fontWeight: 800 }}>Benchmark Platform</span>
+            Benchmarks reals de{' '}
+            <Typewriter words={['Kafka', 'RabbitMQ', 'NATS', 'gRPC', 'MQTT']} color="#22c55e" />
+            <br />
+            <span style={{ color: 'var(--text-primary)' }}>sota la mateixa càrrega.</span>
           </h1>
 
           {/* Descripcio: resum de que fa la plataforma en 2 frases */}
           <p style={{ margin: '0 0 26px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 520 }}>
-            Compara arquitectures event-driven sobre Azure Kubernetes Service. Defineix escenaris, executa benchmarks i analitza P50, P99, throughput i latència en temps real.
+            Compara arquitectures event-driven sobre Azure Kubernetes Service. Defineix un escenari, llança el benchmark i mesura P50, P99, throughput i errors en directe.
           </p>
 
           {/* CTAs: tres botons d'accio */}
@@ -456,7 +545,7 @@ export const HomePage = () => {
                 {stat.label}
               </div>
               <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', fontFamily: 'var(--font-mono)' }}>
-                {portalStats.loading ? '-' : stat.value}
+                {portalStats.loading ? '-' : <StreamingNumber value={stat.value} />}
               </div>
               <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 6, lineHeight: 1.45 }}>
                 {stat.desc}
@@ -469,7 +558,7 @@ export const HomePage = () => {
       {/* ── TARGETES D'ACCES RAPID ─────────────────────────────────────────── */}
       {/* Grid de 4 targetes, una per seccio principal de l'app.
           Cada una te: icona, badge, titol, descripcio i link "Obrir". */}
-      <div style={{ ...fade(100), display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 22 }}>
+      <div className="asyncbench-pages-grid" style={{ ...fade(100), display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 22, position: 'relative' }}>
         {PAGES.map((page, i) => {
           const hov = hovCard === i; // si aquesta targeta concreta esta en hover
           return (
@@ -478,18 +567,26 @@ export const HomePage = () => {
               style={{
                 ...S.card,
                 textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 10,
-                cursor: 'pointer', padding: 18,
+                cursor: 'pointer', padding: 18, position: 'relative', overflow: 'hidden',
                 // Linia de color superior: identifica la seccio visualment
                 borderTop:      `3px solid ${page.color}`,
                 border:         `1px solid ${hov ? page.color + '40' : 'var(--border)'}`,
                 borderTopColor: page.color,
-                background:     hov ? `linear-gradient(160deg, var(--bg-card), ${page.color}07)` : 'var(--bg-card)',
+                background:     hov
+                  ? `radial-gradient(240px circle at var(--spot-x, 50%) var(--spot-y, 50%), ${page.color}18, transparent 60%), var(--bg-card)`
+                  : 'var(--bg-card)',
                 transform:      hov ? 'translateY(-3px)' : 'none',
                 boxShadow:      hov ? `0 8px 22px ${page.color}15` : 'var(--shadow-sm)',
-                transition:     'all 0.2s ease',
-              }}
+                transition:     'transform 0.2s ease, box-shadow 0.2s ease, border 0.2s ease',
+              } as React.CSSProperties}
               onMouseEnter={() => setHovCard(i)}
               onMouseLeave={() => setHovCard(null)}
+              onMouseMove={e => {
+                const el = e.currentTarget as HTMLElement;
+                const r = el.getBoundingClientRect();
+                el.style.setProperty('--spot-x', `${e.clientX - r.left}px`);
+                el.style.setProperty('--spot-y', `${e.clientY - r.top}px`);
+              }}
             >
               {/* Part superior: icona + badge de la seccio */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
