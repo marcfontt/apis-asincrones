@@ -63,22 +63,25 @@ export const MetricsDetailDrawer = ({
         position: 'fixed',
         inset: 0,
         zIndex: 3200,
-        background: 'rgba(0,0,0,0.55)',
+        background: 'rgba(2,6,23,0.72)',
         display: 'flex',
-        justifyContent: 'flex-end',
-        backdropFilter: 'blur(4px)',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backdropFilter: 'blur(6px)',
+        padding: 24,
       }}
     >
       <aside
         style={{
-          width: 440,
-          maxWidth: '100%',
-          height: '100%',
+          width: '100%',
+          maxWidth: 820,
+          maxHeight: '88vh',
           overflowY: 'auto',
           background: 'var(--bg-card)',
-          borderLeft: '1px solid var(--border)',
+          border: '1px solid var(--border)',
+          borderRadius: 16,
           boxShadow: 'var(--shadow-lg)',
-          padding: 24,
+          padding: 28,
           fontFamily: 'var(--font)',
           color: 'var(--text-primary)',
         }}

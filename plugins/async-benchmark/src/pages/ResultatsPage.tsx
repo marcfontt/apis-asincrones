@@ -377,8 +377,8 @@ const IconPulse = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="no
 const IconClock = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
 
 
-/** Small trophy icon marking the best-performing scenario in charts/tables. */
-const IconTrophy = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="8 22 12 17 16 22" /><line x1="12" y1="17" x2="12" y2="11" /><path d="M6.5 4H17.5L17 9a5 5 0 0 1-10 0z" /></svg>;
+/** Compact upward marker indicating the top-performing scenario. */
+const IconTrophy = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15" /></svg>;
 
 /**
  * Animated chevron arrow that rotates 180deg when open=true.
@@ -386,8 +386,8 @@ const IconTrophy = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="n
  */
 const IconChevron = ({ open }: { open: boolean }) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>;
 
-/** Award/badge icon used in the "best scenario" winner card. */
-const IconAward = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><polyline points="8.56 2.75 4 6 4 12 8.56 9.25" /><polyline points="15.44 2.75 20 6 20 12 15.44 9.25" /><polyline points="9 16.7 12 19 15 16.7" /></svg>;
+/** Check-circle icon used in the "best scenario" summary card (neutral, professional). */
+const IconAward = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>;
 
 /** Small funnel filter icon used in the secondary filters toggle button. */
 const IconFilter = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
@@ -612,7 +612,7 @@ const HBarChart = ({
 
                 {/* Label column - truncates long names with ellipsis */}
                 <div style={{ width: 130, fontSize: 12, fontWeight: isWinner ? 700 : 400, color: isHovered ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'right', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 0 }} title={item.label}>
-                  {isWinner && <span style={{ color: '#f59e0b', marginRight: 4 }}><IconTrophy /></span>}
+                  {isWinner && <span style={{ color: 'var(--accent)', marginRight: 4 }}><IconTrophy /></span>}
                   {item.label}
                 </div>
 
@@ -1256,7 +1256,7 @@ const HistorialTab = () => {
                 <ScoreRing score={scoreMap.get(best.runId || best.scenarioId) ?? 0} size={52} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <span style={{ color: '#f59e0b' }}><IconAward /></span>
+                    <span style={{ color: 'var(--accent)' }}><IconAward /></span>
                     <span style={{ fontSize: 11, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Millor escenari (multi-factor)</span>
                   </div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
@@ -1375,7 +1375,7 @@ const HistorialTab = () => {
                         {/* Scenario name + data format sub-label */}
                         <td style={{ ...S.td, fontWeight: 700, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {isBest && <span style={{ color: '#f59e0b', flexShrink: 0 }}><IconTrophy /></span>}
+                            {isBest && <span style={{ color: 'var(--accent)', flexShrink: 0 }}><IconTrophy /></span>}
                             <div title={nameMap[s.scenarioId] || s.scenarioId} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                               {nameMap[s.scenarioId] || s.scenarioId?.slice(0, 12) || '-'}
                             </div>
