@@ -1,57 +1,104 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { S, GLOBAL_CSS } from '../theme';
 import { EDUCATION } from '../shared/content/education';
+import { BrokerAnatomyDiagram, BrokerFlowDiagram, LatencyMapDiagram } from '../components/BrokerEducation';
 
-const CATALOG_BASE = '/api/proxy/catalog-service';
-const SCENARIOS_BASE = '/api/proxy/scenario-service';
-const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
-const METRICS_BASE = '/api/proxy/metrics-api';
+const RUTA_API_CATALEG = '/api/proxy/catalog-service';
+const RUTA_API_ESCENARIS = '/api/proxy/scenario-service';
+const RUTA_API_ORQUESTRADOR = '/api/proxy/benchmark-orchestrator';
+const RUTA_API_METRIQUES = '/api/proxy/metrics-api';
 
-const IconArrow = () => (
+const IconoFlecha = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
     <line x1="5" y1="12" x2="19" y2="12" />
     <polyline points="12 5 19 12 12 19" />
   </svg>
 );
-const IconCatalog = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
-const IconScenarios = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>;
-const IconRun = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>;
-const IconResults = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="3" y="12" width="4" height="9" /><rect x="10" y="7" width="4" height="14" /><rect x="17" y="3" width="4" height="18" /></svg>;
 
-const pages = [
-  { href: '/catalog', label: 'Catàleg', desc: 'Arquitectures, protocols, plataformes i versions utilitzades.', Icon: IconCatalog, color: '#3b82f6' },
-  { href: '/escenaris', label: 'Escenaris', desc: 'Defineix càrrega, payload, format i combinació tècnica.', Icon: IconScenarios, color: '#8b5cf6' },
-  { href: '/execucions', label: 'Execucions', desc: 'Segueix els runs en AKS, pendents, completats i errors.', Icon: IconRun, color: '#22c55e' },
-  { href: '/resultats', label: 'Resultats', desc: 'Compara latència, throughput, percentils i error rate.', Icon: IconResults, color: '#f59e0b' },
-];
+const IconoCatalogo = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <rect x="3" y="3" width="7" height="7" rx="1" />
+    <rect x="14" y="3" width="7" height="7" rx="1" />
+    <rect x="3" y="14" width="7" height="7" rx="1" />
+    <rect x="14" y="14" width="7" height="7" rx="1" />
+  </svg>
+);
 
-// Flux que segueix cada missatge durant un benchmark.
-// L'ordre, els colors i els textos van pensats perque es llegeixin
-// d'esquerra a dreta en un sol cop d'ull. La latencia es el temps
-// total productor→consumidor; el throughput, els missatges per segon.
-const flow = [
-  { label: 'Productor', color: '#2563eb', text: 'Publica missatges amb una ràtio (msg/s) i un payload definits a l\'escenari.' },
-  { label: 'Broker', color: '#f59e0b', text: 'Kafka, Confluent, RabbitMQ o NATS Server reben i distribueixen la càrrega dins l\'AKS.' },
-  { label: 'Protocol', color: '#8b5cf6', text: 'Kafka, AMQP, MQTT, gRPC, WS o NATS marquen com viatja cada missatge.' },
-  { label: 'Consumidor', color: '#22c55e', text: 'Rep els missatges; aqui es tanca el cicle i podem calcular latència i throughput.' },
-];
+const IconoEscenarios = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+  </svg>
+);
 
-const metricCards = [
+const IconoEjecuciones = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <polygon points="5 3 19 12 5 21 5 3" />
+  </svg>
+);
+
+const IconoResultados = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+    <rect x="3" y="12" width="4" height="9" />
+    <rect x="10" y="7" width="4" height="14" />
+    <rect x="17" y="3" width="4" height="18" />
+  </svg>
+);
+
+const paginasDelPortal = [
   {
-    title: 'Latència',
-    color: '#f59e0b',
-    text: 'Temps que triga un missatge des que es publica fins que arriba al consumidor. Es mesura en mil·lisegons. Més baix és millor.',
+    href: '/catalog',
+    label: 'Catàleg',
+    desc: 'Arquitectures, protocols, plataformes i versions utilitzades per crear escenaris.',
+    Icono: IconoCatalogo,
+    color: '#6366f1',
   },
   {
-    title: 'Throughput',
+    href: '/escenaris',
+    label: 'Escenaris',
+    desc: 'Defineix càrrega, payload, format, broker, protocol i arquitectura.',
+    Icono: IconoEscenarios,
+    color: '#2D6BE4',
+  },
+  {
+    href: '/execucions',
+    label: 'Execucions',
+    desc: 'Llança runs al clúster AKS i monitoritza pendents, actius i finalitzats.',
+    Icono: IconoEjecuciones,
     color: '#22c55e',
-    text: 'Missatges processats per segon. Indica quanta càrrega sostinguda suporta la combinació. Més alt és millor.',
   },
   {
-    title: 'Error rate',
-    color: '#ef4444',
-    text: 'Percentatge de missatges fallits, perduts o rebutjats. Ha de ser proper a 0 perquè el resultat sigui defensable.',
+    href: '/resultats',
+    label: 'Resultats',
+    desc: 'Compara latència, throughput, percentils i error rate entre execucions.',
+    Icono: IconoResultados,
+    color: '#00C896',
   },
+];
+
+const metricasPrincipales = [
+  {
+    title: 'Latència end-to-end',
+    color: '#f59e0b',
+    text: 'Temps des del publish del productor fins a la recepció del consumidor. És la mètrica central per entendre experiència real.',
+  },
+  {
+    title: 'Throughput sostingut',
+    color: '#22c55e',
+    text: 'Missatges per segon en règim estable, ignorants transitoris. Serveix per saber quan una combinació sature.',
+  },
+  {
+    title: 'Error rate i pèrdua',
+    color: '#ef4444',
+    text: 'Percentatge de missatges fallits, no rebuts o rebutjats. Un resultat ràpid però poc fiable no és defensable.',
+  },
+];
+
+const pasosDeEjecucion = [
+  { n: '1', label: 'Crear escenari', sub: 'contracte broker + protocol + càrrega', color: '#6366f1' },
+  { n: '2', label: 'Desplegar a AKS', sub: 'Helm + namespaces + recursos', color: '#2D6BE4' },
+  { n: '3', label: 'Generar càrrega', sub: 'k6/load-generator amb warmup', color: '#22c55e' },
+  { n: '4', label: 'Scraping', sub: 'Prometheus i exporters', color: '#00C896' },
+  { n: '5', label: 'Comparar', sub: 'historial i percentils', color: '#818cf8' },
 ];
 
 const smallCard = (color: string): CSSProperties => ({
@@ -61,59 +108,10 @@ const smallCard = (color: string): CSSProperties => ({
   padding: 16,
 });
 
-const FlowDiagram = () => (
-  <div style={{ ...S.card, padding: 20, overflow: 'hidden' }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 18 }}>
-      <div>
-        <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
-          Flux productor a consumidor
-        </div>
-        <h2 style={{ margin: 0, fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-          Què passa en una execució
-        </h2>
-      </div>
-      <p style={{ margin: 0, maxWidth: 560, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-        La comparació és justa perquè cada escenari passa pel mateix flux lògic i es mesura amb les mateixes unitats.
-      </p>
-    </div>
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10 }}>
-      {flow.map((item, index) => (
-        <div key={item.label} style={{ position: 'relative', ...smallCard(item.color) }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: item.color, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-            {index + 1}. {item.label}
-          </div>
-          <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{item.text}</p>
-          {index < flow.length - 1 && (
-            <span aria-hidden style={{ position: 'absolute', right: -9, top: '50%', transform: 'translateY(-50%)', color: item.color, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 999, width: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
-              <IconArrow />
-            </span>
-          )}
-        </div>
-      ))}
-    </div>
-
-    {/*
-      Anotacio visual de les dues metriques principals que surten del flux.
-      Latencia = temps de viatge productor→consumidor (ms).
-      Throughput = quants missatges es processen per segon.
-      Es pinta com a barra horitzontal sota les targes per reforcar
-      visualment que aquestes metriques mesuren tot el flux, no nomes una part.
-    */}
-    <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ width: 10, height: 10, borderRadius: 999, background: '#f59e0b' }} />
-        <strong style={{ color: 'var(--text-primary)' }}>Latència (ms)</strong>: temps total productor → consumidor.
-      </span>
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ width: 10, height: 10, borderRadius: 999, background: '#22c55e' }} />
-        <strong style={{ color: 'var(--text-primary)' }}>Throughput (msg/s)</strong>: missatges processats per segon de mitjana.
-      </span>
-    </div>
-  </div>
-);
+const formatNumero = (valor: number) => valor.toLocaleString('ca-ES');
 
 export const HomePage = () => {
-  const [portalStats, setPortalStats] = useState({
+  const [estadisticasPortal, setEstadisticasPortal] = useState({
     loading: true,
     components: 0,
     scenarios: 0,
@@ -123,84 +121,123 @@ export const HomePage = () => {
   });
 
   useEffect(() => {
-    document.title = 'Home | App is Asynchronous';
+    document.title = 'Home | Apis Asíncrones';
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    const loadPortalStats = async () => {
+    let peticionCancelada = false;
+
+    const cargarEstadisticasPortal = async () => {
       try {
-        const [componentsRes, scenariosRes, activeRunsRes, summaryRes] = await Promise.all([
-          fetch(`${CATALOG_BASE}/components`).then(r => (r.ok ? r.json() : [])).catch(() => []),
-          fetch(`${SCENARIOS_BASE}/scenarios`).then(r => (r.ok ? r.json() : [])).catch(() => []),
-          fetch(`${ORCHESTRATOR}/runs/active`).then(r => (r.ok ? r.json() : [])).catch(() => []),
-          fetch(`${METRICS_BASE}/metrics/summary`).then(r => (r.ok ? r.json() : [])).catch(() => []),
+        const [respuestaComponentes, respuestaEscenarios, respuestaRunsActivos, respuestaResumenMetricas] = await Promise.all([
+          fetch(`${RUTA_API_CATALEG}/components`).then(respuesta => (respuesta.ok ? respuesta.json() : [])).catch(() => []),
+          fetch(`${RUTA_API_ESCENARIS}/scenarios`).then(respuesta => (respuesta.ok ? respuesta.json() : [])).catch(() => []),
+          fetch(`${RUTA_API_ORQUESTRADOR}/runs/active`).then(respuesta => (respuesta.ok ? respuesta.json() : [])).catch(() => []),
+          fetch(`${RUTA_API_METRIQUES}/metrics/summary`).then(respuesta => (respuesta.ok ? respuesta.json() : [])).catch(() => []),
         ]);
-        if (cancelled) return;
-        const components = Array.isArray(componentsRes)
-          ? componentsRes.filter((c: any) => c.predefined !== false && c.category !== 'gateway').length
+
+        if (peticionCancelada) return;
+
+        const totalComponentesVisibles = Array.isArray(respuestaComponentes)
+          ? respuestaComponentes.filter((componente: any) => componente.predefined !== false && componente.category !== 'gateway').length
           : 0;
-        const scenarios = Array.isArray(scenariosRes) ? scenariosRes.length : 0;
-        const activeRuns = Array.isArray(activeRunsRes) ? activeRunsRes.length : 0;
-        const summary = Array.isArray(summaryRes) ? summaryRes : [];
-        const historicalScenarios = new Set(summary.map((s: any) => s.scenarioId).filter(Boolean)).size;
-        const totalMeasures = summary.reduce((sum: number, s: any) =>
-          sum + (Number(s.pointCount ?? s.measureCount ?? 0) || 0), 0);
-        setPortalStats({ loading: false, components, scenarios, activeRuns, historicalScenarios, totalMeasures });
+        const totalEscenarios = Array.isArray(respuestaEscenarios) ? respuestaEscenarios.length : 0;
+        const totalRunsActivos = Array.isArray(respuestaRunsActivos) ? respuestaRunsActivos.length : 0;
+        const resumenMetricas = Array.isArray(respuestaResumenMetricas) ? respuestaResumenMetricas : [];
+        const totalEscenariosConHistorial = new Set(resumenMetricas.map((resumen: any) => resumen.scenarioId).filter(Boolean)).size;
+        const totalMedidas = resumenMetricas.reduce((suma: number, resumen: any) =>
+          suma + (Number(resumen.pointCount ?? resumen.measureCount ?? 0) || 0), 0);
+
+        setEstadisticasPortal({
+          loading: false,
+          components: totalComponentesVisibles,
+          scenarios: totalEscenarios,
+          activeRuns: totalRunsActivos,
+          historicalScenarios: totalEscenariosConHistorial,
+          totalMeasures: totalMedidas,
+        });
       } catch {
-        if (!cancelled) setPortalStats(prev => ({ ...prev, loading: false }));
+        if (!peticionCancelada) {
+          setEstadisticasPortal(estadisticasAnteriores => ({ ...estadisticasAnteriores, loading: false }));
+        }
       }
     };
-    loadPortalStats();
-    const interval = window.setInterval(loadPortalStats, 30000);
-    return () => { cancelled = true; window.clearInterval(interval); };
+
+    cargarEstadisticasPortal();
+    const intervaloActualizacion = window.setInterval(cargarEstadisticasPortal, 30000);
+    return () => {
+      peticionCancelada = true;
+      window.clearInterval(intervaloActualizacion);
+    };
   }, []);
 
+  const estadisticas = [
+    { label: 'Components', value: estadisticasPortal.components, color: '#6366f1', desc: 'Catàleg disponible' },
+    { label: 'Escenaris', value: estadisticasPortal.scenarios, color: '#2D6BE4', desc: 'Configurats' },
+    { label: 'Runs actius', value: estadisticasPortal.activeRuns, color: '#22c55e', desc: 'Ara al clúster' },
+    { label: 'Mesures', value: estadisticasPortal.totalMeasures, color: '#00C896', desc: 'Punts de telemetria' },
+  ];
+
   return (
-    <div style={{ ...S.page, maxWidth: 1200, paddingBottom: 56 }}>
+    <div style={{ ...S.page, maxWidth: 1220, paddingBottom: 64 }}>
       <style>{GLOBAL_CSS}</style>
 
       <section style={{
         ...S.card,
-        padding: '36px 40px',
+        position: 'relative',
+        overflow: 'hidden',
+        padding: '40px 44px',
         marginBottom: 18,
-        borderRadius: 10,
-        background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(34,197,94,0.045) 52%, rgba(59,130,246,0.045) 100%)',
+        borderRadius: 14,
+        background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(0,200,150,0.045) 52%, rgba(45,107,228,0.055) 100%)',
       }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 0.8fr)', gap: 24, alignItems: 'center' }}>
+        <div aria-hidden style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          background: 'radial-gradient(ellipse at 76% 22%, rgba(0,200,150,0.08) 0%, transparent 54%), radial-gradient(ellipse at 12% 80%, rgba(45,107,228,0.08) 0%, transparent 55%)',
+        }} />
+
+        <div style={{ position: 'relative', display: 'grid', gridTemplateColumns: 'minmax(0, 1.32fr) minmax(300px, 0.78fr)', gap: 28, alignItems: 'center' }} className="async-responsive-grid">
           <div>
-            {/*
-              Titol del portal: 'App is Asynchronous'.
-              Hem tret el subtitol antic 'Benchmarks reals sota la mateixa
-              carrega' per netejar la primera impressio. La descripcio sota
-              ja deixa clar que comparem combinacions broker/protocol/arq.
-            */}
-            <h1 style={{ margin: 0, fontSize: 40, lineHeight: 1.05, fontWeight: 900, letterSpacing: '-0.035em', color: 'var(--text-primary)' }}>
-              App is Asynchronous
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 18 }}>
+              <img src="/assets/async-logo-icon.svg" alt="" style={{ width: 42, height: 42, display: 'block' }} />
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--teal)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+                  Benchmark Portal
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 3 }}>
+                  Backstage + AKS + Prometheus
+                </div>
+              </div>
+            </div>
+
+            <h1 style={{ margin: 0, maxWidth: 680, fontSize: 42, lineHeight: 1.06, fontWeight: 900, letterSpacing: '-0.035em', color: 'var(--text-primary)' }}>
+              Apis Asíncrones
             </h1>
-            <p style={{ margin: '16px 0 24px', maxWidth: 720, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75 }}>
-              Portal Backstage per comparar, amb dades, combinacions de broker, protocol i arquitectura executades sobre AKS. L'objectiu no és veure una demo bonica, sinó entendre quin disseny funciona millor per cada perfil de càrrega.
+            <p style={{ margin: '10px 0 0', fontSize: 18, fontWeight: 800, color: 'var(--teal)' }}>
+              Benchmarks reals sota la mateixa càrrega
+            </p>
+            <p style={{ margin: '18px 0 24px', maxWidth: 720, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75 }}>
+              Portal Backstage per comparar, amb dades, combinacions de broker, protocol i arquitectura executades sobre AKS. L'objectiu no és fer una demo bonica: és entendre quin disseny aguanta millor cada perfil de càrrega.
             </p>
             <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
               <a href="/escenaris" style={{ ...S.btnPrimary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#22c55e', boxShadow: '0 6px 18px rgba(34,197,94,0.24)' }}>
-                Crear escenari <IconArrow />
+                Crear escenari <IconoFlecha />
               </a>
               <a href="/catalog" style={{ ...S.btn, textDecoration: 'none' }}>Veure catàleg</a>
               <a href="/resultats" style={{ ...S.btn, textDecoration: 'none' }}>Comparar resultats</a>
             </div>
           </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {[
-              { label: 'Components', value: portalStats.components, color: '#3b82f6' },
-              { label: 'Escenaris', value: portalStats.scenarios, color: '#8b5cf6' },
-              { label: 'Runs actius', value: portalStats.activeRuns, color: '#22c55e' },
-              { label: 'Mesures', value: portalStats.totalMeasures, color: '#06b6d4' },
-            ].map(stat => (
+            {estadisticas.map(stat => (
               <div key={stat.label} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 14, background: 'var(--bg-card)' }}>
                 <div style={{ fontSize: 10, fontWeight: 800, color: stat.color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{stat.label}</div>
-                <div style={{ fontSize: 26, fontWeight: 850, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                  {portalStats.loading ? '-' : stat.value.toLocaleString('ca-ES')}
+                <div style={{ fontSize: 26, fontWeight: 850, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em' }}>
+                  {estadisticasPortal.loading ? '-' : formatNumero(stat.value)}
                 </div>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 5 }}>{stat.desc}</div>
               </div>
             ))}
           </div>
@@ -212,7 +249,7 @@ export const HomePage = () => {
           <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
             {EDUCATION.syncVsAsync.eyebrow}
           </div>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: 'var(--text-primary)' }}>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 850, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
             Què cal saber abans d'interpretar els resultats
           </h2>
           <p style={{ margin: '8px 0 0', maxWidth: 860, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
@@ -223,7 +260,7 @@ export const HomePage = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginBottom: 16 }}>
           {EDUCATION.syncVsAsync.items.map(item => (
             <div key={item.title} style={smallCard(item.accent)}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: item.accent, marginBottom: 8 }}>{item.title}</div>
+              <div style={{ fontSize: 13, fontWeight: 850, color: item.accent, marginBottom: 8 }}>{item.title}</div>
               <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6 }}>{item.summary}</p>
               <div style={{ display: 'grid', gap: 7 }}>
                 {item.bullets.map(bullet => (
@@ -237,21 +274,15 @@ export const HomePage = () => {
           ))}
         </div>
 
-        {/*
-          Bloc destacat: la diferencia entre 'missatge' i 'mesura'.
-          Es la confusio mes frequent quan algu obre el portal per primer
-          cop. Posar-la aqui, abans del flux i les metriques, fa que la
-          resta del text s'entengui millor.
-        */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginTop: 4 }}>
           <div style={{ border: '1px solid var(--border)', borderLeft: '3px solid #3b82f6', borderRadius: 9, padding: 14, background: 'var(--bg-subtle)' }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#3b82f6', marginBottom: 6 }}>Missatge</div>
+            <div style={{ fontSize: 13, fontWeight: 850, color: '#3b82f6', marginBottom: 6 }}>Missatge</div>
             <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               <strong style={{ color: 'var(--text-primary)' }}>Unitat real de càrrega</strong>: cada paquet que el productor envia al broker (un JSON financer, un frame de vídeo, una lectura IoT...). El comptador "missatges" indica quants n'han passat durant l'execució.
             </p>
           </div>
           <div style={{ border: '1px solid var(--border)', borderLeft: '3px solid #22c55e', borderRadius: 9, padding: 14, background: 'var(--bg-subtle)' }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#22c55e', marginBottom: 6 }}>Mesura</div>
+            <div style={{ fontSize: 13, fontWeight: 850, color: '#22c55e', marginBottom: 6 }}>Mesura</div>
             <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
               <strong style={{ color: 'var(--text-primary)' }}>Punt de telemetria</strong> persistit cada pocs segons amb el resum d'aquell tram (latència mitjana, throughput, errors). L'historial agrega aquestes mesures, no els missatges un a un.
             </p>
@@ -259,16 +290,45 @@ export const HomePage = () => {
         </div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(300px, 0.7fr)', gap: 18, marginBottom: 18 }}>
-        <FlowDiagram />
+      <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              Execució
+            </div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 850, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              Què passa quan llances un benchmark
+            </h2>
+          </div>
+          <p style={{ margin: 0, maxWidth: 560, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+            El valor acadèmic del portal depèn que aquest flux sigui repetible. Cada run ha de travessar els mateixos passos i produir mètriques comparables.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(120px, 1fr))', gap: 0, position: 'relative', marginBottom: 6 }} className="async-responsive-grid">
+          <div aria-hidden className="async-hide-mobile" style={{ position: 'absolute', top: 22, left: '10%', right: '10%', height: 1, background: 'linear-gradient(90deg,#6366f150,#2D6BE450,#22c55e50,#00C89650,#818cf850)', zIndex: 0 }} />
+          {pasosDeEjecucion.map(paso => (
+            <div key={paso.n} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '0 10px 12px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
+              <div style={{ width: 44, height: 44, borderRadius: '50%', background: `${paso.color}14`, border: `2px solid ${paso.color}55`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, color: paso.color, fontWeight: 850, fontSize: 15, fontFamily: 'var(--font-mono)' }}>
+                {paso.n}
+              </div>
+              <div style={{ fontSize: 12.5, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 3 }}>{paso.label}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>{paso.sub}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.28fr) minmax(280px, 0.72fr)', gap: 18, marginBottom: 18 }} className="async-responsive-grid">
+        <BrokerFlowDiagram />
         <div style={{ ...S.card, padding: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
             Mètriques principals
           </div>
           <div style={{ display: 'grid', gap: 10 }}>
-            {metricCards.map(metric => (
+            {metricasPrincipales.map(metric => (
               <div key={metric.title} style={{ borderLeft: `3px solid ${metric.color}`, padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: metric.color, marginBottom: 4 }}>{metric.title}</div>
+                <div style={{ fontSize: 13, fontWeight: 850, color: metric.color, marginBottom: 4 }}>{metric.title}</div>
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.58 }}>{metric.text}</p>
               </div>
             ))}
@@ -276,21 +336,37 @@ export const HomePage = () => {
         </div>
       </div>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-        {pages.map(page => (
-          <a key={page.href} href={page.href} style={{ ...S.card, textDecoration: 'none', borderTop: `3px solid ${page.color}`, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 150 }}>
-            <div style={{ width: 38, height: 38, borderRadius: 8, background: `${page.color}14`, color: page.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <page.Icon />
-            </div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 5 }}>{page.label}</div>
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.58 }}>{page.desc}</p>
-            </div>
-            <div style={{ marginTop: 'auto', color: page.color, fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-              Obrir <IconArrow />
-            </div>
-          </a>
-        ))}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 18, marginBottom: 18 }}>
+        <BrokerAnatomyDiagram />
+        <LatencyMapDiagram />
+      </div>
+
+      <section style={{ ...S.card, padding: 22 }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+            Pàgines interiors
+          </div>
+          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 850, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+            On continua cada tasca
+          </h2>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          {paginasDelPortal.map(page => (
+            <a key={page.href} href={page.href} style={{ ...S.card, textDecoration: 'none', borderTop: `3px solid ${page.color}`, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 154, transition: 'transform 0.16s ease, border-color 0.16s ease' }} className="card-hover">
+              <div style={{ width: 38, height: 38, borderRadius: 8, background: `${page.color}14`, color: page.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <page.Icono />
+              </div>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 5 }}>{page.label}</div>
+                <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.58 }}>{page.desc}</p>
+              </div>
+              <div style={{ marginTop: 'auto', color: page.color, fontSize: 12, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                Obrir <IconoFlecha />
+              </div>
+            </a>
+          ))}
+        </div>
       </section>
     </div>
   );

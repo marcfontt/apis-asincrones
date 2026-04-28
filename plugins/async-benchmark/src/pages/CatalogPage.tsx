@@ -16,7 +16,7 @@
  *  - Titol corregit a "Catàleg" (amb accent grave, forma correcta en catala)
  *  - Em-dashes (--) substituïts per guions (-) en valors buits de la taula
  *  - Filtre de gateway ocult: la categoria 'gateway' no es mostra (es interna)
- *  - Versions conegudes hardcoded a KNOWN_VERSIONS (el servei no sempre les retorna)
+ *  - Versions conegudes hardcoded a VERSIONES_CONOCIDAS_COMPONENTES (el servei no sempre les retorna)
  *  - Ordenacio per columnes (nom, categoria, descripcio, nom curt, versio)
  *  - Cerca combinada amb filtre de categoria
  */
@@ -41,12 +41,12 @@ const CATEGORY_LABELS: Record<string, string> = {
 // El cataleg no sempre emmagatzema la versio. Aquesta taula serveix com a
 // fallback per als components mes comuns del benchmark.
 // Claus en minuscules per facilitar la comparacio case-insensitive.
-const KNOWN_VERSIONS: Record<string, string> = {
-  'kafka':          '3.7',
+const VERSIONES_CONOCIDAS_COMPONENTES: Record<string, string> = {
+  'kafka':          '4.1.1',
   'confluent':      '7.6',
   'rabbitmq':       '3.13',
-  'nats server':    '2.10',
-  'nats':           '2.10',
+  'nats server':    '2.12.5',
+  'nats':           '2.12.5',
   'emqx':           '5.6',
   'activemq':       '6.1',
   'mqtt':           '5.0',
@@ -55,41 +55,43 @@ const KNOWN_VERSIONS: Record<string, string> = {
   'ws':             '13',
   'grpc':           '1.64',
   'http/2':         '2.0',
-  'nats protocol':  '2.10',
-  'kafka protocol': '3.7',
+  'nats protocol':  '2.12.5',
+  'kafka protocol': '4.1.1',
 };
 
-const HIDDEN_LEGACY_COMPONENTS = ['pulsar', 'apache pulsar', 'sse', 'server-sent events', 'coap'];
+const COMPONENTES_ANTIGUOS_OCULTOS = ['pulsar', 'apache pulsar', 'sse', 'server-sent events', 'coap'];
 
-const isHiddenLegacyComponent = (component: any): boolean => {
-  const values = [
+const esComponenteAntiguoOculto = (component: any): boolean => {
+  const valoresDelComponente = [
     component?.name,
     component?.shortName,
     component?.description,
     ...(Array.isArray(component?.tags) ? component.tags : []),
   ].map(value => String(value || '').toLowerCase());
-  return values.some(value => HIDDEN_LEGACY_COMPONENTS.some(hidden => value.includes(hidden)));
+  return valoresDelComponente.some(valor =>
+    COMPONENTES_ANTIGUOS_OCULTOS.some(textoOculto => valor.includes(textoOculto)),
+  );
 };
 
 /**
  * Obte la versio d'un component.
- * Prioritza la versio de la BD; si no n'hi ha, busca a KNOWN_VERSIONS
+ * Prioritza la versio de la BD; si no n'hi ha, busca a VERSIONES_CONOCIDAS_COMPONENTES
  * pel shortName i despres pel name.
  */
 // Estil senzill, sense optional chaining encadenat. Si el component porta
-// la versio explicita, la fem servir. Si no, mirem KNOWN_VERSIONS pel
+// la versio explicita, la fem servir. Si no, mirem VERSIONES_CONOCIDAS_COMPONENTES pel
 // shortName i, en ultim cas, pel name complet.
-const getVersion = (c: any): string => {
-  if (c && c.version) {
-    return c.version;
+const obtenerVersionComponente = (component: any): string => {
+  if (component && component.version) {
+    return component.version;
   }
-  const shortName = c && c.shortName ? String(c.shortName).toLowerCase() : '';
-  if (shortName && KNOWN_VERSIONS[shortName]) {
-    return KNOWN_VERSIONS[shortName];
+  const nombreCorto = component && component.shortName ? String(component.shortName).toLowerCase() : '';
+  if (nombreCorto && VERSIONES_CONOCIDAS_COMPONENTES[nombreCorto]) {
+    return VERSIONES_CONOCIDAS_COMPONENTES[nombreCorto];
   }
-  const name = c && c.name ? String(c.name).toLowerCase() : '';
-  if (name && KNOWN_VERSIONS[name]) {
-    return KNOWN_VERSIONS[name];
+  const nombreCompleto = component && component.name ? String(component.name).toLowerCase() : '';
+  if (nombreCompleto && VERSIONES_CONOCIDAS_COMPONENTES[nombreCompleto]) {
+    return VERSIONES_CONOCIDAS_COMPONENTES[nombreCompleto];
   }
   return '';
 };
@@ -110,38 +112,50 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
 //
 // Si en el futur el backend exposes aquesta info, podriem llegir-la d'alla.
 // De moment ho mantenim com a taula estatica per claredat.
-const DETALL_AKS_PER_PLATAFORMA: Record<string, Array<{ label: string; value: string }>> = {
+const ESPECIFICACION_COMUN_BROKER: Array<{ label: string; value: string }> = [
+  { label: 'Criteri igualador', value: '1 broker actiu per prova, 1 productor i 1 consumidor per run' },
+  { label: 'Recursos objectiu', value: '500m CPU i 1Gi de memòria per broker; requests i limits iguals quan el manifest és nostre' },
+  { label: 'Persistència', value: 'retenció curta o emmagatzematge efímer per evitar que una execució afecti la següent' },
+  { label: 'Payload màxim', value: '4 MB quan el broker ho limita, necessari per executar video-8k sense bloquejos' },
+];
+
+const DETALLE_REPRODUCTIBILIDAD_POR_PLATAFORMA: Record<string, Array<{ label: string; value: string }>> = {
   'Apache Kafka': [
-    { label: 'Operador',     value: 'Strimzi 0.51.0' },
-    { label: 'Mode',         value: 'KRaft (sense Zookeeper)' },
-    { label: 'Nodes Kafka',  value: '3 brokers + 3 controllers' },
-    { label: 'Particions',   value: '3 per topic' },
-    { label: 'Replicació',   value: 'factor 2' },
+    ...ESPECIFICACION_COMUN_BROKER,
+    { label: 'Versió Kafka', value: '4.1.1 (metadata 4.1-IV0)' },
+    { label: 'Operador',     value: 'Strimzi amb KRaft i node pool dual-role' },
+    { label: 'Nodes Kafka',  value: '1 replica amb rol controller + broker' },
+    { label: 'Particions',   value: '1 partició per topic de run' },
+    { label: 'Replicació',   value: 'factor 1 per mantenir el mateix cost que la resta de brokers' },
     { label: 'Namespace',    value: 'kafka-strimzi' },
   ],
   'Confluent Platform': [
+    ...ESPECIFICACION_COMUN_BROKER,
     { label: 'Imatge',       value: 'redpandadata/redpanda (Kafka API compatible)' },
     { label: 'Nodes',        value: '1 broker (single-node)' },
-    { label: 'Particions',   value: '3 per topic' },
+    { label: 'Particions',   value: '1 partició per topic de run' },
     { label: 'Namespace',    value: 'brokers' },
   ],
   'RabbitMQ': [
+    ...ESPECIFICACION_COMUN_BROKER,
     { label: 'Imatge',       value: 'rabbitmq:3.13-management' },
     { label: 'Mode',         value: 'single-node, plugin de management actiu' },
-    { label: 'Cuesa',        value: 'classic queues efimeres (autoDelete)' },
+    { label: 'Cues',         value: 'classic queues efímeres (autoDelete)' },
     { label: 'Namespace',    value: 'brokers' },
   ],
   'NATS Server': [
-    { label: 'Imatge',       value: 'nats:2.10' },
+    ...ESPECIFICACION_COMUN_BROKER,
+    { label: 'Versió real observada', value: 'nats-server 2.12.5 segons logs del pod nats-0' },
     { label: 'Mode',         value: 'single-node + JetStream' },
     { label: 'max_payload',  value: '4 MB / 4194304 bytes per permetre video-8k' },
+    { label: 'Servei monitoratge', value: 'port 8222 exposat a svc/nats-headless, no a svc/nats' },
     { label: 'Namespace',    value: 'brokers' },
   ],
 };
 
 // Detalls per als components d'arquitectura i protocol: explica EN QUE
 // es tradueix concretament la decisio quan s'executa el benchmark.
-const DETALL_AKS_PER_NOM: Record<string, Array<{ label: string; value: string }>> = {
+const DETALLE_REPRODUCTIBILIDAD_POR_NOMBRE: Record<string, Array<{ label: string; value: string }>> = {
   'Event-Driven Architecture': [
     { label: 'Implementació', value: 'Topic/queue per scenarioId, productors fire-and-forget' },
     { label: 'Consumidors',   value: '1 consumidor per pod (escalat horitzontal opcional)' },
@@ -152,31 +166,31 @@ const DETALL_AKS_PER_NOM: Record<string, Array<{ label: string; value: string }>
   ],
   'Log-Centric Architecture': [
     { label: 'Implementació', value: 'Log particionat (Kafka), offsets gestionats per group-id' },
-    { label: 'Consumidors',   value: 'group-id efimer per run' },
+    { label: 'Consumidors',   value: 'group-id efímer per run' },
   ],
   'Kafka': [
-    { label: 'Implementacio', value: 'Topic per run i particions configurades al broker Kafka/Confluent' },
-    { label: 'Consum',        value: 'group-id efimer per run per evitar heretar offsets antics' },
+    { label: 'Implementació', value: 'Topic per run i 1 partició per mantenir el cost comparable amb NATS i RabbitMQ' },
+    { label: 'Consum',        value: 'group-id efímer per run per evitar heretar offsets antics' },
   ],
   'AMQP': [
-    { label: 'Implementacio', value: 'Cua RabbitMQ efimera amb lliurament per consumidor' },
-    { label: 'ACKs',          value: 'model AMQP amb confirmacio del consumidor quan aplica' },
+    { label: 'Implementació', value: 'Cua RabbitMQ efímera amb lliurament per consumidor' },
+    { label: 'ACKs',          value: 'model AMQP amb confirmació del consumidor quan aplica' },
   ],
   'MQTT': [
-    { label: 'Implementacio', value: 'Publicacio/subscripcio per topic amb payload petit o IoT' },
-    { label: 'Cas d us',      value: 'telemetria d alta frequencia i missatges petits' },
+    { label: 'Implementació', value: 'Publicació/subscripció per topic amb payload petit o IoT' },
+    { label: 'Cas d ús',      value: "telemetria d'alta freqüència i missatges petits" },
   ],
   'gRPC': [
-    { label: 'Implementacio', value: 'Streaming cap al consumidor quan la plataforma ho exposa amb gateway' },
-    { label: 'Cas d us',      value: 'baixa latencia i integracio fortament tipada' },
+    { label: 'Implementació', value: 'Streaming cap al consumidor quan la plataforma ho exposa amb gateway' },
+    { label: 'Cas d ús',      value: 'baixa latència i integració fortament tipada' },
   ],
   'WS': [
-    { label: 'Implementacio', value: 'Canal WebSocket cap al consumidor per fluxos en temps real' },
-    { label: 'Cas d us',      value: 'consumidors web o dashboards que necessiten dades push' },
+    { label: 'Implementació', value: 'Canal WebSocket cap al consumidor per fluxos en temps real' },
+    { label: 'Cas d ús',      value: 'consumidors web o dashboards que necessiten dades push' },
   ],
   'NATS': [
-    { label: 'Implementacio', value: 'Subject NATS per run amb preflight de max_payload abans d enviar' },
-    { label: 'Limit video-8k', value: 'max_payload del broker ha de ser com a minim 4 MB' },
+    { label: 'Implementació', value: "Subject NATS per run amb preflight de max_payload abans d'enviar" },
+    { label: 'Límit video-8k', value: 'max_payload del broker ha de ser com a mínim 4 MB' },
   ],
 };
 
@@ -190,9 +204,9 @@ function obtenirDetallReproductibilitat(component: any): Array<{ label: string; 
   const nom = String(component.name || '');
   const short = String(component.shortName || '');
   const detallExplicit =
-    DETALL_AKS_PER_NOM[nom] ||
-    DETALL_AKS_PER_NOM[short] ||
-    DETALL_AKS_PER_PLATAFORMA[nom];
+    DETALLE_REPRODUCTIBILIDAD_POR_NOMBRE[nom] ||
+    DETALLE_REPRODUCTIBILIDAD_POR_NOMBRE[short] ||
+    DETALLE_REPRODUCTIBILIDAD_POR_PLATAFORMA[nom];
   if (detallExplicit) return detallExplicit;
   // Detall generic: nomes mostrem nodes i namespace per orientar l'usuari.
   if (component.category === 'platform') {
@@ -203,7 +217,7 @@ function obtenirDetallReproductibilitat(component: any): Array<{ label: string; 
   }
   if (component.category === 'architecture' || component.category === 'protocol') {
     return [
-      { label: 'Implementacio', value: 'definida per l escenari: plataforma, protocol, payload, ratio i durada' },
+      { label: 'Implementació', value: "definida per l'escenari: plataforma, protocol, payload, ràtio i durada" },
     ];
   }
   return null;
@@ -427,7 +441,7 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
           </div>
           <Row label="Categoria"  value={label} />
           <Row label="Nom curt"   value={component.shortName || '-'} />
-          <Row label="Versió"     value={getVersion(component) || '-'} />
+          <Row label="Versió"     value={obtenerVersionComponente(component) || '-'} />
           {component.createdAt && (
             <Row label="Afegit el" value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
           )}
@@ -569,29 +583,33 @@ type SortDir = 'asc' | 'desc';
 
 // ── Capçalera de columna ordenable ────────────────────────────────────────────
 /**
- * SortTh -- Capçalera de taula amb suport per a ordenacio.
+ * CapcaleraOrdenable -- Capçalera de taula amb suport per a ordenacio.
  *
  * Mostra una fletxa up/down quan esta activa, un doble fletxa quan no.
  * En clicar: asc -> desc -> reset (cap ordenacio).
  *
  * Props:
  *  label:      text de la capçalera
- *  sk:         sort key (camp de l'objecte a ordenar)
- *  current:    sort key activa (null si no hi ha ordenacio)
- *  dir:        direccio actual ('asc' | 'desc' | null)
- *  onSort:     callback quan es clica la capçalera
+ *  campoOrdenacion:       camp de l'objecte a ordenar
+ *  campoOrdenacionActual: camp actiu (null si no hi ha ordenacio)
+ *  direccionOrdenacion:   direccio actual ('asc' | 'desc' | null)
+ *  onOrdenar:             callback quan es clica la capçalera
  *  extraStyle: estils addicionals opcionals (textAlign, etc.)
  */
-const SortTh = ({ label, sk, current, dir, onSort, extraStyle }: {
-  label: string; sk: string; current: string | null; dir: SortDir | null;
-  onSort: (sk: any) => void; extraStyle?: React.CSSProperties;
+const CapcaleraOrdenable = ({ label, campoOrdenacion, campoOrdenacionActual, direccionOrdenacion, onOrdenar, extraStyle }: {
+  label: string;
+  campoOrdenacion: string;
+  campoOrdenacionActual: string | null;
+  direccionOrdenacion: SortDir | null;
+  onOrdenar: (campoOrdenacion: string) => void;
+  extraStyle?: React.CSSProperties;
 }) => {
-  const active = current === sk;
+  const estaActiva = campoOrdenacionActual === campoOrdenacion;
   return (
     <th
       style={{ ...S.th, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' as const, ...extraStyle }}
-      onClick={() => onSort(sk)}
-      aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+      onClick={() => onOrdenar(campoOrdenacion)}
+      aria-sort={estaActiva ? (direccionOrdenacion === 'asc' ? 'ascending' : 'descending') : 'none'}
     >
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {label}
@@ -601,8 +619,8 @@ const SortTh = ({ label, sk, current, dir, onSort, extraStyle }: {
           lectors de pantalla). Aixi evitem que algun renderitzat mostri
           accidentalment etiquetes "UP/UD" sobre la capçalera.
         */}
-        <span aria-hidden="true" style={{ fontSize: 12, color: active ? 'var(--accent)' : 'var(--text-disabled)' }}>
-          {active && dir === 'asc' ? '↑' : active && dir === 'desc' ? '↓' : '↕'}
+        <span aria-hidden="true" style={{ fontSize: 12, color: estaActiva ? 'var(--accent)' : 'var(--text-disabled)' }}>
+          {estaActiva && direccionOrdenacion === 'asc' ? '↑' : estaActiva && direccionOrdenacion === 'desc' ? '↓' : '↕'}
         </span>
       </span>
     </th>
@@ -641,8 +659,8 @@ export const CatalogPage = () => {
    * Gestio de l'ordenacio per columnes.
    * Cicle: cap -> asc -> desc -> cap (reset)
    */
-  const handleSort = (sk: string) => {
-    if (sortKey !== sk)      { setSortKey(sk); setSortDir('asc');  return; }
+  const handleSort = (campoOrdenacion: string) => {
+    if (sortKey !== campoOrdenacion) { setSortKey(campoOrdenacion); setSortDir('asc'); return; }
     if (sortDir === 'asc')   { setSortDir('desc');                 return; }
     setSortKey(null); setSortDir(null);
   };
@@ -667,14 +685,14 @@ export const CatalogPage = () => {
   // 'real': components predefinits, sense la categoria 'gateway' (us intern)
   // Els components amb predefined===false son creats per l'usuari i no s'han
   // de mostrar al cataleg general.
-  const real = components.filter(c =>
+  const componentesVisibles = components.filter(c =>
     c.predefined !== false &&
     c.category !== 'gateway' &&
-    !isHiddenLegacyComponent(c),
+    !esComponenteAntiguoOculto(c),
   );
 
   // Helper: comptador per categoria (per als botons de filtre)
-  const countByCategory = (cat: string) => real.filter(c => c.category === cat).length;
+  const countByCategory = (cat: string) => componentesVisibles.filter(c => c.category === cat).length;
   const architectureCount = countByCategory('architecture');
   const protocolCount = countByCategory('protocol');
   const platformCount = countByCategory('platform');
@@ -686,7 +704,7 @@ export const CatalogPage = () => {
     : 'var(--accent)';
 
   // Filtratge per categoria + cerca de text
-  const filtered = real.filter(c => {
+  const filtered = componentesVisibles.filter(c => {
     // Primer: filtre de categoria (si no es 'all')
     if (activeFilter !== 'all' && c.category !== activeFilter) return false;
     // Segon: cerca de text sobre nom, shortName, descripcio i categoria
@@ -708,8 +726,8 @@ export const CatalogPage = () => {
     : [...filtered].sort((a, b) => {
         let av: string, bv: string;
         if (sortKey === 'version') {
-          av = getVersion(a);
-          bv = getVersion(b);
+          av = obtenerVersionComponente(a);
+          bv = obtenerVersionComponente(b);
         } else if (sortKey === 'category') {
           av = CATEGORY_LABELS[a.category] || a.category || '';
           bv = CATEGORY_LABELS[b.category] || b.category || '';
@@ -790,7 +808,7 @@ export const CatalogPage = () => {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
           {
-            cat: 'all', label: 'Tots', value: real.length,
+            cat: 'all', label: 'Tots', value: componentesVisibles.length,
             color: 'var(--text-secondary)', bg: 'var(--bg-card)',
             icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
           },
@@ -870,7 +888,7 @@ export const CatalogPage = () => {
           <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{loading ? '-' : filtered.length}</strong>
           {' '}visibles
           <span style={{ color: 'var(--text-disabled)', marginLeft: 6 }}>
-            de {real.length} totals
+            de {componentesVisibles.length} totals
           </span>
         </span>
         {selectedComponent && (
@@ -907,7 +925,7 @@ export const CatalogPage = () => {
             {/* "de X totals" quan hi ha filtres actius */}
             {(activeFilter !== 'all' || searchQuery) && !loading && (
               <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10 }}>
-                de {real.length} totals
+                de {componentesVisibles.length} totals
               </span>
             )}
             {/* Camp de cerca de text */}
@@ -953,9 +971,9 @@ export const CatalogPage = () => {
                 Aquesta informacio es mostra al modal de detall quan es clica
                 la fila (vegeu component DetailModal mes amunt).
               */}
-              <SortTh label="Nom"        sk="name"        current={sortKey} dir={sortDir} onSort={handleSort} />
-              <SortTh label="Categoria"  sk="category"    current={sortKey} dir={sortDir} onSort={handleSort} />
-              <SortTh label="Descripcio" sk="description" current={sortKey} dir={sortDir} onSort={handleSort} />
+              <CapcaleraOrdenable label="Nom"        campoOrdenacion="name"        campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
+              <CapcaleraOrdenable label="Categoria"  campoOrdenacion="category"    campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
+              <CapcaleraOrdenable label="Descripció" campoOrdenacion="description" campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
             </tr>
           </thead>
           <tbody>

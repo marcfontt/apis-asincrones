@@ -1,18 +1,9 @@
 const LogoIcon = () => (
-  <svg width="28" height="28" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="32" rx="7" fill="#2D6BE4" fillOpacity="0.18" />
-    <rect width="32" height="32" rx="7" stroke="#2D6BE4" strokeWidth="1.2" fill="none" />
-    <path
-      d="M6.5 16 C6.5 16 9 11.5 12.5 16 C16 20.5 19.5 11.5 23 16"
-      stroke="#00C896"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      fill="none"
-    />
-    <circle cx="6.5" cy="16" r="2" fill="#2D6BE4" />
-    <circle cx="25.5" cy="16" r="2" fill="#2D6BE4" />
-  </svg>
+  <img
+    src="/assets/async-logo-icon.svg"
+    alt="APIs Asíncrones"
+    style={{ display: 'block', width: 30, height: 30, objectFit: 'contain' }}
+  />
 );
 
 export default LogoIcon;
