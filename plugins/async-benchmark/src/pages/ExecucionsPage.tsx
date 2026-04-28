@@ -60,12 +60,25 @@ const METRICS_BASE   = '/api/proxy/metrics-api';
  * didn't cleanly flush). The internal 'cancelled' string is still kept in
  * the run record so the orchestrator/metrics pipeline can tell them apart.
  * ---------------------------------------------------------------------------*/
+// Cobrim tots els estats que retorna l'orquestrador. Antigament nomes hi havia
+// "error" pero l'orquestrador envia "failed", i aquell missing key feia que
+// el badge sortis gris i sense etiqueta. Ara qualsevol fallada (failed o
+// error) es pinta en VERMELL viu i amb la lletra "Error" perque destaqui
+// per damunt de la resta i l'usuari el detecti immediatament.
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  pending:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)',  label: 'Pendent' },
+  pending:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', label: 'Pendent' },
   running:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', label: 'En execució' },
   completed: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  label: 'Completat' },
   cancelled: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  label: 'Completat' },
-  error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.10)',  label: 'Error' },
+  failed:    { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Error' },
+  error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Error' },
+};
+
+// Helper compartit per saber si un run ha fallat. Cobrim tots dos noms
+// (failed i error) per si en el futur hi ha mes variants de l'API.
+const isFailedRun = (r: { status?: string } | null | undefined): boolean => {
+  if (!r || !r.status) return false;
+  return r.status === 'failed' || r.status === 'error';
 };
 
 /* ---------------------------------------------------------------------------
@@ -563,6 +576,10 @@ const RunTable = ({
                 const isSelected = selectedIds.has(r.id);
                 const isDeleting = deletingIds.has(r.id); // fades the row during async delete
                 const isDetailSelected = selectedRunId === r.id;
+                // Si la run ha fallat, ressaltem la fila amb fons vermell suau
+                // i una linia esquerra vermella ben visible. Aixo crida l'atencio
+                // immediata a errors sense haver de mirar la columna "Estat".
+                const failed = isFailedRun(r);
 
                 return (
                   <tr
@@ -572,16 +589,18 @@ const RunTable = ({
                     onClick={() => onSelectRun?.(r)}
                     style={{
                       ...S.tableRow,
-                      // Selected rows get a subtle red tint; hovered rows get the default hover bg
-                      background: isSelected
-                        ? 'rgba(239,68,68,0.04)'
-                        : isDetailSelected
-                          ? 'rgba(37,99,235,0.06)'
-                          : hoveredRow === i ? 'var(--bg-hover)' : 'transparent',
-                      // Fade the row while a delete request is in-flight to give instant feedback
+                      // Prioritat de fons: error > seleccio > detall obert > hover
+                      background: failed
+                        ? 'rgba(239,68,68,0.10)'
+                        : isSelected
+                          ? 'rgba(239,68,68,0.04)'
+                          : isDetailSelected
+                            ? 'rgba(37,99,235,0.06)'
+                            : hoveredRow === i ? 'var(--bg-hover)' : 'transparent',
                       opacity: isDeleting ? 0.45 : 1,
                       transition: 'background var(--transition), opacity 0.2s ease',
-                      borderLeft: `3px solid ${isDetailSelected ? 'var(--accent)' : 'transparent'}`,
+                      // Linia esquerra de 3px: vermella si error, blava si seleccionat al detall
+                      borderLeft: `3px solid ${failed ? '#ef4444' : isDetailSelected ? 'var(--accent)' : 'transparent'}`,
                       cursor: 'pointer',
                     }}
                   >
@@ -916,10 +935,10 @@ export const ExecucionsPage = () => {
    * instant UI feedback (optimistic removal), without waiting for a re-poll.
    */
   const handleRequestDelete = (run: any) => {
-    const name = run.scenarioName || run.id?.slice(0, 12) || 'aquesta execucio';
+    const name = run.scenarioName || run.id?.slice(0, 12) || 'aquesta execució';
     setConfirmState({
       open: true,
-      title: 'Eliminar execucio',
+      title: 'Eliminar execució',
       message: (
         <>
           Segur que vols eliminar <strong>"{name}"</strong>?
@@ -961,7 +980,7 @@ export const ExecucionsPage = () => {
       title: 'Eliminar seleccionats',
       message: (
         <>
-          Segur que vols eliminar <strong>{ids.length} execucio{ids.length !== 1 ? 'ns' : ''}</strong>?
+          Segur que vols eliminar <strong>{ids.length} execució{ids.length !== 1 ? 'ns' : ''}</strong>?
           <br />
           <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Aquesta accio no es pot desfer.</span>
         </>
@@ -1009,12 +1028,12 @@ export const ExecucionsPage = () => {
     if (finished.length === 0) return; // guard: nothing to delete
     setConfirmState({
       open: true,
-      title: 'Eliminar totes les execucions',
+      title: 'Eliminar totes les execucións',
       message: (
         <>
-          Segur que vols eliminar <strong>totes les {finished.length} execucions</strong> de l'historial?
+          Segur que vols eliminar <strong>totes les {finished.length} execucións</strong> de l'historial?
           <br />
-          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucions en curs no s'eliminaran. Aquesta acció no es pot desfer.</span>
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucións en curs no s'eliminaran. Aquesta acció no es pot desfer.</span>
         </>
       ),
       onConfirm: async () => {
@@ -1035,7 +1054,7 @@ export const ExecucionsPage = () => {
         setRuns(prev => prev.filter(r => !deleted.includes(r.id)));
         setSelectedIds(new Set()); // clear all selections since the rows are gone
         ids.forEach(unmarkDeleting);
-        showToast(`${deleted.length} execucions eliminades.`);
+        showToast(`${deleted.length} execucións eliminades.`);
       },
     });
   };
@@ -1112,7 +1131,8 @@ export const ExecucionsPage = () => {
   const running = visibleRuns.filter(r => r.status === 'running' || r.status === 'pending');
   const completedAll = visibleRuns.filter(r => r.status !== 'running' && r.status !== 'pending');
 
-  const completed = historySearch.trim()
+  // Filtrem per cerca lliure si l'usuari ha escrit alguna cosa al cercador.
+  const completedFiltered = historySearch.trim()
     ? completedAll.filter(r => {
         const q = historySearch.trim().toLowerCase();
         return (scenarioMap[r.scenarioId]?.name || r.scenarioName || '').toLowerCase().includes(q)
@@ -1122,6 +1142,19 @@ export const ExecucionsPage = () => {
             || (r.status || '').toLowerCase().includes(q);
       })
     : completedAll;
+
+  // Ordenacio: les execucións FALLIDES primer (vermelles, urgents).
+  // Despres les normals per data descendent (ultima primer).
+  // Aixo respon al feedback de l'usuari: vol veure els errors a dalt
+  // de tot perque destaquin i no passin desapercebuts.
+  const completed = [...completedFiltered].sort((a: any, b: any) => {
+    const aFailed = isFailedRun(a) ? 1 : 0;
+    const bFailed = isFailedRun(b) ? 1 : 0;
+    if (aFailed !== bFailed) return bFailed - aFailed;
+    const ta = a.startedAt ? new Date(a.startedAt).getTime() : 0;
+    const tb = b.startedAt ? new Date(b.startedAt).getTime() : 0;
+    return tb - ta;
+  });
 
   const selectedRun = selectedRunId ? runs.find(run => run.id === selectedRunId) || null : null;
   const activeFilterCount = filterPlatform.length + filterProtocol.length + filterArchitecture.length + filterDataFormat.length + (runSearch.trim() ? 1 : 0);
@@ -1147,14 +1180,14 @@ export const ExecucionsPage = () => {
     if (running.length === 0) return; // guard: nothing to stop
     setConfirmState({
       open: true,
-      title: 'Atura totes les execucions',
+      title: 'Atura totes les execucións',
       confirmLabel: 'Atura',   // non-destructive label (was "Eliminar" - incorrect)
       danger: false,            // accent button, not red - stop is not a delete action
       message: (
         <>
-          Segur que vols aturar <strong>{running.length} execucio{running.length !== 1 ? 'ns' : ''}</strong> en curs o pendents?
+          Segur que vols aturar <strong>{running.length} execució{running.length !== 1 ? 'ns' : ''}</strong> en curs o pendents?
           <br />
-          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucions passaran a estat "Aturat".</span>
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucións passaran a estat "Aturat".</span>
         </>
       ),
       onConfirm: async () => {
@@ -1167,7 +1200,7 @@ export const ExecucionsPage = () => {
           await Promise.allSettled(
             ids.map((id: string) => fetch(`${ORCHESTRATOR}/runs/${id}/cancel`, { method: 'POST' }))
           );
-          showToast(`${ids.length} execucio${ids.length !== 1 ? 'ns' : ''} aturada${ids.length !== 1 ? 's' : ''}.`);
+          showToast(`${ids.length} execució${ids.length !== 1 ? 'ns' : ''} aturada${ids.length !== 1 ? 's' : ''}.`);
           fetchRuns(); // refresh to reflect the new 'cancelled' statuses
         } finally { setCancellingId(null); }
       },
@@ -1190,10 +1223,10 @@ export const ExecucionsPage = () => {
       danger: true,
       message: (
         <>
-          Aquesta acció <strong>esborra totes les execucions i totes les mostres</strong> del cluster.
+          Aquesta acció <strong>esborra totes les execucións i totes les mostres</strong> del cluster.
           <br />
           <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>
-            No es pot desfer. Historial i Execucions quedaran buits. Les execucions actives es cancel·laran.
+            No es pot desfer. Historial i Execucions quedaran buits. Les execucións actives es cancel·laran.
           </span>
         </>
       ),
@@ -1285,7 +1318,7 @@ export const ExecucionsPage = () => {
             {running.length > 0 && (
               <button
                 onClick={handleStopAll}
-                title="Atura totes les execucions en curs o pendents"
+                title="Atura totes les execucións en curs o pendents"
                 style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
               >
                 <StopIcon /> Atura tot ({running.length})
@@ -1294,7 +1327,7 @@ export const ExecucionsPage = () => {
             {runs.length > 0 && (
               <button
                 onClick={handleResetAll}
-                title="Esborra totes les execucions i mostres del cluster"
+                title="Esborra totes les execucións i mostres del cluster"
                 style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
               >
                 Reinicia tot
@@ -1320,7 +1353,7 @@ export const ExecucionsPage = () => {
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
             { label: 'Total',       value: runs.length,                                            color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execucio', value: running.length,                                         color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
+            { label: 'En execució', value: running.length,                                         color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
             { label: 'Completats',  value: runs.filter(r => r.status === 'completed' || r.status === 'cancelled').length, color: 'var(--success)', bg: 'rgba(34,197,94,0.08)' },
             { label: 'Errors',      value: runs.filter(r => r.status === 'error').length,          color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
           ].map(s => (
@@ -1338,7 +1371,7 @@ export const ExecucionsPage = () => {
             Relació entre Execucions i Resultats
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            Aquesta pàgina mostra execucions individuals. A <a href="/resultats" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Resultats</a>, l&apos;historial agrupa aquestes execucions per escenari i suma les seves mesures registrades.
+            Aquesta pàgina mostra execucións individuals. A <a href="/resultats" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Resultats</a>, l&apos;historial agrupa aquestes execucións per escenari i suma les seves mesures registrades.
           </div>
         </div>
       )}
@@ -1347,7 +1380,7 @@ export const ExecucionsPage = () => {
         <div style={{ ...S.card, marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Filtra execucions</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Filtra execucións</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
                 Aquesta cerca afecta els runs en viu i l'historial. La cerca de la taula d'historial continua disponible per a un segon nivell de filtratge.
               </div>
@@ -1553,7 +1586,7 @@ export const ExecucionsPage = () => {
           <MetricsDetailDrawer
             open={!!selectedRun}
             onClose={() => setSelectedRunId(null)}
-            eyebrow="Detall d'execucio"
+            eyebrow="Detall d'execució"
             title={scenarioName}
             monoId={selectedRun.id || undefined}
             subtitle="Aquest panell resumeix la configuracio del run seleccionat, quantes mesures hi ha guardades i quin volum de missatges s'ha processat."
@@ -1581,7 +1614,7 @@ export const ExecucionsPage = () => {
               {
                 label: 'Missatges enviats',
                 value: sentCount,
-                helper: 'Volum enviat pel load-generator durant aquesta execucio.',
+                helper: 'Volum enviat pel load-generator durant aquesta execució.',
                 color: '#f59e0b',
               },
               {
@@ -1615,7 +1648,7 @@ export const ExecucionsPage = () => {
               {
                 title: 'Metriques disponibles',
                 items: [
-                  { label: 'Latencia avg', value: selectedRun.avgLatency != null ? `${Number(selectedRun.avgLatency).toFixed(2)} ms` : 'Encara no disponible' },
+                  { label: 'Latència mitjana', value: selectedRun.avgLatency != null ? `${Number(selectedRun.avgLatency).toFixed(2)} ms` : 'Encara no disponible' },
                   { label: 'Throughput avg', value: selectedRun.avgThroughput != null ? `${Number(selectedRun.avgThroughput).toFixed(2)} msg/s` : 'Encara no disponible' },
                   { label: 'Error rate', value: selectedRun.avgErrorRate != null ? `${Number(selectedRun.avgErrorRate).toFixed(3)} %` : 'Encara no disponible' },
                 ],

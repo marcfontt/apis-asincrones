@@ -1,0 +1,41 @@
+# ============================================================================
+# Provisioning automatic per a Grafana
+#
+# Quan Grafana arrenca, llegeix els fitxers a /etc/grafana/provisioning/
+# i declara els datasources i dashboards que hi troba. Aixi no cal
+# configurar-ho a ma cada cop que el pod es reinicia.
+#
+# Aquest ConfigMap declara nomes el datasource Elasticsearch que apunta
+# a l'index async-metrics. Si el futur volem afegir dashboards
+# pre-fets, els hi posariem en un altre key.
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: apis-asincronas
+  labels:
+    app: grafana
+    component: observability
+data:
+  elasticsearch-datasource.yaml: |
+    # Sintaxi de provisioning de Grafana: apiVersion 1
+    # https://grafana.com/docs/grafana/latest/administration/provisioning/
+    apiVersion: 1
+    datasources:
+      - name: Elasticsearch (mètriques benchmark)
+        type: elasticsearch
+        access: proxy
+        # Service intern del cluster — funciona sense exposar ES a fora
+        url: http://elasticsearch:9200
+        # Index on els load-generators escriuen els snapshots de mètriques
+        database: async-metrics
+        isDefault: true
+        editable: true
+        jsonData:
+          # Nom del camp de timestamp dels documents
+          timeField: timestamp
+          # Versio de l'engine d'Elasticsearch (8.x)
+          esVersion: '8.0.0'
+          # Quants resultats portar de cada query (suficient per dashboards)
+          maxConcurrentShardRequests: 5

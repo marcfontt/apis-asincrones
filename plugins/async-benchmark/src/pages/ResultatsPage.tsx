@@ -43,7 +43,7 @@ import { S, GLOBAL_CSS } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { EDUCATION } from '../shared/content/education';
 import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
-import { aggregateScenarioHistory, getScenarioMeasureCount } from '../shared/results/historyMetrics';
+import { aggregateScenarioHistory, getScenarioMeasureCount, getRunMessageCount } from '../shared/results/historyMetrics';
 import { buildScenarioHistoryDetail } from '../shared/results/scenarioDetail';
 
 // ---------------------------------------------------------------------------
@@ -1128,7 +1128,7 @@ const HistorialTab = () => {
             )}
           </div>
           <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-            {filteredSummary.length} execucions visibles
+            {filteredSummary.length} execucións visibles
           </span>
         </div>
 
@@ -1245,7 +1245,7 @@ const HistorialTab = () => {
               </div>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Mesures registrades</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Punts de telemetria acumulats a les execucions visibles</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Punts de telemetria acumulats a les execucións visibles</div>
               </div>
             </div>
 
@@ -1274,22 +1274,39 @@ const HistorialTab = () => {
             )}
           </div>
 
-          {/* Metric bar charts - always horizontal layout */}
+          {/*
+            Grafiques de rendiment.
+            Cadascuna rep una `key` derivada de la configuracio actual de
+            filtres. Aixi quan l'usuari toca un xip de filtre, React desmunta
+            i remunta el component instantaniament: les barres s'actualitzen
+            de forma immediata en comptes de quedar-se aturades fins al
+            seguent cicle de polling. Tambe inclouem la mida del dataset
+            perque qualsevol canvi (afegir un escenari nou, esborrar-ne un)
+            forci el remount.
+          */}
           <div style={{ marginBottom: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Rendiment Mètric</div>
-            {/* Latency and throughput side by side */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-              <div style={{ ...S.card }}>
-                <HBarChart data={latData} title="Latència mitjana (ms)" unit="ms" color="#f59e0b" lowerIsBetter />
-              </div>
-              <div style={{ ...S.card }}>
-                <HBarChart data={tputData} title="Throughput mitja (msg/s)" unit="" color="#22c55e" lowerIsBetter={false} />
-              </div>
-            </div>
-            {/* Error rate full-width below */}
-            <div style={{ ...S.card, marginBottom: 20 }}>
-              <HBarChart data={errData} title="Taxa d'error mitjana (%)" unit="%" color="#ef4444" lowerIsBetter />
-            </div>
+            {(() => {
+              const claveGrafiques =
+                `${filterPlatform.join(',')}|${filterProtocol.join(',')}|` +
+                `${filterArch.join(',')}|${filterDataFormat.join(',')}|` +
+                `${historySearch.trim()}|${scenarioHistory.length}`;
+              return (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+                    <div style={{ ...S.card }}>
+                      <HBarChart key={`lat-${claveGrafiques}`} data={latData} title="Latència mitjana (ms)" unit="ms" color="#f59e0b" lowerIsBetter />
+                    </div>
+                    <div style={{ ...S.card }}>
+                      <HBarChart key={`tput-${claveGrafiques}`} data={tputData} title="Throughput mitja (msg/s)" unit="" color="#22c55e" lowerIsBetter={false} />
+                    </div>
+                  </div>
+                  <div style={{ ...S.card, marginBottom: 20 }}>
+                    <HBarChart key={`err-${claveGrafiques}`} data={errData} title="Taxa d'error mitjana (%)" unit="%" color="#ef4444" lowerIsBetter />
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
           {/* Metric glossary — collapsible reference panel */}
@@ -1382,7 +1399,7 @@ const HistorialTab = () => {
                           </div>
                           {/* Data format shown as a colored sub-label below the scenario name */}
                           <div style={{ fontSize: 10, color: dfColor, fontWeight: 600, marginTop: 2 }}>{DATA_FORMAT_LABELS[df] || df}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 2 }}>{s.runCount} execucio{s.runCount !== 1 ? 'ns' : ''}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 2 }}>{s.runCount} execució{s.runCount !== 1 ? 'ns' : ''}</div>
                         </td>
 
                         {/* Score column - circular ring visualization */}
@@ -1469,10 +1486,10 @@ const HistorialTab = () => {
               eyebrow="Detall d'historial"
               title={selectedScenarioDetail.scenarioName}
               monoId={selectedScenarioDetail.scenarioId || undefined}
-              subtitle="Aquest resum agrega les execucions visibles del mateix escenari. Les mesures son punts de telemetria; els missatges indiquen el volum processat."
+              subtitle="Aquest resum agrega les execucións visibles del mateix escenari. Les mesures son punts de telemetria; els missatges indiquen el volum processat."
               accent={PLATFORM_COLORS[normalizePlatform(selectedScenarioDetail.platform)] || 'var(--accent)'}
               badges={[
-                { label: `${selectedScenarioDetail.runCount} execucions`, color: '#3b82f6' },
+                { label: `${selectedScenarioDetail.runCount} execucións`, color: '#3b82f6' },
                 ...(selectedScenarioDetail.architecture ? [{ label: selectedScenarioDetail.architecture, color: ARCHITECTURE_COLORS[selectedScenarioDetail.architecture] || '#2563eb' }] : []),
                 ...(selectedScenarioDetail.protocol ? [{ label: selectedScenarioDetail.protocol, color: PROTOCOL_COLORS[selectedScenarioDetail.protocol] || '#16a34a' }] : []),
                 ...(selectedScenarioDetail.platform ? [{ label: normalizePlatform(selectedScenarioDetail.platform), color: PLATFORM_COLORS[normalizePlatform(selectedScenarioDetail.platform)] || '#64748b' }] : []),
@@ -1482,7 +1499,7 @@ const HistorialTab = () => {
                 {
                   label: 'Mesures',
                   value: selectedScenarioDetail.totalMeasures,
-                  helper: 'Punts persistits de totes les execucions visibles.',
+                  helper: 'Punts persistits de totes les execucións visibles.',
                   color: '#22c55e',
                 },
                 {
@@ -1508,7 +1525,7 @@ const HistorialTab = () => {
                 {
                   title: 'Rendiment agregat',
                   items: [
-                    { label: 'Latencia avg', value: selectedScenarioDetail.avgLatency != null ? `${Number(selectedScenarioDetail.avgLatency).toFixed(2)} ms` : '-' },
+                    { label: 'Latència mitjana', value: selectedScenarioDetail.avgLatency != null ? `${Number(selectedScenarioDetail.avgLatency).toFixed(2)} ms` : '-' },
                     { label: 'Throughput avg', value: selectedScenarioDetail.avgThroughput != null ? `${Number(selectedScenarioDetail.avgThroughput).toFixed(2)} msg/s` : '-' },
                     { label: 'Error rate', value: selectedScenarioDetail.avgErrorRate != null ? `${Number(selectedScenarioDetail.avgErrorRate).toFixed(3)} %` : '-' },
                     { label: 'Ultim run', value: selectedScenarioDetail.latestRunId ? <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedScenarioDetail.latestRunId}</code> : '-' },
@@ -1524,7 +1541,7 @@ const HistorialTab = () => {
                   ],
                 },
                 {
-                  title: 'Darrera execucio visible',
+                  title: 'Darrera execució visible',
                   items: [
                     { label: 'P50', value: selectedScenarioDetail.latestRun?.p50Latency != null ? `${Number(selectedScenarioDetail.latestRun.p50Latency).toFixed(2)} ms` : '-' },
                     { label: 'P95', value: selectedScenarioDetail.latestRun?.p95Latency != null ? `${Number(selectedScenarioDetail.latestRun.p95Latency).toFixed(2)} ms` : '-' },
@@ -1540,11 +1557,70 @@ const HistorialTab = () => {
                   <div>
                     <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Com llegir aquest historial</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                      Cada nova execucio d'aquest escenari recomenca en directe a zero, pero en acabar afegeix les seves mesures a l'historial visible d'aquest escenari.
+                      Cada nova execució d'aquest escenari recomença en directe a zero, però en acabar afegeix les seves mesures a l'historial visible d'aquest escenari.
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/*
+                Detall per execució individual.
+                L'usuari volia veure cada execució que ha contribuit a
+                l'agregat (no nomes el resum). Aquesta taula llista cada
+                run amb la seva data, durada, latencia i errors. Aixi
+                pot saber d'on surten els nombres de la fila superior.
+              */}
+              {selectedScenarioDetail.runs && selectedScenarioDetail.runs.length > 0 && (
+                <div style={{ marginTop: 14, ...S.card }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+                    Cada execució que ha contribuit ({selectedScenarioDetail.runs.length})
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.55 }}>
+                    Aquí veus cada run individual del mateix escenari. Els valors
+                    de la fila superior són la mitjana ponderada per nombre de
+                    missatges, no la mitjana simple — un run amb 10.000 missatges
+                    pesa més que un altre amb 500.
+                  </div>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-disabled)', fontWeight: 700 }}>
+                          <th style={{ padding: '6px 8px', textAlign: 'left' }}>Run ID</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Inici</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Mostres</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Latència</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Throughput</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Error %</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedScenarioDetail.runs.map((run: any) => (
+                          <tr key={run.runId || run.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                            <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)' }}>
+                              {String(run.runId || run.id || '').slice(0, 12)}
+                            </td>
+                            <td style={{ padding: '6px 8px', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                              {run.startedAt ? new Date(run.startedAt).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                            </td>
+                            <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                              {getRunMessageCount(run).toLocaleString('ca-ES')}
+                            </td>
+                            <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                              {run.avgLatency != null ? `${Number(run.avgLatency).toFixed(2)} ms` : '-'}
+                            </td>
+                            <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                              {run.avgThroughput != null ? `${Number(run.avgThroughput).toFixed(1)}` : '-'}
+                            </td>
+                            <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: run.avgErrorRate > 0 ? 'var(--error)' : 'var(--text-secondary)' }}>
+                              {run.avgErrorRate != null ? `${Number(run.avgErrorRate).toFixed(2)}` : '-'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </MetricsDetailDrawer>
           )}
         </>
@@ -1863,7 +1939,7 @@ const LiveTab = () => {
       <div style={{ ...S.card, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (visibleActiveRuns.length > 0 || selectedRunFinished) ? 14 : 0 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Escenari en execucio
+            Escenari en execució
           </div>
           {/* Status indicator:
               - Green pulsing: actively polling an active run → "En directe"
@@ -1998,7 +2074,7 @@ const LiveTab = () => {
           <div aria-live="polite" aria-atomic="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {[
               { l: 'Missatges rebuts', v: String(liveMessageCount), c: '#3b82f6' },
-              { l: 'Latencia avg (ms)', v: `${avg(lat)}ms`, c: '#f59e0b' },
+              { l: 'Latència mitjana (ms)', v: `${avg(lat)}ms`, c: '#f59e0b' },
               { l: 'Throughput avg', v: avg(tput), c: '#22c55e' },
               { l: 'Error rate avg (%)', v: `${avg(err)}%`, c: '#ef4444' },
             ].map(c => (
@@ -2013,8 +2089,8 @@ const LiveTab = () => {
           {filteredMetrics.length >= 5 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
               {[
-                { l: 'P50 Latencia (mediana)', v: `${p50v(lat)}ms`, c: '#3b82f6', desc: '50% dels missatges arriben en menys d\'aquest temps' },
-                { l: 'P99 Latencia (cua llarga)', v: `${p99v(lat)}ms`, c: '#7c3aed', desc: '99% dels missatges arriben en menys d\'aquest temps (pitjor cas practic)' },
+                { l: 'P50 Latència (mediana)', v: `${p50v(lat)}ms`, c: '#3b82f6', desc: '50% dels missatges arriben en menys d\'aquest temps' },
+                { l: 'P99 Latència (cua llarga)', v: `${p99v(lat)}ms`, c: '#7c3aed', desc: '99% dels missatges arriben en menys d\'aquest temps (pitjor cas practic)' },
               ].map(c => (
                 <div key={c.l} style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 10, background: c.c + '14', color: c.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 12 }}>
@@ -2075,7 +2151,7 @@ const LiveTab = () => {
               chart readable at high sample counts. */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
             {[
-              { data: lat, color: '#f59e0b', label: 'Latencia (ms)', unit: 'ms' },
+              { data: lat, color: '#f59e0b', label: 'Latència (ms)', unit: 'ms' },
               { data: tput, color: '#22c55e', label: 'Throughput (msg/s)', unit: '' },
               { data: err, color: '#ef4444', label: 'Error rate (%)', unit: '%' },
             ].map(c => (
@@ -2100,7 +2176,7 @@ const LiveTab = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={S.tableHeader}>
-                      {['Hora', 'Latencia (ms)', 'Throughput', 'Error (%)'].map(h => (
+                      {['Hora', 'Latència (ms)', 'Throughput', 'Error (%)'].map(h => (
                         <th key={h} style={{ ...S.th, textAlign: h === 'Hora' ? 'left' : 'right' }}>{h}</th>
                       ))}
                     </tr>

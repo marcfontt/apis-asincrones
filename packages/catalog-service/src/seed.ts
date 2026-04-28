@@ -161,14 +161,6 @@ export const CATALOG_SEED: CatalogComponent[] = [
     description: 'Servidor NATS lleuger. Pub/sub de latència mínima; JetStream opcional per a persistència i replay.',
     tags: ['lightweight', 'low-latency', 'jetstream'],
   },
-  {
-    shortName: 'Pulsar',
-    name: 'Apache Pulsar',
-    category: 'platform',
-    version: '3.2',
-    description: 'Broker cloud-native amb separació storage/compute (BookKeeper). Multi-tenant, geo-replication.',
-    tags: ['cloud-native', 'multi-tenant', 'tiered-storage'],
-  },
 ];
 
 /**

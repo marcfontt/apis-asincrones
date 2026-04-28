@@ -11,7 +11,7 @@
  *
  * Dades:
  *   - GET/POST/PUT/DELETE /api/proxy/scenario-service/scenarios
- *   - GET /api/proxy/benchmark-orchestrator/runs (per saber quins estan en execucio)
+ *   - GET /api/proxy/benchmark-orchestrator/runs (per saber quins estan en execució)
  *   - POST /api/proxy/benchmark-orchestrator/runs (per llançar un run)
  *
  * Canvis aplicats:
@@ -19,7 +19,7 @@
  *     Motiu: els escenaris idle (llestos per executar) han de destacar
  *     positivament, no semblar "desactivats" com els cancelled.
  *   - Stats strip: eliminats "Predefinits" i "Propis" -- afegien soroll
- *     sense valor actionable. Nomes es mostra Total i "En execucio".
+ *     sense valor actionable. Nomes es mostra Total i "En execució".
  *   - Unicode play symbol (triang) substituint pel text descriptiu a la guia
  *   - COMPATIBILITY matrix: defineix quines arquitectures/protocols son
  *     compatibles amb cada plataforma, de manera que el formulari filtra
@@ -181,7 +181,7 @@ const EMPTY_FORM = {
 const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
   idle:      { color: '#10b981', label: 'Llest',       bg: 'rgba(16,185,129,0.10)' }, // verd: llest per executar
   pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  }, // ambre: esperant inici al cluster
-  running:   { color: '#3b82f6', label: 'En execucio', bg: 'rgba(59,130,246,0.1)'  }, // blau: execucio activa
+  running:   { color: '#3b82f6', label: 'En execució', bg: 'rgba(59,130,246,0.1)'  }, // blau: execució activa
   completed: { color: '#22c55e', label: 'Completat',   bg: 'rgba(34,197,94,0.1)'   }, // verd fort: finalitzat correctament
   error:     { color: '#ef4444', label: 'Error',       bg: 'rgba(239,68,68,0.1)'   }, // vermell: ha fallat
 };
@@ -377,11 +377,19 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   const [form,       setForm]       = useState({ ...EMPTY_FORM, ...initial });
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState('');
-  // Mode indefinit: actiu quan la durada inicial es >= 3600s (1 hora).
+  // Mode indefinit: actiu quan la durada inicial es 0/null (running fins
+  // que l'usuari aturi manualment l'escenari). Antiguament aquest mode
+  // s'activava automàticament amb duration >= 3600 (1h), però aquell
+  // sentinel confonia (3600 és una durada legítima). Ara és explícit:
+  // duration = 0 → indefinit; qualsevol altre nombre → durada real.
   // En mode indefinit, durada/ratio/payload es desactiven i l'escenari
   // s'executa amb valors per defecte del format fins ser aturat manualment.
   const [indefinite, setIndefinite] = useState(
-    initial.duration !== undefined && initial.duration !== '' && Number(initial.duration) >= 3600
+    // Es indefinit nomes si el valor inicial es 0, buit, null o undefined.
+    // Qualsevol altre nombre representa una durada finita real.
+    initial.duration === undefined ||
+    initial.duration === '' ||
+    Number(initial.duration) === 0
   );
 
   /**
@@ -418,8 +426,10 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
         architecture: form.architecture,
         protocol:     form.protocol,
         platform:     form.platform,
-        // Mode indefinit: durada fixa a 3600s (limit de seguretat), sense ratio/payload
-        duration:     indefinite ? 3600 : (form.duration    ? Number(form.duration)    : undefined),
+        // Mode indefinit: duration=0 (sentinel real). El backend ho interpreta
+        // com a "corre fins que l'usuari aturi". Abans posàvem 3600 com a
+        // sentinel pero portava a confusio (3600 es una durada legitima).
+        duration:     indefinite ? 0 : (form.duration    ? Number(form.duration)    : undefined),
         rate:         indefinite ? null : (form.rate        ? Number(form.rate)        : undefined),
         payloadSize:  indefinite ? null : (form.payloadSize ? Number(form.payloadSize) : undefined),
         dataFormat:   form.dataFormat || 'default',
@@ -566,7 +576,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
           </div>
           {indefinite && (
             <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, padding: '9px 14px', fontSize: 12, color: 'var(--text-secondary)' }}>
-              <strong style={{ color: 'var(--accent)' }}>Mode Indefinit activat (1h max):</strong> L'escenari s'executarà sense limit de ràtio ni payload fixat durant <strong style={{ color: 'var(--text-primary)' }}>un màxim d'una hora (3600s)</strong> per seguretat. S'utilitzaran els valors per defecte del format de dades seleccionat. Pots aturar l'escenari manualment en qualsevol moment.
+              <strong style={{ color: 'var(--accent)' }}>Mode Indefinit activat:</strong> L'escenari s'executarà <strong style={{ color: 'var(--text-primary)' }}>sense límit de durada</strong> fins que l'aturis manualment. S'utilitzen els valors per defecte del format de dades seleccionat (ratio i mida de payload). El directe es reseteja a zero i l'històric acumula tantes mostres com generi l'execució mentre estigui activa.
             </div>
           )}
 
@@ -580,6 +590,34 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
             <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-disabled)' }}>
               Defineix el tipus de dades per simular casos d'ús reals (streaming, IoT, finances...)
             </p>
+            {/*
+              Avis especific NATS + video-8k.
+              Els payloads de video-8k son d'uns 2 MB. NATS Server, per defecte,
+              rebutja missatges de mes d'1 MB (`max_payload`). Si l'usuari
+              barreja NATS amb video-8k sense pujar el limit a >=4MB al cluster,
+              tot el run fallara amb NATS_MAX_PAYLOAD_EXCEEDED. Es millor
+              avisar-lo abans de llancar el benchmark.
+            */}
+            {form.platform === 'NATS Server' && form.dataFormat === 'video-8k' && (
+              <div style={{
+                marginTop: 8,
+                padding: '8px 12px',
+                background: 'rgba(245, 158, 11, 0.10)',
+                border: '1px solid rgba(245, 158, 11, 0.45)',
+                borderRadius: 8,
+                fontSize: 12,
+                color: 'var(--text-primary)',
+                lineHeight: 1.5,
+              }}>
+                <strong style={{ color: '#f59e0b' }}>Avis:</strong> NATS Server, per defecte,
+                no accepta missatges de més d'1 MB. El format <strong>vídeo 8K</strong> envia
+                payloads de ~2 MB i el run fallarà si el cluster no té
+                <code style={{ margin: '0 4px', background: 'var(--bg-subtle)', padding: '1px 5px', borderRadius: 4 }}>max_payload</code>
+                pujat a 4 MB. Aplica
+                <code style={{ margin: '0 4px', background: 'var(--bg-subtle)', padding: '1px 5px', borderRadius: 4 }}>k8s/brokers/nats-config.yaml</code>
+                i reinicia el deployment de NATS abans d'executar.
+              </div>
+            )}
           </div>
 
           {error && (
@@ -711,7 +749,38 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
         <button onClick={onClose} style={{ ...S.btn, fontSize: 13 }}>Cancel·la</button>
-        <button onClick={handleExecute} style={{ ...S.btnPrimary, fontSize: 13, background: 'var(--success)', boxShadow: 'none' }}>
+        {/*
+          Boto verd destacat. Es l'acció principal del modal i ha de cridar
+          molt l'atencio: gradient verd intens, ombra forta i hover que
+          puja una mica per donar sensacio de tactilitat.
+        */}
+        <button
+          onClick={handleExecute}
+          style={{
+            fontSize: 13,
+            fontWeight: 700,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '8px 16px',
+            borderRadius: 8,
+            border: '1px solid #16a34a',
+            background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
+            color: '#fff',
+            cursor: 'pointer',
+            boxShadow: '0 4px 14px rgba(34,197,94,0.35)',
+            transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+            fontFamily: 'var(--font)',
+          }}
+          onMouseEnter={e => {
+            (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+            (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(34,197,94,0.45)';
+          }}
+          onMouseLeave={e => {
+            (e.currentTarget as HTMLElement).style.transform = '';
+            (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(34,197,94,0.35)';
+          }}
+        >
           <PlayIcon /> Executa a AKS
         </button>
       </div>
@@ -734,7 +803,7 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
         <p style={{ color: 'var(--text-secondary)', fontSize: 14, margin: '0 0 16px' }}>El Job s'ha creat a AKS correctament.</p>
       </div>
       <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid var(--success)', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 13 }}>
-        <div style={{ color: 'var(--success)', marginBottom: 4, fontWeight: 700 }}>ID d'execucio</div>
+        <div style={{ color: 'var(--success)', marginBottom: 4, fontWeight: 700 }}>ID d'execució</div>
         <code style={{ fontSize: 12, color: 'var(--success)', wordBreak: 'break-all' as const, fontFamily: 'var(--font-mono)' }}>{runId}</code>
       </div>
       <div style={{ background: 'var(--badge-blue-bg)', border: '1px solid var(--badge-blue-fg)', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: 'var(--badge-blue-fg)', marginBottom: 20, opacity: 0.9 }}>
@@ -745,7 +814,7 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
         <button onClick={() => { window.location.href = '/resultats'; }} style={{ ...S.btn, fontSize: 13 }}>
           Veure Resultats
         </button>
-        <button onClick={() => { window.location.href = '/execucions'; }} style={{ ...S.btnPrimary, fontSize: 13 }}>
+        <button onClick={() => { window.location.href = '/execucións'; }} style={{ ...S.btnPrimary, fontSize: 13 }}>
           Veure Execucions
         </button>
       </div>
@@ -895,8 +964,34 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
               <StopIcon /> Aturar execució
             </button>
           ) : (
-            <button onClick={() => { onExecute(); onClose(); }}
-              style={{ ...S.btnPrimary, fontSize: 13 }}>
+            // Boto principal del detall: verd brillant per ressaltar l'accio.
+            <button
+              onClick={() => { onExecute(); onClose(); }}
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '8px 16px',
+                borderRadius: 8,
+                border: '1px solid #16a34a',
+                background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
+                color: '#fff',
+                cursor: 'pointer',
+                boxShadow: '0 4px 14px rgba(34,197,94,0.35)',
+                transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                fontFamily: 'var(--font)',
+              }}
+              onMouseEnter={e => {
+                (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 6px 18px rgba(34,197,94,0.45)';
+              }}
+              onMouseLeave={e => {
+                (e.currentTarget as HTMLElement).style.transform = '';
+                (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(34,197,94,0.35)';
+              }}
+            >
               <PlayIcon /> Executar ara
             </button>
           )}
@@ -1026,12 +1121,12 @@ const ScenarioGuide = () => {
  *   showModal:        true quan el modal crear/editar esta obert
  *   editScenario:     dades inicials del modal (null=crear, objecte=editar)
  *   deleteTarget:     escenari pendent d'eliminacio (mostra modal confirm)
- *   executeTarget:    escenari pendent d'execucio (mostra modal ExecuteModal)
+ *   executeTarget:    escenari pendent d'execució (mostra modal ExecuteModal)
  *   toast:            notificacio temporal (desapareix als 4s)
  *   runningMap:       mapa scenarioId -> runId dels runs actius al cluster
  *                     (actualitzat cada 6s per polling a l'orquestrador)
  *   sortKey/sortDir:  columna i direccio d'ordenacio actuals
- *   selectedIds:      set d'IDs seleccionats per execucio en lot (bulk)
+ *   selectedIds:      set d'IDs seleccionats per execució en lot (bulk)
  *   bulkExecuting:    true mentre s'estan llançant els escenaris en lot
  *   searchQuery:      text de cerca sobre nom/arquitectura/protocol/plataforma
  */
@@ -1050,13 +1145,13 @@ export const ScenariosPage = () => {
   const [deleteTarget,     setDeleteTarget]     = useState<Scenario | null>(null);
   const [executeTarget,    setExecuteTarget]    = useState<Scenario | null>(null);
   const [toast,            setToast]            = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  // runningMap: clau=scenarioId, valor=runId de l'execucio activa.
+  // runningMap: clau=scenarioId, valor=runId de l'execució activa.
   // S'usa per saber quins escenaris estan corrent ara mateix sense
   // haver de consultar el scenario-service (que no te aquesta info).
   const [runningMap,       setRunningMap]       = useState<Record<string, string>>({});
-  const [sortKey,          setSortKey]          = useState<string | null>(null);
-  const [sortDir,          setSortDir]          = useState<SortDir | null>(null);
-  // selectedIds: set per a execucio en lot. Nomes escenaris no en execucio.
+  const [sortKey,          setSortKey]          = useState<string | null>('createdAt');
+  const [sortDir,          setSortDir]          = useState<SortDir | null>('desc');
+  // selectedIds: set per a execució en lot. Nomes escenaris no en execució.
   const [selectedIds,      setSelectedIds]      = useState<Set<string>>(new Set());
   const [bulkExecuting,    setBulkExecuting]    = useState(false);
   const [searchQuery,      setSearchQuery]      = useState('');
@@ -1070,10 +1165,10 @@ export const ScenariosPage = () => {
   useEffect(() => { document.title = 'Escenaris | APIs Asíncrones'; }, []);
 
   /**
-   * Carrega el mapa d'execucions actives des de l'orquestrador.
+   * Carrega el mapa d'execucións actives des de l'orquestrador.
    * Filtra nomes els runs amb status 'running' o 'pending' i construeix
    * un mapa scenarioId -> runId per poder identificar rapidament quins
-   * escenaris estan en execucio sense fer N peticions individuals.
+   * escenaris estan en execució sense fer N peticions individuals.
    *
    * S'executa en muntar el component i cada 6s (polling lleuger).
    * 6s es un bon balanç: prou rapid per detectar canvis d'estat,
@@ -1192,8 +1287,8 @@ export const ScenariosPage = () => {
     setTimeout(fetchRunningMap, 5000); // reconfirma quan el pod esta arrencat
   };
 
-  // ── Seleccio per a execucio en lot ────────────────────────────────────────────
-  /** Toggle de seleccio d'un escenari individual per a execucio en lot. */
+  // ── Seleccio per a execució en lot ────────────────────────────────────────────
+  /** Toggle de seleccio d'un escenari individual per a execució en lot. */
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       const s = new Set(prev);
@@ -1219,7 +1314,7 @@ export const ScenariosPage = () => {
    *   - Cada llançament crea un namespace i un Job a Kubernetes.
    *   - Llançar molts Jobs alhora pot sobrecarregar el control plane d'AKS.
    *   - 800ms de delay entre llançaments dona temps a l'API server per processar.
-   * Nomes s'executen escenaris no en execucio (runningMap filtra els actius).
+   * Nomes s'executen escenaris no en execució (runningMap filtra els actius).
    */
   const handleBulkExecute = async () => {
     const toExecute = sortedFiltered.filter(s => s.id && selectedIds.has(s.id!) && !runningMap[s.id!]);
@@ -1304,14 +1399,29 @@ export const ScenariosPage = () => {
   });
   const isFiltered = filterArch !== 'all' || filterProto !== 'all' || filterPlatform !== 'all' || filterDataFormat !== 'all' || searchQuery.trim() !== '';
 
+  // ── Ordenacio de la taula ──────────────────────────────────────────────────
+  // Per defecte la taula s'ordena per data de creacio descendent (l'escenari
+  // mes nou apareix a dalt de tot). L'usuari pot canviar l'ordre clicant
+  // qualsevol capçalera; tornem a aplicar la mateixa logica:
+  //   - Camps de data (createdAt): comparem com a timestamps numerics
+  //   - Camps numerics: resta directe
+  //   - Camps de text: localeCompare amb idioma catala
   const sortedFiltered = sortKey == null
     ? filtered
     : [...filtered].sort((a, b) => {
         const av = (a as any)[sortKey] ?? '';
         const bv = (b as any)[sortKey] ?? '';
-        const cmp = typeof av === 'number' && typeof bv === 'number'
-          ? av - bv
-          : String(av).localeCompare(String(bv), 'ca');
+        let cmp = 0;
+        // Tractem les dates explicitament per evitar bugs amb cadenes buides
+        if (sortKey === 'createdAt') {
+          const ta = av ? new Date(String(av)).getTime() : 0;
+          const tb = bv ? new Date(String(bv)).getTime() : 0;
+          cmp = ta - tb;
+        } else if (typeof av === 'number' && typeof bv === 'number') {
+          cmp = av - bv;
+        } else {
+          cmp = String(av).localeCompare(String(bv), 'ca');
+        }
         return sortDir === 'desc' ? -cmp : cmp;
       });
 
@@ -1355,18 +1465,18 @@ export const ScenariosPage = () => {
 
       {/* ── Stats strip ────────────────────────────────────────────────────────
            CANVI: anteriorment hi havia 4 stats: Total, Predefinits, Propis,
-           En execucio. Els stats "Predefinits" i "Propis" s'han eliminat
+           En execució. Els stats "Predefinits" i "Propis" s'han eliminat
            perque eren soroll visual sense valor actionable:
              - "Predefinits": el usuari no pot canviar quants n'hi ha
-             - "Propis": ja esta implic en Total - En execucio
+             - "Propis": ja esta implic en Total - En execució
            Ara nomes es mostren Total (context general) i
-           "En execucio" (informacio d'estat en temps real, actionable).
+           "En execució" (informacio d'estat en temps real, actionable).
       ── */}
       {!loading && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
             { label: 'Total',       value: scenarios.length,              color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execucio', value: Object.keys(runningMap).length, color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
+            { label: 'En execució', value: Object.keys(runningMap).length, color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
@@ -1653,7 +1763,7 @@ export const ScenariosPage = () => {
                       <td style={{ ...S.td, textAlign: 'center' }}>
                         <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : st.bg, color: isRunning ? '#3b82f6' : st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
-                          {isRunning ? 'En execucio' : st.label}
+                          {isRunning ? 'En execució' : st.label}
                         </span>
                       </td>
                       <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
@@ -1662,14 +1772,16 @@ export const ScenariosPage = () => {
                       <td style={{ ...S.td, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
                           {isRunning ? (
-                            <button title="Aturar execucio" aria-label={`Aturar execucio de ${s.name}`} onClick={() => handleStopScenario(s)}
+                            <button title="Aturar execució" aria-label={`Aturar execució de ${s.name}`} onClick={() => handleStopScenario(s)}
                               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--error)' }}>
                               <StopIcon />
                             </button>
                           ) : (
                             <button title="Executar a AKS" aria-label={`Executar ${s.name} a AKS`} onClick={() => setExecuteTarget(s)}
-                              style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-fg)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--badge-green-fg)' }}>
-                              <PlayIcon />
+                              style={{ background: '#22c55e', border: '1px solid #16a34a', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, color: '#fff', fontFamily: 'var(--font)', fontSize: 11, fontWeight: 700, transition: 'all 0.18s ease', boxShadow: '0 2px 8px rgba(34,197,94,0.25)' }}
+                              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#16a34a'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-1px)'; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 12px rgba(34,197,94,0.35)'; }}
+                              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#22c55e'; (e.currentTarget as HTMLElement).style.transform = ''; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px rgba(34,197,94,0.25)'; }}>
+                              <PlayIcon /> Executar
                             </button>
                           )}
                           <button title="Duplicar escenari" aria-label={`Duplicar ${s.name}`} onClick={() => handleDuplicate(s)}

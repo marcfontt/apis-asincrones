@@ -1,36 +1,78 @@
+# ============================================================================
+# Elasticsearch — emmagatzematge de mètriques i catàleg
+#
+# Aquest pod actua com a backend de dades per a:
+#   - metrics-api      (índex async-metrics: snapshots dels load-generators)
+#   - catalog-service  (índex async-catalog: components predefinits)
+#   - scenario-service (índex async-scenarios: definicions d'escenaris)
+#
+# Notes de configuracio:
+#
+#   - discovery.type=single-node:
+#       Mode standalone, sense cluster. Suficient per al benchmark; en
+#       producció real caldria un cluster de >=3 nodes.
+#
+#   - xpack.security.enabled=false:
+#       Sense auth ni TLS. L'index és accessible només via Service ClusterIP
+#       (no exposat fora del cluster). Per al PFG aquesta simplificació és
+#       acceptable; un desplegament de producció hauria d'activar security.
+#
+#   - max_map_count:
+#       Linux fica el límit a 65530 per defecte i ES en demana 262144.
+#       L'initContainer `set-vm-max-map-count` el puja amb privilegis
+#       perquè ES no falli a l'arrencada amb "max virtual memory areas".
+#
+#   - probes:
+#       readinessProbe → ES marca el pod com a Ready quan respon /
+#       livenessProbe  → si ES penja >2 min seguits, K8s el reinicia
+#       startupProbe   → dona temps a la inicialitzacio inicial (fins 5 min)
+#
+#   - PVC:
+#       L'index està a /usr/share/elasticsearch/data sobre `elasticsearch-pvc`,
+#       que ara fa servir storageClassName=azure-retain (no es perd la dada
+#       si la PVC s'esborra accidentalment).
+# ============================================================================
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: elasticsearch
   namespace: apis-asincronas
+  labels:
+    app: elasticsearch
+    component: storage
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
-  revisionHistoryLimit: 10
+  revisionHistoryLimit: 5
   selector:
     matchLabels:
       app: elasticsearch
   strategy:
-    rollingUpdate:
-      maxSurge: 25%
-      maxUnavailable: 25%
-    type: RollingUpdate
+    type: Recreate  # Volum RWO: nomes pot estar muntat a un pod alhora
   template:
     metadata:
       labels:
         app: elasticsearch
+        component: storage
     spec:
       initContainers:
+      # Permisos del directori de dades: el container d'ES corre com a UID 1000
+      # i necessita escriure a /usr/share/elasticsearch/data.
       - name: fix-permissions
-        image: busybox
-        imagePullPolicy: Always
-        command:
-        - sh
-        - -c
-        - chown -R 1000:1000 /usr/share/elasticsearch/data
+        image: busybox:1.36
+        command: ['sh', '-c', 'chown -R 1000:1000 /usr/share/elasticsearch/data']
         volumeMounts:
         - name: data
           mountPath: /usr/share/elasticsearch/data
+        securityContext:
+          runAsUser: 0
+      # Pugem max_map_count al sistema: ES en necessita 262144 i Linux per
+      # defecte permet 65530, cosa que faria fallar el bootstrap d'ES.
+      - name: set-vm-max-map-count
+        image: busybox:1.36
+        command: ['sysctl', '-w', 'vm.max_map_count=262144']
+        securityContext:
+          privileged: true
       containers:
       - name: elasticsearch
         image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
@@ -41,17 +83,47 @@ spec:
         - name: xpack.security.enabled
           value: "false"
         - name: ES_JAVA_OPTS
-          value: -Xms512m -Xmx512m
+          # JVM heap: 1Gi (50% del memory limit de 2Gi, recomanat per ES).
+          value: -Xms1g -Xmx1g
+        - name: cluster.name
+          value: async-benchmarks
         ports:
-        - containerPort: 9200
+        - name: http
+          containerPort: 9200
+          protocol: TCP
+        - name: transport
+          containerPort: 9300
           protocol: TCP
         resources:
-          limits:
-            cpu: "1"
-            memory: 2Gi
           requests:
-            cpu: 250m
-            memory: 1Gi
+            cpu: 500m
+            memory: 2Gi
+          limits:
+            cpu: "2"
+            memory: 2Gi
+        # Probes: ajuden K8s a saber si ES esta llest, viu, o encara arrencant.
+        startupProbe:
+          httpGet:
+            path: /_cluster/health?local=true
+            port: http
+          # Permet fins a 5 minuts d'arrencada (30s * 10 intents)
+          periodSeconds: 30
+          failureThreshold: 10
+        readinessProbe:
+          httpGet:
+            path: /_cluster/health?local=true&wait_for_status=yellow&timeout=1s
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        livenessProbe:
+          httpGet:
+            path: /_cluster/health?local=true
+            port: http
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          failureThreshold: 6
+          timeoutSeconds: 10
         volumeMounts:
         - name: data
           mountPath: /usr/share/elasticsearch/data

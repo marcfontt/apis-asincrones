@@ -1,12 +1,30 @@
+# ============================================================================
+# PVC: emmagatzematge persistent per a Elasticsearch
+#
+# - storageClassName: azure-retain
+#     "retain" significa que el PV NO es destrueix automaticament si
+#     l'usuari esborra la PVC. Aixo evita perdre tot l'historial de
+#     metriques per accident; cal esborrar el disc manualment a Azure
+#     si es vol reciclar.
+#
+# - 10Gi:
+#     Cabuda generosa per a un benchmark amb molts runs llargs. Cada
+#     snapshot de metriques son uns ~1 KB; amb runs de 30 min i un
+#     snapshot cada 5s, son uns ~360 docs per run. 10 GB cobreixen
+#     >>100k execucions abans de quedar curt.
+# ============================================================================
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: elasticsearch-pvc
   namespace: apis-asincronas
+  labels:
+    app: elasticsearch
+    component: storage
 spec:
   accessModes:
   - ReadWriteOnce
-  storageClassName: default
+  storageClassName: azure-retain
   resources:
     requests:
       storage: 10Gi

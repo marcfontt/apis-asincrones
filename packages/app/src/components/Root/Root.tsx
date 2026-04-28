@@ -396,6 +396,19 @@ const THEME_KEYS = [
   'backstage-theme',                   // Versions molt antigues
 ];
 
+// Resol la preferència del sistema operatiu (només dark o light).
+// Es fa servir quan l'usuari té el tema en mode "auto".
+const obtenirTemaSistema = (): 'dark' | 'light' => {
+  try {
+    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      return 'dark';
+    }
+    return 'light';
+  } catch {
+    return 'light';
+  }
+};
+
 const applyTheme = () => {
   try {
     let id = 'light';
@@ -406,6 +419,11 @@ const applyTheme = () => {
         catch { id = raw; }
         break;
       }
+    }
+    // Si l'usuari tria "auto", seguim la preferència del sistema operatiu.
+    // Així el botó "Auto" deixa de ser inútil i fa el que diu el seu nom.
+    if (id === 'auto') {
+      id = obtenirTemaSistema();
     }
     document.documentElement.setAttribute('data-theme', id === 'dark' ? 'dark' : 'light');
   } catch {
@@ -426,12 +444,18 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
     // Escolta canvis de localStorage (quan l'usuari canvia el tema a Settings)
     window.addEventListener('storage', applyTheme);
 
+    // Si l'usuari té el tema en mode "auto", també hem de reaccionar quan
+    // canvia la preferència del sistema operatiu (dark/light).
+    const mediaQueryFosc = window.matchMedia('(prefers-color-scheme: dark)');
+    mediaQueryFosc.addEventListener('change', applyTheme);
+
     // Polling com a fallback: localStorage.setItem no dispara 'storage'
     // a la mateixa pestanya, per tant necessitem un interval curt
     const interval = setInterval(applyTheme, 300);
 
     return () => {
       window.removeEventListener('storage', applyTheme);
+      mediaQueryFosc.removeEventListener('change', applyTheme);
       clearInterval(interval);
     };
   }, []);

@@ -1,10 +1,23 @@
+# ============================================================================
+# PVC: emmagatzematge persistent per a Grafana
+#
+# Conté els dashboards desats per l'usuari, sessions, alertes i
+# qualsevol estat persistent que Grafana necessiti entre restarts.
+#
+# - storageClassName: azure-retain  → mateix patro que la PVC d'Elasticsearch
+# - 2Gi                              → suficient per a uns quants dashboards
+# ============================================================================
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: grafana-pvc
   namespace: apis-asincronas
+  labels:
+    app: grafana
+    component: observability
 spec:
-  accessModes: [ReadWriteOnce]
+  accessModes:
+  - ReadWriteOnce
   storageClassName: azure-retain
   resources:
     requests:

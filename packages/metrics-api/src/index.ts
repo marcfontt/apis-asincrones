@@ -14,6 +14,37 @@ const wss = new WebSocketServer({ server: httpServer });
 const es = new Client({ node: process.env.ELASTICSEARCH_URL || 'http://elasticsearch:9200' });
 const INDEX = 'async-metrics';
 
+// ── Inicialitzacio de l'index a Elasticsearch ─────────────────────────────────
+// Per defecte ES limita els resultats d'una sola search a 10.000 documents
+// (`index.max_result_window`). Els nostres benchmarks llargs poden acumular
+// molts mes punts de mostra, per tant pujem aquest limit a 1.000.000.
+// La consulta /metrics tambe pagina amb scroll per si encara cal mes.
+//
+// Aquesta funcio es idempotent: si l'index ja existeix nomes intenta
+// actualitzar la configuracio. Si falla per qualsevol motiu (permisos,
+// version mismatch...), nomes registrem un avis: la API segueix funcionant
+// pero amb el limit per defecte, cosa que no trenca res.
+async function inicialitzarIndexMostres(): Promise<void> {
+  try {
+    const existeix = await es.indices.exists({ index: INDEX });
+    if (!existeix) {
+      await es.indices.create({
+        index: INDEX,
+        body: { settings: { 'index.max_result_window': 1_000_000 } },
+      });
+      console.log(`[metrics-api] index "${INDEX}" creat amb max_result_window=1.000.000`);
+    } else {
+      await es.indices.putSettings({
+        index: INDEX,
+        body: { 'index.max_result_window': 1_000_000 },
+      });
+      console.log(`[metrics-api] index "${INDEX}" ja existia, max_result_window ajustat a 1.000.000`);
+    }
+  } catch (err: any) {
+    console.warn(`[metrics-api] no s'ha pogut ajustar max_result_window: ${err?.message || err}`);
+  }
+}
+
 // ── WebSocket: Live metrics per runId ─────────────────────────────────────────
 // Els clients es subscriuen amb: { action: "subscribe", runId: "xxx" }
 // La Metrics API fa broadcast quan rep POST /metrics
@@ -53,7 +84,21 @@ app.get('/health', (_req: Request, res: Response) => {
 });
 
 // ── GET /metrics — amb filtres ────────────────────────────────────────────────
-// Query params: runId, architecture, protocol, broker, gateway, scenarioId
+//
+// Retorna totes les mostres que coincideixen amb els filtres demanats.
+// La paginacio per defecte d'Elasticsearch te un sostre dur (10.000), pero
+// en aquest projecte volem mostres "il·limitades" perquè un benchmark llarg
+// pot acumular molts mes punts. Per aixo:
+//   1. Pujem `index.max_result_window` a 100.000 al crear l'index.
+//   2. Si l'usuari demana mes, fem servir la API de scroll per anar-ho
+//      paginant en blocs de 5.000 fins esgotar els resultats.
+//
+// Aixo elimina el sostre artificial de 10.000 mostres que confonia
+// l'usuari (li semblava que algunes execucions perdien dades).
+//
+// Query params suportats: runId, architecture, protocol, broker, gateway, scenarioId
+const TAMANY_PAGINA = 5_000;
+
 app.get('/metrics', async (req: Request, res: Response) => {
   try {
     const { runId, architecture, protocol, broker, gateway, scenarioId } = req.query;
@@ -68,12 +113,31 @@ app.get('/metrics', async (req: Request, res: Response) => {
 
     const query = must.length > 0 ? { bool: { must } } : { match_all: {} };
 
-    const result = await es.search({
+    // Primera pagina amb scroll obert (1 minut de TTL).
+    let resposta: any = await es.search({
       index: INDEX,
-      body: { query, size: 10000, sort: [{ timestamp: { order: 'asc' } }] },
+      scroll: '1m',
+      body: { query, size: TAMANY_PAGINA, sort: [{ timestamp: { order: 'asc' } }] },
     });
 
-    const hits = (result.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...h._source }));
+    let hits: any[] = (resposta.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...h._source }));
+    let scrollId: string | undefined = resposta._scroll_id;
+
+    // Continuem fins que ES ens deixi de tornar mostres.
+    while (scrollId && resposta.hits?.hits?.length === TAMANY_PAGINA) {
+      resposta = await es.scroll({ scroll_id: scrollId, scroll: '1m' });
+      const noves = (resposta.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...h._source }));
+      hits = hits.concat(noves);
+      scrollId = resposta._scroll_id;
+      // Petit fre de seguretat: no acumulem mai mes d'1M de docs en memoria.
+      if (hits.length >= 1_000_000) break;
+    }
+
+    // Tanquem el cursor de scroll explicitament per alliberar recursos a ES.
+    if (scrollId) {
+      try { await es.clearScroll({ scroll_id: scrollId }); } catch { /* best effort */ }
+    }
+
     res.json(hits);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -91,15 +155,30 @@ app.get('/metrics/compare', async (req: Request, res: Response) => {
     const results: Record<string, object[]> = {};
 
     for (const sid of ids) {
-      const result = await es.search({
+      // Usem la mateixa estrategia de scroll que GET /metrics per no
+      // perdre mostres en escenaris amb moltes execucions acumulades.
+      let resp: any = await es.search({
         index: INDEX,
+        scroll: '1m',
         body: {
           query: { match: { scenarioId: sid } },
-          size: 10000,
+          size: TAMANY_PAGINA,
           sort: [{ timestamp: { order: 'asc' } }],
         },
       });
-      results[sid] = (result.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...h._source }));
+      let hitsAcc: any[] = (resp.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...h._source }));
+      let scrollId: string | undefined = resp._scroll_id;
+      while (scrollId && resp.hits?.hits?.length === TAMANY_PAGINA) {
+        resp = await es.scroll({ scroll_id: scrollId, scroll: '1m' });
+        const noves = (resp.hits?.hits ?? []).map((h: any) => ({ id: h._id, ...h._source }));
+        hitsAcc = hitsAcc.concat(noves);
+        scrollId = resp._scroll_id;
+        if (hitsAcc.length >= 1_000_000) break;
+      }
+      if (scrollId) {
+        try { await es.clearScroll({ scroll_id: scrollId }); } catch { /* best effort */ }
+      }
+      results[sid] = hitsAcc;
     }
 
     res.json(results);
@@ -308,4 +387,10 @@ app.delete('/metrics/run/:runId', async (req: Request, res: Response) => {
 
 // ── Start ─────────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3004;
-httpServer.listen(PORT, () => console.log(`metrics-api listening on port ${PORT}`));
+httpServer.listen(PORT, async () => {
+  console.log(`metrics-api listening on port ${PORT}`);
+  // Cridem la inicialitzacio sense bloquejar l'arrencada del servidor.
+  // Si Elasticsearch encara no esta llest, ja ho tornarem a intentar al
+  // primer POST /metrics; aixi els clients no es queden penjats.
+  inicialitzarIndexMostres();
+});

@@ -66,7 +66,6 @@ spec:
 | Kafka        | EDA, EMA      | Kafka, AMQP       | Natiu   |
 | Confluent    | EDA, EMA      | Kafka, AMQP       | Compatible |
 | RabbitMQ     | QBA, EDA      | AMQP, MQTT        | No (pròximament) |
-| Pulsar       | EDA, EMA, SEA | Kafka, MQTT, AMQP | No (pròximament) |
 | NATS Server  | EDA, SEA, LCA | NATS, WebSockets  | No (pròximament) |
 
 ## Versions

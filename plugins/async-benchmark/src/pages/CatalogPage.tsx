@@ -80,6 +80,85 @@ const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   platform:     'Infraestructura de missatgeria que actua com a broker, gestionant la distribucio dels missatges.',
 };
 
+// ── Detalls de reproductibilitat per plataforma ───────────────────────────────
+// Aquesta taula explica COM està desplegat cada broker dins el cluster AKS:
+// quants nodes, quantes particions, quina memoria, etc. Es mostra al modal
+// de detall perque qualsevol pugui replicar el setup en local i obtenir
+// resultats comparables.
+//
+// Si en el futur el backend exposes aquesta info, podriem llegir-la d'alla.
+// De moment ho mantenim com a taula estatica per claredat.
+const DETALL_AKS_PER_PLATAFORMA: Record<string, Array<{ label: string; value: string }>> = {
+  'Apache Kafka': [
+    { label: 'Operador',     value: 'Strimzi 0.51.0' },
+    { label: 'Mode',         value: 'KRaft (sense Zookeeper)' },
+    { label: 'Nodes Kafka',  value: '3 brokers + 3 controllers' },
+    { label: 'Particions',   value: '3 per topic' },
+    { label: 'Replicació',   value: 'factor 2' },
+    { label: 'Namespace',    value: 'kafka-strimzi' },
+  ],
+  'Confluent Platform': [
+    { label: 'Imatge',       value: 'redpandadata/redpanda (Kafka API compatible)' },
+    { label: 'Nodes',        value: '1 broker (single-node)' },
+    { label: 'Particions',   value: '3 per topic' },
+    { label: 'Namespace',    value: 'brokers' },
+  ],
+  'RabbitMQ': [
+    { label: 'Imatge',       value: 'rabbitmq:3.13-management' },
+    { label: 'Mode',         value: 'single-node, plugin de management actiu' },
+    { label: 'Cuesa',        value: 'classic queues efimeres (autoDelete)' },
+    { label: 'Namespace',    value: 'brokers' },
+  ],
+  'NATS Server': [
+    { label: 'Imatge',       value: 'nats:2.10' },
+    { label: 'Mode',         value: 'single-node + JetStream' },
+    { label: 'max_payload',  value: '4 MB (cal aplicar k8s/brokers/nats-config.yaml)' },
+    { label: 'Namespace',    value: 'brokers' },
+  ],
+};
+
+// Detalls per als components d'arquitectura i protocol: explica EN QUE
+// es tradueix concretament la decisio quan s'executa el benchmark.
+const DETALL_AKS_PER_NOM: Record<string, Array<{ label: string; value: string }>> = {
+  'Event-Driven Architecture': [
+    { label: 'Implementació', value: 'Topic/queue per scenarioId, productors fire-and-forget' },
+    { label: 'Consumidors',   value: '1 consumidor per pod (escalat horitzontal opcional)' },
+  ],
+  'Queue-Based Architecture': [
+    { label: 'Implementació', value: 'Cua AMQP amb consumidors competidors' },
+    { label: 'ACKs',          value: 'manual al consumidor' },
+  ],
+  'Log-Centric Architecture': [
+    { label: 'Implementació', value: 'Log particionat (Kafka), offsets gestionats per group-id' },
+    { label: 'Consumidors',   value: 'group-id efimer per run' },
+  ],
+};
+
+/**
+ * Retorna la llista de files per al bloc de reproductibilitat del modal.
+ * Si no tenim cap detall pre-definit per aquest component, retorna null
+ * i el bloc no es renderitza.
+ */
+function obtenirDetallReproductibilitat(component: any): Array<{ label: string; value: string }> | null {
+  if (!component) return null;
+  const nom = String(component.name || '');
+  const detallExplicit = DETALL_AKS_PER_NOM[nom] || DETALL_AKS_PER_PLATAFORMA[nom];
+  if (detallExplicit) return detallExplicit;
+  // Detall generic: nomes mostrem nodes i namespace per orientar l'usuari.
+  if (component.category === 'platform') {
+    return [
+      { label: 'Cluster',   value: 'Azure Kubernetes Service (AKS) k8s 1.33.6' },
+      { label: 'Namespace', value: 'brokers' },
+    ];
+  }
+  if (component.category === 'architecture' || component.category === 'protocol') {
+    return [
+      { label: 'Implementació', value: 'definida per l\'escenari (vegeu pàgina Escenaris)' },
+    ];
+  }
+  return null;
+}
+
 const CATEGORY_IMPACTS: Record<string, string> = {
   architecture: 'Canvia el patro de circulacio del missatge i, per tant, la latencia habitual i la capacitat de desacoblament.',
   protocol: 'Canvia el llenguatge de transport i la manera d\'entregar o confirmar missatges. Afecta compatibilitat, latencia i fiabilitat.',
@@ -207,15 +286,46 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
 
         <div style={{ marginBottom: 20 }}>
           <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-            Detalls tecnics
+            Detalls tècnics
           </div>
           <Row label="Categoria"  value={label} />
           <Row label="Nom curt"   value={component.shortName || '-'} />
-          <Row label="Versio"     value={getVersion(component) || '-'} />
+          <Row label="Versió"     value={getVersion(component) || '-'} />
           {component.createdAt && (
             <Row label="Afegit el" value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
           )}
         </div>
+
+        {/*
+          Bloc de reproductibilitat: explica EXACTAMENT com esta desplegat
+          aquest component dins el cluster AKS. Ho fem perque qualsevol
+          tribunal o lector pugui replicar el setup en local i obtenir
+          els mateixos resultats.
+
+          Els valors son una taula estatica per categoria/plataforma.
+          Si en el futur volem extreure-ho del backend, aqui hi ha el
+          punt d'ancoratge.
+        */}
+        {(() => {
+          const detallReproductibilitat = obtenirDetallReproductibilitat(component);
+          if (!detallReproductibilitat) return null;
+          return (
+            <div style={{
+              marginBottom: 20,
+              padding: '12px 14px',
+              background: 'var(--bg-subtle)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+            }}>
+              <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+                Reproductibilitat al cluster AKS
+              </div>
+              {detallReproductibilitat.map(linia => (
+                <Row key={linia.label} label={linia.label} value={linia.value} />
+              ))}
+            </div>
+          );
+        })()}
 
         {/* ── Tags / etiquetes ── */}
         {component.tags && component.tags.length > 0 && (
@@ -515,65 +625,53 @@ export const CatalogPage = () => {
         })}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 20 }}>
-        <div style={{ ...S.card, background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(14,165,233,0.08) 100%)', borderColor: 'rgba(14,165,233,0.22)' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-            Combinacions base
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#0ea5e9', letterSpacing: '-0.03em', fontFamily: 'var(--font-mono)' }}>
-            {loading ? '-' : baseCombinationCount}
-          </div>
-          <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            {architectureCount} arquitectures x {protocolCount} protocols x {platformCount} plataformes disponibles per construir escenaris base.
-          </div>
-        </div>
-
-        <div style={{ ...S.card }}>
-          <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-            Vista actual
-          </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.03em', fontFamily: 'var(--font-mono)' }}>
-            {loading ? '-' : filtered.length}
-          </div>
-          <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            {activeFilterLabel}
-            {searchQuery.trim() && (
-              <span> · cerca: "{searchQuery.trim()}"</span>
-            )}
-          </div>
-          <div style={{ marginTop: 8, fontSize: 12, color: 'var(--text-disabled)' }}>
-            {loading ? 'Carregant catàleg...' : `${real.length} components publicats al catàleg operatiu.`}
-          </div>
-        </div>
-
-        <div style={{ ...S.card, borderColor: selectedComponent ? `${selectedColor}40` : 'var(--border)', background: selectedComponent ? `linear-gradient(135deg, var(--bg-card) 0%, ${selectedColor}0c 100%)` : 'var(--bg-card)' }}>
-          <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-            {selectedComponent ? 'Component seleccionat' : 'Proper pas'}
-          </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: selectedComponent ? selectedColor : 'var(--text-primary)', letterSpacing: '-0.02em', minHeight: 28 }}>
-            {selectedComponent ? selectedComponent.name : 'Tria un component'}
-          </div>
-          <div style={{ marginTop: 6, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            {selectedComponent
-              ? `Pots portar ${selectedComponent.name} a Escenaris per muntar una nova execució amb aquest focus.`
-              : 'Selecciona una fila per obrir el detall i després saltar directament a la creació d\'escenaris.'}
-          </div>
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {selectedComponent?.category && (
-              <span style={{ ...S.badge(selectedColor), fontSize: 11 }}>
-                {CATEGORY_LABELS[selectedComponent.category] || selectedComponent.category}
-              </span>
-            )}
-            {selectedComponent?.shortName && (
-              <code style={{ background: selectedColor + '12', border: `1px solid ${selectedColor}26`, color: selectedColor, padding: '2px 8px', borderRadius: 999, fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700 }}>
-                {selectedComponent.shortName}
-              </code>
-            )}
-            <a href="/escenaris?create=true" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 700, fontSize: 12 }}>
-              Crear escenari
-            </a>
-          </div>
-        </div>
+      {/*
+        Resum compacte del cataleg en una sola linia.
+        Abans hi havia tres targes grosses (Combinacions base / Vista actual /
+        Proper pas) que ocupaven moltissim espai. Ho hem reduit a una linia
+        discreta amb la mateixa informacio essencial, perque la taula del
+        cataleg sigui el protagonista i la pagina respiri millor.
+      */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 16,
+        flexWrap: 'wrap',
+        padding: '10px 14px',
+        marginBottom: 16,
+        background: 'var(--bg-subtle)',
+        border: '1px solid var(--border)',
+        borderRadius: 10,
+        fontSize: 13,
+        color: 'var(--text-secondary)',
+      }}>
+        <span>
+          <strong style={{ color: '#0ea5e9', fontFamily: 'var(--font-mono)' }}>{loading ? '-' : baseCombinationCount}</strong>
+          {' '}combinacions base
+          <span style={{ color: 'var(--text-disabled)', marginLeft: 6 }}>
+            ({architectureCount} arq. x {protocolCount} prot. x {platformCount} plat.)
+          </span>
+        </span>
+        <span style={{ color: 'var(--text-disabled)' }}>·</span>
+        <span>
+          <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{loading ? '-' : filtered.length}</strong>
+          {' '}visibles
+          <span style={{ color: 'var(--text-disabled)', marginLeft: 6 }}>
+            de {real.length} totals
+          </span>
+        </span>
+        {selectedComponent && (
+          <>
+            <span style={{ color: 'var(--text-disabled)' }}>·</span>
+            <span>
+              Seleccionat:{' '}
+              <strong style={{ color: selectedColor }}>{selectedComponent.name}</strong>
+              <a href="/escenaris?create=true" style={{ marginLeft: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700, fontSize: 12 }}>
+                Crear escenari →
+              </a>
+            </span>
+          </>
+        )}
       </div>
 
       {/* Missatge d'error (si la peticio ha fallat) */}
@@ -635,12 +733,16 @@ export const CatalogPage = () => {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={S.tableHeader}>
-              {/* Capçaleres clicables per a ordenacio */}
+              {/*
+                Columnes visibles a la taula del cataleg.
+                "Nom curt" i "Versio" les hem amagat per defecte: ocupaven
+                molt espai i quasi cap usuari les necessita d'un cop d'ull.
+                Aquesta informacio es mostra al modal de detall quan es clica
+                la fila (vegeu component DetailModal mes amunt).
+              */}
               <SortTh label="Nom"        sk="name"        current={sortKey} dir={sortDir} onSort={handleSort} />
               <SortTh label="Categoria"  sk="category"    current={sortKey} dir={sortDir} onSort={handleSort} />
               <SortTh label="Descripcio" sk="description" current={sortKey} dir={sortDir} onSort={handleSort} />
-              <SortTh label="Nom curt"   sk="shortName"   current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
-              <SortTh label="Versio"     sk="version"     current={sortKey} dir={sortDir} onSort={handleSort} extraStyle={{ textAlign: 'center' }} />
             </tr>
           </thead>
           <tbody>
@@ -648,7 +750,8 @@ export const CatalogPage = () => {
               // Skeleton loader: 8 files de 5 columnes
               Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i}>
-                  {[45, 25, 65, 18, 12].map((w, j) => (
+                  {/* Skeleton: 3 columnes (nom, categoria, descripcio) */}
+                  {[45, 25, 65].map((w, j) => (
                     <td key={j} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                       <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${i * 0.07}s` }} />
                     </td>
@@ -658,7 +761,7 @@ export const CatalogPage = () => {
             ) : filtered.length === 0 ? (
               // Estat buit: cap component que coincideixi
               <tr>
-                <td colSpan={5} style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
+                <td colSpan={3} style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
                   Cap component trobat.
                 </td>
               </tr>
@@ -666,7 +769,6 @@ export const CatalogPage = () => {
               const color      = CATEGORY_COLORS[c.category] || 'var(--accent)';
               const isSelected = selectedIdx === i;
               const isHovered  = hoveredRow === i;
-              const version    = getVersion(c);
               return (
                 <tr
                   key={c.id || i}
@@ -712,22 +814,13 @@ export const CatalogPage = () => {
                   </td>
 
                   {/* ── Descripcio truncada (maxWidth + ellipsis) ── */}
-                  <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
+                  {/*
+                    "Nom curt" i "Versio" deliberadament no es mostren a la taula.
+                    L'usuari els pot consultar al modal de detall (clic a la fila).
+                    Aixi la taula queda mes neta i centrada en el nom + descripcio.
+                  */}
+                  <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 540, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                     {c.description || <span style={{ color: 'var(--text-disabled)', fontStyle: 'italic' }}>Sense descripcio</span>}
-                  </td>
-
-                  {/* ── Nom curt en format codi (font mono) ── */}
-                  <td style={{ ...S.td, textAlign: 'center' }}>
-                    {c.shortName
-                      ? <code style={{ background: color + '14', border: '1px solid ' + color + '30', padding: '2px 9px', borderRadius: 5, color, fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700 }}>{c.shortName}</code>
-                      : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
-                  </td>
-
-                  {/* ── Versio en badge subtle ── */}
-                  <td style={{ ...S.td, textAlign: 'center' }}>
-                    {version
-                      ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)', background: 'var(--bg-subtle)', border: '1px solid var(--border)', padding: '2px 7px', borderRadius: 4 }}>v{version}</span>
-                      : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
                   </td>
                 </tr>
               );

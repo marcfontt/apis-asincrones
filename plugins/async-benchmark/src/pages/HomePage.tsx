@@ -468,17 +468,31 @@ export const HomePage = () => {
             Plataforma de Benchmark - AKS Live
           </div>
 
-          {/* Titol principal: nom de la plataforma amb rotador tipus typewriter */}
+          {/*
+            Titol principal demanat per l'usuari:
+            "Benchmarks reals sota la mateixa càrrega".
+            Hem dividit la frase en dues linies perque pugui anar amb el
+            typewriter de plataformes (Kafka, RabbitMQ, NATS...) i alhora
+            quedar visualment forta i clara per a un public no expert.
+          */}
           <h1 style={{ margin: '0 0 12px', fontSize: 34, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-            Benchmarks reals de{' '}
-            <Typewriter words={['Kafka', 'RabbitMQ', 'NATS', 'gRPC', 'MQTT']} color="#22c55e" />
+            Benchmarks reals{' '}
+            <span style={{ color: 'var(--text-primary)' }}>sota la mateixa càrrega</span>
             <br />
-            <span style={{ color: 'var(--text-primary)' }}>sota la mateixa càrrega.</span>
+            <span style={{ fontSize: 22, fontWeight: 600, color: 'var(--text-secondary)' }}>
+              comparant{' '}
+              <Typewriter words={['Kafka', 'RabbitMQ', 'NATS', 'Confluent', 'gRPC', 'MQTT']} color="#22c55e" />
+            </span>
           </h1>
 
-          {/* Descripcio: resum de que fa la plataforma en 2 frases */}
-          <p style={{ margin: '0 0 26px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 520 }}>
-            Compara arquitectures event-driven sobre Azure Kubernetes Service. Defineix un escenari, llança el benchmark i mesura P50, P99, throughput i errors en directe.
+          {/* Descripcio educativa: ara explica que fa la plataforma a algu
+              que no en sap res, no nomes a un expert. */}
+          <p style={{ margin: '0 0 26px', fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: 560 }}>
+            Una intranet d'aprenentatge i recerca per descobrir quines combinacions
+            d'arquitectura, protocol i plataforma de missatgeria asíncrona es comporten
+            millor segons el cas d'us. Defineix l'escenari, llança el benchmark sobre
+            Azure Kubernetes Service i compara latencia, throughput i taxa d'error en
+            directe.
           </p>
 
           {/* CTAs: tres botons d'accio */}
@@ -508,6 +522,180 @@ export const HomePage = () => {
                 {btn.label} {btn.primary && <IconArrow />}
               </a>
             ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── BASE CONCEPTUAL ──────────────────────────────────────────────────
+           Seccio educativa per a tribunal i alumnes que potser no coneixen
+           el detall tecnic de les APIs asincrones. Explica de zero:
+             - Que es API síncrona vs asíncrona
+             - Que es una arquitectura i un protocol
+             - Que volem dir per latencia, throughput i taxa d'error
+           Volem que la pagina pugui llegir-se sense obrir cap altra peça.
+      */}
+      <div style={{ ...fade(20), ...S.card, marginBottom: 22, padding: 28 }}>
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.08em', marginBottom: 6 }}>
+            Base conceptual
+          </div>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
+            Que cal saber abans de mirar els resultats
+          </h2>
+          <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: 720 }}>
+            Aquest portal compara plataformes de missatgeria asíncrona. Si mai
+            n'has llegit cap definicio, aquests son els conceptes minims que
+            necessites tenir clars per entendre les xifres.
+          </p>
+        </div>
+
+        {/* ── API síncrona vs asíncrona ── */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 14, marginBottom: 18 }}>
+          <div style={{ padding: 16, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#3b82f6', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6 }}>
+              API síncrona
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+              El client espera la resposta
+            </div>
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              Tu fas una crida (per exemple HTTP), el servidor processa la
+              feina i et retorna la resposta. Mentre dura, el codi del
+              client esta bloquejat. Es el patro classic de REST.
+            </p>
+          </div>
+          <div style={{ padding: 16, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#22c55e', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 6 }}>
+              API asíncrona
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
+              Missatges que viatgen sense esperar resposta directa
+            </div>
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              El productor publica un missatge en un broker (Kafka, NATS,
+              RabbitMQ...) i continua treballant immediatament. Un o mes
+              consumidors el llegeixen quan poden. Permet desacoblar
+              sistemes i escalar millor sota carregues fortes.
+            </p>
+          </div>
+        </div>
+
+        {/* ── Arquitectura, protocol, plataforma ── */}
+        <div style={{ marginTop: 6, padding: 16, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8 }}>
+            Anatomia d'un escenari de benchmark
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Arquitectura</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                El patro general de com flueixen les dades. Per exemple
+                <em> Event-Driven </em> (els components reaccionen a
+                esdeveniments) o <em>Queue-Based</em> (cua amb consumidors
+                competidors).
+              </p>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Protocol</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                El "llenguatge" tecnic per moure missatges: AMQP per a cues
+                tradicionals, MQTT per a IoT, Kafka per a logs particionats,
+                NATS per a fire-and-forget, etc.
+              </p>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>Plataforma</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                El broker concret que fem servir per executar el protocol:
+                Apache Kafka, RabbitMQ, NATS Server, Confluent... Cadascun
+                te els seus avantatges segons el cas d'us.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/*
+          Diagrama visual: com viatja un missatge.
+          Un esquema SVG curt productor → broker → consumidor amb cua
+          intermitja. L'objectiu es que algu que llegeix el portal per
+          primer cop entengui en 5 segons que mesurem quan parlem de
+          "latencia" (P→B→C) i "throughput" (msgs/s).
+        */}
+        <div style={{ padding: 16, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 18 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 10 }}>
+            Per on viatja un missatge
+          </div>
+          <svg viewBox="0 0 600 130" width="100%" style={{ maxWidth: 720, display: 'block', margin: '0 auto' }} role="img" aria-label="Diagrama de flux: productor envia un missatge al broker, que el lliura al consumidor.">
+            {/* Productor */}
+            <rect x="10" y="40" width="120" height="50" rx="8" fill="#3b82f6" opacity="0.15" stroke="#3b82f6" strokeWidth="1.5" />
+            <text x="70" y="65" textAnchor="middle" fontSize="13" fontWeight="700" fill="#3b82f6">Productor</text>
+            <text x="70" y="82" textAnchor="middle" fontSize="10" fill="#3b82f6" opacity="0.9">load-generator</text>
+
+            {/* Fletxa productor → broker */}
+            <line x1="135" y1="65" x2="225" y2="65" stroke="#22c55e" strokeWidth="1.8" strokeLinecap="round" />
+            <polygon points="225,60 235,65 225,70" fill="#22c55e" />
+            <text x="180" y="55" textAnchor="middle" fontSize="10" fill="var(--text-secondary)">publish</text>
+
+            {/* Broker */}
+            <rect x="240" y="25" width="120" height="80" rx="10" fill="#22c55e" opacity="0.15" stroke="#22c55e" strokeWidth="1.5" />
+            <text x="300" y="55" textAnchor="middle" fontSize="13" fontWeight="700" fill="#22c55e">Broker</text>
+            <text x="300" y="72" textAnchor="middle" fontSize="10" fill="#22c55e" opacity="0.9">Kafka / RabbitMQ /</text>
+            <text x="300" y="86" textAnchor="middle" fontSize="10" fill="#22c55e" opacity="0.9">NATS / Confluent</text>
+
+            {/* Cua / topic visual */}
+            <g>
+              <rect x="252" y="93" width="6" height="6" rx="1" fill="#22c55e" opacity="0.4" />
+              <rect x="262" y="93" width="6" height="6" rx="1" fill="#22c55e" opacity="0.6" />
+              <rect x="272" y="93" width="6" height="6" rx="1" fill="#22c55e" opacity="0.8" />
+              <rect x="282" y="93" width="6" height="6" rx="1" fill="#22c55e" />
+            </g>
+
+            {/* Fletxa broker → consumidor */}
+            <line x1="365" y1="65" x2="455" y2="65" stroke="#f59e0b" strokeWidth="1.8" strokeLinecap="round" />
+            <polygon points="455,60 465,65 455,70" fill="#f59e0b" />
+            <text x="410" y="55" textAnchor="middle" fontSize="10" fill="var(--text-secondary)">deliver</text>
+
+            {/* Consumidor */}
+            <rect x="470" y="40" width="120" height="50" rx="8" fill="#f59e0b" opacity="0.15" stroke="#f59e0b" strokeWidth="1.5" />
+            <text x="530" y="65" textAnchor="middle" fontSize="13" fontWeight="700" fill="#f59e0b">Consumidor</text>
+            <text x="530" y="82" textAnchor="middle" fontSize="10" fill="#f59e0b" opacity="0.9">load-generator</text>
+
+            {/* Etiqueta de latencia */}
+            <line x1="70" y1="115" x2="530" y2="115" stroke="var(--text-disabled)" strokeDasharray="3 3" />
+            <text x="300" y="125" textAnchor="middle" fontSize="11" fontWeight="600" fill="var(--text-secondary)">latència = temps total de viatge | throughput = missatges/s</text>
+          </svg>
+        </div>
+
+        {/* ── Que mesurem: definicions clau ── */}
+        <div style={{ padding: 16, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em', marginBottom: 8 }}>
+            Les tres mètriques que has d'entendre
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>Latencia</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                Quan triga un missatge des que es publica fins que el consumidor
+                el rep. Es mesura en mil·lisegons. Treballem amb percentils:
+                <strong> P50</strong> (mediana) i <strong>P99</strong> (el pitjor 1% dels casos).
+                Mes baix = millor.
+              </p>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#22c55e', marginBottom: 4 }}>Throughput</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                Quants missatges per segon es processen amb exit. Es la mesura
+                de "quanta carrega aguanta" la combinacio. Mes alt = millor.
+              </p>
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#ef4444', marginBottom: 4 }}>Taxa d'error</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                Percentatge de missatges que han fallat respecte als enviats
+                (caigudes, timeouts, rebutjos del broker...). Mes baix = millor;
+                idealment 0%.
+              </p>
+            </div>
           </div>
         </div>
       </div>
