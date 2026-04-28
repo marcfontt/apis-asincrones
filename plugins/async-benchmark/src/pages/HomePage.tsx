@@ -25,12 +25,15 @@ const pages = [
   { href: '/resultats', label: 'Resultats', desc: 'Compara latència, throughput, percentils i error rate.', Icon: IconResults, color: '#f59e0b' },
 ];
 
+// Flux que segueix cada missatge durant un benchmark.
+// L'ordre, els colors i els textos van pensats perque es llegeixin
+// d'esquerra a dreta en un sol cop d'ull. La latencia es el temps
+// total productor→consumidor; el throughput, els missatges per segon.
 const flow = [
-  { label: 'Productor', color: '#2563eb', text: 'Publica missatges amb una ràtio, payload i format definits.' },
-  { label: 'Broker', color: '#f59e0b', text: 'Kafka, Confluent, RabbitMQ o NATS Server distribueixen la càrrega.' },
-  { label: 'Protocol', color: '#8b5cf6', text: 'Kafka, AMQP, MQTT, gRPC, WS o NATS determinen el transport.' },
-  { label: 'Consumidor', color: '#22c55e', text: 'Rep els missatges i permet calcular latència i throughput.' },
-  { label: 'Mètriques', color: '#06b6d4', text: "Les mesures persistides construeixen el directe i l'historial." },
+  { label: 'Productor', color: '#2563eb', text: 'Publica missatges amb una ràtio (msg/s) i un payload definits a l\'escenari.' },
+  { label: 'Broker', color: '#f59e0b', text: 'Kafka, Confluent, RabbitMQ o NATS Server reben i distribueixen la càrrega dins l\'AKS.' },
+  { label: 'Protocol', color: '#8b5cf6', text: 'Kafka, AMQP, MQTT, gRPC, WS o NATS marquen com viatja cada missatge.' },
+  { label: 'Consumidor', color: '#22c55e', text: 'Rep els missatges; aqui es tanca el cicle i podem calcular latència i throughput.' },
 ];
 
 const metricCards = [
@@ -88,6 +91,24 @@ const FlowDiagram = () => (
         </div>
       ))}
     </div>
+
+    {/*
+      Anotacio visual de les dues metriques principals que surten del flux.
+      Latencia = temps de viatge productor→consumidor (ms).
+      Throughput = quants missatges es processen per segon.
+      Es pinta com a barra horitzontal sota les targes per reforcar
+      visualment que aquestes metriques mesuren tot el flux, no nomes una part.
+    */}
+    <div style={{ marginTop: 16, padding: '10px 14px', borderRadius: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border)', display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'center', fontSize: 12, color: 'var(--text-secondary)' }}>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 10, height: 10, borderRadius: 999, background: '#f59e0b' }} />
+        <strong style={{ color: 'var(--text-primary)' }}>Latència (ms)</strong>: temps total productor → consumidor.
+      </span>
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ width: 10, height: 10, borderRadius: 999, background: '#22c55e' }} />
+        <strong style={{ color: 'var(--text-primary)' }}>Throughput (msg/s)</strong>: missatges processats per segon de mitjana.
+      </span>
+    </div>
   </div>
 );
 
@@ -102,7 +123,7 @@ export const HomePage = () => {
   });
 
   useEffect(() => {
-    document.title = 'Home | Apis Asíncrones';
+    document.title = 'Home | App is Asynchronous';
   }, []);
 
   useEffect(() => {
@@ -148,13 +169,16 @@ export const HomePage = () => {
       }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 0.8fr)', gap: 24, alignItems: 'center' }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 38, lineHeight: 1.08, fontWeight: 850, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              Apis Asíncrones
+            {/*
+              Titol del portal: 'App is Asynchronous'.
+              Hem tret el subtitol antic 'Benchmarks reals sota la mateixa
+              carrega' per netejar la primera impressio. La descripcio sota
+              ja deixa clar que comparem combinacions broker/protocol/arq.
+            */}
+            <h1 style={{ margin: 0, fontSize: 40, lineHeight: 1.05, fontWeight: 900, letterSpacing: '-0.035em', color: 'var(--text-primary)' }}>
+              App is Asynchronous
             </h1>
-            <p style={{ margin: '10px 0 0', fontSize: 18, fontWeight: 700, color: '#22c55e' }}>
-              Benchmarks reals sota la mateixa càrrega
-            </p>
-            <p style={{ margin: '18px 0 24px', maxWidth: 720, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75 }}>
+            <p style={{ margin: '16px 0 24px', maxWidth: 720, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.75 }}>
               Portal Backstage per comparar, amb dades, combinacions de broker, protocol i arquitectura executades sobre AKS. L'objectiu no és veure una demo bonica, sinó entendre quin disseny funciona millor per cada perfil de càrrega.
             </p>
             <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
@@ -213,16 +237,25 @@ export const HomePage = () => {
           ))}
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
-          {EDUCATION.concepts.items.map(item => (
-            <div key={item.title} style={{ border: '1px solid var(--border)', borderRadius: 9, padding: 13, background: 'var(--bg-subtle)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 6 }}>
-                <span style={{ width: 8, height: 8, borderRadius: 999, background: item.accent }} />
-                <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)' }}>{item.title}</span>
-              </div>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.description}</p>
-            </div>
-          ))}
+        {/*
+          Bloc destacat: la diferencia entre 'missatge' i 'mesura'.
+          Es la confusio mes frequent quan algu obre el portal per primer
+          cop. Posar-la aqui, abans del flux i les metriques, fa que la
+          resta del text s'entengui millor.
+        */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12, marginTop: 4 }}>
+          <div style={{ border: '1px solid var(--border)', borderLeft: '3px solid #3b82f6', borderRadius: 9, padding: 14, background: 'var(--bg-subtle)' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#3b82f6', marginBottom: 6 }}>Missatge</div>
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Unitat real de càrrega</strong>: cada paquet que el productor envia al broker (un JSON financer, un frame de vídeo, una lectura IoT...). El comptador "missatges" indica quants n'han passat durant l'execució.
+            </p>
+          </div>
+          <div style={{ border: '1px solid var(--border)', borderLeft: '3px solid #22c55e', borderRadius: 9, padding: 14, background: 'var(--bg-subtle)' }}>
+            <div style={{ fontSize: 13, fontWeight: 800, color: '#22c55e', marginBottom: 6 }}>Mesura</div>
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>Punt de telemetria</strong> persistit cada pocs segons amb el resum d'aquell tram (latència mitjana, throughput, errors). L'historial agrega aquestes mesures, no els missatges un a un.
+            </p>
+          </div>
         </div>
       </section>
 

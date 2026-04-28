@@ -209,6 +209,93 @@ function obtenirDetallReproductibilitat(component: any): Array<{ label: string; 
   return null;
 }
 
+// ── Snippets de "com ho hem fet nosaltres" ─────────────────────────────────
+// Per a cada component clau, oferim un fragment senzill que un usuari
+// pot copiar i adaptar a un cluster propi. NO pretenen ser scripts
+// complets: son la peca minima per veure que estem fent.
+const SNIPPETS_REPRODUCTIBILITAT: Record<string, { titol: string; codi: string }> = {
+  'Apache Kafka': {
+    titol: 'Desplegar Kafka via Strimzi al cluster',
+    codi: [
+      '# 1) Operador Strimzi al seu propi namespace',
+      'kubectl create namespace kafka-strimzi',
+      "kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka-strimzi' -n kafka-strimzi",
+      '',
+      '# 2) Cluster Kafka i node pool del repositori',
+      'kubectl apply -f k8s/kafka/kafkanodepool.yaml -n kafka-strimzi',
+      'kubectl apply -f k8s/kafka/kafka-cluster.yaml -n kafka-strimzi',
+    ].join('\n'),
+  },
+  'Confluent Platform': {
+    titol: 'Desplegar Redpanda (Kafka API compatible)',
+    codi: [
+      'helm repo add redpanda https://charts.redpanda.com/',
+      'helm install redpanda redpanda/redpanda -n brokers \\',
+      '  --set storage.persistentVolume.size=5Gi',
+    ].join('\n'),
+  },
+  'RabbitMQ': {
+    titol: 'Desplegar RabbitMQ amb credencials per defecte',
+    codi: [
+      'helm repo add bitnami https://charts.bitnami.com/bitnami',
+      'helm install rabbitmq bitnami/rabbitmq -n brokers \\',
+      '  --set auth.username=admin \\',
+      '  --set auth.password=BenchmarkAdmin2024',
+    ].join('\n'),
+  },
+  'NATS Server': {
+    titol: 'Desplegar NATS amb max_payload=4MB (necessari per video-8k)',
+    codi: [
+      'helm repo add nats https://nats-io.github.io/k8s/helm/charts/',
+      'helm install nats nats/nats -n brokers --create-namespace \\',
+      '  --set config.max_payload=4MB',
+      '',
+      '# Verifica el limit despres del desplegament:',
+      'kubectl port-forward -n brokers svc/nats 8222:8222 &',
+      'curl -s http://127.0.0.1:8222/varz | grep max_payload',
+    ].join('\n'),
+  },
+  'Event-Driven Architecture': {
+    titol: 'Crear un escenari EDA des de la UI o per API',
+    codi: [
+      '# Via UI: pestanya Escenaris > Nou escenari > Arquitectura: EDA',
+      '# Via API:',
+      'curl -X POST http://catalog-service:3001/scenarios \\',
+      "  -H 'Content-Type: application/json' \\",
+      "  -d '{ \"name\":\"demo-eda\", \"architecture\":\"EDA\", \"platform\":\"Kafka\", \"protocol\":\"Kafka\", \"dataFormat\":\"default\" }'",
+    ].join('\n'),
+  },
+  'Queue-Based Architecture': {
+    titol: 'Crear un escenari QBA (cua + consumidors competidors)',
+    codi: [
+      'curl -X POST http://catalog-service:3001/scenarios \\',
+      "  -H 'Content-Type: application/json' \\",
+      "  -d '{ \"name\":\"demo-qba\", \"architecture\":\"QBA\", \"platform\":\"RabbitMQ\", \"protocol\":\"AMQP\", \"dataFormat\":\"financial\" }'",
+    ].join('\n'),
+  },
+  'Log-Centric Architecture': {
+    titol: 'Crear un escenari LCA (log particionat)',
+    codi: [
+      'curl -X POST http://catalog-service:3001/scenarios \\',
+      "  -H 'Content-Type: application/json' \\",
+      "  -d '{ \"name\":\"demo-lca\", \"architecture\":\"LCA\", \"platform\":\"Kafka\", \"protocol\":\"Kafka\", \"dataFormat\":\"video-4k\" }'",
+    ].join('\n'),
+  },
+};
+
+function obtenirSnippetReproductibilitat(component: any): { titol: string; codi: string } | null {
+  if (!component) return null;
+  const nom = String(component.name || '');
+  if (SNIPPETS_REPRODUCTIBILITAT[nom]) {
+    return SNIPPETS_REPRODUCTIBILITAT[nom];
+  }
+  const short = String(component.shortName || '');
+  if (SNIPPETS_REPRODUCTIBILITAT[short]) {
+    return SNIPPETS_REPRODUCTIBILITAT[short];
+  }
+  return null;
+}
+
 const CATEGORY_IMPACTS: Record<string, string> = {
   architecture: 'Canvia el patro de circulacio del missatge i, per tant, la latencia habitual i la capacitat de desacoblament.',
   protocol: 'Canvia el llenguatge de transport i la manera d\'entregar o confirmar missatges. Afecta compatibilitat, latencia i fiabilitat.',
@@ -358,7 +445,8 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
         */}
         {(() => {
           const detallReproductibilitat = obtenirDetallReproductibilitat(component);
-          if (!detallReproductibilitat) return null;
+          const snippet = obtenirSnippetReproductibilitat(component);
+          if (!detallReproductibilitat && !snippet) return null;
           return (
             <div style={{
               marginBottom: 20,
@@ -370,9 +458,63 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
               <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
                 Reproductibilitat al cluster AKS
               </div>
-              {detallReproductibilitat.map(linia => (
-                <Row key={linia.label} label={linia.label} value={linia.value} />
-              ))}
+
+              {detallReproductibilitat && (
+                <div style={{ marginBottom: snippet ? 14 : 0 }}>
+                  {detallReproductibilitat.map(linia => (
+                    <Row key={linia.label} label={linia.label} value={linia.value} />
+                  ))}
+                </div>
+              )}
+
+              {/*
+                "Com ho hem fet nosaltres": petit fragment que l'usuari
+                pot copiar i adaptar al seu cluster. No es una guia
+                completa, nomes la peca minima per replicar la nostra
+                configuracio. Inclou un boto explicit "Copiar" per
+                evitar que cal seleccionar el text a ma.
+              */}
+              {snippet && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {snippet.titol}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (navigator && navigator.clipboard) {
+                          navigator.clipboard.writeText(snippet.codi).catch(() => {});
+                        }
+                      }}
+                      style={{
+                        fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                        padding: '4px 10px', borderRadius: 6,
+                        border: '1px solid var(--border)', background: 'var(--bg-card)',
+                        color: 'var(--text-primary)', fontFamily: 'var(--font)',
+                      }}
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                  <pre style={{
+                    margin: 0,
+                    padding: 12,
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    fontSize: 12,
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--text-primary)',
+                    overflow: 'auto',
+                    maxHeight: 220,
+                    whiteSpace: 'pre' as const,
+                  }}>{snippet.codi}</pre>
+                  <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-disabled)', lineHeight: 1.45 }}>
+                    Aquest fragment és el mínim per replicar la nostra configuració. Adapta noms de namespace i credencials abans d'executar-ho.
+                  </div>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -453,12 +595,14 @@ const SortTh = ({ label, sk, current, dir, onSort, extraStyle }: {
     >
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {label}
-        {/* Indicador de direccio: fletxes de color accent quan actiu */}
-        <span style={{ fontSize: 12, color: active ? 'var(--accent)' : 'var(--text-disabled)', position: 'relative' }}>
-          <span aria-hidden="true">{active && dir === 'asc' ? '↑' : active && dir === 'desc' ? '↓' : '↕'}</span>
-          <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
-            {active ? (dir === 'asc' ? 'ordre ascendent' : 'ordre descendent') : 'ordenable'}
-          </span>
+        {/*
+          Indicador de direccio. Nomes una fletxa, sense text "ascendent"
+          ni "descendent" (l'aria-sort de la <th> ja ho cobreix per a
+          lectors de pantalla). Aixi evitem que algun renderitzat mostri
+          accidentalment etiquetes "UP/UD" sobre la capçalera.
+        */}
+        <span aria-hidden="true" style={{ fontSize: 12, color: active ? 'var(--accent)' : 'var(--text-disabled)' }}>
+          {active && dir === 'asc' ? '↑' : active && dir === 'desc' ? '↓' : '↕'}
         </span>
       </span>
     </th>

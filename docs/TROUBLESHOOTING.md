@@ -127,39 +127,103 @@ Si tornes a veure el sostre, comprova:
 
 ### NATS rebutja missatges grans (`NATS_MAX_PAYLOAD_EXCEEDED`)
 
-**Quan passa**: format `video-8k` (~2 MB) sobre NATS Server amb
-configuració per defecte (`max_payload=1MB`).
+> Aquesta és la causa de gairebé tots els errors NATS + vídeo 8K que
+> hem vist al portal. Si encara apareix, vol dir que el `max_payload`
+> del NATS Server al cluster encara no s'ha pujat. Segueix aquesta
+> seqüència sense saltar passos.
 
-**Solució**:
+**Quan passa**: format `video-8k` (~2 MB / 2.000.000 bytes) sobre NATS
+Server amb configuració per defecte (`max_payload = 1.048.576` bytes,
+és a dir, 1 MB). El load-generator detecta abans de publicar que el
+seu `msgSize` excedeix el límit anunciat pel servidor i avorta amb
+`NATS_MAX_PAYLOAD_EXCEEDED`.
+
+**Diagnòstic ràpid (1 minut)**:
 
 ```bash
-# Via Helm
-helm upgrade nats nats/nats -n brokers --reuse-values --set config.max_payload=4MB
+# Mostra el limit actual del NATS Server tal com es presenta als clients
+kubectl port-forward -n brokers svc/nats 8222:8222 >/dev/null 2>&1 &
+PF_PID=$!
+sleep 2
+curl -s http://127.0.0.1:8222/varz | grep -E '"max_payload"'
+kill $PF_PID 2>/dev/null
+```
 
-# Via ConfigMap manual
+- Si veus `"max_payload": 1048576` (= 1 MB) → és la causa de l'error.
+- Si veus `"max_payload": 4194304` (= 4 MB) → el problema és un altre
+  (mira el bloc "Si encara falla amb 4 MB" més avall).
+
+**Solució (tria la que correspongui al teu mètode d'instal·lació)**:
+
+#### A. Si NATS s'ha instal·lat amb Helm (recomanat)
+
+```bash
+# Aplica el nou limit i reinicia els pods
+helm upgrade nats nats/nats -n brokers --reuse-values \
+  --set config.max_payload=4MB
+
+# Confirma que els pods s'han reiniciat
+kubectl rollout status statefulset/nats -n brokers
+```
+
+#### B. Si NATS s'ha instal·lat amb un manifest manual (Deployment o StatefulSet propi)
+
+```bash
+# 1) ConfigMap del repositori
 kubectl apply -f k8s/brokers/nats-config.yaml
-kubectl rollout restart statefulset/nats -n brokers
+
+# 2) Reinicia el workload (escull la línia que correspongui)
+kubectl rollout restart statefulset/nats -n brokers   # cas comú via Helm
+kubectl rollout restart deployment/nats   -n brokers  # si el chart fa servir Deployment
+
+# 3) Confirma
+kubectl rollout status statefulset/nats -n brokers
 ```
 
-**Verifica** que el límit ha pujat:
+#### C. Si no saps quin tipus de workload tens
 
 ```bash
-kubectl port-forward -n brokers svc/nats 4222:4222
-# en un altre terminal:
-nats server info  # max_payload hauria de mostrar 4194304
+kubectl -n brokers get all | grep -i nats
 ```
 
-Si no tens la CLI de NATS, consulta l endpoint HTTP del broker:
+L'output et dirà si és `statefulset.apps/nats` o `deployment.apps/nats`,
+i així pots fer `rollout restart` al recurs correcte.
+
+**Verifica que el nou límit s'ha aplicat**:
 
 ```bash
-kubectl port-forward -n brokers svc/nats 8222:8222
-curl http://127.0.0.1:8222/varz
+# Mètode 1: amb la CLI nats (si la tens)
+kubectl port-forward -n brokers svc/nats 4222:4222 &
+nats server info  # ha de mostrar Max Payload: 4 MB
+
+# Mètode 2: HTTP /varz (sempre disponible, no cal CLI extra)
+kubectl port-forward -n brokers svc/nats 8222:8222 &
+curl -s http://127.0.0.1:8222/varz | grep max_payload
+# Esperat: "max_payload": 4194304
 ```
 
-Al JSON retornat, `max_payload` ha de ser com a minim `4194304`.
+**Llança un escenari de prova per validar el fix**:
 
-A la UI de Escenaris, si tries NATS + vídeo 8K, surt un avís taronja
-recordant aquest fix.
+1. UI → Escenaris → "Nou escenari"
+2. Plataforma: NATS Server, Protocol: NATS, Format: Vídeo 8K
+3. Durada: 60 s, deixa la resta per defecte
+4. Executa i observa la pestanya **Execucions**: l'estat ha de
+   passar de `pending` → `running` → `completed` (no `failed`).
+
+**Si encara falla amb 4 MB**:
+
+- Comprova que el pod s'ha reiniciat de veritat:
+  `kubectl get pod -n brokers -l app.kubernetes.io/name=nats -o wide`
+  (la columna `AGE` ha d'indicar segons o minuts, no hores).
+- Si el pod no ha rebut la nova config, el ConfigMap potser està
+  muntat en un volum stale: descriu el pod i comprova el `command`.
+- Repassa el preflight del load-generator a
+  `packages/load-generator/src/natsPreflight.ts`. Pots llegir-lo per
+  confirmar quin valor agafa de `info.max_payload`.
+
+A la UI de Escenaris, si tries NATS + vídeo 8K, ja surt un avís
+taronja amb un enllaç a aquest mateix bloc. No el ignoris si no
+estàs segur que el cluster ja té el límit pujat.
 
 ### RabbitMQ no accepta connexions
 

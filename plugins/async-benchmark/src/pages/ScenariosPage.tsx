@@ -110,6 +110,26 @@ const DATA_FORMAT_COLORS: Record<string, string> = {
   'iot':       '#16a34a',
 };
 
+// ── Valors per defecte que aplica el load-generator quan rate/payload son null ──
+// Aquesta taula reflecteix EXACTAMENT el que fa el backend a
+// `packages/benchmark-orchestrator/src/index.ts` (DATA_FORMAT_CONFIG).
+// La duplicacio es deliberada: aixi la UI pot dir clarament a l'usuari
+// quins numeros agafara el mode indefinit sense haver de cridar al
+// backend abans d'arrencar el run.
+const DEFAULTS_FORMAT: Record<string, { ratio: number; payloadBytes: number; hint: string }> = {
+  'default':   { ratio: 100, payloadBytes:    256,    hint: 'Volum estable, mida moderada.' },
+  'video-4k':  { ratio: 10,  payloadBytes: 500_000,    hint: 'Frames pesats: priorització de throughput.' },
+  'video-8k':  { ratio: 4,   payloadBytes: 2_000_000,  hint: 'Necessita brokers amb max_payload >= 4 MB.' },
+  'financial': { ratio: 200, payloadBytes:    512,    hint: 'Missatges petits, alta freqüència.' },
+  'iot':       { ratio: 500, payloadBytes:     64,    hint: 'Payload mínim, ràtio molt alta.' },
+};
+
+const formatBytesFriendly = (bytes: number): string => {
+  if (bytes >= 1_000_000) return (bytes / 1_000_000).toFixed(1) + ' MB';
+  if (bytes >= 1_000)     return (bytes / 1_000).toFixed(1) + ' KB';
+  return bytes + ' B';
+};
+
 const PROTOCOL_COLORS: Record<string, string> = {
   'Kafka':  '#ef4444',
   'AMQP':   '#f97316',
@@ -579,11 +599,42 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
               <input style={{ ...S.input }} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} disabled={indefinite} />
             </div>
           </div>
-          {indefinite && (
-            <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, padding: '9px 14px', fontSize: 12, color: 'var(--text-secondary)' }}>
-              <strong style={{ color: 'var(--accent)' }}>Mode Indefinit activat:</strong> L'escenari s'executarà <strong style={{ color: 'var(--text-primary)' }}>sense límit de durada</strong> fins que l'aturis manualment. S'utilitzen els valors per defecte del format de dades seleccionat (ratio i mida de payload). El directe es reseteja a zero i l'històric acumula tantes mostres com generi l'execució mentre estigui activa.
-            </div>
-          )}
+          {indefinite && (() => {
+            // Mostrem els valors EXACTES que aplicara el load-generator
+            // segons el format de dades triat. Aixi l'usuari sap que estara
+            // generant sense haver de mirar el codi del backend.
+            const claveFormat = (form.dataFormat || 'default') as keyof typeof DEFAULTS_FORMAT;
+            const defs = DEFAULTS_FORMAT[claveFormat] || DEFAULTS_FORMAT.default;
+            return (
+              <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, padding: '12px 14px', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                <div style={{ marginBottom: 8 }}>
+                  <strong style={{ color: 'var(--accent)' }}>Mode Indefinit activat.</strong>{' '}
+                  L'escenari s'executarà <strong style={{ color: 'var(--text-primary)' }}>sense límit de durada</strong> fins que l'aturis manualment.
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, padding: '8px 10px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 7, marginBottom: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Durada</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>∞ fins aturar</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Ràtio</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{defs.ratio} msg/s</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Payload</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{formatBytesFriendly(defs.payloadBytes)}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Format</div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{DATA_FORMAT_LABELS[claveFormat] || claveFormat}</div>
+                  </div>
+                </div>
+                <div>
+                  {defs.hint} El directe es reinicia a zero i l'històric només suma mesures mentre l'execució està activa.
+                </div>
+              </div>
+            );
+          })()}
 
           <div>
             <label style={lbl}>Format de dades</label>
