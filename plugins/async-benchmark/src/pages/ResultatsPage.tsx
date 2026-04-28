@@ -43,7 +43,7 @@ import { S, GLOBAL_CSS } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { EDUCATION } from '../shared/content/education';
 import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
-import { aggregateScenarioHistory, getScenarioMeasureCount, getRunMessageCount } from '../shared/results/historyMetrics';
+import { aggregateScenarioHistory, getRunMeasureCount, getRunMessageCount, getRunSentCount, getScenarioMeasureCount } from '../shared/results/historyMetrics';
 import { buildScenarioHistoryDetail } from '../shared/results/scenarioDetail';
 
 // ---------------------------------------------------------------------------
@@ -157,9 +157,16 @@ const PROTOCOL_COLORS: Record<string, string> = {
   'MQTT': '#eab308',
   'gRPC': '#8b5cf6',
   'WS': '#3b82f6',
-  'SSE': '#06b6d4',
   'NATS': '#22c55e',
-  'CoAP': '#10b981',
+};
+
+const VISIBLE_PROTOCOLS = ['Kafka', 'AMQP', 'MQTT', 'gRPC', 'WS', 'NATS'];
+
+const isVisibleHistoricalItem = (item: any): boolean => {
+  const protocol = String(item.protocol || '');
+  if (protocol && !VISIBLE_PROTOCOLS.includes(protocol)) return false;
+  const platform = String(item.platform || item.broker || '').toLowerCase();
+  return !platform.includes('pulsar');
 };
 
 /**
@@ -976,7 +983,7 @@ const HistorialTab = () => {
 
   // History is sourced only from persisted metrics. This guarantees that only
   // executed scenarios with stored summary documents appear in this tab.
-  const syncedSummary = summary.filter(s => !!s.scenarioId);
+  const syncedSummary = summary.filter(s => !!s.scenarioId && isVisibleHistoricalItem(s));
 
   /**
    * Resolves the data format for a summary item.
@@ -988,7 +995,7 @@ const HistorialTab = () => {
 
   // Derive unique filter option values from the full (unfiltered) summary set
   const availPlatforms = [...new Set(syncedSummary.map((s: any) => normalizePlatform(s.platform || s.broker) || '').filter(Boolean))];
-  const availProtocols = [...new Set(syncedSummary.map((s: any) => s.protocol || '').filter(Boolean))];
+  const availProtocols = [...new Set(syncedSummary.map((s: any) => s.protocol || '').filter((value: string) => Boolean(value) && VISIBLE_PROTOCOLS.includes(value)))];
   const availArchs = [...new Set(syncedSummary.map((s: any) => s.architecture || '').filter(Boolean))];
   const availDataFormats = [...new Set(syncedSummary.map(dataFormatOf).filter(Boolean))];
 
@@ -1002,6 +1009,7 @@ const HistorialTab = () => {
   // Apply all active filters to the full summary set
   const filteredSummary = syncedSummary.filter(s => {
     const platform = normalizePlatform(s.platform || s.broker) || '';
+    if (!isVisibleHistoricalItem(s)) return false;
     if (filterPlatform.length && !filterPlatform.includes(platform)) return false;
     if (filterProtocol.length && !filterProtocol.includes(s.protocol || '')) return false;
     if (filterArch.length && !filterArch.includes(s.architecture || '')) return false;
@@ -1721,36 +1729,68 @@ const HistorialTab = () => {
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-disabled)', fontWeight: 700 }}>
                           <th style={{ padding: '6px 8px', textAlign: 'left' }}>Run ID</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Estat</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right' }}>Inici</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Mostres</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Latència</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Durada</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Mesures</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Missatges</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>P50</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>P95</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>P99</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Latencia</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right' }}>Throughput</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right' }}>Error %</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedScenarioDetail.runs.map((run: any) => (
-                          <tr key={run.runId || run.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)' }}>
-                              {String(run.runId || run.id || '').slice(0, 12)}
-                            </td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', color: 'var(--text-secondary)' }}>
-                              {run.startedAt ? new Date(run.startedAt).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
-                            </td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                              {getRunMessageCount(run).toLocaleString('ca-ES')}
-                            </td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                              {run.avgLatency != null ? `${Number(run.avgLatency).toFixed(2)} ms` : '-'}
-                            </td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                              {run.avgThroughput != null ? `${Number(run.avgThroughput).toFixed(1)}` : '-'}
-                            </td>
-                            <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: run.avgErrorRate > 0 ? 'var(--error)' : 'var(--text-secondary)' }}>
-                              {run.avgErrorRate != null ? `${Number(run.avgErrorRate).toFixed(2)}` : '-'}
-                            </td>
-                          </tr>
-                        ))}
+                        {selectedScenarioDetail.runs.map((run: any) => {
+                          const started = run.startedAt ? Date.parse(run.startedAt) : 0;
+                          const ended = run.endedAt ? Date.parse(run.endedAt) : 0;
+                          const duration = started && ended && ended >= started ? `${Math.round((ended - started) / 1000)} s` : '-';
+                          const sent = getRunSentCount(run);
+                          const recv = getRunMessageCount(run);
+                          const failed = run.status === 'failed' || run.status === 'error';
+                          return (
+                            <tr key={run.runId || run.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                              <td style={{ padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--text-secondary)' }}>
+                                {String(run.runId || run.id || '').slice(0, 12)}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', color: failed ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 700 }}>
+                                {run.status || '-'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', color: 'var(--text-secondary)' }}>
+                                {run.startedAt ? new Date(run.startedAt).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                                {duration}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                                {getRunMeasureCount(run).toLocaleString('ca-ES')}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                                {recv.toLocaleString('ca-ES')} / {sent.toLocaleString('ca-ES')}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                                {run.p50Latency != null ? `${Number(run.p50Latency).toFixed(2)} ms` : '-'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                                {run.p95Latency != null ? `${Number(run.p95Latency).toFixed(2)} ms` : '-'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                                {run.p99Latency != null ? `${Number(run.p99Latency).toFixed(2)} ms` : '-'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                                {run.avgLatency != null ? `${Number(run.avgLatency).toFixed(2)} ms` : '-'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
+                                {run.avgThroughput != null ? `${Number(run.avgThroughput).toFixed(1)} msg/s` : '-'}
+                              </td>
+                              <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)', color: run.avgErrorRate > 0 ? 'var(--error)' : 'var(--text-secondary)' }}>
+                                {run.avgErrorRate != null ? `${Number(run.avgErrorRate).toFixed(2)}` : '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>

@@ -3,130 +3,142 @@ export const EDUCATION = {
     eyebrow: 'Base conceptual',
     title: 'API síncrona vs API asíncrona',
     description:
-      'La Home ha d\'explicar el perquè del portal abans d\'ensenyar dades. Aquest resum situa l\'usuari en el model mental correcte.',
+      'Una API defineix com dos sistemes es comuniquen. En una API síncrona el client espera la resposta; en una API asíncrona el productor deixa un missatge i el processament continua per un altre camí.',
     items: [
       {
         title: 'API síncrona',
         accent: '#3b82f6',
         summary:
-          'El client espera una resposta immediata i el flux queda bloquejat fins que el servidor respon.',
+          'El client envia una petició i queda esperant fins que el servidor retorna una resposta.',
         bullets: [
-          'Ideal per consultes curtes i interaccions directes.',
-          'El temps de resposta impacta directament la UX.',
-          'Escala pitjor quan hi ha molts processos llargs o desacoblats.',
+          'Funciona bé per consultes curtes i operacions directes.',
+          "El temps de resposta impacta immediatament l'usuari o el servei client.",
+          'Escala pitjor quan la feina és llarga o quan cal desacoblar productors i consumidors.',
         ],
       },
       {
         title: 'API asíncrona',
         accent: '#22c55e',
         summary:
-          'El productor publica un missatge i el processament continua en paral·lel sense esperar una resposta immediata.',
+          'El productor publica un missatge en un broker i pot continuar sense esperar que el consumidor acabi la feina.',
         bullets: [
-          'Permet desacoblar serveis i repartir càrrega.',
-          'La latència i el throughput depenen del broker, el protocol i l\'arquitectura.',
-          'És el model que comparem en aquest portal per veure quina combinació rendeix millor.',
+          'Desacobla serveis i absorbeix pics de càrrega.',
+          "El rendiment depèn del broker, del protocol, de l'arquitectura i del format de dades.",
+          'És el model que comparem en aquest portal amb benchmarks reals sobre AKS.',
         ],
       },
     ],
   },
   asyncFlow: {
-    eyebrow: 'Com es construeix un escenari',
-    title: 'De la definició al resultat',
+    eyebrow: 'Flux del benchmark',
+    title: 'Del productor al consumidor',
     description:
-      'Cada execució combina decisions tècniques diferents. El portal serveix per provar-les en AKS i comparar-ne el comportament.',
+      "Cada escenari executa el mateix flux lògic: un productor envia missatges, el broker els distribueix i un consumidor els rep. Les mètriques indiquen com s'ha comportat aquesta cadena sota càrrega.",
     steps: [
       {
-        label: 'Arquitectura',
+        label: 'Productor',
         accent: '#2563eb',
         description:
-          'Defineix el patró de comunicació: EDA, QBA, LCA, EMA o SEA. Marca com circulen els esdeveniments.',
+          'Genera missatges amb un format, payload i ràtio concrets. La configuració es defineix a Escenaris.',
+      },
+      {
+        label: 'Broker o plataforma',
+        accent: '#f59e0b',
+        description:
+          'Kafka, Confluent, RabbitMQ o NATS Server reben i distribueixen els missatges dins del clúster AKS.',
       },
       {
         label: 'Protocol',
         accent: '#8b5cf6',
         description:
-          'Defineix el llenguatge de transport: Kafka, AMQP, MQTT, gRPC o NATS. Afecta latència, compatibilitat i model de lliurament.',
+          'Defineix com circula el missatge: Kafka, AMQP, MQTT, gRPC, WS o NATS.',
       },
       {
-        label: 'Plataforma',
-        accent: '#f59e0b',
-        description:
-          'És el broker o implementació real: RabbitMQ, NATS Server, Kafka o Confluent. Aquí es veu el comportament real al clúster.',
-      },
-      {
-        label: 'Telemetria',
-        accent: '#06b6d4',
-        description:
-          'El load-generator envia punts periòdics amb latència, throughput, errors i percentils. Aquestes són les mesures que veus als resultats.',
-      },
-      {
-        label: 'Comparativa',
+        label: 'Consumidor',
         accent: '#22c55e',
         description:
-          'L\'historial agrega les execucions visibles i calcula una puntuació relativa segons el format de dades i el pes de cada mètrica.',
+          'Rep els missatges i permet calcular latència end-to-end, throughput i errors.',
+      },
+      {
+        label: 'Mesures',
+        accent: '#06b6d4',
+        description:
+          'Cada pocs segons es persisteix un punt de telemetria del run. Una mesura no és un missatge individual.',
       },
     ],
   },
   concepts: {
     eyebrow: 'Llenguatge del portal',
-    title: 'Què vol dir cada concepte',
+    title: "Conceptes que es fan servir a tota l'app",
     description:
-      'Aquests termes es repeteixen a Catàleg, Escenaris, Execucions i Resultats. Cal que tinguin el mateix significat a tota l\'app.',
+      "Aquests termes tenen el mateix significat a Home, Catàleg, Escenaris, Execucions i Resultats.",
     items: [
       {
         title: 'Arquitectura',
         accent: '#2563eb',
         description:
-          'Patró de disseny amb què es distribueixen els missatges entre productors i consumidors. No és el broker, sinó la forma de treballar.',
+          "Patró de disseny que explica com s'organitzen productors, brokers i consumidors. No és el broker, sinó la forma de treballar.",
       },
       {
         title: 'Protocol',
         accent: '#8b5cf6',
         description:
-          'Regles de comunicació entre serveis i broker. Determina com es publiquen, es consumeixen i es confirmen els missatges.',
+          'Regles de transport i lliurament del missatge. Afecta compatibilitat, confirmacions, latència i model de consum.',
       },
       {
-        title: 'Telemetria',
-        accent: '#06b6d4',
+        title: 'Broker',
+        accent: '#f59e0b',
         description:
-          'Conjunt de mètriques recollides durant l\'execució. S\'obtenen des del load-generator i es persisteixen perquè es puguin comparar.',
+          'Plataforma de missatgeria que rep, emmagatzema o distribueix missatges. En aquest portal comparem Kafka, Confluent, RabbitMQ i NATS Server.',
+      },
+      {
+        title: 'Missatge',
+        accent: '#3b82f6',
+        description:
+          'Unitat de càrrega enviada pel productor i rebuda pel consumidor. Pot tenir payload petit, JSON financer, telemetria IoT o dades de vídeo.',
       },
       {
         title: 'Mesura',
         accent: '#22c55e',
         description:
-          'Punt de telemetria guardat cada pocs segons. Una mesura no és un missatge individual: és un resum temporal del comportament del run.',
+          "Punt de telemetria guardat periòdicament durant un run. Resumeix molts missatges i serveix per construir l'historial.",
+      },
+      {
+        title: 'Reproducibilitat',
+        accent: '#06b6d4',
+        description:
+          'Capacitat de repetir una prova amb les mateixes versions, configuració AKS, escenari, durada, ràtio i payload per comparar resultats defensables.',
       },
     ],
   },
   resultsGuide: {
     title: 'Guia de mesures, mètriques i puntuació',
     intro:
-      'A Resultats conviuen dues unitats diferents: missatges i mesures. Separar-les bé evita la confusió més habitual durant una demo.',
+      'A Resultats conviuen missatges i mesures. Separar-los evita la confusió principal: els missatges són la càrrega processada; les mesures són els punts de telemetria que resumeixen el run.',
     terminology: [
       {
         title: 'Missatges',
         accent: '#3b82f6',
         description:
-          'Unitat de càrrega del benchmark. Es mostren a En directe perquè representen el volum processat dins del run actual.',
+          "Unitat real de càrrega del benchmark. El comptador indica quants missatges han estat enviats o rebuts durant una execució.",
       },
       {
         title: 'Mesures',
         accent: '#22c55e',
         description:
-          'Punts de telemetria persistits periòdicament. Són la base de l\'historial i de les comparatives perquè resumeixen el comportament del run.',
+          "Snapshots persistits cada pocs segons amb latència, throughput, errors i percentils. L'historial agrega aquestes mesures.",
       },
       {
         title: 'Execució',
         accent: '#f59e0b',
         description:
-          'Un run concret d\'un escenari. Quan tornes a executar-lo, els comptadors en directe tornen a zero perquè comença un run nou.',
+          "Un run concret d'un escenari. Quan es repeteix, la vista en directe comença de zero perquè és un runId nou.",
       },
       {
         title: 'Historial',
         accent: '#8b5cf6',
         description:
-          'Vista acumulada només d\'escenaris executats. Agrega les mesures de les execucions visibles segons els filtres actuals.',
+          "Vista acumulada de les execucions finalitzades. Si un escenari s'executa diverses vegades, l'agregat suma mesures i missatges i pondera les mètriques.",
       },
     ],
     metricDefinitions: [
@@ -134,34 +146,34 @@ export const EDUCATION = {
         title: 'Latència mitjana (ms)',
         accent: '#f59e0b',
         description:
-          'Temps mitjà entre l\'enviament i la recepció. Com més baixa sigui, més ràpida és la plataforma.',
+          'Temps mitjà entre publicar i rebre un missatge. Com més baixa sigui, més ràpida és la combinació.',
       },
       {
         title: 'P50',
         accent: '#3b82f6',
         description:
-          'La mediana. El 50% de les mesures queden per sota d\'aquest valor i representa el comportament més habitual.',
+          "La mediana. El 50% de les mostres queden per sota d'aquest valor i representa el comportament habitual.",
       },
       {
         title: 'P95',
         accent: '#8b5cf6',
         description:
-          'Mostra la zona de degradació abans d\'arribar als pitjors casos. És útil per detectar pics intermitents.',
+          'Mostra la zona de degradació abans dels pitjors casos. És útil per detectar pics intermitents.',
       },
       {
         title: 'P99',
         accent: '#7c3aed',
         description:
-          'Mesura la cua llarga. Indica quin és el pitjor comportament pràctic en el 99% dels casos.',
+          'Mesura la cua llarga. Indica el pitjor comportament practic en el 99% dels casos.',
       },
       {
         title: 'Throughput (msg/s)',
         accent: '#22c55e',
         description:
-          'Missatges processats per segon. És especialment rellevant en formats de dades grans o d\'alta freqüència.',
+          'Missatges processats per segon. És la mètrica clau quan el format de dades exigeix volum sostingut.',
       },
       {
-        title: 'Taxa d\'error (%)',
+        title: "Taxa d'error (%)",
         accent: '#ef4444',
         description:
           'Percentatge de missatges fallits o perduts. Pot penalitzar fortament la puntuació encara que la latència sigui bona.',
@@ -169,10 +181,10 @@ export const EDUCATION = {
     ],
     scoringPrinciples: [
       'La puntuació sempre és relativa als escenaris visibles amb els filtres actuals.',
-      'Cada format de dades aplica pesos diferents perquè un cas financer no prioritza el mateix que un cas de vídeo o IoT.',
-      'Si la taxa d\'error supera el llindar del format, s\'aplica una penalització encara que la resta de mètriques siguin bones.',
+      'Cada format aplica pesos diferents: financer prioritza errors, vídeo prioritza throughput i IoT prioritza volum amb payload petit.',
+      "Si la taxa d'error supera el llindar del format, s'aplica una penalització encara que la resta de mètriques siguin bones.",
     ],
     thresholds:
-      'Llindars de penalització: Financer > 0.1% · Vídeo > 2% · IoT > 0.5% · Per defecte > 1%.',
+      'Llindars de penalització: financer > 0,1%, vídeo > 2%, IoT > 0,5%, per defecte > 1%.',
   },
 } as const;

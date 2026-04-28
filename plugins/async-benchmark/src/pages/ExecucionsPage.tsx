@@ -150,10 +150,10 @@ const PROTOCOL_COLORS: Record<string, string> = {
   'MQTT':   '#eab308',
   'gRPC':   '#8b5cf6',
   'WS':     '#3b82f6',
-  'SSE':    '#06b6d4',
   'NATS':   '#22c55e',
-  'CoAP':   '#10b981',
 };
+
+const VISIBLE_PROTOCOLS = ['Kafka', 'AMQP', 'MQTT', 'gRPC', 'WS', 'NATS'];
 
 /* ---------------------------------------------------------------------------
  * ARCHITECTURE_COLORS
@@ -755,6 +755,7 @@ export const ExecucionsPage = () => {
   const [filterProtocol, setFilterProtocol] = useState<string[]>([]);
   const [filterArchitecture, setFilterArchitecture] = useState<string[]>([]);
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
+  const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   // Timestamp of the last successful data fetch (used for the "updated X seconds ago" label)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
@@ -1105,23 +1106,35 @@ export const ExecucionsPage = () => {
    * Derived data
    * ---------------------------------------------------------------------------*/
 
+  const getStatusGroup = (run: any): string => {
+    if (isFailedRun(run)) return 'errors';
+    if (run.status === 'running') return 'running';
+    if (run.status === 'pending') return 'pending';
+    if (run.status === 'completed' || run.status === 'cancelled') return 'completed';
+    return run.status || 'unknown';
+  };
+
   const matchesGlobalFilters = (run: any) => {
     const dataFormat = getRunDataFormat(run, scenarioMap);
+    const platformName = normalizePlatform(run.platform || run.broker || '');
+    if (run.protocol && !VISIBLE_PROTOCOLS.includes(run.protocol)) return false;
+    if (String(platformName || run.platform || run.broker || '').toLowerCase().includes('pulsar')) return false;
     const query = runSearch.trim().toLowerCase();
     const values = [
       String(scenarioMap[run.scenarioId]?.name || run.scenarioName || run.scenarioId || '').toLowerCase(),
       String(run.architecture || '').toLowerCase(),
       String(run.protocol || '').toLowerCase(),
-      String(normalizePlatform(run.platform || run.broker || '') || '').toLowerCase(),
+      String(platformName || '').toLowerCase(),
       String(DATA_FORMAT_LABELS[dataFormat] || dataFormat || '').toLowerCase(),
       String(run.status || '').toLowerCase(),
     ];
 
     if (query && !values.some(value => value.includes(query))) return false;
-    if (filterPlatform.length && !filterPlatform.includes(normalizePlatform(run.platform || run.broker || ''))) return false;
+    if (filterPlatform.length && !filterPlatform.includes(platformName)) return false;
     if (filterProtocol.length && !filterProtocol.includes(run.protocol || '')) return false;
     if (filterArchitecture.length && !filterArchitecture.includes(run.architecture || '')) return false;
     if (filterDataFormat.length && !filterDataFormat.includes(dataFormat)) return false;
+    if (filterStatus.length && !filterStatus.includes(getStatusGroup(run))) return false;
     return true;
   };
 
@@ -1157,11 +1170,19 @@ export const ExecucionsPage = () => {
   });
 
   const selectedRun = selectedRunId ? runs.find(run => run.id === selectedRunId) || null : null;
-  const activeFilterCount = filterPlatform.length + filterProtocol.length + filterArchitecture.length + filterDataFormat.length + (runSearch.trim() ? 1 : 0);
+  const activeFilterCount = filterPlatform.length + filterProtocol.length + filterArchitecture.length + filterDataFormat.length + filterStatus.length + (runSearch.trim() ? 1 : 0);
   const availablePlatforms = Array.from(new Set(runs.map(run => normalizePlatform(run.platform || run.broker || '')).filter(Boolean))).sort();
-  const availableProtocols = Array.from(new Set(runs.map(run => run.protocol).filter(Boolean))).sort();
+  const availableProtocols = Array.from(new Set(
+    runs.map(run => run.protocol).filter((value): value is string => Boolean(value) && VISIBLE_PROTOCOLS.includes(value)),
+  )).sort();
   const availableArchitectures = Array.from(new Set(runs.map(run => run.architecture).filter(Boolean))).sort();
   const availableDataFormats = Array.from(new Set(runs.map(run => getRunDataFormat(run, scenarioMap)).filter(Boolean))).sort();
+  const availableStatusFilters = [
+    { key: 'running', label: 'En execucio', color: '#3b82f6', count: runs.filter(r => r.status === 'running').length },
+    { key: 'pending', label: 'Pendents', color: '#f59e0b', count: runs.filter(r => r.status === 'pending').length },
+    { key: 'completed', label: 'Completades', color: '#22c55e', count: runs.filter(r => r.status === 'completed' || r.status === 'cancelled').length },
+    { key: 'errors', label: 'Errors', color: '#ef4444', count: runs.filter(isFailedRun).length },
+  ].filter(item => item.count > 0);
 
   /*
    * handleStopAll
@@ -1355,7 +1376,7 @@ export const ExecucionsPage = () => {
             { label: 'Total',       value: runs.length,                                            color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
             { label: 'En execució', value: running.length,                                         color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
             { label: 'Completats',  value: runs.filter(r => r.status === 'completed' || r.status === 'cancelled').length, color: 'var(--success)', bg: 'rgba(34,197,94,0.08)' },
-            { label: 'Errors',      value: runs.filter(r => r.status === 'error').length,          color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
+            { label: 'Errors',      value: runs.filter(isFailedRun).length,                        color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
@@ -1397,6 +1418,7 @@ export const ExecucionsPage = () => {
                     setFilterProtocol([]);
                     setFilterArchitecture([]);
                     setFilterDataFormat([]);
+                    setFilterStatus([]);
                   }}
                   style={{ ...S.btn, fontSize: 12, padding: '4px 10px' }}
                 >
@@ -1424,6 +1446,25 @@ export const ExecucionsPage = () => {
               </button>
             )}
           </div>
+
+          {availableStatusFilters.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                Estat
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {availableStatusFilters.map(value => (
+                  <FilterChip
+                    key={value.key}
+                    label={`${value.label} (${value.count})`}
+                    active={filterStatus.includes(value.key)}
+                    color={value.color}
+                    onClick={() => toggleFilter(filterStatus, setFilterStatus, value.key)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           {availablePlatforms.length > 0 && (
             <div style={{ marginBottom: 12 }}>

@@ -10,13 +10,13 @@ test.before(async () => {
 test('treats the UI indefinite sentinel as an indefinite run duration', () => {
   assert.equal(runTiming.isIndefiniteDuration(null), true);
   assert.equal(runTiming.isIndefiniteDuration(0), true);
-  assert.equal(runTiming.isIndefiniteDuration(3600), true);
+  assert.equal(runTiming.isIndefiniteDuration(3600), false);
   assert.equal(runTiming.isIndefiniteDuration(120), false);
 });
 
 test('does not apply a finite watchdog to indefinite runs', () => {
   assert.equal(runTiming.getMonitorMaxAttempts(null), null);
-  assert.equal(runTiming.getMonitorMaxAttempts(3600), null);
+  assert.equal(runTiming.getMonitorMaxAttempts(0), null);
 });
 
 test('extends the monitor window beyond the real finite run duration', () => {

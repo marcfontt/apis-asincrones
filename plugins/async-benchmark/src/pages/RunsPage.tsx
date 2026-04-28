@@ -54,10 +54,10 @@ const PROTOCOL_COLORS: Record<string, string> = {
   'MQTT':   '#eab308',
   'gRPC':   '#8b5cf6',
   'WS':     '#3b82f6',
-  'SSE':    '#06b6d4',
   'NATS':   '#22c55e',
-  'CoAP':   '#10b981',
 };
+
+const VISIBLE_PROTOCOLS = ['Kafka', 'AMQP', 'MQTT', 'gRPC', 'WS', 'NATS'];
 
 // ── Colors per arquitectura ────────────────────────────────────────────────────
 // Cada patró arquitectonic te el seu color identificatiu al llarg de tota l'app.
@@ -152,12 +152,14 @@ export const RunsPage = () => {
   const total     = runs.length;
   const running   = runs.filter(r => r.status === 'running' || r.status === 'pending').length;
   const completed = runs.filter(r => r.status === 'completed').length;
-  const errors    = runs.filter(r => r.status === 'error').length;
+  const errors    = runs.filter(r => r.status === 'error' || r.status === 'failed').length;
 
   // ── Filtratge combinat (estat + cerca) ────────────────────────────────────────
   // Primer filtra per estat (si no es 'all'), despres per text de cerca
   // sobre: nom de l'escenari, arquitectura, protocol, estat.
   const displayedRuns = runs.filter(r => {
+    if (r.protocol && !VISIBLE_PROTOCOLS.includes(r.protocol)) return false;
+    if (String(r.platform || r.broker || '').toLowerCase().includes('pulsar')) return false;
     if (statusFilter !== 'all' && r.status !== statusFilter) return false;
     if (search.trim()) {
       const q = search.trim().toLowerCase();

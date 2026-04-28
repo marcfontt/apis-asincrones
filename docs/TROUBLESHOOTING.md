@@ -149,6 +149,15 @@ kubectl port-forward -n brokers svc/nats 4222:4222
 nats server info  # max_payload hauria de mostrar 4194304
 ```
 
+Si no tens la CLI de NATS, consulta l endpoint HTTP del broker:
+
+```bash
+kubectl port-forward -n brokers svc/nats 8222:8222
+curl http://127.0.0.1:8222/varz
+```
+
+Al JSON retornat, `max_payload` ha de ser com a minim `4194304`.
+
 A la UI de Escenaris, si tries NATS + vídeo 8K, surt un avís taronja
 recordant aquest fix.
 

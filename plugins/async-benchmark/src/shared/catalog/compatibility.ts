@@ -1,6 +1,6 @@
 export const ALL_ARCHITECTURES = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
 
-export const ALL_PROTOCOLS = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
+export const ALL_PROTOCOLS = ['Kafka', 'AMQP', 'MQTT', 'gRPC', 'WS', 'NATS'];
 
 export const ALL_PLATFORMS = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server'];
 

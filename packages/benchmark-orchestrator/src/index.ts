@@ -44,11 +44,11 @@ const DATA_FORMAT_CONFIG: Record<string, {
   memoryRequest: string;
   memoryLimit: string;
 }> = {
-  'default': { messageSizeBytes: 256, messagesPerSecond: 100, memoryRequest: '128Mi', memoryLimit: '512Mi' },
-  'video-4k': { messageSizeBytes: 500_000, messagesPerSecond: 10, memoryRequest: '256Mi', memoryLimit: '1Gi' },
-  'video-8k': { messageSizeBytes: 2_000_000, messagesPerSecond: 4, memoryRequest: '512Mi', memoryLimit: '2Gi' },
-  'financial': { messageSizeBytes: 512, messagesPerSecond: 200, memoryRequest: '128Mi', memoryLimit: '512Mi' },
-  'iot': { messageSizeBytes: 64, messagesPerSecond: 500, memoryRequest: '128Mi', memoryLimit: '512Mi' },
+  'default': { messageSizeBytes: 256, messagesPerSecond: 100, memoryRequest: '512Mi', memoryLimit: '512Mi' },
+  'video-4k': { messageSizeBytes: 500_000, messagesPerSecond: 10, memoryRequest: '1Gi', memoryLimit: '1Gi' },
+  'video-8k': { messageSizeBytes: 2_000_000, messagesPerSecond: 4, memoryRequest: '2Gi', memoryLimit: '2Gi' },
+  'financial': { messageSizeBytes: 512, messagesPerSecond: 200, memoryRequest: '512Mi', memoryLimit: '512Mi' },
+  'iot': { messageSizeBytes: 64, messagesPerSecond: 500, memoryRequest: '512Mi', memoryLimit: '512Mi' },
 };
 
 // ── FIX 3: Mapeig de protocol/plataforma → brokerType ──────────────────────
@@ -265,7 +265,7 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
             { name: 'MESSAGE_SIZE_BYTES', value: messageSizeBytes },
           ],
           resources: {
-            requests: { cpu: '100m', memory: fmtConfig.memoryRequest },
+            requests: { cpu: '500m', memory: fmtConfig.memoryRequest },
             limits: { cpu: '500m', memory: fmtConfig.memoryLimit },
           },
         }],

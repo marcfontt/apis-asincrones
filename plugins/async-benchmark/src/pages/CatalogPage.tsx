@@ -54,11 +54,21 @@ const KNOWN_VERSIONS: Record<string, string> = {
   'websocket':      '13',
   'ws':             '13',
   'grpc':           '1.64',
-  'sse':            '1.0',
-  'coap':           '18',
   'http/2':         '2.0',
   'nats protocol':  '2.10',
   'kafka protocol': '3.7',
+};
+
+const HIDDEN_LEGACY_COMPONENTS = ['pulsar', 'apache pulsar', 'sse', 'server-sent events', 'coap'];
+
+const isHiddenLegacyComponent = (component: any): boolean => {
+  const values = [
+    component?.name,
+    component?.shortName,
+    component?.description,
+    ...(Array.isArray(component?.tags) ? component.tags : []),
+  ].map(value => String(value || '').toLowerCase());
+  return values.some(value => HIDDEN_LEGACY_COMPONENTS.some(hidden => value.includes(hidden)));
 };
 
 /**
@@ -124,7 +134,7 @@ const DETALL_AKS_PER_PLATAFORMA: Record<string, Array<{ label: string; value: st
   'NATS Server': [
     { label: 'Imatge',       value: 'nats:2.10' },
     { label: 'Mode',         value: 'single-node + JetStream' },
-    { label: 'max_payload',  value: '4 MB (cal aplicar k8s/brokers/nats-config.yaml)' },
+    { label: 'max_payload',  value: '4 MB / 4194304 bytes per permetre video-8k' },
     { label: 'Namespace',    value: 'brokers' },
   ],
 };
@@ -144,6 +154,30 @@ const DETALL_AKS_PER_NOM: Record<string, Array<{ label: string; value: string }>
     { label: 'Implementació', value: 'Log particionat (Kafka), offsets gestionats per group-id' },
     { label: 'Consumidors',   value: 'group-id efimer per run' },
   ],
+  'Kafka': [
+    { label: 'Implementacio', value: 'Topic per run i particions configurades al broker Kafka/Confluent' },
+    { label: 'Consum',        value: 'group-id efimer per run per evitar heretar offsets antics' },
+  ],
+  'AMQP': [
+    { label: 'Implementacio', value: 'Cua RabbitMQ efimera amb lliurament per consumidor' },
+    { label: 'ACKs',          value: 'model AMQP amb confirmacio del consumidor quan aplica' },
+  ],
+  'MQTT': [
+    { label: 'Implementacio', value: 'Publicacio/subscripcio per topic amb payload petit o IoT' },
+    { label: 'Cas d us',      value: 'telemetria d alta frequencia i missatges petits' },
+  ],
+  'gRPC': [
+    { label: 'Implementacio', value: 'Streaming cap al consumidor quan la plataforma ho exposa amb gateway' },
+    { label: 'Cas d us',      value: 'baixa latencia i integracio fortament tipada' },
+  ],
+  'WS': [
+    { label: 'Implementacio', value: 'Canal WebSocket cap al consumidor per fluxos en temps real' },
+    { label: 'Cas d us',      value: 'consumidors web o dashboards que necessiten dades push' },
+  ],
+  'NATS': [
+    { label: 'Implementacio', value: 'Subject NATS per run amb preflight de max_payload abans d enviar' },
+    { label: 'Limit video-8k', value: 'max_payload del broker ha de ser com a minim 4 MB' },
+  ],
 };
 
 /**
@@ -154,7 +188,11 @@ const DETALL_AKS_PER_NOM: Record<string, Array<{ label: string; value: string }>
 function obtenirDetallReproductibilitat(component: any): Array<{ label: string; value: string }> | null {
   if (!component) return null;
   const nom = String(component.name || '');
-  const detallExplicit = DETALL_AKS_PER_NOM[nom] || DETALL_AKS_PER_PLATAFORMA[nom];
+  const short = String(component.shortName || '');
+  const detallExplicit =
+    DETALL_AKS_PER_NOM[nom] ||
+    DETALL_AKS_PER_NOM[short] ||
+    DETALL_AKS_PER_PLATAFORMA[nom];
   if (detallExplicit) return detallExplicit;
   // Detall generic: nomes mostrem nodes i namespace per orientar l'usuari.
   if (component.category === 'platform') {
@@ -165,7 +203,7 @@ function obtenirDetallReproductibilitat(component: any): Array<{ label: string; 
   }
   if (component.category === 'architecture' || component.category === 'protocol') {
     return [
-      { label: 'Implementació', value: 'definida per l\'escenari (vegeu pàgina Escenaris)' },
+      { label: 'Implementacio', value: 'definida per l escenari: plataforma, protocol, payload, ratio i durada' },
     ];
   }
   return null;
@@ -416,8 +454,11 @@ const SortTh = ({ label, sk, current, dir, onSort, extraStyle }: {
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {label}
         {/* Indicador de direccio: fletxes de color accent quan actiu */}
-        <span style={{ fontSize: 10, color: active ? 'var(--accent)' : 'var(--text-disabled)' }}>
-          {active && dir === 'asc' ? 'up' : active && dir === 'desc' ? 'dn' : 'ud'}
+        <span style={{ fontSize: 12, color: active ? 'var(--accent)' : 'var(--text-disabled)', position: 'relative' }}>
+          <span aria-hidden="true">{active && dir === 'asc' ? '↑' : active && dir === 'desc' ? '↓' : '↕'}</span>
+          <span style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clip: 'rect(0, 0, 0, 0)', whiteSpace: 'nowrap', border: 0 }}>
+            {active ? (dir === 'asc' ? 'ordre ascendent' : 'ordre descendent') : 'ordenable'}
+          </span>
         </span>
       </span>
     </th>
@@ -482,7 +523,11 @@ export const CatalogPage = () => {
   // 'real': components predefinits, sense la categoria 'gateway' (us intern)
   // Els components amb predefined===false son creats per l'usuari i no s'han
   // de mostrar al cataleg general.
-  const real = components.filter(c => c.predefined !== false && c.category !== 'gateway');
+  const real = components.filter(c =>
+    c.predefined !== false &&
+    c.category !== 'gateway' &&
+    !isHiddenLegacyComponent(c),
+  );
 
   // Helper: comptador per categoria (per als botons de filtre)
   const countByCategory = (cat: string) => real.filter(c => c.category === cat).length;
@@ -582,10 +627,21 @@ export const CatalogPage = () => {
         ))}
       </div>
 
-      <CompatibilityMatrix
-        title="Combinacions compatibles del portal"
-        description="Resumeix quines plataformes tenen sentit amb cada arquitectura i protocol abans de crear un escenari. La mateixa logica es fa servir al formulari d'Escenaris."
-      />
+      <details style={{ ...S.card, marginBottom: 20, padding: 0, overflow: 'hidden' }}>
+        <summary style={{ cursor: 'pointer', padding: '14px 18px', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>
+          Compatibilitat del portal
+          <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
+            Mostra les combinacions provades amb protocols antics ocults
+          </span>
+        </summary>
+        <div style={{ padding: 16 }}>
+          <CompatibilityMatrix
+            compact
+            title="Combinacions compatibles del portal"
+            description="Referencia de treball per crear escenaris. Nomes es mostren els protocols que formen part de la prova final."
+          />
+        </div>
+      </details>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
@@ -660,7 +716,7 @@ export const CatalogPage = () => {
       }}>
         <span>
           <strong style={{ color: '#0ea5e9', fontFamily: 'var(--font-mono)' }}>{loading ? '-' : baseCombinationCount}</strong>
-          {' '}combinacions base
+          {' '}combinacions provades
           <span style={{ color: 'var(--text-disabled)', marginLeft: 6 }}>
             ({architectureCount} arq. x {protocolCount} prot. x {platformCount} plat.)
           </span>

@@ -97,6 +97,16 @@ function nowMs(): number {
   return performance.now(); // float en ms amb decimals (ex: 0.423)
 }
 
+function deterministicFraction(seq: number, salt: number): number {
+  const seed = `${CFG.runId}:${seq}:${salt}`;
+  let hash = 2166136261;
+  for (let i = 0; i < seed.length; i += 1) {
+    hash ^= seed.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0) / 0xffffffff;
+}
+
 // ── BUG 2+4 FIX: Payload semàntic per format de dades ──────────────────────
 function buildPayload(ts: number, seq: number): string {
   switch (CFG.dataFormat) {
@@ -105,7 +115,7 @@ function buildPayload(ts: number, seq: number): string {
       return JSON.stringify({
         ts, seq,
         txId: `TX-${CFG.runId.slice(0, 8)}-${seq}`,
-        amount: Math.round(Math.random() * 100000) / 100,
+        amount: Math.round(deterministicFraction(seq, 11) * 100000) / 100,
         currency: 'EUR',
         from: `ACC${String(seq % 1000).padStart(6, '0')}`,
         to: `ACC${String((seq + 1) % 1000).padStart(6, '0')}`,
@@ -117,9 +127,9 @@ function buildPayload(ts: number, seq: number): string {
       return JSON.stringify({
         ts, seq,
         sensor: `S${seq % 100}`,
-        temp: Math.round(Math.random() * 4000) / 100,
-        hum: Math.round(Math.random() * 10000) / 100,
-        bat: Math.round(Math.random() * 100),
+        temp: Math.round(deterministicFraction(seq, 21) * 4000) / 100,
+        hum: Math.round(deterministicFraction(seq, 22) * 10000) / 100,
+        bat: Math.round(deterministicFraction(seq, 23) * 100),
         loc: `Z${seq % 10}`,
       });
     default:

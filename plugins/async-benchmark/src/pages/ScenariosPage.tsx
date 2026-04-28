@@ -5,7 +5,7 @@
  * Un escenari defineix la combinacio de:
  *   - Plataforma (broker): Kafka, RabbitMQ, NATS Server, Confluent
  *   - Arquitectura: EDA, QBA, LCA, EMA, SEA
- *   - Protocol: Kafka, AMQP, MQTT, gRPC, WS, SSE, NATS, CoAP
+ *   - Protocol: Kafka, AMQP, MQTT, gRPC, WS, NATS
  *   - Format de dades: default, video-4k, video-8k, financial, iot
  *   - Parametres de carrega: durada (s), ratio (msg/s), payload (bytes)
  *
@@ -56,10 +56,17 @@ type Scenario = {
 // Llistes de valors valids per als camps del formulari d'escenari.
 // S'usen per als selects del modal i per als filtres de la taula.
 const ALL_ARCHITECTURES  = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
-const ALL_PROTOCOLS      = ['WS', 'SSE', 'gRPC', 'MQTT', 'AMQP', 'CoAP', 'NATS', 'Kafka'];
+const ALL_PROTOCOLS      = ['Kafka', 'AMQP', 'MQTT', 'gRPC', 'WS', 'NATS'];
 const ALL_PLATFORMS      = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server'];
 // Plataformes disponibles al cataleg pero no desploegades al clúster (cap actualment).
 const DISABLED_PLATFORMS: string[] = [];
+const HIDDEN_LEGACY_VALUES = ['sse', 'coap', 'pulsar', 'apache pulsar'];
+
+const isHiddenLegacyScenario = (s: Scenario): boolean => {
+  const values = [s.name, s.protocol, s.platform, s.broker]
+    .map(value => String(value || '').toLowerCase());
+  return values.some(value => HIDDEN_LEGACY_VALUES.some(hidden => value.includes(hidden)));
+};
 
 // Colors identificatius per a cada plataforma de missatgeria.
 // Usats als badges de la taula i al modal de detall.
@@ -109,9 +116,7 @@ const PROTOCOL_COLORS: Record<string, string> = {
   'MQTT':   '#eab308',
   'gRPC':   '#8b5cf6',
   'WS':     '#3b82f6',
-  'SSE':    '#06b6d4',
   'NATS':   '#22c55e',
-  'CoAP':   '#10b981',
 };
 
 const ARCHITECTURE_COLORS: Record<string, string> = {
@@ -411,7 +416,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
 
   /**
    * Envia el formulari al scenario-service (POST per crear, PUT per editar).
-   * En mode indefinit, durada=3600 i rate/payloadSize=null (valors per defecte).
+   * En mode indefinit, duration=0 i rate/payloadSize=null (valors per defecte).
    * predefined=false: els escenaris creats per usuari mai son "de sistema".
    * status='idle': l'escenari comenca en estat llest, no s'executa automaticament.
    */
@@ -553,8 +558,8 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
                 <div>Mode Indefinit</div>
                 <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-disabled)', marginTop: 1 }}>
                   {indefinite
-                    ? "Actiu: l'escenari funciona fins que l'atures (màx. 1h de seguretat). Durada/ràtio/payload queden inactius."
-                    : "Executa l'escenari sense límit de temps fins aturar-lo manualment (màx. 1h de seguretat)."}
+                    ? "Actiu: l'escenari funciona fins que l'atures manualment. Durada/ràtio/payload queden inactius."
+                    : "Activa'l per executar l'escenari sense límit de temps fins aturar-lo manualment."}
                 </div>
               </div>
               {indefinite && <span style={{ marginLeft: 'auto', fontSize: 18 }}>∞</span>}
@@ -743,7 +748,7 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.55 }}>
           {estimatedMessages != null
-            ? `Amb ${effectiveRate} msg/s durant ${effectiveDuration}s, aquest run hauria de generar aproximadament ${estimatedMessages} mostres si no l'atures abans.`
+            ? `Amb ${effectiveRate} msg/s durant ${effectiveDuration}s, aquest run hauria d'enviar aproximadament ${estimatedMessages} missatges si no l'atures abans.`
             : `L'escenari es llancara en mode indefinit. El directe comencara a zero i l'historial acumulat dependra del moment en que l'aturis.`}
         </div>
       </div>
@@ -814,7 +819,7 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
         <button onClick={() => { window.location.href = '/resultats'; }} style={{ ...S.btn, fontSize: 13 }}>
           Veure Resultats
         </button>
-        <button onClick={() => { window.location.href = '/execucións'; }} style={{ ...S.btnPrimary, fontSize: 13 }}>
+        <button onClick={() => { window.location.href = '/execucions'; }} style={{ ...S.btnPrimary, fontSize: 13 }}>
           Veure Execucions
         </button>
       </div>
@@ -860,7 +865,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
   const dfLabel   = DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Per defecte';
   const platName  = normalizePlatform(scenario.platform || scenario.broker);
   const platColor = PLATFORM_COLORS[platName] || 'var(--text-secondary)';
-  const isIndefinite = scenario.duration != null && Number(scenario.duration) >= 3600;
+  const isIndefinite = scenario.duration != null && Number(scenario.duration) === 0;
 
   // Close on backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -925,7 +930,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
             <Row
               label="Durada"
               badge={isIndefinite
-                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontWeight: 700, fontSize: 13 }}>∞ Indefinit (max 1h)</span>
+                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontWeight: 700, fontSize: 13 }}>∞ Indefinit</span>
                 : undefined}
               value={!isIndefinite ? (scenario.duration ? `${scenario.duration} s` : '-') : undefined}
             />
@@ -948,7 +953,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
         {/* Indefinite mode notice */}
         {isIndefinite && (
           <div style={{ margin: '0 24px 8px', padding: '10px 14px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
-            <strong style={{ color: 'var(--accent)' }}>Mode Indefinit:</strong> S'utilitzen els ràtio i payload per defecte del format <strong>{dfLabel}</strong>. L'execució s'atura manualment o transcorreguda 1 hora.
+            <strong style={{ color: 'var(--accent)' }}>Mode Indefinit:</strong> S'utilitzen el ràtio i el payload per defecte del format <strong>{dfLabel}</strong>. L'execució s'atura manualment.
           </div>
         )}
 
@@ -1022,7 +1027,7 @@ const GUIDE_ITEMS = [
     color: '#2563eb',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
     title: 'Mode Indefinit',
-    desc: 'Quan la durada és ≥ 3600 s (1 hora), s\'activa el mode indefinit. El benchmark corre contínuament amb els valors per defecte del format de dades seleccionat fins que s\'atura manualment. Ideal per a proves de durada indeterminada.',
+    desc: 'El mode indefinit només s\'activa amb duration=0. Qualsevol durada positiva és finita. El benchmark corre amb els valors per defecte del format de dades seleccionat fins que s\'atura manualment.',
   },
   {
     color: '#7c3aed',
@@ -1383,6 +1388,7 @@ export const ScenariosPage = () => {
   };
 
   const filtered = scenarios.filter(s => {
+    if (isHiddenLegacyScenario(s)) return false;
     if (filterArch       !== 'all' && s.architecture !== filterArch)                             return false;
     if (filterProto      !== 'all' && s.protocol     !== filterProto)                            return false;
     if (filterPlatform   !== 'all' && normalizePlatform(s.platform || s.broker) !== filterPlatform) return false;

@@ -210,49 +210,62 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
     // doc's value is the true run total, and is used as `count` so the UI
     // shows real message counts instead of "number of snapshot docs".
     // ──────────────────────────────────────────────────────────────────────
-    const result = await es.search({
-      index: INDEX,
-      body: {
-        size: 0,
-        aggs: {
-          by_run: {
-            terms: { field: 'runId.keyword', size: 500 },
-            aggs: {
-              // Pick the final snapshot of each run. All cumulative fields
-              // are read from here. Avoids the "average of running-averages"
-              // bias that corrupts the history vs. live comparison.
-              last_doc: {
-                top_hits: {
-                  size: 1,
-                  sort: [{ timestamp: { order: 'desc' } }],
-                  _source: [
-                    'scenarioId', 'architecture', 'protocol', 'broker', 'platform', 'dataFormat',
-                    'latency', 'throughput', 'errorRate', 'status',
-                    'p50_latency_ms', 'p95_latency_ms', 'p99_latency_ms',
-                    'messages_sent', 'messages_recv',
-                    'messages_sent_stable', 'messages_recv_stable',
-                    'throughput_stable',
-                    'deliveryModel', 'warmupSeconds',
-                  ],
-                },
+    const buckets: any[] = [];
+    let afterKey: Record<string, unknown> | undefined;
+
+    do {
+      const result = await es.search({
+        index: INDEX,
+        body: {
+          size: 0,
+          aggs: {
+            by_run: {
+              composite: {
+                size: 500,
+                sources: [
+                  { runId: { terms: { field: 'runId.keyword' } } },
+                ],
+                ...(afterKey ? { after: afterKey } : {}),
               },
-              // min/max timestamp per run so the UI can time-filter history
-              // against real run boundaries instead of guessing via last sample.
-              started_at:     { min: { field: 'timestamp' } },
-              ended_at:       { max: { field: 'timestamp' } },
+              aggs: {
+                // Pick the final snapshot of each run. All cumulative fields
+                // are read from here. Avoids the "average of running-averages"
+                // bias that corrupts the history vs. live comparison.
+                last_doc: {
+                  top_hits: {
+                    size: 1,
+                    sort: [{ timestamp: { order: 'desc' } }],
+                    _source: [
+                      'scenarioId', 'architecture', 'protocol', 'broker', 'platform', 'dataFormat',
+                      'latency', 'throughput', 'errorRate', 'status',
+                      'p50_latency_ms', 'p95_latency_ms', 'p99_latency_ms',
+                      'messages_sent', 'messages_recv',
+                      'messages_sent_stable', 'messages_recv_stable',
+                      'throughput_stable',
+                      'deliveryModel', 'warmupSeconds',
+                    ],
+                  },
+                },
+                // min/max timestamp per run so the UI can time-filter history
+                // against real run boundaries instead of guessing via last sample.
+                started_at: { min: { field: 'timestamp' } },
+                ended_at: { max: { field: 'timestamp' } },
+              },
             },
           },
         },
-      },
-    });
+      });
 
-    const buckets = (result.aggregations?.by_run as any)?.buckets ?? [];
+      const aggregation = result.aggregations?.by_run as any;
+      buckets.push(...(aggregation?.buckets ?? []));
+      afterKey = aggregation?.after_key;
+    } while (afterKey);
     const summary = buckets.map((b: any) => {
       // Pull the final cumulative snapshot for this run. All per-run stats
       // are read from here (see block comment above for the rationale).
       const last = b.last_doc?.hits?.hits?.[0]?._source ?? {};
       return {
-        runId:         b.key,
+        runId:         typeof b.key === 'object' ? b.key.runId : b.key,
         scenarioId:    last.scenarioId,
         // `count` keeps backwards compatibility with the old UI contract:
         // real messages received (monotonic counter). Falls back to the
