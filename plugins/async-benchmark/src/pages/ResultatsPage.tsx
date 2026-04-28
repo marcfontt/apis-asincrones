@@ -1309,6 +1309,141 @@ const HistorialTab = () => {
             })()}
           </div>
 
+          {/*
+            Comparativa visual "millor vs seleccionat".
+            Quan l'usuari clica una fila a la taula i NO es la millor,
+            mostrem un bloc gran que compara cara a cara les tres mètriques
+            principals amb el codi simple: dues barres horitzontals i el
+            percentatge de diferència. Aixi qualsevol persona, fins i tot
+            sense formacio tecnica, veu d'un cop d'ull per què A es millor que B.
+
+            Logica que apliquem (deliberadament senzilla, nivell junior):
+              - Pintem dues barres per cada metrica
+              - Calculem la diferencia en % respecte a la barra mes alta
+              - Coloregem la guanyadora amb verd, la perdedora amb gris
+              - Indiquem amb fletxa qui es millor (segons si la metrica
+                "menor es millor" -- latencia, error -- o "major es millor"
+                -- throughput)
+          */}
+          {best && selectedScenarioSummary && best.scenarioId !== selectedScenarioSummary.scenarioId && (() => {
+            const nomA = nameMap[best.scenarioId] || best.scenarioId || 'Millor';
+            const nomB = nameMap[selectedScenarioSummary.scenarioId] || selectedScenarioSummary.scenarioId || 'Seleccionat';
+
+            // Helper simple per pintar una metrica.
+            // Reb: titol, valor de A, valor de B, unitats i si "menor es millor".
+            // Retorna un bloc <div> amb les dues barres + diferencia.
+            const pintarMetrica = (
+              titol: string,
+              valorA: number | null | undefined,
+              valorB: number | null | undefined,
+              unitat: string,
+              menorEsMillor: boolean,
+            ) => {
+              // Si falten dades, mostrem un placeholder per no enganyar.
+              if (valorA == null || valorB == null) {
+                return (
+                  <div style={{ padding: 12, background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
+                      {titol}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Encara no hi ha prou dades per comparar.</div>
+                  </div>
+                );
+              }
+
+              const numA = Number(valorA);
+              const numB = Number(valorB);
+              // Decidim qui guanya
+              const guanyaA = menorEsMillor ? numA <= numB : numA >= numB;
+              // Maxim per fer barres proporcionals
+              const maxim = Math.max(numA, numB, 0.0001);
+              const pctA = (numA / maxim) * 100;
+              const pctB = (numB / maxim) * 100;
+              // Diferencia en percentatge respecte al perdedor
+              const referencia = guanyaA ? numB : numA;
+              const diff = referencia === 0 ? 0 : Math.abs((numA - numB) / referencia) * 100;
+              const colorBo = '#22c55e';
+              const colorMal = '#94a3b8';
+              const colorA = guanyaA ? colorBo : colorMal;
+              const colorB = guanyaA ? colorMal : colorBo;
+
+              return (
+                <div style={{ padding: 14, background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 10 }}>
+                    <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {titol}
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
+                      {menorEsMillor ? 'menor és millor' : 'major és millor'}
+                    </div>
+                  </div>
+
+                  {/* Barra A */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+                    <div style={{ width: 110, fontSize: 12, fontWeight: guanyaA ? 700 : 500, color: guanyaA ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nomA}>
+                      {guanyaA ? '🏆 ' : ''}{nomA}
+                    </div>
+                    <div style={{ flex: 1, height: 22, background: 'var(--bg-hover)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ width: `${pctA}%`, height: '100%', background: colorA, borderRadius: 4, transition: 'width 0.4s ease' }} />
+                    </div>
+                    <div style={{ width: 90, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: colorA }}>
+                      {numA.toFixed(2)}{unitat}
+                    </div>
+                  </div>
+
+                  {/* Barra B */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 110, fontSize: 12, fontWeight: !guanyaA ? 700 : 500, color: !guanyaA ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nomB}>
+                      {!guanyaA ? '🏆 ' : ''}{nomB}
+                    </div>
+                    <div style={{ flex: 1, height: 22, background: 'var(--bg-hover)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
+                      <div style={{ width: `${pctB}%`, height: '100%', background: colorB, borderRadius: 4, transition: 'width 0.4s ease' }} />
+                    </div>
+                    <div style={{ width: 90, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: colorB }}>
+                      {numB.toFixed(2)}{unitat}
+                    </div>
+                  </div>
+
+                  {/* Diferencia en text pla, fàcil de llegir */}
+                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                    Diferència: <strong style={{ color: '#22c55e' }}>{diff.toFixed(1)}%</strong>{' '}
+                    {guanyaA ? `a favor de ${nomA}` : `a favor de ${nomB}`}.
+                  </div>
+                </div>
+              );
+            };
+
+            return (
+              <div style={{ ...S.card, marginBottom: 16, padding: 18 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                      Comparativa cara a cara
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      {nomA} vs {nomB}
+                    </div>
+                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5, maxWidth: 540 }}>
+                      Tria qualsevol fila de la taula per comparar-la amb el millor escenari. Els valors es pinten amb barres proporcionals; el guanyador surt en verd amb un trofeu.
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setSelectedScenarioId('')}
+                    style={{ ...S.btn, fontSize: 12 }}
+                  >
+                    Tancar comparativa
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
+                  {pintarMetrica('Latència mitjana', best.avgLatency, selectedScenarioSummary.avgLatency, ' ms', true)}
+                  {pintarMetrica('Throughput', best.avgThroughput, selectedScenarioSummary.avgThroughput, ' msg/s', false)}
+                  {pintarMetrica("Taxa d'error", best.avgErrorRate, selectedScenarioSummary.avgErrorRate, ' %', true)}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Metric glossary — collapsible reference panel */}
 
           {/* Full comparison table */}

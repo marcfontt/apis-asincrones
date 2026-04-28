@@ -171,6 +171,8 @@ hi trobaràs una secció "Base conceptual" que explica de zero:
 
 ## Documentació addicional
 
+- [`docs/INSTAL-CLUSTER.md`](docs/INSTAL-CLUSTER.md) — guia pas a pas per posar el sistema al cluster AKS (amb comandes)
+- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — catàleg d'errors coneguts i com resoldre'ls
 - [`k8s/README.md`](k8s/README.md) — manifests Kubernetes
 - [`packages/README.md`](packages/README.md) — microserveis
 - [`plugins/README.md`](plugins/README.md) — plugin Backstage

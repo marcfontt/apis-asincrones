@@ -66,10 +66,22 @@ const KNOWN_VERSIONS: Record<string, string> = {
  * Prioritza la versio de la BD; si no n'hi ha, busca a KNOWN_VERSIONS
  * pel shortName i despres pel name.
  */
+// Estil senzill, sense optional chaining encadenat. Si el component porta
+// la versio explicita, la fem servir. Si no, mirem KNOWN_VERSIONS pel
+// shortName i, en ultim cas, pel name complet.
 const getVersion = (c: any): string => {
-  if (c.version) return c.version;
-  const key = (c.shortName || c.name || '').toLowerCase();
-  return KNOWN_VERSIONS[key] || KNOWN_VERSIONS[c.name?.toLowerCase()] || '';
+  if (c && c.version) {
+    return c.version;
+  }
+  const shortName = c && c.shortName ? String(c.shortName).toLowerCase() : '';
+  if (shortName && KNOWN_VERSIONS[shortName]) {
+    return KNOWN_VERSIONS[shortName];
+  }
+  const name = c && c.name ? String(c.name).toLowerCase() : '';
+  if (name && KNOWN_VERSIONS[name]) {
+    return KNOWN_VERSIONS[name];
+  }
+  return '';
 };
 
 // ── Descripcions de context per cada categoria ────────────────────────────────
@@ -478,7 +490,8 @@ export const CatalogPage = () => {
   const protocolCount = countByCategory('protocol');
   const platformCount = countByCategory('platform');
   const baseCombinationCount = architectureCount * protocolCount * platformCount;
-  const activeFilterLabel = activeFilter === 'all' ? 'Tot el catàleg' : (CATEGORY_LABELS[activeFilter] || activeFilter);
+  // Abans hi havia "activeFilterLabel" pero amb la nova fila compacta
+  // del cataleg ja no es fa servir. Eliminat per netejar el build TS.
   const selectedColor = selectedComponent
     ? (CATEGORY_COLORS[selectedComponent.category] || 'var(--accent)')
     : 'var(--accent)';
