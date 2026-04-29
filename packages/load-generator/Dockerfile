@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM mcr.microsoft.com/devcontainers/javascript-node:20-bookworm
 WORKDIR /app
 COPY package.json ./package.json
 RUN npm install

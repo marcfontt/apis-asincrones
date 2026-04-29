@@ -15,7 +15,7 @@
 # ============================================================================
 # Stage 1: build
 # ============================================================================
-FROM node:24-bookworm AS build
+FROM mcr.microsoft.com/devcontainers/javascript-node:24-bookworm AS build
 
 ENV PYTHON=/usr/bin/python3
 ENV NODE_OPTIONS="--no-node-snapshot --max-old-space-size=4096"
@@ -47,7 +47,7 @@ RUN yarn build:backend
 # ============================================================================
 # Stage 2: runtime
 # ============================================================================
-FROM node:24-bookworm-slim AS runtime
+FROM mcr.microsoft.com/devcontainers/javascript-node:24-bookworm AS runtime
 
 ENV PYTHON=/usr/bin/python3
 ENV NODE_ENV=production

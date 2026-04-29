@@ -1,4 +1,4 @@
-FROM node:22-slim AS builder
+FROM mcr.microsoft.com/devcontainers/javascript-node:22-bookworm AS builder
 WORKDIR /app
 COPY package.json ./package.json
 RUN npm install
@@ -6,7 +6,7 @@ COPY tsconfig.json ./tsconfig.json
 COPY src/ ./src/
 RUN npx tsc
 
-FROM node:22-slim
+FROM mcr.microsoft.com/devcontainers/javascript-node:22-bookworm
 WORKDIR /app
 COPY package.json ./package.json
 RUN npm install --omit=dev
