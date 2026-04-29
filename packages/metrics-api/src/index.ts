@@ -3,6 +3,7 @@ import { createServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
 import { Client } from '@elastic/elasticsearch';
 import { v4 as uuidv4 } from 'uuid';
+import { buildExactMetricQuery, exactKeywordTerm } from './elasticQueries';
 import { shouldIncludeRunInHistory } from './historySummary';
 
 const app = express();
@@ -96,22 +97,13 @@ app.get('/health', (_req: Request, res: Response) => {
 // Aixo elimina el sostre artificial de 10.000 mostres que confonia
 // l'usuari (li semblava que algunes execucions perdien dades).
 //
-// Query params suportats: runId, architecture, protocol, broker, gateway, scenarioId
+// Query params suportats: runId, architecture, protocol, broker, platform,
+// gateway, scenarioId, dataFormat, status.
 const TAMANY_PAGINA = 5_000;
 
 app.get('/metrics', async (req: Request, res: Response) => {
   try {
-    const { runId, architecture, protocol, broker, gateway, scenarioId } = req.query;
-
-    const must: object[] = [];
-    if (runId)       must.push({ match: { runId } });
-    if (architecture) must.push({ match: { architecture } });
-    if (protocol)    must.push({ match: { protocol } });
-    if (broker)      must.push({ match: { broker } });
-    if (gateway)     must.push({ match: { gateway } });
-    if (scenarioId)  must.push({ match: { scenarioId } });
-
-    const query = must.length > 0 ? { bool: { must } } : { match_all: {} };
+    const query = buildExactMetricQuery(req.query);
 
     // Primera pagina amb scroll obert (1 minut de TTL).
     let resposta: any = await es.search({
@@ -161,7 +153,7 @@ app.get('/metrics/compare', async (req: Request, res: Response) => {
         index: INDEX,
         scroll: '1m',
         body: {
-          query: { match: { scenarioId: sid } },
+          query: buildExactMetricQuery({ scenarioId: sid }),
           size: TAMANY_PAGINA,
           sort: [{ timestamp: { order: 'asc' } }],
         },
@@ -210,11 +202,14 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
     // doc's value is the true run total, and is used as `count` so the UI
     // shows real message counts instead of "number of snapshot docs".
     // ──────────────────────────────────────────────────────────────────────
-    const buckets: any[] = [];
-    let afterKey: Record<string, unknown> | undefined;
+    // Elasticsearch retorna les agregacions `composite` per pagines.
+    // Guardem tots els "buckets" en una llista amb un nom explicatiu perquè
+    // sigui clar que cada bucket representa una execució (`runId`).
+    const cubosPorEjecucion: any[] = [];
+    let claveSiguientePagina: Record<string, unknown> | undefined;
 
     do {
-      const result = await es.search({
+      const resultadoBusqueda = await es.search({
         index: INDEX,
         body: {
           size: 0,
@@ -225,7 +220,7 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
                 sources: [
                   { runId: { terms: { field: 'runId.keyword' } } },
                 ],
-                ...(afterKey ? { after: afterKey } : {}),
+                ...(claveSiguientePagina ? { after: claveSiguientePagina } : {}),
               },
               aggs: {
                 // Pick the final snapshot of each run. All cumulative fields
@@ -243,6 +238,7 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
                       'messages_sent_stable', 'messages_recv_stable',
                       'throughput_stable',
                       'deliveryModel', 'warmupSeconds',
+                      'errorCode', 'errorDetail', 'natsMaxPayloadBytes',
                     ],
                   },
                 },
@@ -256,47 +252,51 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
         },
       });
 
-      const aggregation = result.aggregations?.by_run as any;
-      buckets.push(...(aggregation?.buckets ?? []));
-      afterKey = aggregation?.after_key;
-    } while (afterKey);
-    const summary = buckets.map((b: any) => {
+      const agregacionPorEjecucion = resultadoBusqueda.aggregations?.by_run as any;
+      cubosPorEjecucion.push(...(agregacionPorEjecucion?.buckets ?? []));
+      claveSiguientePagina = agregacionPorEjecucion?.after_key;
+    } while (claveSiguientePagina);
+
+    const resumenEjecuciones = cubosPorEjecucion.map((cuboEjecucion: any) => {
       // Pull the final cumulative snapshot for this run. All per-run stats
       // are read from here (see block comment above for the rationale).
-      const last = b.last_doc?.hits?.hits?.[0]?._source ?? {};
+      const ultimaMuestra = cuboEjecucion.last_doc?.hits?.hits?.[0]?._source ?? {};
       return {
-        runId:         typeof b.key === 'object' ? b.key.runId : b.key,
-        scenarioId:    last.scenarioId,
+        runId:         typeof cuboEjecucion.key === 'object' ? cuboEjecucion.key.runId : cuboEjecucion.key,
+        scenarioId:    ultimaMuestra.scenarioId,
         // `count` keeps backwards compatibility with the old UI contract:
         // real messages received (monotonic counter). Falls back to the
         // snapshot-doc count only if the field is missing (very old data).
-        count:         last.messages_recv ?? b.doc_count,
+        count:         ultimaMuestra.messages_recv ?? cuboEjecucion.doc_count,
         // `pointCount` / `measureCount` represent telemetry documents for
         // this run. The history UI uses this to show accumulated measures
         // instead of confusing them with delivered messages.
-        pointCount:    b.doc_count,
-        measureCount:  b.doc_count,
-        messagesSent:  last.messages_sent ?? null,
-        messagesRecv:  last.messages_recv ?? null,
+        pointCount:    cuboEjecucion.doc_count,
+        measureCount:  cuboEjecucion.doc_count,
+        messagesSent:  ultimaMuestra.messages_sent ?? null,
+        messagesRecv:  ultimaMuestra.messages_recv ?? null,
         // Cumulative averages from the FINAL snapshot, not avg-of-avgs.
-        avgLatency:    last.latency,
-        avgThroughput: last.throughput_stable ?? last.throughput,
-        avgErrorRate:  last.errorRate,
+        avgLatency:    ultimaMuestra.latency,
+        avgThroughput: ultimaMuestra.throughput_stable ?? ultimaMuestra.throughput,
+        avgErrorRate:  ultimaMuestra.errorRate,
         // Percentiles computed per-run by the load-generator over its
         // post-warm-up latency array. Already the correct per-run answer.
-        p50Latency:    last.p50_latency_ms,
-        p95Latency:    last.p95_latency_ms,
-        p99Latency:    last.p99_latency_ms,
-        architecture:  last.architecture,
-        protocol:      last.protocol,
-        broker:        last.broker,
-        platform:      last.platform,
-        dataFormat:    last.dataFormat,
-        deliveryModel: last.deliveryModel,
-        status:        last.status,
+        p50Latency:    ultimaMuestra.p50_latency_ms,
+        p95Latency:    ultimaMuestra.p95_latency_ms,
+        p99Latency:    ultimaMuestra.p99_latency_ms,
+        architecture:  ultimaMuestra.architecture,
+        protocol:      ultimaMuestra.protocol,
+        broker:        ultimaMuestra.broker,
+        platform:      ultimaMuestra.platform,
+        dataFormat:    ultimaMuestra.dataFormat,
+        deliveryModel: ultimaMuestra.deliveryModel,
+        errorCode:     ultimaMuestra.errorCode,
+        errorDetail:   ultimaMuestra.errorDetail,
+        natsMaxPayloadBytes: ultimaMuestra.natsMaxPayloadBytes,
+        status:        ultimaMuestra.status,
         // ISO strings preferred over epoch ms so the UI can Date.parse() directly
-        startedAt:     b.started_at?.value_as_string ?? (b.started_at?.value != null ? new Date(b.started_at.value).toISOString() : null),
-        endedAt:       b.ended_at?.value_as_string   ?? (b.ended_at?.value   != null ? new Date(b.ended_at.value).toISOString()   : null),
+        startedAt:     cuboEjecucion.started_at?.value_as_string ?? (cuboEjecucion.started_at?.value != null ? new Date(cuboEjecucion.started_at.value).toISOString() : null),
+        endedAt:       cuboEjecucion.ended_at?.value_as_string   ?? (cuboEjecucion.ended_at?.value   != null ? new Date(cuboEjecucion.ended_at.value).toISOString()   : null),
       };
     }).filter((run: { status?: unknown; endedAt?: string | null }) =>
       shouldIncludeRunInHistory({
@@ -305,7 +305,7 @@ app.get('/metrics/summary', async (_req: Request, res: Response) => {
       }),
     );
 
-    res.json(summary);
+    res.json(resumenEjecuciones);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
@@ -390,7 +390,7 @@ app.delete('/metrics/run/:runId', async (req: Request, res: Response) => {
     const result = await es.deleteByQuery({
       index: INDEX,
       refresh: true,
-      body: { query: { match: { runId: req.params.runId } } },
+      body: { query: exactKeywordTerm('runId', req.params.runId) ?? { match_none: {} } },
     });
     res.json({ deleted: (result as any).deleted ?? 0 });
   } catch (err: any) {

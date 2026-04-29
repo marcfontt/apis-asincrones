@@ -19,6 +19,10 @@ const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincronas';
 // only drops the orchestrator's in-memory record; the historical mostres
 // stay in ES forever and keep polluting the Historial view.
 const METRICS_API_URL = process.env.METRICS_API_URL || 'http://metrics-api:3004';
+// The regular NATS service currently has no ready endpoints when the Helm
+// reloader sidecar is unhealthy. The headless service still exposes nats-0 on
+// port 4222, so benchmark jobs must use it until the broker chart is cleaned.
+const NATS_BROKER_URL = process.env.NATS_BROKER_URL || 'nats://nats-headless.brokers.svc.cluster.local:4222';
 
 const kc = new k8s.KubeConfig();
 let k8sEnabled = false;
@@ -213,26 +217,33 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
 
   await copyAcrSecret(namespace);
 
-  const r = runs.get(runId);
+  const registroEjecucion = runs.get(runId);
 
-  // FIX 3: brokerType correcte per tots els protocols
-  const brokerType = getBrokerType(r?.protocol || '', r?.platform || '');
+  // El broker real surt sobretot de la plataforma triada.
+  // Exemple: gRPC sobre Kafka continua connectant contra Kafka.
+  const tipoBroker = getBrokerType(registroEjecucion?.protocol || '', registroEjecucion?.platform || '');
 
-  // FIX 2: configuració dinàmica per dataFormat
-  const fmt = r?.dataFormat || 'default';
-  const fmtConfig = DATA_FORMAT_CONFIG[fmt] || DATA_FORMAT_CONFIG['default'];
+  // Cada format té payload i ràtio per defecte. L'escenari pot sobreescriure
+  // aquests valors, però si no ho fa usem la taula DATA_FORMAT_CONFIG.
+  const formatoDatos = registroEjecucion?.dataFormat || 'default';
+  const configuracionFormato = DATA_FORMAT_CONFIG[formatoDatos] || DATA_FORMAT_CONFIG['default'];
 
-  // Dynamic duration/rate/payload from scenario (null = indefinite)
-  const rAny = r as any;
-  const scenarioDuration = rAny?.duration;
-  const scenarioRate = rAny?.rate;
-  const scenarioPayloadSize = rAny?.payloadSize;
-  const isIndefinite = isIndefiniteDuration(scenarioDuration);
-  const durationSeconds = isIndefinite ? '0' : String(scenarioDuration);
-  const messagesPerSec = scenarioRate != null && scenarioRate > 0 ? String(scenarioRate) : String(fmtConfig.messagesPerSecond);
-  const messageSizeBytes = scenarioPayloadSize != null && scenarioPayloadSize > 0 ? String(scenarioPayloadSize) : String(fmtConfig.messageSizeBytes);
+  // `duration=0` és l'únic sentinel d'indefinit. Qualsevol durada positiva
+  // és una prova finita i el Job tindrà TTL quan acabi.
+  const datosEscenario = registroEjecucion as any;
+  const duracionEscenario = datosEscenario?.duration;
+  const ratioEscenario = datosEscenario?.rate;
+  const tamanoPayloadEscenario = datosEscenario?.payloadSize;
+  const esDuracionIndefinida = isIndefiniteDuration(duracionEscenario);
+  const duracionEnSegundos = esDuracionIndefinida ? '0' : String(duracionEscenario);
+  const mensajesPorSegundo = ratioEscenario != null && ratioEscenario > 0
+    ? String(ratioEscenario)
+    : String(configuracionFormato.messagesPerSecond);
+  const tamanoMensajeBytes = tamanoPayloadEscenario != null && tamanoPayloadEscenario > 0
+    ? String(tamanoPayloadEscenario)
+    : String(configuracionFormato.messageSizeBytes);
 
-  console.log(`[orchestrator] dataFormat=${fmt}  duration=${durationSeconds}s  rate=${messagesPerSec}msg/s  size=${messageSizeBytes}B  brokerType=${brokerType}  indefinite=${isIndefinite}`);
+  console.log(`[orchestrator] dataFormat=${formatoDatos}  duration=${duracionEnSegundos}s  rate=${mensajesPorSegundo}msg/s  size=${tamanoMensajeBytes}B  brokerType=${tipoBroker}  indefinite=${esDuracionIndefinida}`);
 
   const jobSpec: any = {
     backoffLimit: 1,
@@ -248,32 +259,32 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
           env: [
             { name: 'SCENARIO_ID', value: scenarioId },
             { name: 'RUN_ID', value: runId },
-            { name: 'BROKER_TYPE', value: brokerType },
-            { name: 'ARCHITECTURE', value: r?.architecture || '' },
-            { name: 'PROTOCOL', value: r?.protocol || 'Kafka' },
-            { name: 'PLATFORM', value: r?.platform || '' },
-            { name: 'DATA_FORMAT', value: fmt },
-            { name: 'KAFKA_BROKERS', value: brokerType === 'confluent'
+            { name: 'BROKER_TYPE', value: tipoBroker },
+            { name: 'ARCHITECTURE', value: registroEjecucion?.architecture || '' },
+            { name: 'PROTOCOL', value: registroEjecucion?.protocol || 'Kafka' },
+            { name: 'PLATFORM', value: registroEjecucion?.platform || '' },
+            { name: 'DATA_FORMAT', value: formatoDatos },
+            { name: 'KAFKA_BROKERS', value: tipoBroker === 'confluent'
               ? 'redpanda.brokers.svc.cluster.local:9093'
               : 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
-            { name: 'NATS_URL', value: 'nats://nats.brokers.svc.cluster.local:4222' },
+            { name: 'NATS_URL', value: NATS_BROKER_URL },
             { name: 'RABBITMQ_URL', value: 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672' },
             { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
             { name: 'METRICS_API_URL', value: `http://metrics-api.${ORCHESTRATOR_NAMESPACE}.svc.cluster.local:3004` },
-            { name: 'TEST_DURATION_SECONDS', value: durationSeconds },
-            { name: 'MESSAGES_PER_SECOND', value: messagesPerSec },
-            { name: 'MESSAGE_SIZE_BYTES', value: messageSizeBytes },
+            { name: 'TEST_DURATION_SECONDS', value: duracionEnSegundos },
+            { name: 'MESSAGES_PER_SECOND', value: mensajesPorSegundo },
+            { name: 'MESSAGE_SIZE_BYTES', value: tamanoMensajeBytes },
           ],
           resources: {
-            requests: { cpu: '500m', memory: fmtConfig.memoryRequest },
-            limits: { cpu: '500m', memory: fmtConfig.memoryLimit },
+            requests: { cpu: '500m', memory: configuracionFormato.memoryRequest },
+            limits: { cpu: '500m', memory: configuracionFormato.memoryLimit },
           },
         }],
       },
     },
   };
   // Only set TTL for finite runs
-  if (!isIndefinite) {
+  if (!esDuracionIndefinida) {
     jobSpec.ttlSecondsAfterFinished = 600;
   }
 
@@ -285,7 +296,7 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
     },
     spec: jobSpec,
   });
-  console.log(`[orchestrator] Job ${jobName} created  format=${fmt}  duration=${durationSeconds}s  size=${messageSizeBytes}B  rate=${messagesPerSec}msg/s`);
+  console.log(`[orchestrator] Job ${jobName} created  format=${formatoDatos}  duration=${duracionEnSegundos}s  size=${tamanoMensajeBytes}B  rate=${mensajesPorSegundo}msg/s`);
 }
 
 async function monitorJob(
@@ -404,14 +415,14 @@ app.post('/runs', (req, res) => {
 
     try {
       await deployScenario(runId, scenarioId, run.scenarioName);
-      const r = runs.get(runId);
-      if (r && r.status === 'running' && r.namespace && r.jobName) {
-        monitorJob(runId, r.namespace, r.jobName, scenarioId, (r as any).duration);
+      const registroDespuesDelDespliegue = runs.get(runId);
+      if (registroDespuesDelDespliegue && registroDespuesDelDespliegue.status === 'running' && registroDespuesDelDespliegue.namespace && registroDespuesDelDespliegue.jobName) {
+        monitorJob(runId, registroDespuesDelDespliegue.namespace, registroDespuesDelDespliegue.jobName, scenarioId, (registroDespuesDelDespliegue as any).duration);
       }
     } catch (e) {
       console.error(`[orchestrator] Deploy failed: ${(e as Error).message}`);
-      const r = runs.get(runId);
-      if (r) { r.status = 'failed'; r.completedAt = new Date().toISOString(); }
+      const registroConError = runs.get(runId);
+      if (registroConError) { registroConError.status = 'failed'; registroConError.completedAt = new Date().toISOString(); }
       await updateScenarioStatus(scenarioId, 'idle', null);
     }
   });
@@ -466,12 +477,12 @@ app.post('/runs/reset', async (_req, res) => {
   }
   let deleted = 0;
   try {
-    const r = await fetch(`${METRICS_API_URL}/metrics/all`, { method: 'DELETE' });
-    if (r.ok) {
-      const body = await r.json().catch(() => ({}));
-      deleted = body.deleted ?? 0;
+    const respuestaBorradoMetricas = await fetch(`${METRICS_API_URL}/metrics/all`, { method: 'DELETE' });
+    if (respuestaBorradoMetricas.ok) {
+      const cuerpoRespuesta = await respuestaBorradoMetricas.json().catch(() => ({}));
+      deleted = cuerpoRespuesta.deleted ?? 0;
     } else {
-      console.warn(`[orchestrator] reset: metrics /all returned ${r.status}`);
+      console.warn(`[orchestrator] reset: metrics /all returned ${respuestaBorradoMetricas.status}`);
     }
   } catch (e) {
     console.warn(`[orchestrator] reset: metrics wipe failed: ${(e as Error).message}`);
@@ -487,9 +498,9 @@ app.delete('/runs/:id', async (req, res) => {
   // metrics-api. Without this, the orchestrator's in-memory row disappears
   // but the mostres stay in ES forever and keep polluting Historial.
   try {
-    const r = await fetch(`${METRICS_API_URL}/metrics/run/${id}`, { method: 'DELETE' });
-    if (!r.ok && r.status !== 404) {
-      console.warn(`[orchestrator] cascade-delete metrics for ${id} returned ${r.status}`);
+    const respuestaBorradoMetricas = await fetch(`${METRICS_API_URL}/metrics/run/${id}`, { method: 'DELETE' });
+    if (!respuestaBorradoMetricas.ok && respuestaBorradoMetricas.status !== 404) {
+      console.warn(`[orchestrator] cascade-delete metrics for ${id} returned ${respuestaBorradoMetricas.status}`);
     }
   } catch (e) {
     console.warn(`[orchestrator] cascade-delete metrics for ${id} failed: ${(e as Error).message}`);

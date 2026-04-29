@@ -53,13 +53,10 @@ const METRICS_BASE   = '/api/proxy/metrics-api';
  * the status badge: a foreground color, a translucent background, and the
  * Catalan display label.
  *
- * "cancelled" is rendered identically to "completed" on purpose: from the
- * user's perspective a run that was stopped by hand and one that ran to
- * completion are both "finished" — they produced samples, they live in
- * Historial, they count the same for comparison. Surfacing a separate
- * "Aturat" bucket only created confusion (and an empty tab when cancels
- * didn't cleanly flush). The internal 'cancelled' string is still kept in
- * the run record so the orchestrator/metrics pipeline can tell them apart.
+ * "cancelled" is deliberately shown as a separate state. A manually stopped
+ * run may contain useful samples, but it is not the same as a benchmark that
+ * reached its configured duration. Keeping that distinction visible avoids
+ * treating partial measurements as fully completed results.
  * ---------------------------------------------------------------------------*/
 // Cobrim tots els estats que retorna l'orquestrador. Antigament nomes hi havia
 // "error" pero l'orquestrador envia "failed", i aquell missing key feia que
@@ -70,7 +67,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }
   pending:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', label: 'Pendent' },
   running:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', label: 'En execució' },
   completed: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  label: 'Completat' },
-  cancelled: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  label: 'Completat' },
+  cancelled: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Aturada' },
   failed:    { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Error' },
   error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Error' },
 };
@@ -1111,7 +1108,8 @@ export const ExecucionsPage = () => {
     if (isFailedRun(run)) return 'errors';
     if (run.status === 'running') return 'running';
     if (run.status === 'pending') return 'pending';
-    if (run.status === 'completed' || run.status === 'cancelled') return 'completed';
+    if (run.status === 'completed') return 'completed';
+    if (run.status === 'cancelled') return 'cancelled';
     return run.status || 'unknown';
   };
 
@@ -1181,7 +1179,8 @@ export const ExecucionsPage = () => {
   const availableStatusFilters = [
     { key: 'running', label: 'En execucio', color: '#3b82f6', count: runs.filter(r => r.status === 'running').length },
     { key: 'pending', label: 'Pendents', color: '#f59e0b', count: runs.filter(r => r.status === 'pending').length },
-    { key: 'completed', label: 'Completades', color: '#22c55e', count: runs.filter(r => r.status === 'completed' || r.status === 'cancelled').length },
+    { key: 'completed', label: 'Completades', color: '#22c55e', count: runs.filter(r => r.status === 'completed').length },
+    { key: 'cancelled', label: 'Aturades', color: '#f59e0b', count: runs.filter(r => r.status === 'cancelled').length },
     { key: 'errors', label: 'Errors', color: '#ef4444', count: runs.filter(isFailedRun).length },
   ].filter(item => item.count > 0);
 
