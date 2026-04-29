@@ -141,8 +141,10 @@ seu `msgSize` excedeix el límit anunciat pel servidor i avorta amb
 **Diagnòstic ràpid (1 minut)**:
 
 ```bash
-# Mostra el limit actual del NATS Server tal com es presenta als clients
-kubectl port-forward -n brokers svc/nats 8222:8222 >/dev/null 2>&1 &
+# Mostra el límit actual del NATS Server tal com es presenta als clients.
+# En el nostre clúster el servei `nats` només exposa 4222; el port 8222
+# surt pel servei headless.
+kubectl port-forward -n brokers svc/nats-headless 8222:8222 >/dev/null 2>&1 &
 PF_PID=$!
 sleep 2
 curl -s http://127.0.0.1:8222/varz | grep -E '"max_payload"'
@@ -158,9 +160,13 @@ kill $PF_PID 2>/dev/null
 #### A. Si NATS s'ha instal·lat amb Helm (recomanat)
 
 ```bash
-# Aplica el nou limit i reinicia els pods
+# Si surt "repo nats not found", primer registra el repositori Helm oficial.
+helm repo add nats https://nats-io.github.io/k8s/helm/charts/
+helm repo update
+
+# Aplica el nou límit i reinicia els pods
 helm upgrade nats nats/nats -n brokers --reuse-values \
-  --set config.max_payload=4MB
+  --set-string config.merge.max_payload='<< 4MB >>'
 
 # Confirma que els pods s'han reiniciat
 kubectl rollout status statefulset/nats -n brokers
@@ -173,7 +179,7 @@ kubectl rollout status statefulset/nats -n brokers
 kubectl apply -f k8s/brokers/nats-config.yaml
 
 # 2) Reinicia el workload (escull la línia que correspongui)
-kubectl rollout restart statefulset/nats -n brokers   # cas comú via Helm
+kubectl rollout restart statefulset/nats -n brokers
 kubectl rollout restart deployment/nats   -n brokers  # si el chart fa servir Deployment
 
 # 3) Confirma
@@ -197,7 +203,7 @@ kubectl port-forward -n brokers svc/nats 4222:4222 &
 nats server info  # ha de mostrar Max Payload: 4 MB
 
 # Mètode 2: HTTP /varz (sempre disponible, no cal CLI extra)
-kubectl port-forward -n brokers svc/nats 8222:8222 &
+kubectl port-forward -n brokers svc/nats-headless 8222:8222 &
 curl -s http://127.0.0.1:8222/varz | grep max_payload
 # Esperat: "max_payload": 4194304
 ```

@@ -49,7 +49,12 @@ export const GLOBAL_CSS = `
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
     --shadow-md: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
     --shadow-lg: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
-    --transition: 0.15s ease;
+    --motion-fast: 120ms;
+    --motion-normal: 180ms;
+    --motion-slow: 260ms;
+    --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+    --motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+    --transition: var(--motion-fast) var(--motion-ease-standard);
   }
 
   [data-theme="dark"] {
@@ -209,8 +214,10 @@ export const GLOBAL_CSS = `
 
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
-      animation-duration: 0.01ms !important;
-      transition-duration: 0.01ms !important;
+      animation-duration: 1ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 1ms !important;
+      scroll-behavior: auto !important;
     }
   }
 `;

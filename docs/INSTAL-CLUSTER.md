@@ -146,7 +146,7 @@ Si fas servir Helm (recomanat):
 helm repo add nats https://nats-io.github.io/k8s/helm/charts/
 helm repo update
 helm install nats nats/nats -n brokers --create-namespace \
-  --set config.max_payload=4MB
+  --set-string config.merge.max_payload='<< 4MB >>'
 ```
 
 > ⚠️ **Important per al format `video-8k`** (~2 MB de payload):
@@ -264,17 +264,20 @@ vídeo 8K.
 
 ```bash
 # Si vas instal·lar NATS via Helm
-helm upgrade nats nats/nats -n brokers --reuse-values --set config.max_payload=4MB
+helm upgrade nats nats/nats -n brokers --reuse-values \
+  --set-string config.merge.max_payload='<< 4MB >>'
 
 # Si vas fer-ho via ConfigMap
 kubectl apply -f k8s/brokers/nats-config.yaml
 kubectl rollout restart statefulset/nats -n brokers   # o deployment, segons el chart
 ```
 
-Verifica el nou límit:
+Verifica el nou límit amb el port de monitoratge del servei headless:
 
 ```bash
-kubectl exec -n brokers <nats-pod> -- nats-server --signal info
+kubectl port-forward -n brokers svc/nats-headless 8222:8222
+curl -s http://127.0.0.1:8222/varz | grep max_payload
+# Esperat: "max_payload": 4194304
 ```
 
 ### El portal carrega però `Resultats` està buit

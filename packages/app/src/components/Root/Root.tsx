@@ -334,55 +334,7 @@ const DARK_MODE_CSS = `
   [data-theme="dark"] ::-webkit-scrollbar-thumb:hover { background: #30363d; }
 `;
 
-import { makeStyles } from '@material-ui/core';
-import HomeIcon from '@material-ui/icons/Home';
-import StorageIcon from '@material-ui/icons/Storage';
-import ListAltIcon from '@material-ui/icons/ListAlt';
-import PlayArrowIcon from '@material-ui/icons/PlayArrow';
-import BarChartIcon from '@material-ui/icons/BarChart';
-import SettingsIcon from '@material-ui/icons/Settings';
-import LogoFull from './LogoFull';
-import LogoIcon from './LogoIcon';
-import {
-  Sidebar,
-  sidebarConfig,
-  SidebarDivider,
-  SidebarGroup,
-  SidebarItem,
-  SidebarPage,
-  useSidebarOpenState,
-  Link,
-} from '@backstage/core-components';
-import MenuIcon from '@material-ui/icons/Menu';
-
-// Estils per al contenidor del logo dins del sidebar
-const useSidebarLogoStyles = makeStyles({
-  root: {
-    width:      sidebarConfig.drawerWidthClosed,
-    height:     3 * sidebarConfig.logoHeight,
-    display:    'flex',
-    flexFlow:   'row nowrap',
-    alignItems: 'center',
-    marginBottom: -14,
-  },
-  link: {
-    width:      sidebarConfig.drawerWidthClosed,
-    marginLeft: 20,
-  },
-});
-
-// Logo del sidebar: complet quan obert, icona quan tancat
-const SidebarLogo = () => {
-  const classes = useSidebarLogoStyles();
-  const { isOpen } = useSidebarOpenState();
-  return (
-    <div className={classes.root}>
-      <Link to="/" underline="none" className={classes.link} aria-label="APIs Asíncrones">
-        {isOpen ? <LogoFull /> : <LogoIcon />}
-      </Link>
-    </div>
-  );
-};
+import { TopNavigationShell } from './TopNavigationShell';
 
 // ── Detecció i aplicació del tema ──────────────────────────────────────────────
 // Backstage desa la preferència de tema en localStorage amb diverses claus
@@ -431,12 +383,33 @@ const applyTheme = () => {
   }
 };
 
+const useDarkModeCssInHead = () => {
+  useEffect(() => {
+    const styleElementId = 'apis-asincrones-dark-mode-css';
+    let styleElement = document.getElementById(styleElementId) as HTMLStyleElement | null;
+
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = styleElementId;
+      document.head.appendChild(styleElement);
+    }
+
+    styleElement.textContent = DARK_MODE_CSS;
+
+    return () => {
+      styleElement?.remove();
+    };
+  }, []);
+};
+
 // ── Component principal ────────────────────────────────────────────────────────
 // Root envolta tota l'app. Aquí:
 //   1. Escolta canvis de tema (event 'storage' + polling cada 300ms)
 //   2. Injecta el CSS de dark mode per a MUI
-//   3. Renderitza el sidebar + contingut de pàgina (children)
+//   3. Renderitza la top bar + contingut de pàgina (children)
 export const Root = ({ children }: PropsWithChildren<{}>) => {
+  useDarkModeCssInHead();
+
   useEffect(() => {
     // Aplicar el tema immediatament en muntar
     applyTheme();
@@ -461,30 +434,8 @@ export const Root = ({ children }: PropsWithChildren<{}>) => {
   }, []);
 
   return (
-    <SidebarPage>
-      {/* Injectar el CSS de dark mode per a la shell MUI/Backstage */}
-      <style>{DARK_MODE_CSS}</style>
-
-      <Sidebar>
-        <SidebarLogo />
-        <SidebarDivider />
-
-        {/* Grup de navegació principal */}
-        <SidebarGroup label="Menú" icon={<MenuIcon />}>
-          <SidebarItem icon={HomeIcon}      to="home"       text="Home" />
-          <SidebarDivider />
-          <SidebarItem icon={StorageIcon}   to="catalog"    text="Catàleg" />
-          <SidebarItem icon={ListAltIcon}   to="escenaris"  text="Escenaris" />
-          <SidebarItem icon={PlayArrowIcon} to="execucions" text="Execucions" />
-          <SidebarItem icon={BarChartIcon}  to="resultats"  text="Resultats" />
-          <SidebarDivider />
-          {/* Configuració: pestaña de Settings de Backstage (tema, perfil, auth) */}
-          <SidebarItem icon={SettingsIcon}  to="settings"   text="Configuració" />
-        </SidebarGroup>
-      </Sidebar>
-
-      {/* Contingut de la pàgina activa */}
+    <TopNavigationShell>
       {children}
-    </SidebarPage>
+    </TopNavigationShell>
   );
 };

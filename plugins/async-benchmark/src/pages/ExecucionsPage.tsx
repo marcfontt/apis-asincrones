@@ -29,8 +29,9 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import React from 'react';
-import { S, GLOBAL_CSS } from '../theme'; // S = reusable React style objects, GLOBAL_CSS = keyframe animations etc.
+import { S } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
+import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { getRunMeasureCount, getRunMessageCount, getRunSentCount } from '../shared/results/historyMetrics';
 
 /* ---------------------------------------------------------------------------
@@ -1295,7 +1296,7 @@ export const ExecucionsPage = () => {
   return (
     <div style={{ ...S.page, maxWidth: 1280 }}>
       {/* Inject global keyframe animations (shimmer, fadeUp, pulseDot) */}
-      <style>{GLOBAL_CSS}</style>
+      <GlobalBenchmarkStyles />
 
       {/* Single shared ConfirmModal instance - its content is swapped via confirmState */}
       <ConfirmModal
@@ -1622,6 +1623,7 @@ export const ExecucionsPage = () => {
         const status = STATUS_CONFIG[selectedRun.status] || { color: '#94a3b8', label: selectedRun.status || 'Desconegut', bg: 'transparent' };
         const runStartedAt = getStartTime(selectedRun);
         const runEndedAt = selectedRun.completedAt || selectedRun.completed_at || selectedRun.updatedAt || selectedRun.updated_at || '';
+        const mostraAvisNatsVideo8k = isFailedRun(selectedRun) && platform === 'NATS Server' && dataFormat === 'video-8k';
 
         return (
           <MetricsDetailDrawer
@@ -1696,6 +1698,16 @@ export const ExecucionsPage = () => {
               },
             ]}
           >
+            {mostraAvisNatsVideo8k && (
+              <div style={{ ...S.card, marginBottom: 14, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.28)' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--error)', marginBottom: 6 }}>
+                  Error probable: NATS_MAX_PAYLOAD_EXCEEDED
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  Video8K envia payloads d aproximadament 2 MB. Si NATS esta amb el limit per defecte d 1 MB, rebutja el missatge. Verifica que <code style={{ fontFamily: 'var(--font-mono)' }}>/varz</code> mostri <code style={{ fontFamily: 'var(--font-mono)' }}>"max_payload": 4194304</code> i aplica el chart amb <code style={{ fontFamily: 'var(--font-mono)' }}>config.merge.max_payload='&lt;&lt; 4MB &gt;&gt;'</code>.
+                </div>
+              </div>
+            )}
             <div style={{ ...S.card, background: 'var(--bg-surface)', borderStyle: 'dashed' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
                 Com interpretar aquest run

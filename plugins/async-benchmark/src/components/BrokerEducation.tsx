@@ -33,12 +33,12 @@ const DiagramHeader = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap' }}>
-    <div>
+  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap', minWidth: 0 }}>
+    <div style={{ minWidth: 0 }}>
       <div style={{ ...labelStyle, marginBottom: 6 }}>{eyebrow}</div>
       <h2 style={headingStyle}>{title}</h2>
     </div>
-    <p style={{ ...paragraphStyle, maxWidth: 520 }}>{children}</p>
+    <p style={{ ...paragraphStyle, maxWidth: 520, minWidth: 0 }}>{children}</p>
   </div>
 );
 
@@ -65,12 +65,12 @@ const flowBox = (color: string): React.CSSProperties => ({
 });
 
 export const BrokerFlowDiagram = () => (
-  <section style={{ ...S.card, padding: 22, overflow: 'hidden' }}>
+  <section style={{ ...S.card, padding: 22, overflow: 'hidden', minWidth: 0 }}>
     <DiagramHeader eyebrow="Esquema base" title="Com funciona un broker">
       Un productor publica missatges, el broker els ordena o distribueix segons el model triat, i un o més consumidors els llegeixen. La prova compara aquest recorregut sota la mateixa càrrega.
     </DiagramHeader>
 
-    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.3fr 1fr', gap: 12, alignItems: 'stretch' }} className="async-responsive-grid">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12, alignItems: 'stretch' }}>
       <div style={flowBox('var(--brand)')}>
         <span style={miniBadge('var(--brand)')}>Productor</span>
         <div style={{ marginTop: 12, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>t0</div>
@@ -149,12 +149,12 @@ const anatomyParts = [
 ];
 
 export const BrokerAnatomyDiagram = () => (
-  <section style={{ ...S.card, padding: 22 }}>
+  <section style={{ ...S.card, padding: 22, overflow: 'hidden', minWidth: 0 }}>
     <DiagramHeader eyebrow="Ubicació de peces" title="On viu cada part">
       Aquest mapa separa UI, composició, protocol i broker real. Això evita confondre el portal amb l'orquestrador i deixa clar què s'està mesurant.
     </DiagramHeader>
 
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(130px, 1fr))', gap: 10 }} className="async-responsive-grid">
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(130px, 100%), 1fr))', gap: 10 }}>
       {anatomyParts.map((part, index) => (
         <div key={part.title} style={{ border: `1px solid ${part.color}30`, borderTop: `3px solid ${part.color}`, background: 'var(--bg-subtle)', borderRadius: 10, padding: 14, minHeight: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
           <div style={{ width: 34, height: 34, borderRadius: 9, background: `${part.color}16`, color: part.color, border: `1px solid ${part.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontWeight: 800 }}>
@@ -179,13 +179,13 @@ const latencySegments = [
 ];
 
 export const LatencyMapDiagram = () => (
-  <section style={{ ...S.card, padding: 22 }}>
+  <section style={{ ...S.card, padding: 22, overflow: 'hidden', minWidth: 0 }}>
     <DiagramHeader eyebrow="Lectura de mètriques" title="On està la latència">
       Les mètriques no són equivalents: la latència end-to-end cobreix tot el recorregut, mentre que la latència de broker només cobreix la part interna del broker.
     </DiagramHeader>
 
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg-subtle)', padding: 16 }}>
-      <div style={{ display: 'flex', minHeight: 82, borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', minHeight: 82, borderRadius: 9, overflowX: 'auto', overflowY: 'hidden', border: '1px solid var(--border)' }}>
         {latencySegments.map(segment => (
           <div key={segment.label} style={{ width: segment.width, background: `linear-gradient(180deg, ${segment.color}22, ${segment.color}0c)`, borderRight: segment.label === 'Receive' ? 'none' : '1px solid var(--border)', padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 96 }}>
             <div style={{ fontSize: 12, fontWeight: 850, color: segment.color }}>{segment.label}</div>
@@ -200,7 +200,7 @@ export const LatencyMapDiagram = () => (
           { label: 'Latència de broker', color: '#2D6BE4', start: 34, end: 58, text: 'ingress broker → ACK/routing' },
           { label: 'Overhead protocol/gateway', color: '#818cf8', start: 58, end: 76, text: 'adaptació WS/MQTT/gRPC si aplica' },
         ].map(row => (
-          <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '170px 1fr 180px', gap: 10, alignItems: 'center' }} className="async-responsive-grid">
+          <div key={row.label} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(170px, 100%), 1fr))', gap: 10, alignItems: 'center' }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: row.color }}>{row.label}</div>
             <div style={{ height: 8, borderRadius: 999, background: 'var(--bg-card)', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', left: `${row.start}%`, width: `${row.end - row.start}%`, top: 0, bottom: 0, background: row.color, borderRadius: 999 }} />

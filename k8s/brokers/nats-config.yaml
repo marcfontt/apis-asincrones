@@ -1,15 +1,30 @@
-# NATS server ConfigMap — increase max_payload to 4 MB so video-8k (2 MB) messages
-# are not silently rejected (default NATS limit is 1 MB).
+# NATS server ConfigMap - manual install fallback.
+#
+# This file increases max_payload to 4 MB so video-8k (2 MB) messages are not
+# rejected by the default NATS 1 MB limit.
+#
+# Important:
+#   - If NATS was installed with Helm, prefer the Helm command below. A ConfigMap
+#     by itself does nothing unless the workload mounts it as the active config.
+#   - If NATS was installed manually, apply this ConfigMap and restart the
+#     Deployment or StatefulSet that mounts it.
 #
 # Apply with:
 #   kubectl apply -f k8s/brokers/nats-config.yaml
 #
 # If NATS was installed via Helm (helm install nats nats/nats -n brokers), use:
+#   helm repo add nats https://nats-io.github.io/k8s/helm/charts/
+#   helm repo update
 #   helm upgrade nats nats/nats -n brokers --reuse-values \
-#     --set config.max_payload=4MB
+#     --set-string config.merge.max_payload='<< 4MB >>'
 #
-# After applying, restart the NATS pods to pick up the new config:
-#   kubectl rollout restart deployment/nats -n brokers  (or statefulset/nats)
+# In this cluster the monitoring port 8222 is exposed by svc/nats-headless:
+#   kubectl port-forward -n brokers svc/nats-headless 8222:8222
+#   curl http://127.0.0.1:8222/varz
+#
+# After applying a manual ConfigMap, restart the NATS pods to pick up the config:
+#   kubectl rollout restart deployment/nats -n brokers
+#   kubectl rollout restart statefulset/nats -n brokers
 # ---------------------------------------------------------------------------
 apiVersion: v1
 kind: ConfigMap

@@ -22,7 +22,8 @@
  */
 
 import { useEffect, useState } from 'react';
-import { S, GLOBAL_CSS } from '../theme';
+import { S } from '../theme';
+import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 
 // Endpoint de l'orquestrador (proxied per Backstage)
 const API_BASE = '/api/proxy/benchmark-orchestrator';
@@ -175,7 +176,7 @@ export const RunsPage = () => {
   return (
     <div style={{ ...S.page }}>
       {/* Injectar CSS global (fonts, animacions, tokens de tema) */}
-      <style>{GLOBAL_CSS}</style>
+      <GlobalBenchmarkStyles />
 
       {/* ── Capçalera de la pagina ─────────────────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>

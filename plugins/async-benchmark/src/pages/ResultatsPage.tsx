@@ -39,8 +39,9 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
-import { S, GLOBAL_CSS } from '../theme';
+import { S } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
+import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { EDUCATION } from '../shared/content/education';
 import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
 import { aggregateScenarioHistory, getRunMeasureCount, getRunMessageCount, getRunSentCount, getScenarioMeasureCount } from '../shared/results/historyMetrics';
@@ -2430,7 +2431,7 @@ export const ResultatsPage = () => {
   return (
     <div style={{ ...S.page, maxWidth: 1200 }}>
       {/* Inject shared global CSS (shimmer animation, fadeUp, pulseDot, etc.) */}
-      <style>{GLOBAL_CSS}</style>
+      <GlobalBenchmarkStyles />
 
       {/* Page header */}
       <div style={{ marginBottom: 24 }}>
@@ -2439,6 +2440,15 @@ export const ResultatsPage = () => {
           Metriques en temps real i comparatives d'arquitectures asincrones
         </p>
       </div>
+
+      <section style={{ ...S.card, marginBottom: 22, padding: '14px 18px', borderLeft: '3px solid var(--accent)' }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 5 }}>
+          Com s'han de llegir aquests resultats
+        </div>
+        <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+          Aquesta pagina compara execucions persistides. La puntuacio es relativa al conjunt visible i pot canviar si canvies filtres; no es una nota absoluta. P50 indica la mediana, P95/P99 indiquen cua llarga, i les conclusions s'han de defensar amb latencia, throughput, errors i volum de missatges, no amb una sola metrica.
+        </p>
+      </section>
 
       {/* Tab navigation bar - uses ARIA roles for accessibility */}
       <div role="tablist" aria-label="Vistes de resultats" style={{ borderBottom: '1px solid var(--border)', marginBottom: 24, display: 'flex' }}>

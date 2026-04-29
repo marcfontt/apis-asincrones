@@ -23,8 +23,16 @@
 
 import { useEffect, useState } from 'react';
 import React from 'react';
-import { S, GLOBAL_CSS, CATEGORY_COLORS } from '../theme';
+import { S, CATEGORY_COLORS } from '../theme';
 import { CompatibilityMatrix } from '../components/CompatibilityMatrix';
+import { FilterPanel } from '../components/FilterPanel';
+import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
+import {
+  getKnownComponentVersion,
+  getReproducibilityRows,
+  getReproducibilitySnippet,
+  getReproducibilityStatus,
+} from '../shared/catalog/reproducibility';
 
 // Endpoint del servei de cataleg (proxied per Backstage)
 const API_BASE = '/api/proxy/catalog-service';
@@ -41,7 +49,7 @@ const CATEGORY_LABELS: Record<string, string> = {
 // El cataleg no sempre emmagatzema la versio. Aquesta taula serveix com a
 // fallback per als components mes comuns del benchmark.
 // Claus en minuscules per facilitar la comparacio case-insensitive.
-const VERSIONES_CONOCIDAS_COMPONENTES: Record<string, string> = {
+export const VERSIONES_CONOCIDAS_COMPONENTES: Record<string, string> = {
   'kafka':          '4.1.1',
   'confluent':      '7.6',
   'rabbitmq':       '3.13',
@@ -82,18 +90,7 @@ const esComponenteAntiguoOculto = (component: any): boolean => {
 // la versio explicita, la fem servir. Si no, mirem VERSIONES_CONOCIDAS_COMPONENTES pel
 // shortName i, en ultim cas, pel name complet.
 const obtenerVersionComponente = (component: any): string => {
-  if (component && component.version) {
-    return component.version;
-  }
-  const nombreCorto = component && component.shortName ? String(component.shortName).toLowerCase() : '';
-  if (nombreCorto && VERSIONES_CONOCIDAS_COMPONENTES[nombreCorto]) {
-    return VERSIONES_CONOCIDAS_COMPONENTES[nombreCorto];
-  }
-  const nombreCompleto = component && component.name ? String(component.name).toLowerCase() : '';
-  if (nombreCompleto && VERSIONES_CONOCIDAS_COMPONENTES[nombreCompleto]) {
-    return VERSIONES_CONOCIDAS_COMPONENTES[nombreCompleto];
-  }
-  return '';
+  return getKnownComponentVersion(component);
 };
 
 // ── Descripcions de context per cada categoria ────────────────────────────────
@@ -199,7 +196,7 @@ const DETALLE_REPRODUCTIBILIDAD_POR_NOMBRE: Record<string, Array<{ label: string
  * Si no tenim cap detall pre-definit per aquest component, retorna null
  * i el bloc no es renderitza.
  */
-function obtenirDetallReproductibilitat(component: any): Array<{ label: string; value: string }> | null {
+export function obtenirDetallReproductibilitat(component: any): Array<{ label: string; value: string }> | null {
   if (!component) return null;
   const nom = String(component.name || '');
   const short = String(component.shortName || '');
@@ -261,11 +258,12 @@ const SNIPPETS_REPRODUCTIBILITAT: Record<string, { titol: string; codi: string }
     titol: 'Desplegar NATS amb max_payload=4MB (necessari per video-8k)',
     codi: [
       'helm repo add nats https://nats-io.github.io/k8s/helm/charts/',
-      'helm install nats nats/nats -n brokers --create-namespace \\',
-      '  --set config.max_payload=4MB',
+      'helm repo update',
+      'helm upgrade nats nats/nats -n brokers --reuse-values \\',
+      "  --set-string config.merge.max_payload='<< 4MB >>'",
       '',
       '# Verifica el limit despres del desplegament:',
-      'kubectl port-forward -n brokers svc/nats 8222:8222 &',
+      'kubectl port-forward -n brokers svc/nats-headless 8222:8222 &',
       'curl -s http://127.0.0.1:8222/varz | grep max_payload',
     ].join('\n'),
   },
@@ -297,7 +295,7 @@ const SNIPPETS_REPRODUCTIBILITAT: Record<string, { titol: string; codi: string }
   },
 };
 
-function obtenirSnippetReproductibilitat(component: any): { titol: string; codi: string } | null {
+export function obtenirSnippetReproductibilitat(component: any): { titol: string; codi: string } | null {
   if (!component) return null;
   const nom = String(component.name || '');
   if (SNIPPETS_REPRODUCTIBILITAT[nom]) {
@@ -458,8 +456,8 @@ const ComponentDetailModal = ({ component, onClose }: { component: any; onClose:
           punt d'ancoratge.
         */}
         {(() => {
-          const detallReproductibilitat = obtenirDetallReproductibilitat(component);
-          const snippet = obtenirSnippetReproductibilitat(component);
+          const detallReproductibilitat = getReproducibilityRows(component);
+          const snippet = getReproducibilitySnippet(component);
           if (!detallReproductibilitat && !snippet) return null;
           return (
             <div style={{
@@ -728,6 +726,9 @@ export const CatalogPage = () => {
         if (sortKey === 'version') {
           av = obtenerVersionComponente(a);
           bv = obtenerVersionComponente(b);
+        } else if (sortKey === 'repro') {
+          av = getReproducibilityStatus(a);
+          bv = getReproducibilityStatus(b);
         } else if (sortKey === 'category') {
           av = CATEGORY_LABELS[a.category] || a.category || '';
           bv = CATEGORY_LABELS[b.category] || b.category || '';
@@ -744,7 +745,7 @@ export const CatalogPage = () => {
   return (
     <div style={{ ...S.page }}>
       {/* CSS global: fonts (IBM Plex Sans + JetBrains Mono), animacions, tokens */}
-      <style>{GLOBAL_CSS}</style>
+      <GlobalBenchmarkStyles />
 
       {/* Modal de detall: renderitzat quan hi ha un component seleccionat */}
       {selectedComponent && (
@@ -804,6 +805,21 @@ export const CatalogPage = () => {
           />
         </div>
       </details>
+
+      <FilterPanel
+        title="Filtres"
+        activeFilterCount={activeFilter !== 'all' ? 1 : 0}
+        visibleCount={loading ? 0 : filtered.length}
+        totalCount={componentesVisibles.length}
+        searchValue={searchQuery}
+        searchPlaceholder="Cerca per nom, categoria, protocol o plataforma"
+        onSearchChange={setSearchQuery}
+        onClearFilters={() => { setActiveFilter('all'); setSearchQuery(''); }}
+      >
+        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+          El cataleg mostra producte, versio i reproductibilitat. Obre una fila per veure configuracio, limits i comandes de verificacio.
+        </div>
+      </FilterPanel>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 20 }}>
         {[
@@ -966,13 +982,14 @@ export const CatalogPage = () => {
             <tr style={S.tableHeader}>
               {/*
                 Columnes visibles a la taula del cataleg.
-                "Nom curt" i "Versio" les hem amagat per defecte: ocupaven
-                molt espai i quasi cap usuari les necessita d'un cop d'ull.
-                Aquesta informacio es mostra al modal de detall quan es clica
-                la fila (vegeu component DetailModal mes amunt).
+                La versio i l estat de reproductibilitat es mostren a la
+                taula perque el cataleg sigui una fitxa reproduible, no nomes
+                una llista descriptiva de components.
               */}
               <CapcaleraOrdenable label="Nom"        campoOrdenacion="name"        campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
               <CapcaleraOrdenable label="Categoria"  campoOrdenacion="category"    campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
+              <CapcaleraOrdenable label="Versio"      campoOrdenacion="version"     campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
+              <CapcaleraOrdenable label="Reproduct."  campoOrdenacion="repro"       campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
               <CapcaleraOrdenable label="Descripció" campoOrdenacion="description" campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
             </tr>
           </thead>
@@ -982,7 +999,7 @@ export const CatalogPage = () => {
               Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i}>
                   {/* Skeleton: 3 columnes (nom, categoria, descripcio) */}
-                  {[45, 25, 65].map((w, j) => (
+                  {[45, 25, 30, 35, 65].map((w, j) => (
                     <td key={j} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
                       <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${i * 0.07}s` }} />
                     </td>
@@ -992,7 +1009,7 @@ export const CatalogPage = () => {
             ) : filtered.length === 0 ? (
               // Estat buit: cap component que coincideixi
               <tr>
-                <td colSpan={3} style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
+                <td colSpan={5} style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
                   Cap component trobat.
                 </td>
               </tr>
@@ -1000,6 +1017,13 @@ export const CatalogPage = () => {
               const color      = CATEGORY_COLORS[c.category] || 'var(--accent)';
               const isSelected = selectedIdx === i;
               const isHovered  = hoveredRow === i;
+              const versioComponent = obtenerVersionComponente(c);
+              const estatReproductibilitat = getReproducibilityStatus(c);
+              const colorReproductibilitat = estatReproductibilitat === 'Completa'
+                ? 'var(--success)'
+                : estatReproductibilitat === 'Parcial'
+                  ? 'var(--warning)'
+                  : 'var(--neutral)';
               return (
                 <tr
                   key={c.id || i}
@@ -1046,10 +1070,19 @@ export const CatalogPage = () => {
 
                   {/* ── Descripcio truncada (maxWidth + ellipsis) ── */}
                   {/*
-                    "Nom curt" i "Versio" deliberadament no es mostren a la taula.
-                    L'usuari els pot consultar al modal de detall (clic a la fila).
-                    Aixi la taula queda mes neta i centrada en el nom + descripcio.
+                    La descripcio queda truncada per no tapar la versio i
+                    la reproductibilitat, que son dades importants per al TFG.
                   */}
+                  <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: versioComponent ? 'var(--text-primary)' : 'var(--text-disabled)' }}>
+                    {versioComponent || '-'}
+                  </td>
+
+                  <td style={S.td}>
+                    <span style={{ ...S.badge(colorReproductibilitat), fontSize: 11 }}>
+                      {estatReproductibilitat}
+                    </span>
+                  </td>
+
                   <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 540, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
                     {c.description || <span style={{ color: 'var(--text-disabled)', fontStyle: 'italic' }}>Sense descripcio</span>}
                   </td>

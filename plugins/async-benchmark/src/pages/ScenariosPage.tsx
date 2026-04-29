@@ -27,8 +27,10 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { S, GLOBAL_CSS } from '../theme';
+import { S } from '../theme';
 import { CompatibilityMatrix } from '../components/CompatibilityMatrix';
+import { FilterPanel } from '../components/FilterPanel';
+import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 
 // Endpoints dels microserveis (proxied per Backstage via app-config.yaml)
 const API_BASE     = '/api/proxy/scenario-service';
@@ -264,9 +266,9 @@ const PREDEFINED_PRESETS = [
     protocol:     'Kafka',
     dataFormat:   'video-4k',
     duration:     '120',
-    rate:         '2000',
-    payloadSize:  '4096',
-    desc:         'Kafka + Confluent per a streaming 4K. Alt throughput, tolerant a latència.',
+    rate:         '10',
+    payloadSize:  '500000',
+    desc:         'Kafka + Confluent per a streaming 4K amb els valors reals del backend: payload de 500 KB i rate baix.',
     color:        '#7c3aed',
   },
   {
@@ -288,9 +290,9 @@ const PREDEFINED_PRESETS = [
     protocol:     'Kafka',
     dataFormat:   'video-8k',
     duration:     '120',
-    rate:         '500',
-    payloadSize:  '16384',
-    desc:         'Kafka + Confluent per a streaming 8K (16 Mbps). Càrrega màxima de throughput.',
+    rate:         '4',
+    payloadSize:  '2000000',
+    desc:         'Kafka + Confluent per a streaming 8K. Usa payload de 2 MB, el mateix valor que aplica el backend.',
     color:        '#9333ea',
   },
 ];
@@ -1501,7 +1503,7 @@ export const ScenariosPage = () => {
 
   return (
     <div style={{ ...S.page, maxWidth: 1340 }}>
-      <style>{GLOBAL_CSS}</style>
+      <GlobalBenchmarkStyles />
       {showModal     && <ScenarioModal mode={modalMode as 'create' | 'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={fetchData} />}
       {deleteTarget  && <DeleteModal name={deleteTarget.name || 'aquest escenari'} onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} />}
       {executeTarget && <ExecuteModal scenario={executeTarget} onStarted={handleScenarioStarted} onClose={() => { setExecuteTarget(null); fetchData(); fetchRunningMap(); }} />}
@@ -1606,7 +1608,16 @@ export const ScenariosPage = () => {
       </div>
 
       {/* ── Filtres millorats ── */}
-      <div style={{ ...S.card, marginBottom: 20, padding: '16px 20px' }}>
+      <FilterPanel
+        title="Filtres"
+        activeFilterCount={activeFiltersCount}
+        visibleCount={loading ? 0 : filtered.length}
+        totalCount={scenarios.length}
+        searchValue={searchQuery}
+        searchPlaceholder="Cerca per nom, arquitectura, protocol, plataforma o format"
+        onSearchChange={setSearchQuery}
+        onClearFilters={() => { setFilterArch('all'); setFilterProto('all'); setFilterPlatform('all'); setFilterDataFormat('all'); setSearchQuery(''); }}
+      >
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           {/* Icona filtre */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: activeFiltersCount > 0 ? 'var(--accent)' : 'var(--text-disabled)', flexShrink: 0 }}>
@@ -1650,7 +1661,7 @@ export const ScenariosPage = () => {
             </button>
           )}
         </div>
-      </div>
+      </FilterPanel>
 
       {/* Taula + Detall */}
       <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start' }}>

@@ -1,7 +1,8 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { S, GLOBAL_CSS } from '../theme';
+import { S } from '../theme';
 import { EDUCATION } from '../shared/content/education';
 import { BrokerAnatomyDiagram, BrokerFlowDiagram, LatencyMapDiagram } from '../components/BrokerEducation';
+import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 
 const RUTA_API_CATALEG = '/api/proxy/catalog-service';
 const RUTA_API_ESCENARIS = '/api/proxy/scenario-service';
@@ -101,6 +102,45 @@ const pasosDeEjecucion = [
   { n: '5', label: 'Comparar', sub: 'historial i percentils', color: '#818cf8' },
 ];
 
+const partsDelSistema = [
+  {
+    title: 'Backstage UI',
+    subtitle: 'Frontend del portal',
+    text: "L'usuari tria components, crea escenaris i consulta execucions sense sortir de Backstage.",
+    color: '#6366f1',
+  },
+  {
+    title: 'Backend compositor',
+    subtitle: 'Regles del TFG',
+    text: 'Converteix el contracte Scenario en manifests, jobs i configuracio de prova reproduible.',
+    color: '#2D6BE4',
+  },
+  {
+    title: 'AKS',
+    subtitle: 'Execucio a Kubernetes',
+    text: 'Allotja brokers, gateways i generadors de carrega en namespaces controlats.',
+    color: '#22c55e',
+  },
+  {
+    title: 'Broker i gateway',
+    subtitle: 'Sistema mesurat',
+    text: 'Kafka, NATS, RabbitMQ o compatible reben payloads identics sota el mateix perfil.',
+    color: '#f59e0b',
+  },
+  {
+    title: 'Metrics API',
+    subtitle: 'Dades persistides',
+    text: 'Recull mesures de runs i prepara latencia, throughput, errors i percentils per comparar.',
+    color: '#00C896',
+  },
+  {
+    title: 'Resultats',
+    subtitle: 'Lectura defensable',
+    text: 'Mostra conclusions relatives al conjunt filtrat i explica que s ha mesurat.',
+    color: '#818cf8',
+  },
+];
+
 const smallCard = (color: string): CSSProperties => ({
   border: `1px solid ${color}26`,
   background: `linear-gradient(180deg, ${color}0d, var(--bg-card))`,
@@ -180,7 +220,7 @@ export const HomePage = () => {
 
   return (
     <div style={{ ...S.page, maxWidth: 1220, paddingBottom: 64 }}>
-      <style>{GLOBAL_CSS}</style>
+      <GlobalBenchmarkStyles />
 
       <section style={{
         ...S.card,
@@ -241,6 +281,40 @@ export const HomePage = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap', marginBottom: 18 }}>
+          <div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>
+              Estructura del sistema
+            </div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 850, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
+              De la seleccio de l'escenari fins als resultats
+            </h2>
+          </div>
+          <p style={{ margin: 0, maxWidth: 560, fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+            Aquest mapa resumeix les peces del TFG sense confondre rols: Backstage es el portal, el backend compon la prova, AKS executa els components i la Metrics API conserva les mesures.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(130px, 1fr))', gap: 10 }} className="async-responsive-grid">
+          {partsDelSistema.map((part, index) => (
+            <div key={part.title} style={{ border: `1px solid ${part.color}30`, borderTop: `3px solid ${part.color}`, borderRadius: 10, background: 'var(--bg-subtle)', padding: 14, minHeight: 178 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 12 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: `${part.color}16`, border: `1px solid ${part.color}30`, color: part.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontWeight: 850 }}>
+                  {index + 1}
+                </div>
+                {index < partsDelSistema.length - 1 && (
+                  <span aria-hidden style={{ color: 'var(--text-disabled)', fontSize: 18, fontWeight: 800 }}>→</span>
+                )}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 4 }}>{part.title}</div>
+              <div style={{ fontSize: 11, fontWeight: 800, color: part.color, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 8 }}>{part.subtitle}</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.56 }}>{part.text}</p>
+            </div>
+          ))}
         </div>
       </section>
 
