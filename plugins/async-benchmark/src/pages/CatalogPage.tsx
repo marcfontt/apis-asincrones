@@ -61,6 +61,20 @@ const CATEGORY_ORDER: CategoryFilter[] = ['all', 'platform', 'protocol', 'archit
 
 const HIDDEN_LEGACY_COMPONENTS = ['pulsar', 'apache pulsar', 'sse', 'server-sent events', 'coap'];
 
+const PLATFORM_DISPLAY_LABELS: Record<string, string> = {
+  Kafka: 'Apache Kafka',
+  Confluent: 'Confluent Platform',
+  RabbitMQ: 'RabbitMQ',
+  'NATS Server': 'NATS Server',
+};
+
+const COMPATIBILITY_NOTES: Record<string, string> = {
+  Kafka: 'Referència per logs i streaming. Quan es combini amb protocols que no són Kafka, cal que l’escenari declari clarament el gateway o adaptador.',
+  RabbitMQ: 'Fort en cues, ACKs i encaminament flexible. És la plataforma natural per AMQP i proves de treball en cua.',
+  Confluent: 'Variant Kafka-compatible per comparar comportament de streaming amb una distribució diferent del mateix ecosistema.',
+  'NATS Server': 'Molt lleuger per pub/sub i baixa latència. Per payloads grans cal verificar max_payload abans de llançar el benchmark.',
+};
+
 const SearchIcon = () => (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
     <circle cx="11" cy="11" r="8" />
@@ -373,10 +387,16 @@ const CompatibilitySummary = () => {
             {ALL_PLATFORMS.map(platform => {
               const entry = COMPATIBILITY[platform];
               const disabled = DISABLED_PLATFORMS.includes(platform);
+              const displayName = PLATFORM_DISPLAY_LABELS[platform] || platform;
               return (
                 <tr key={platform} style={S.tableRow}>
                   <td style={{ ...S.td, fontWeight: 850 }}>
-                    {platform}
+                    {displayName}
+                    {displayName !== platform && (
+                      <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 3 }}>
+                        Valor a Escenaris: {platform}
+                      </div>
+                    )}
                     {disabled && (
                       <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 3 }}>No desplegada</div>
                     )}
@@ -392,7 +412,7 @@ const CompatibilitySummary = () => {
                     </div>
                   </td>
                   <td style={{ ...S.td, color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.5 }}>
-                    Una fila és una plataforma real. Les dues columnes centrals indiquen quines arquitectures i protocols es poden escollir per crear un escenari reproduïble.
+                    {COMPATIBILITY_NOTES[platform] || 'Combinació declarada a la matriu de compatibilitat del portal.'}
                   </td>
                 </tr>
               );
