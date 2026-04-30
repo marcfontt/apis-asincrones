@@ -162,6 +162,70 @@ const buildScenarioUrl = (component: CatalogComponent): string => {
   return `/escenaris?${params.toString()}`;
 };
 
+const uniqueValues = (values: string[]): string[] =>
+  Array.from(new Set(values.filter(Boolean)));
+
+const platformKeyForCompatibility = (component: CatalogComponent): string => {
+  const rawValue = component.shortName || component.name || '';
+  const normalized = normalizeText(rawValue);
+  const aliasMap: Record<string, string> = {
+    kafka: 'Kafka',
+    'apache kafka': 'Kafka',
+    confluent: 'Confluent',
+    'confluent platform': 'Confluent',
+    rabbitmq: 'RabbitMQ',
+    'rabbit mq': 'RabbitMQ',
+    nats: 'NATS Server',
+    'nats server': 'NATS Server',
+  };
+
+  return aliasMap[normalized] || rawValue;
+};
+
+const getCompatibilityDetails = (component: CatalogComponent) => {
+  const code = component.shortName || component.name || '';
+
+  if (component.category === 'platform') {
+    const platform = platformKeyForCompatibility(component);
+    const entry = COMPATIBILITY[platform];
+
+    if (!entry) {
+      return [];
+    }
+
+    return [
+      { label: 'Arquitectures compatibles', values: entry.architectures, color: CATEGORY_COLORS.architecture },
+      { label: 'Protocols compatibles', values: entry.protocols, color: CATEGORY_COLORS.protocol },
+    ];
+  }
+
+  if (component.category === 'architecture') {
+    const platforms = ALL_PLATFORMS.filter(platform =>
+      COMPATIBILITY[platform]?.architectures.includes(code),
+    );
+    const protocols = uniqueValues(platforms.flatMap(platform => COMPATIBILITY[platform]?.protocols || []));
+
+    return [
+      { label: 'Plataformes que la poden usar', values: platforms, color: CATEGORY_COLORS.platform },
+      { label: 'Protocols disponibles en aquestes plataformes', values: protocols, color: CATEGORY_COLORS.protocol },
+    ];
+  }
+
+  if (component.category === 'protocol') {
+    const platforms = ALL_PLATFORMS.filter(platform =>
+      COMPATIBILITY[platform]?.protocols.includes(code),
+    );
+    const architectures = uniqueValues(platforms.flatMap(platform => COMPATIBILITY[platform]?.architectures || []));
+
+    return [
+      { label: 'Plataformes que el poden usar', values: platforms, color: CATEGORY_COLORS.platform },
+      { label: 'Arquitectures disponibles en aquestes plataformes', values: architectures, color: CATEGORY_COLORS.architecture },
+    ];
+  }
+
+  return [];
+};
+
 const StatusBadge = ({ status }: { status: ReproducibilityStatus }) => {
   const color =
     status === 'Completa'
@@ -359,6 +423,41 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+const ComponentCompatibilityDetails = ({ component }: { component: CatalogComponent }) => {
+  const details = getCompatibilityDetails(component);
+
+  if (details.length === 0) {
+    return null;
+  }
+
+  return (
+    <section style={{ ...S.card, boxShadow: 'none', marginTop: 16 }}>
+      <div style={{ fontSize: 11, color: componentColor(component), fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+        Compatibilitat dins del portal
+      </div>
+      <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+        Aquest bloc connecta el component amb les opcions que apareixeran a Escenaris. Serveix per evitar combinacions que el portal encara no sap executar de manera reproduïble.
+      </p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
+        {details.map(group => (
+          <div key={group.label} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, background: 'var(--bg-subtle)' }}>
+            <div style={{ fontSize: 12, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 8 }}>{group.label}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {group.values.length > 0 ? group.values.map(value => (
+                <span key={value} style={{ ...S.badge(group.color), fontSize: 10, padding: '2px 7px' }}>
+                  {value}
+                </span>
+              )) : (
+                <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>Cap combinació declarada</span>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+};
+
 const ComponentDetailModal = ({
   component,
   onClose,
@@ -495,6 +594,8 @@ const ComponentDetailModal = ({
             )}
           </section>
         </div>
+
+        <ComponentCompatibilityDetails component={component} />
 
         {(reproducibilityRows || snippet) && (
           <section style={{ ...S.card, boxShadow: 'none', marginTop: 16 }}>
@@ -753,7 +854,23 @@ export const CatalogPage = () => {
   const architectureCount = countByCategory('architecture');
   const protocolCount = countByCategory('protocol');
   const platformCount = countByCategory('platform');
-  const baseCombinationCount = architectureCount * protocolCount * platformCount;
+  const theoreticalCombinationCount = architectureCount * protocolCount * platformCount;
+  const compatibleCombinationCount = useMemo(
+    () =>
+      ALL_PLATFORMS
+        .filter(platform => !DISABLED_PLATFORMS.includes(platform))
+        .reduce((total, platform) => {
+          const entry = COMPATIBILITY[platform];
+          if (!entry) {
+            return total;
+          }
+          return total + entry.architectures.length * entry.protocols.length;
+        }, 0),
+    [],
+  );
+
+  const countByReproducibility = (status: ReproducibilityStatus): number =>
+    visibleComponents.filter(component => getReproducibilityStatus(component) === status).length;
 
   const tableCardStyle: CSSProperties = {
     ...S.card,
@@ -852,14 +969,25 @@ export const CatalogPage = () => {
             const isActive = activeReproducibility === status;
             const label = status === 'all' ? 'Tota reproductibilitat' : status;
             const color = status === 'Completa' ? 'var(--success)' : status === 'Parcial' ? 'var(--warning)' : 'var(--neutral)';
+            const count = status === 'all' ? visibleComponents.length : countByReproducibility(status);
+            const disabled = status !== 'all' && count === 0;
             return (
               <button
                 key={status}
                 type="button"
+                disabled={disabled}
                 onClick={() => setActiveReproducibility(status)}
-                style={S.chip(isActive, color)}
+                style={{
+                  ...S.chip(isActive, color),
+                  opacity: disabled ? 0.45 : 1,
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                }}
               >
                 {label}
+                <span style={{ fontFamily: 'var(--font-mono)', opacity: 0.72 }}>{count}</span>
               </button>
             );
           })}
@@ -883,9 +1011,16 @@ export const CatalogPage = () => {
       >
         <span>
           <strong style={{ color: CATEGORY_COLORS.platform, fontFamily: 'var(--font-mono)' }}>
-            {loading ? '-' : baseCombinationCount}
+            {loading ? '-' : compatibleCombinationCount}
           </strong>{' '}
-          combinacions base
+          combinacions compatibles
+        </span>
+        <span style={{ color: 'var(--text-disabled)' }}>·</span>
+        <span>
+          <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+            {loading ? '-' : theoreticalCombinationCount}
+          </strong>{' '}
+          combinacions possibles sense aplicar la matriu
         </span>
         <span style={{ color: 'var(--text-disabled)' }}>·</span>
         <span>
