@@ -7,6 +7,7 @@ import {
   COMPATIBILITY,
   DISABLED_PLATFORMS,
 } from '../shared/catalog/compatibility';
+import { DEFAULT_CATALOG_COMPONENTS } from '../shared/catalog/defaultComponents';
 import {
   getKnownComponentVersion,
   getReproducibilityRows,
@@ -730,6 +731,7 @@ export const CatalogPage = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [catalogNotice, setCatalogNotice] = useState('');
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
   const [activeReproducibility, setActiveReproducibility] = useState<'all' | ReproducibilityStatus>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -745,6 +747,7 @@ export const CatalogPage = () => {
   const fetchComponents = async () => {
     const firstLoad = components.length === 0;
     setError('');
+    setCatalogNotice('');
     if (firstLoad) {
       setLoading(true);
     } else {
@@ -756,10 +759,29 @@ export const CatalogPage = () => {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
-      const data = await response.json();
-      setComponents(Array.isArray(data) ? data : []);
+      const rawBody = await response.text();
+      let data: unknown;
+      try {
+        data = JSON.parse(rawBody);
+      } catch {
+        throw new Error('El catalog-service no ha retornat JSON vàlid');
+      }
+
+      const nextComponents = Array.isArray(data) ? data : [];
+      if (nextComponents.length === 0) {
+        setComponents(DEFAULT_CATALOG_COMPONENTS);
+        setCatalogNotice('El catalog-service ha respost sense components. Es mostra el catàleg base local per poder treballar igualment.');
+        return;
+      }
+
+      setComponents(nextComponents);
     } catch (err) {
-      setError((err as Error).message);
+      if (components.length === 0) {
+        setComponents(DEFAULT_CATALOG_COMPONENTS);
+        setCatalogNotice(`No s'ha pogut llegir el catalog-service (${(err as Error).message}). Es mostra el catàleg base local.`);
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -1017,8 +1039,8 @@ export const CatalogPage = () => {
       <div
         style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: 16,
+          alignItems: 'stretch',
+          gap: 8,
           flexWrap: 'wrap',
           padding: '10px 14px',
           marginBottom: 16,
@@ -1029,31 +1051,34 @@ export const CatalogPage = () => {
           color: 'var(--text-secondary)',
         }}
       >
-        <span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
           <strong style={{ color: CATEGORY_COLORS.platform, fontFamily: 'var(--font-mono)' }}>
             {loading ? '-' : compatibleCombinationCount}
           </strong>{' '}
           combinacions compatibles
         </span>
-        <span style={{ color: 'var(--text-disabled)' }}>·</span>
-        <span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
           <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
             {loading ? '-' : theoreticalCombinationCount}
           </strong>{' '}
           combinacions possibles sense aplicar la matriu
         </span>
-        <span style={{ color: 'var(--text-disabled)' }}>·</span>
-        <span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
           <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
             {loading ? '-' : filteredComponents.length}
           </strong>{' '}
           components visibles de {visibleComponents.length}
         </span>
-        <span style={{ color: 'var(--text-disabled)' }}>·</span>
-        <span>
+        <span style={{ flexBasis: '100%', paddingTop: 2 }}>
           SEA està inclosa com a arquitectura i es manté disponible per als escenaris compatibles.
         </span>
       </div>
+
+      {catalogNotice && (
+        <div style={{ ...S.card, borderColor: 'rgba(245,158,11,0.35)', color: 'var(--warning)', marginBottom: 16, background: 'rgba(245,158,11,0.06)' }}>
+          {catalogNotice}
+        </div>
+      )}
 
       {error && (
         <div style={{ ...S.card, borderColor: 'rgba(220,38,38,0.35)', color: 'var(--error)', marginBottom: 16 }}>
