@@ -191,6 +191,57 @@ export const GLOBAL_CSS = `
     transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
   }
 
+  .async-flow-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 144px;
+    color: #2563eb;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .async-flow-arrow::before {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    top: 50%;
+    height: 2px;
+    border-radius: 999px;
+    background: currentColor;
+    transform: translateY(-50%);
+  }
+
+  .async-flow-arrow::after {
+    content: "";
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    width: 9px;
+    height: 9px;
+    border-top: 2px solid currentColor;
+    border-right: 2px solid currentColor;
+    transform: translateY(-50%) rotate(45deg);
+  }
+
+  .async-flow-arrow span {
+    position: relative;
+    z-index: 1;
+    padding: 3px 6px;
+    border-radius: 999px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+  }
+
+  .async-flow-arrow-green {
+    color: #16a34a;
+  }
+
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
@@ -209,6 +260,59 @@ export const GLOBAL_CSS = `
 
     .async-hide-mobile {
       display: none !important;
+    }
+
+    .async-flow-stage {
+      grid-template-columns: 1fr !important;
+      gap: 10px !important;
+    }
+
+    .async-flow-arrow {
+      min-height: 44px;
+      transform: none;
+    }
+
+    .async-flow-arrow::before {
+      left: 50%;
+      right: auto;
+      top: 4px;
+      bottom: 4px;
+      width: 2px;
+      height: auto;
+      transform: translateX(-50%);
+    }
+
+    .async-flow-arrow::after {
+      right: auto;
+      left: 50%;
+      top: auto;
+      bottom: 3px;
+      transform: translateX(-50%) rotate(135deg);
+    }
+
+    .async-flow-arrow span {
+      transform: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .async-latency-segments {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      overflow: visible !important;
+      min-height: 0 !important;
+    }
+
+    .async-latency-segment {
+      width: auto !important;
+      min-width: 0 !important;
+      min-height: 76px;
+      border-right: none !important;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .async-latency-segment:last-child {
+      border-bottom: none !important;
     }
   }
 

@@ -82,7 +82,7 @@ const TOP_NAVIGATION_CSS = `
 
   .portal-brand-full {
     display: block;
-    width: 168px;
+    width: 226px;
     height: auto;
   }
 

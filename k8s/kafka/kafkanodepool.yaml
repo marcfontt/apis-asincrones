@@ -13,9 +13,12 @@ spec:
   storage:
     type: ephemeral
   resources:
+    # Per obtenir resultats comparables al TFG, el broker ha de tenir QoS Guaranteed.
+    # Això vol dir que requests i limits són iguals, igual que volem fer amb la
+    # resta de brokers quan el desplegament està controlat pel repo.
     limits:
       cpu: 500m
       memory: 1Gi
     requests:
-      cpu: 250m
-      memory: 512Mi
+      cpu: 500m
+      memory: 1Gi

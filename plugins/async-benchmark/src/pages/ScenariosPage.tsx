@@ -28,7 +28,6 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { S } from '../theme';
-import { CompatibilityMatrix } from '../components/CompatibilityMatrix';
 import { FilterPanel } from '../components/FilterPanel';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 
@@ -54,6 +53,18 @@ type Scenario = {
   createdAt?: string;
 };
 
+type SustainedLoadPlan = {
+  durationSeconds: number;
+  ratio: number;
+  payloadBytes: number;
+  formatKey: string;
+  formatLabel: string;
+  formatHint: string;
+  platformHint: string;
+  architectureHint: string;
+  protocolHint: string;
+};
+
 // ── Constants ──────────────────────────────────────────────────────────────────
 // Llistes de valors valids per als camps del formulari d'escenari.
 // S'usen per als selects del modal i per als filtres de la taula.
@@ -63,6 +74,7 @@ const ALL_PLATFORMS      = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server'];
 // Plataformes disponibles al cataleg pero no desploegades al clúster (cap actualment).
 const DISABLED_PLATFORMS: string[] = [];
 const HIDDEN_LEGACY_VALUES = ['sse', 'coap', 'pulsar', 'apache pulsar'];
+const SUSTAINED_MODE_DURATION_SECONDS = 3600;
 
 const isHiddenLegacyScenario = (s: Scenario): boolean => {
   const values = [s.name, s.protocol, s.platform, s.broker]
@@ -81,23 +93,23 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 // Formats de dades disponibles per simular casos d'us reals.
-// Cada format ajusta automaticament el payload i ratio en mode indefinit.
+// Cada format ajusta automaticament el payload i ratio en mode sostingut.
 // 'video-8k' usa payloads de 2MB: IMPORTANT - Kafka broker per defecte
 // te un limit de 1MB per missatge (message.max.bytes). Els escenaris
 // video-8k amb Kafka/Confluent mostraran 0ms latencia i 0 throughput
 // per aixo (el broker rebutja silenciosament els missatges).
 // Per habilitar-los caldria configurar message.max.bytes > 2MB al broker.
 const DATA_FORMATS = [
-  { value: '',          label: 'Per defecte (bytes aleatoris)' },
-  { value: 'default',   label: 'Per defecte (bytes aleatoris)' },
-  { value: 'video-4k',  label: 'Streaming vídeo 4K (~4 Mbps)' },
-  { value: 'video-8k',  label: 'Streaming vídeo 8K (~16 Mbps)' },
+  { value: '',          label: 'Base controlada (256 B)' },
+  { value: 'default',   label: 'Base controlada (256 B)' },
+  { value: 'video-4k',  label: 'Streaming vídeo 4K (500 KB)' },
+  { value: 'video-8k',  label: 'Streaming vídeo 8K (2 MB)' },
   { value: 'financial', label: 'Transaccions financeres (JSON compacte)' },
-  { value: 'iot',       label: 'Telemetria IoT (payload mínim)' },
+  { value: 'iot',       label: 'Telemetria IoT (64 B)' },
 ];
 
 const DATA_FORMAT_LABELS: Record<string, string> = {
-  'default':   'Per defecte',
+  'default':   'Base',
   'video-4k':  'Vídeo 4K',
   'video-8k':  'Vídeo 8K',
   'financial': 'Financer',
@@ -116,20 +128,104 @@ const DATA_FORMAT_COLORS: Record<string, string> = {
 // Aquesta taula reflecteix EXACTAMENT el que fa el backend a
 // `packages/benchmark-orchestrator/src/index.ts` (DATA_FORMAT_CONFIG).
 // La duplicacio es deliberada: aixi la UI pot dir clarament a l'usuari
-// quins numeros agafara el mode indefinit sense haver de cridar al
+// quins numeros agafara el mode sostingut sense haver de cridar al
 // backend abans d'arrencar el run.
-const DEFAULTS_FORMAT: Record<string, { ratio: number; payloadBytes: number; hint: string }> = {
-  'default':   { ratio: 100, payloadBytes:    256,    hint: 'Volum estable, mida moderada.' },
-  'video-4k':  { ratio: 10,  payloadBytes: 500_000,    hint: 'Frames pesats: priorització de throughput.' },
-  'video-8k':  { ratio: 4,   payloadBytes: 2_000_000,  hint: 'Necessita brokers amb max_payload >= 4 MB.' },
-  'financial': { ratio: 200, payloadBytes:    512,    hint: 'Missatges petits, alta freqüència.' },
-  'iot':       { ratio: 500, payloadBytes:     64,    hint: 'Payload mínim, ràtio molt alta.' },
+const DEFAULTS_FORMAT: Record<string, { ratio: number; payloadBytes: number; hint: string; effect: string }> = {
+  'default': {
+    ratio: 100,
+    payloadBytes: 256,
+    hint: 'Càrrega base per comprovar que la combinació funciona abans d’augmentar pressió.',
+    effect: 'Serveix com a control: missatges petits i regulars, sense exigir throughput extrem.',
+  },
+  'video-4k': {
+    ratio: 10,
+    payloadBytes: 500_000,
+    hint: 'Payload gran amb poques emissions per segon.',
+    effect: 'Força el broker a moure volum de dades; és útil per veure throughput i estabilitat.',
+  },
+  'video-8k': {
+    ratio: 4,
+    payloadBytes: 2_000_000,
+    hint: 'Payload molt gran; només és defensable si el broker accepta missatges de 2 MB.',
+    effect: 'Estressa límits de payload. NATS necessita max_payload >= 4 MB i Kafka/compatibles necessiten límits de missatge coherents.',
+  },
+  'financial': {
+    ratio: 200,
+    payloadBytes: 512,
+    hint: 'Missatges petits amb més freqüència.',
+    effect: 'Mesura latència, errors i regularitat en transaccions curtes.',
+  },
+  'iot': {
+    ratio: 500,
+    payloadBytes: 64,
+    hint: 'Payload mínim i freqüència alta.',
+    effect: 'Simula sensors o telemetria, on importa absorbir molts missatges petits.',
+  },
+};
+
+const PLATFORM_LOAD_FACTORS: Record<string, { factor: number; hint: string }> = {
+  'Kafka':       { factor: 0.95, hint: 'Kafka prioritza logs ordenats; baixem lleugerament la ràtio recomanada quan el payload és alt.' },
+  'Confluent':   { factor: 1.00, hint: 'Confluent/Kafka compatible es manté com a referència per streaming i logs.' },
+  'RabbitMQ':    { factor: 0.85, hint: 'RabbitMQ treballa molt bé amb cues i ACKs; evitem sobrecarregar-lo amb ràtios extremes per defecte.' },
+  'NATS Server': { factor: 1.15, hint: 'NATS encaixa amb missatges petits i alta freqüència; pot pujar la ràtio en IoT o payloads lleugers.' },
+};
+
+const ARCHITECTURE_LOAD_FACTORS: Record<string, { factor: number; hint: string }> = {
+  'EDA': { factor: 1.00, hint: 'EDA manté la càrrega base del format.' },
+  'QBA': { factor: 0.90, hint: 'QBA introdueix cua i confirmació; es redueix una mica la pressió inicial.' },
+  'LCA': { factor: 0.95, hint: 'LCA és adequada per fluxos ordenats i conserva gairebé tota la ràtio base.' },
+  'EMA': { factor: 0.75, hint: 'EMA representa més salts lògics; fem una càrrega més prudent.' },
+  'SEA': { factor: 0.85, hint: 'SEA prioritza flux continu; en payloads grans es redueix la freqüència.' },
+};
+
+const PROTOCOL_LOAD_FACTORS: Record<string, { factor: number; hint: string }> = {
+  'Kafka': { factor: 0.95, hint: 'Protocol Kafka: bo per lots i logs, però amb overhead de particions/offsets.' },
+  'AMQP':  { factor: 0.90, hint: 'AMQP afegeix semàntica de cues i confirmacions.' },
+  'MQTT':  { factor: 1.05, hint: 'MQTT és lleuger i encaixa amb missatges petits.' },
+  'gRPC':  { factor: 0.95, hint: 'gRPC streaming és eficient però manté cost de serialització i canal.' },
+  'WS':    { factor: 0.80, hint: 'WebSocket és útil per clients web; la càrrega recomanada és més moderada.' },
+  'NATS':  { factor: 1.15, hint: 'NATS és molt lleuger en pub/sub i permet més freqüència amb payload petit.' },
+};
+
+const clampRatio = (value: number) => Math.max(1, Math.round(value));
+
+const getSustainedLoadPlan = (input: {
+  platform?: string;
+  architecture?: string;
+  protocol?: string;
+  dataFormat?: string;
+}): SustainedLoadPlan => {
+  const formatKey = input.dataFormat || 'default';
+  const format = DEFAULTS_FORMAT[formatKey] || DEFAULTS_FORMAT.default;
+  const platform = PLATFORM_LOAD_FACTORS[normalizePlatform(input.platform) || ''] || { factor: 1, hint: 'Sense plataforma triada: s’aplica el perfil base del format.' };
+  const architecture = ARCHITECTURE_LOAD_FACTORS[input.architecture || ''] || { factor: 1, hint: 'Sense arquitectura triada: s’aplica el perfil base del format.' };
+  const protocol = PROTOCOL_LOAD_FACTORS[input.protocol || ''] || { factor: 1, hint: 'Sense protocol triat: s’aplica el perfil base del format.' };
+
+  return {
+    durationSeconds: SUSTAINED_MODE_DURATION_SECONDS,
+    ratio: clampRatio(format.ratio * platform.factor * architecture.factor * protocol.factor),
+    payloadBytes: format.payloadBytes,
+    formatKey,
+    formatLabel: DATA_FORMAT_LABELS[formatKey] || formatKey,
+    formatHint: `${format.hint} ${format.effect}`,
+    platformHint: platform.hint,
+    architectureHint: architecture.hint,
+    protocolHint: protocol.hint,
+  };
 };
 
 const formatBytesFriendly = (bytes: number): string => {
   if (bytes >= 1_000_000) return (bytes / 1_000_000).toFixed(1) + ' MB';
   if (bytes >= 1_000)     return (bytes / 1_000).toFixed(1) + ' KB';
   return bytes + ' B';
+};
+
+const formatDurationFriendly = (seconds: number | null | undefined): string => {
+  if (seconds == null) return 'No definida';
+  if (seconds === 0) return 'Mode antic sense limit';
+  if (seconds % 3600 === 0) return `${seconds / 3600} h`;
+  if (seconds % 60 === 0) return `${seconds / 60} min`;
+  return `${seconds} s`;
 };
 
 const PROTOCOL_COLORS: Record<string, string> = {
@@ -236,55 +332,55 @@ const SK_STYLE = {
 //               missatges >1MB. Veure comentari a DATA_FORMATS.)
 const PREDEFINED_PRESETS = [
   {
-    name:         'Finances sense pèrdua',
+    name:         'RabbitMQ financer fiable',
     platform:     'RabbitMQ',
-    architecture: 'EDA',
+    architecture: 'QBA',
     protocol:     'AMQP',
     dataFormat:   'financial',
     duration:     '120',
-    rate:         '500',
-    payloadSize:  '256',
-    desc:         'AMQP + RabbitMQ optimitzat per a transaccions financeres. Taxa d\'error mínima.',
+    rate:         '200',
+    payloadSize:  '512',
+    desc:         'Cues AMQP per transaccions curtes. És el preset més defensable per veure latència i errors sense carregar payloads gegants.',
     color:        '#0891b2',
   },
   {
-    name:         'IoT alta freqüència',
+    name:         'NATS telemetria IoT',
     platform:     'NATS Server',
-    architecture: 'LCA',
+    architecture: 'EDA',
     protocol:     'NATS',
     dataFormat:   'iot',
     duration:     '90',
-    rate:         '5000',
+    rate:         '500',
     payloadSize:  '64',
-    desc:         'NATS per a telemetria IoT d\'alta freqüència. Throughput màxim, payload mínim.',
+    desc:         'Pub/sub lleuger amb payload mínim. És el cas recomanat per NATS abans de provar càrregues pesades.',
     color:        '#16a34a',
   },
   {
-    name:         'Streaming vídeo 4K',
-    platform:     'Confluent',
+    name:         'Kafka streaming 4K',
+    platform:     'Kafka',
     architecture: 'SEA',
     protocol:     'Kafka',
     dataFormat:   'video-4k',
     duration:     '120',
     rate:         '10',
     payloadSize:  '500000',
-    desc:         'Kafka + Confluent per a streaming 4K amb els valors reals del backend: payload de 500 KB i rate baix.',
+    desc:         'Log de streaming amb payload de 500 KB. Serveix per mesurar volum sostingut sense arribar al límit de 8K.',
     color:        '#7c3aed',
   },
   {
-    name:         'Latència ultra-baixa',
-    platform:     'Kafka',
+    name:         'RabbitMQ MQTT IoT',
+    platform:     'RabbitMQ',
     architecture: 'EDA',
-    protocol:     'gRPC',
-    dataFormat:   'default',
-    duration:     '60',
-    rate:         '1000',
-    payloadSize:  '256',
-    desc:         'gRPC + Kafka per a aplicacions de temps real. Latència mínima garantida.',
-    color:        '#ef4444',
+    protocol:     'MQTT',
+    dataFormat:   'iot',
+    duration:     '90',
+    rate:         '350',
+    payloadSize:  '64',
+    desc:         'MQTT sobre RabbitMQ per sensors i missatges petits. Permet comparar IoT contra NATS amb el mateix format.',
+    color:        '#eab308',
   },
   {
-    name:         'Streaming vídeo 8K',
+    name:         'Confluent vídeo 8K',
     platform:     'Confluent',
     architecture: 'SEA',
     protocol:     'Kafka',
@@ -292,8 +388,20 @@ const PREDEFINED_PRESETS = [
     duration:     '120',
     rate:         '4',
     payloadSize:  '2000000',
-    desc:         'Kafka + Confluent per a streaming 8K. Usa payload de 2 MB, el mateix valor que aplica el backend.',
+    desc:         'Escenari pesat per validar límits de payload i throughput. Només és recomanable si el broker accepta missatges de 2 MB.',
     color:        '#9333ea',
+  },
+  {
+    name:         'Kafka control base',
+    platform:     'Kafka',
+    architecture: 'EDA',
+    protocol:     'Kafka',
+    dataFormat:   'default',
+    duration:     '60',
+    rate:         '100',
+    payloadSize:  '256',
+    desc:         'Preset curt per comprovar que la ruta productor-broker-consumidor funciona abans de fer proves fortes.',
+    color:        '#ef4444',
   },
 ];
 
@@ -374,6 +482,42 @@ const makeSelStyle = (active: boolean, accentColor?: string): React.CSSPropertie
   minWidth: 150,
 });
 
+const getScenarioRunPlan = (scenario: Scenario) => {
+  const recommended = getSustainedLoadPlan({
+    platform: scenario.platform || scenario.broker,
+    architecture: scenario.architecture,
+    protocol: scenario.protocol,
+    dataFormat: scenario.dataFormat || 'default',
+  });
+  const rawDuration = scenario.duration == null ? null : Number(scenario.duration);
+  const isLegacyIndefinite = rawDuration === 0;
+
+  return {
+    duration: isLegacyIndefinite ? SUSTAINED_MODE_DURATION_SECONDS : rawDuration,
+    rate: scenario.rate ?? recommended.ratio,
+    payloadSize: scenario.payloadSize ?? recommended.payloadBytes,
+    recommended,
+    isLegacyIndefinite,
+    usesRecommendedRate: scenario.rate == null,
+    usesRecommendedPayload: scenario.payloadSize == null,
+  };
+};
+
+const buildRunRequestBody = (scenario: Scenario) => {
+  const plan = getScenarioRunPlan(scenario);
+  return {
+    scenarioId: scenario.id,
+    scenarioName: scenario.name,
+    architecture: scenario.architecture,
+    protocol: scenario.protocol,
+    platform: normalizePlatform(scenario.platform || scenario.broker),
+    dataFormat: scenario.dataFormat || 'default',
+    duration: plan.duration,
+    rate: plan.rate,
+    payloadSize: plan.payloadSize,
+  };
+};
+
 // ── Modal: Crear / Editar ──────────────────────────────────────────────────────
 /**
  * ScenarioModal -- Formulari per crear o editar un escenari.
@@ -385,8 +529,8 @@ const makeSelStyle = (active: boolean, accentColor?: string): React.CSSPropertie
  *   1. Nom (identificatiu)
  *   2. Plataforma (filtra les opcions d'arquitectura i protocol)
  *   3. Arquitectura + Protocol (restringits per la plataforma)
- *   4. Mode indefinit (toggle -- si actiu, desactiva durada/ratio/payload)
- *   5. Durada / Ratio / Payload (si no es indefinit)
+ *   4. Mode sostingut (toggle -- si actiu, desactiva durada/ratio/payload)
+ *   5. Durada / Ratio / Payload (si no es mode sostingut)
  *   6. Format de dades
  *
  * Props:
@@ -399,24 +543,16 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   mode: 'create' | 'edit';
   initial: typeof EMPTY_FORM & { id?: string; createdAt?: string };
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (scenario: Scenario, mode: 'create' | 'edit') => void;
 }) => {
   const [form,       setForm]       = useState({ ...EMPTY_FORM, ...initial });
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState('');
-  // Mode indefinit: actiu quan la durada inicial es 0/null (running fins
-  // que l'usuari aturi manualment l'escenari). Antiguament aquest mode
-  // s'activava automàticament amb duration >= 3600 (1h), però aquell
-  // sentinel confonia (3600 és una durada legítima). Ara és explícit:
-  // duration = 0 → indefinit; qualsevol altre nombre → durada real.
-  // En mode indefinit, durada/ratio/payload es desactiven i l'escenari
-  // s'executa amb valors per defecte del format fins ser aturat manualment.
+  // Mode sostingut: és el substitut segur del vell "mode indefinit".
+  // No guardem duration=0 perquè això crea runs realment infinits al backend.
+  // Quan el toggle és actiu, enviem 3600s i valors explícits de ràtio/payload.
   const [indefinite, setIndefinite] = useState(
-    // Es indefinit nomes si el valor inicial es 0, buit, null o undefined.
-    // Qualsevol altre nombre representa una durada finita real.
-    initial.duration === undefined ||
-    initial.duration === '' ||
-    Number(initial.duration) === 0
+    Number(initial.duration) === 0 || Number(initial.duration) === SUSTAINED_MODE_DURATION_SECONDS
   );
 
   /**
@@ -435,10 +571,17 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
 
   const ca = getCompatibleArchitectures(form.platform);
   const cp = getCompatibleProtocols(form.platform);
+  const sustainedPlan = getSustainedLoadPlan({
+    platform: form.platform,
+    architecture: form.architecture,
+    protocol: form.protocol,
+    dataFormat: form.dataFormat || 'default',
+  });
+  const selectedFormat = DEFAULTS_FORMAT[form.dataFormat || 'default'] || DEFAULTS_FORMAT.default;
 
   /**
    * Envia el formulari al scenario-service (POST per crear, PUT per editar).
-   * En mode indefinit, duration=0 i rate/payloadSize=null (valors per defecte).
+   * En mode sostingut, duration=3600 i rate/payloadSize son explicits.
    * predefined=false: els escenaris creats per usuari mai son "de sistema".
    * status='idle': l'escenari comenca en estat llest, no s'executa automaticament.
    */
@@ -453,12 +596,9 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
         architecture: form.architecture,
         protocol:     form.protocol,
         platform:     form.platform,
-        // Mode indefinit: duration=0 (sentinel real). El backend ho interpreta
-        // com a "corre fins que l'usuari aturi". Abans posàvem 3600 com a
-        // sentinel pero portava a confusio (3600 es una durada legitima).
-        duration:     indefinite ? 0 : (form.duration    ? Number(form.duration)    : undefined),
-        rate:         indefinite ? null : (form.rate        ? Number(form.rate)        : undefined),
-        payloadSize:  indefinite ? null : (form.payloadSize ? Number(form.payloadSize) : undefined),
+        duration:     indefinite ? sustainedPlan.durationSeconds : (form.duration    ? Number(form.duration)    : undefined),
+        rate:         indefinite ? sustainedPlan.ratio           : (form.rate        ? Number(form.rate)        : undefined),
+        payloadSize:  indefinite ? sustainedPlan.payloadBytes    : (form.payloadSize ? Number(form.payloadSize) : undefined),
         dataFormat:   form.dataFormat || 'default',
         predefined:   false,   // mai un escenari d'usuari sera de sistema
         status:       'idle',  // comenca en estat llest
@@ -472,13 +612,14 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
         body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      onSaved(); onClose();
+      const savedScenario = await r.json().catch(() => ({ ...payload, id: initial.id }));
+      onSaved(savedScenario, mode); onClose();
     } catch (e: any) { setError(e.message); setSaving(false); }
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 600, maxHeight: '92vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 3200, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', backdropFilter: 'blur(4px)', padding: '88px 20px 28px' }}>
+      <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 720, maxWidth: '100%', maxHeight: 'calc(100vh - 116px)', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
             {mode === 'edit' ? 'Editar Escenari' : 'Nou Escenari'}
@@ -550,7 +691,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
             </div>
           )}
 
-          {/* Durada, Ràtio, Payload + Mode Indefinit toggle */}
+          {/* Durada, Ràtio, Payload + Mode sostingut toggle */}
           <div style={{ marginBottom: 4 }}>
             <button
               type="button"
@@ -577,14 +718,14 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
                 }}/>
               </span>
               <div>
-                <div>Mode Indefinit</div>
+                <div>Mode sostingut amb límit d'1 hora</div>
                 <div style={{ fontSize: 11, fontWeight: 400, color: 'var(--text-disabled)', marginTop: 1 }}>
                   {indefinite
-                    ? "Actiu: l'escenari funciona fins que l'atures manualment. Durada/ràtio/payload queden inactius."
-                    : "Activa'l per executar l'escenari sense límit de temps fins aturar-lo manualment."}
+                    ? "Actiu: l'escenari s'atura sol al cap d'1 hora i aplica ràtio/payload recomanats."
+                    : "Activa'l per fer una prova llarga i controlada sense haver d'entrar valors manuals."}
                 </div>
               </div>
-              {indefinite && <span style={{ marginLeft: 'auto', fontSize: 18 }}>∞</span>}
+              {indefinite && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 800, color: 'var(--accent)', whiteSpace: 'nowrap' }}>60 min</span>}
             </button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, opacity: indefinite ? 0.4 : 1, pointerEvents: indefinite ? 'none' as const : 'auto' as const, transition: 'opacity 0.2s' }}>
@@ -601,42 +742,40 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
               <input style={{ ...S.input }} type="number" min={1} placeholder="256" value={form.payloadSize} onChange={e => set('payloadSize', e.target.value)} disabled={indefinite} />
             </div>
           </div>
-          {indefinite && (() => {
-            // Mostrem els valors EXACTES que aplicara el load-generator
-            // segons el format de dades triat. Aixi l'usuari sap que estara
-            // generant sense haver de mirar el codi del backend.
-            const claveFormat = (form.dataFormat || 'default') as keyof typeof DEFAULTS_FORMAT;
-            const defs = DEFAULTS_FORMAT[claveFormat] || DEFAULTS_FORMAT.default;
-            return (
-              <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, padding: '12px 14px', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                <div style={{ marginBottom: 8 }}>
-                  <strong style={{ color: 'var(--accent)' }}>Mode Indefinit activat.</strong>{' '}
-                  L'escenari s'executarà <strong style={{ color: 'var(--text-primary)' }}>sense límit de durada</strong> fins que l'aturis manualment.
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 10, padding: '8px 10px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 7, marginBottom: 8 }}>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Durada</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>∞ fins aturar</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Ràtio</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{defs.ratio} msg/s</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Payload</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{formatBytesFriendly(defs.payloadBytes)}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Format</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{DATA_FORMAT_LABELS[claveFormat] || claveFormat}</div>
-                  </div>
+          {indefinite && (
+            <div style={{ background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, padding: '12px 14px', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              <div style={{ marginBottom: 8 }}>
+                <strong style={{ color: 'var(--accent)' }}>Mode sostingut activat.</strong>{' '}
+                No és infinit real: el run queda limitat a <strong style={{ color: 'var(--text-primary)' }}>1 hora</strong> per evitar despesa accidental.
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, padding: '8px 10px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 7, marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Durada</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{sustainedPlan.durationSeconds / 60} min</div>
                 </div>
                 <div>
-                  {defs.hint} El directe es reinicia a zero i l'històric només suma mesures mentre l'execució està activa.
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Ràtio aplicada</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{sustainedPlan.ratio} msg/s</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Payload aplicat</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{formatBytesFriendly(sustainedPlan.payloadBytes)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.06em' }}>Format</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--text-primary)' }}>{sustainedPlan.formatLabel}</div>
                 </div>
               </div>
-            );
-          })()}
+              <div style={{ display: 'grid', gap: 4 }}>
+                {[sustainedPlan.formatHint, sustainedPlan.platformHint, sustainedPlan.architectureHint, sustainedPlan.protocolHint].map(note => (
+                  <div key={note} style={{ display: 'flex', gap: 7, alignItems: 'flex-start' }}>
+                    <span style={{ width: 5, height: 5, borderRadius: 999, background: 'var(--accent)', marginTop: 7, flexShrink: 0 }} />
+                    <span>{note}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label style={lbl}>Format de dades</label>
@@ -645,6 +784,12 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
                 <option key={f.value} value={f.value}>{f.label}</option>
               ))}
             </select>
+            <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              <strong style={{ color: 'var(--text-primary)' }}>{sustainedPlan.formatLabel}</strong>{' '}
+              aplica una base de <strong style={{ color: 'var(--text-primary)' }}>{selectedFormat.ratio} msg/s</strong> i{' '}
+              <strong style={{ color: 'var(--text-primary)' }}>{formatBytesFriendly(selectedFormat.payloadBytes)}</strong>.
+              <span style={{ display: 'block', marginTop: 4 }}>{selectedFormat.effect}</span>
+            </div>
             <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-disabled)' }}>
               Defineix el tipus de dades per simular casos d'ús reals (streaming, IoT, finances...)
             </p>
@@ -698,7 +843,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
 
 // ── Modal: Confirmar eliminació ────────────────────────────────────────────────
 const DeleteModal = ({ name, onConfirm, onClose }: { name: string; onConfirm: () => void; onClose: () => void }) => (
-  <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
+  <div style={{ position: 'fixed', inset: 0, zIndex: 3200, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', backdropFilter: 'blur(4px)', padding: '88px 20px 28px' }}>
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 420, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
       <h3 style={{ margin: '0 0 12px', fontSize: 18, fontWeight: 700, color: 'var(--text-primary)' }}>Eliminar Escenari</h3>
       <p style={{ color: 'var(--text-secondary)', fontSize: 14, lineHeight: 1.6, margin: '0 0 24px' }}>
@@ -723,17 +868,7 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
     try {
       const r = await fetch(`${ORCHESTRATOR}/runs`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          scenarioId:   scenario.id,
-          scenarioName: scenario.name,
-          architecture: scenario.architecture,
-          protocol:     scenario.protocol,
-          platform:     normalizePlatform(scenario.platform || scenario.broker),
-          dataFormat:   scenario.dataFormat || 'default',
-          duration:     scenario.duration ?? null,
-          rate:         scenario.rate ?? null,
-          payloadSize:  scenario.payloadSize ?? null,
-        }),
+        body: JSON.stringify(buildRunRequestBody(scenario)),
       });
       if (!r.ok) { const b = await r.json().catch(() => ({})); throw new Error(b.error || `HTTP ${r.status}`); }
       const data = await r.json();
@@ -744,13 +879,14 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
     } catch (e: any) { setError(e.message); setState('error'); }
   };
 
-  const overlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' };
+  const overlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 3200, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', backdropFilter: 'blur(4px)', padding: '88px 20px 28px' };
   const card:    React.CSSProperties = { background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 460, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' };
 
   const platDisplay = normalizePlatform(scenario.platform || scenario.broker);
-  const effectiveDuration = scenario.duration ?? null;
-  const effectiveRate = scenario.rate ?? 100;
-  const effectivePayload = scenario.payloadSize ?? 256;
+  const runPlan = getScenarioRunPlan(scenario);
+  const effectiveDuration = runPlan.duration;
+  const effectiveRate = runPlan.rate;
+  const effectivePayload = runPlan.payloadSize;
   const estimatedMessages = effectiveDuration ? effectiveDuration * effectiveRate : null;
   const estimatedPayloadBytes = estimatedMessages != null ? estimatedMessages * effectivePayload : null;
   const formatBytes = (bytes: number) => {
@@ -770,10 +906,10 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
           ['Arquitectura', scenario.architecture],
           ['Protocol',     scenario.protocol],
           ['Plataforma',   platDisplay],
-          ['Format dades', DATA_FORMAT_LABELS[scenario.dataFormat || ''] || 'Per defecte'],
-          ['Durada',       scenario.duration    ? `${scenario.duration}s`        : 'Indefinit (format per defecte)'],
-          ['Ratio',        scenario.rate        ? `${scenario.rate} msg/s`       : 'Per defecte (100 msg/s)'],
-          ['Payload',      scenario.payloadSize ? `${scenario.payloadSize}B`     : 'Per defecte (256B)'],
+          ['Format dades', DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Base'],
+          ['Durada',       formatDurationFriendly(effectiveDuration)],
+          ['Ratio',        `${effectiveRate} msg/s${runPlan.usesRecommendedRate ? ' recomanat' : ''}`],
+          ['Payload',      `${formatBytesFriendly(effectivePayload)}${runPlan.usesRecommendedPayload ? ' recomanat' : ''}`],
         ] as [string, string][]).map(([l, v]) => (
           <div key={l} style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{ color: 'var(--text-secondary)' }}>{l}</span>
@@ -789,7 +925,7 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
           <div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 4 }}>Missatges estimats</div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-              {estimatedMessages != null ? estimatedMessages : 'Indefinit'}
+              {estimatedMessages != null ? estimatedMessages : 'No definit'}
             </div>
           </div>
           <div>
@@ -800,9 +936,11 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
           </div>
         </div>
         <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 10, lineHeight: 1.55 }}>
-          {estimatedMessages != null
-            ? `Amb ${effectiveRate} msg/s durant ${effectiveDuration}s, aquest run hauria d'enviar aproximadament ${estimatedMessages} missatges si no l'atures abans.`
-            : `L'escenari es llancara en mode indefinit. El directe comencara a zero i l'historial acumulat dependra del moment en que l'aturis.`}
+          {runPlan.isLegacyIndefinite
+            ? `Aquest escenari venia del mode antic amb durada 0. Per seguretat s'executara amb limit d'1 hora, ${effectiveRate} msg/s i ${formatBytesFriendly(effectivePayload)} per missatge.`
+            : estimatedMessages != null
+              ? `Amb ${effectiveRate} msg/s durant ${formatDurationFriendly(effectiveDuration)}, aquest run hauria d'enviar aproximadament ${estimatedMessages} missatges si no l'atures abans.`
+              : `Aquest escenari no te durada definida. Es respectara el valor del backend, pero el ratio i el payload s'envien explicitament per mantenir la prova reproduible.`}
         </div>
       </div>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -918,7 +1056,9 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
   const dfLabel   = DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Per defecte';
   const platName  = normalizePlatform(scenario.platform || scenario.broker);
   const platColor = PLATFORM_COLORS[platName] || 'var(--text-secondary)';
-  const isIndefinite = scenario.duration != null && Number(scenario.duration) === 0;
+  const runPlan = getScenarioRunPlan(scenario);
+  const isLegacyIndefinite = runPlan.isLegacyIndefinite;
+  const isSustained = runPlan.duration === SUSTAINED_MODE_DURATION_SECONDS;
 
   // Close on backdrop click
   const handleBackdropClick = (e: React.MouseEvent) => {
@@ -938,7 +1078,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
 
   return (
     <div data-backdrop="1" onClick={handleBackdropClick}
-      style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)', padding: 20 }}
+      style={{ position: 'fixed', inset: 0, zIndex: 3200, background: 'rgba(0,0,0,0.55)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', backdropFilter: 'blur(4px)', padding: '88px 20px 28px' }}
     >
       <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 16, width: '100%', maxWidth: 560, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease', overflow: 'hidden' }}>
 
@@ -950,9 +1090,9 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
                 {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
                 {isRunning ? 'En execució' : status.label}
               </span>
-              {isIndefinite && (
+              {isSustained && (
                 <span style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--accent)', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                  ∞ Mode Indefinit
+                  Mode sostingut
                 </span>
               )}
               {scenario.predefined && (
@@ -982,37 +1122,41 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
             <Section title="Paràmetres d'execució" />
             <Row
               label="Durada"
-              badge={isIndefinite
-                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontWeight: 700, fontSize: 13 }}>∞ Indefinit</span>
+              badge={isSustained
+                ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, color: 'var(--accent)', fontWeight: 700, fontSize: 13 }}>{formatDurationFriendly(runPlan.duration)}</span>
                 : undefined}
-              value={!isIndefinite ? (scenario.duration ? `${scenario.duration} s` : '-') : undefined}
+              value={!isSustained ? formatDurationFriendly(runPlan.duration) : undefined}
             />
             <Row label="Ràtio"
-              badge={isIndefinite
-                ? <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontStyle: 'italic' }}>valor per defecte</span>
+              badge={runPlan.usesRecommendedRate
+                ? <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontStyle: 'italic' }}>{runPlan.rate} msg/s recomanat</span>
                 : undefined}
-              value={!isIndefinite ? (scenario.rate ? `${scenario.rate} msg/s` : '-') : undefined}
+              value={!runPlan.usesRecommendedRate ? `${runPlan.rate} msg/s` : undefined}
             />
             <Row label="Payload"
-              badge={isIndefinite
-                ? <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontStyle: 'italic' }}>valor per defecte</span>
+              badge={runPlan.usesRecommendedPayload
+                ? <span style={{ fontSize: 12, color: 'var(--text-disabled)', fontStyle: 'italic' }}>{formatBytesFriendly(runPlan.payloadSize)} recomanat</span>
                 : undefined}
-              value={!isIndefinite ? (scenario.payloadSize ? `${scenario.payloadSize} B` : '-') : undefined}
+              value={!runPlan.usesRecommendedPayload ? formatBytesFriendly(runPlan.payloadSize) : undefined}
             />
             <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleDateString('ca-ES') : '-'} />
           </div>
         </div>
 
-        {/* Indefinite mode notice */}
-        {isIndefinite && (
+        {/* Sustained mode notice */}
+        {(isSustained || isLegacyIndefinite) && (
           <div style={{ margin: '0 24px 8px', padding: '10px 14px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.18)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
-            <strong style={{ color: 'var(--accent)' }}>Mode Indefinit:</strong> S'utilitzen el ràtio i el payload per defecte del format <strong>{dfLabel}</strong>. L'execució s'atura manualment.
+            <strong style={{ color: 'var(--accent)' }}>Mode sostingut:</strong>{' '}
+            {isLegacyIndefinite
+              ? 'Aquest escenari ve del mode antic sense limit, pero ara s\'executara amb limit d\'1 hora per evitar despesa accidental.'
+              : 'Aquest escenari esta configurat amb una prova llarga i finita d\'1 hora.'}
+            {' '}El format <strong>{dfLabel}</strong> aplica {runPlan.rate} msg/s i {formatBytesFriendly(runPlan.payloadSize)} per missatge.
           </div>
         )}
 
         {/* Footer actions */}
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', display: 'flex', gap: 8, flexWrap: 'wrap' as const, justifyContent: 'flex-end' }}>
-          <button onClick={onDuplicate} style={{ ...S.btn, fontSize: 13 }}><DuplicateIcon /> Duplicar</button>
+          <button onClick={onDuplicate} style={{ ...S.btn, fontSize: 13, color: 'var(--accent)', borderColor: 'rgba(37,99,235,0.35)', background: 'rgba(37,99,235,0.07)' }}><DuplicateIcon /> Duplicar</button>
           <button onClick={onEdit}      style={{ ...S.btn, fontSize: 13 }}><EditIcon /> Editar</button>
           <button onClick={onDelete}    style={{ ...S.btn, fontSize: 13, color: 'var(--error)', borderColor: 'var(--error)' }}><TrashIcon /> Eliminar</button>
           <div style={{ flex: 1 }} />
@@ -1079,14 +1223,14 @@ const GUIDE_ITEMS = [
   {
     color: '#2563eb',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
-    title: 'Mode Indefinit',
-    desc: 'El mode indefinit només s\'activa amb duration=0. Qualsevol durada positiva és finita. El benchmark corre amb els valors per defecte del format de dades seleccionat fins que s\'atura manualment.',
+    title: 'Mode sostingut',
+    desc: 'El mode sostingut substitueix el vell mode indefinit: sempre queda limitat a 1 hora i aplica una ràtio i un payload recomanats segons format, plataforma, arquitectura i protocol.',
   },
   {
     color: '#7c3aed',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
     title: 'Formats de dades',
-    desc: 'El Format de dades simula càrregues reals. Per defecte: bytes aleatoris. Vídeo 4K/8K: payloads grans (~4/16 Mbps). Financer: JSON compacte de baix payload. IoT: telemetria mínima d\'alta freqüència. Cada format ajusta automàticament ràtio i payload en mode indefinit.',
+    desc: 'El Format de dades simula càrregues reals. Base controlada: 256 B. Vídeo 4K: 500 KB. Vídeo 8K: 2 MB. Financer: missatges JSON petits. IoT: telemetria mínima d\'alta freqüència.',
   },
 ];
 
@@ -1146,15 +1290,27 @@ const ScenarioGuide = () => {
             ))}
           </div>
 
-          <div style={{ marginTop: 12 }}>
-            <CompatibilityMatrix
-              compact
-              title="Quines combinacions admet el portal"
-              description="Aquesta referencia es la mateixa que has de seguir al formulari. Si tries una plataforma, l'app nomes hauria d'oferir les arquitectures i protocols compatibles."
-            />
+          <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8 }}>
+            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 10 }}>
+              Compatibilitat resumida
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
+              {Object.entries(COMPATIBILITY).map(([platform, config]) => {
+                const color = PLATFORM_COLORS[platform] || 'var(--accent)';
+                return (
+                  <div key={platform} style={{ background: 'var(--bg-card)', border: `1px solid ${color}35`, borderRadius: 8, padding: '9px 10px' }}>
+                    <div style={{ fontSize: 12, fontWeight: 800, color, marginBottom: 5 }}>{platform}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                      Arquitectures: <strong style={{ color: 'var(--text-primary)' }}>{config.architectures.join(', ')}</strong><br />
+                      Protocols: <strong style={{ color: 'var(--text-primary)' }}>{config.protocols.join(', ')}</strong>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Mode indefinit destacat */}
+          {/* Mode sostingut destacat */}
           <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
             <strong style={{ color: 'var(--accent)' }}>Consell:</strong>{' '}
             Utilitza els <strong style={{ color: 'var(--text-primary)' }}>escenaris predefinits</strong> com a punt de partida. Estan optimitzats per als casos d'ús més habituals i serveixen de referència per entendre les combinacions recomanades.
@@ -1278,25 +1434,58 @@ export const ScenariosPage = () => {
 
   const fetchData = useCallback(() => {
     setLoading(true);
-    fetch(`${API_BASE}/scenarios`).then(r => r.json())
+    setError('');
+    fetch(`${API_BASE}/scenarios`).then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
       .then(sc => { setScenarios(Array.isArray(sc) ? sc : []); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  const refreshScenariosSilently = useCallback(() => {
+    fetch(`${API_BASE}/scenarios`).then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+      .then(sc => {
+        if (!Array.isArray(sc)) return;
+        setScenarios(sc);
+        setSelectedScenario(prev => prev?.id ? (sc.find(item => item.id === prev.id) || prev) : prev);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleScenarioSaved = useCallback((savedScenario: Scenario, mode: 'create' | 'edit') => {
+    setScenarios(prev => {
+      const exists = prev.some(s => s.id && s.id === savedScenario.id);
+      if (exists) return prev.map(s => s.id === savedScenario.id ? { ...s, ...savedScenario } : s);
+      return [savedScenario, ...prev];
+    });
+    setSelectedScenario(savedScenario);
+    setShowModal(false);
+    setEditScenario(null);
+    setToast({ message: mode === 'edit' ? 'Escenari actualitzat.' : 'Escenari creat.', type: 'success' });
+    window.setTimeout(refreshScenariosSilently, 600);
+  }, [refreshScenariosSilently]);
+
   const handleDelete = async () => {
     if (!deleteTarget) return;
     try {
-      await fetch(`${API_BASE}/scenarios/${deleteTarget.id}`, { method: 'DELETE' });
+      const r = await fetch(`${API_BASE}/scenarios/${deleteTarget.id}`, { method: 'DELETE' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
       if (selectedScenario?.id === deleteTarget.id) setSelectedScenario(null);
-      setDeleteTarget(null); fetchData();
+      setScenarios(prev => prev.filter(s => s.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      window.setTimeout(refreshScenariosSilently, 600);
       setToast({ message: 'Escenari eliminat.', type: 'info' });
     } catch (e: any) { setToast({ message: 'Error: ' + e.message, type: 'error' }); setDeleteTarget(null); }
   };
 
   const handleDuplicate = async (s: Scenario) => {
     const copy = {
-      name: `${s.name} (copia)`,
+      name: `${s.name} (còpia)`,
       architecture: s.architecture,
       protocol: s.protocol,
       platform: normalizePlatform(s.platform || s.broker),
@@ -1308,13 +1497,17 @@ export const ScenariosPage = () => {
       status: 'idle',
     };
     try {
-      await fetch(`${API_BASE}/scenarios`, {
+      const r = await fetch(`${API_BASE}/scenarios`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(copy),
       });
-      fetchData();
-      setToast({ message: `Copia de "${s.name}" creada.`, type: 'success' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const created = await r.json().catch(() => copy);
+      setScenarios(prev => [created, ...prev]);
+      setSelectedScenario(created);
+      window.setTimeout(refreshScenariosSilently, 600);
+      setToast({ message: `Còpia de "${s.name}" creada.`, type: 'success' });
     } catch (e: any) {
       setToast({ message: 'Error en duplicar: ' + e.message, type: 'error' });
     }
@@ -1383,13 +1576,7 @@ export const ScenariosPage = () => {
       try {
         const r = await fetch(`${ORCHESTRATOR}/runs`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            scenarioId: sc.id, scenarioName: sc.name,
-            architecture: sc.architecture, protocol: sc.protocol,
-            platform: normalizePlatform(sc.platform || sc.broker),
-            dataFormat: sc.dataFormat || 'default',
-            duration: sc.duration ?? null, rate: sc.rate ?? null, payloadSize: sc.payloadSize ?? null,
-          }),
+          body: JSON.stringify(buildRunRequestBody(sc)),
         });
         if (r.ok) {
           const data = await r.json();
@@ -1403,7 +1590,7 @@ export const ScenariosPage = () => {
     setBulkExecuting(false);
     setSelectedIds(new Set());
     fetchRunningMap();
-    fetchData();
+    refreshScenariosSilently();
     if (errCount === 0) {
       setToast({ message: `${okCount} escenari${okCount > 1 ? 's' : ''} executat${okCount > 1 ? 's' : ''} correctament!`, type: 'success' });
     } else {
@@ -1416,9 +1603,9 @@ export const ScenariosPage = () => {
       id: s.id, createdAt: s.createdAt,
       name: s.name || '', architecture: s.architecture || '',
       protocol: s.protocol || '', platform: normalizePlatform(s.platform || s.broker) || '',
-      duration: s.duration ? String(s.duration) : '',
-      rate: s.rate ? String(s.rate) : '',
-      payloadSize: s.payloadSize ? String(s.payloadSize) : '',
+      duration: s.duration != null ? String(s.duration) : '',
+      rate: s.rate != null ? String(s.rate) : '',
+      payloadSize: s.payloadSize != null ? String(s.payloadSize) : '',
       dataFormat: s.dataFormat || '',
     });
     setShowModal(true);
@@ -1452,7 +1639,9 @@ export const ScenariosPage = () => {
       const arch = (s.architecture || '').toLowerCase();
       const prot = (s.protocol || '').toLowerCase();
       const plat = normalizePlatform(s.platform || s.broker).toLowerCase();
-      if (!name.includes(q) && !arch.includes(q) && !prot.includes(q) && !plat.includes(q)) return false;
+      const formatKey = s.dataFormat || 'default';
+      const format = `${formatKey} ${DATA_FORMAT_LABELS[formatKey] || ''}`.toLowerCase();
+      if (!name.includes(q) && !arch.includes(q) && !prot.includes(q) && !plat.includes(q) && !format.includes(q)) return false;
     }
     return true;
   });
@@ -1492,21 +1681,21 @@ export const ScenariosPage = () => {
     : editScenario ?? EMPTY_FORM;
   const modalMode = editScenario?.id && !editScenario._prefill ? 'edit' : 'create';
 
-  const activeFiltersCount = [filterArch, filterProto, filterPlatform, filterDataFormat].filter(f => f !== 'all').length;
+  const activeFiltersCount = [filterArch, filterProto, filterPlatform, filterDataFormat].filter(f => f !== 'all').length + (searchQuery.trim() ? 1 : 0);
 
   const FILTER_DEFS = [
-    { label: 'Plataforma',   value: filterPlatform,   options: ALL_PLATFORMS.filter(p => !DISABLED_PLATFORMS.includes(p)),      onChange: setFilterPlatform,   allLabel: 'Totes', accentColor: '#f59e0b' },
-    { label: 'Protocol',     value: filterProto,      options: ALL_PROTOCOLS,                                                   onChange: setFilterProto,      allLabel: 'Tots',  accentColor: '#16a34a' },
-    { label: 'Arquitectura', value: filterArch,       options: ALL_ARCHITECTURES,                                               onChange: setFilterArch,       allLabel: 'Totes', accentColor: '#2563eb' },
-    { label: 'Format',       value: filterDataFormat, options: ['default', 'video-4k', 'video-8k', 'financial', 'iot'],          onChange: setFilterDataFormat, allLabel: 'Tots',  accentColor: '#7c3aed' },
+    { label: 'Format',       value: filterDataFormat, options: ['default', 'video-4k', 'video-8k', 'financial', 'iot'],          onChange: setFilterDataFormat, allLabel: 'Tots els formats', accentColor: '#7c3aed', minWidth: 185, featured: true },
+    { label: 'Plataforma',   value: filterPlatform,   options: ALL_PLATFORMS.filter(p => !DISABLED_PLATFORMS.includes(p)),      onChange: setFilterPlatform,   allLabel: 'Totes',            accentColor: '#f59e0b', minWidth: 150, featured: false },
+    { label: 'Protocol',     value: filterProto,      options: ALL_PROTOCOLS,                                                   onChange: setFilterProto,      allLabel: 'Tots',             accentColor: '#16a34a', minWidth: 135, featured: false },
+    { label: 'Arquitectura', value: filterArch,       options: ALL_ARCHITECTURES,                                               onChange: setFilterArch,       allLabel: 'Totes',            accentColor: '#2563eb', minWidth: 145, featured: false },
   ];
 
   return (
     <div style={{ ...S.page, maxWidth: 1340 }}>
       <GlobalBenchmarkStyles />
-      {showModal     && <ScenarioModal mode={modalMode as 'create' | 'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={fetchData} />}
+      {showModal     && <ScenarioModal mode={modalMode as 'create' | 'edit'} initial={modalInitial} onClose={() => { setShowModal(false); setEditScenario(null); }} onSaved={handleScenarioSaved} />}
       {deleteTarget  && <DeleteModal name={deleteTarget.name || 'aquest escenari'} onConfirm={handleDelete} onClose={() => setDeleteTarget(null)} />}
-      {executeTarget && <ExecuteModal scenario={executeTarget} onStarted={handleScenarioStarted} onClose={() => { setExecuteTarget(null); fetchData(); fetchRunningMap(); }} />}
+      {executeTarget && <ExecuteModal scenario={executeTarget} onStarted={handleScenarioStarted} onClose={() => { setExecuteTarget(null); refreshScenariosSilently(); fetchRunningMap(); }} />}
       {toast         && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
 
       {/* Capçalera */}
@@ -1553,7 +1742,7 @@ export const ScenariosPage = () => {
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
           Escenaris predefinits recomanats
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(195px, 1fr))', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(255px, 1fr))', gap: 12 }}>
           {PREDEFINED_PRESETS.map((preset, i) => {
             const dfColor = DATA_FORMAT_COLORS[preset.dataFormat] || '#6b7280';
             return (
@@ -1596,7 +1785,22 @@ export const ScenariosPage = () => {
                 </p>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <span style={{ ...S.badge(PLATFORM_COLORS[preset.platform] || '#666'), fontSize: 10 }}>{preset.platform}</span>
+                  <span style={{ ...S.badge(ARCHITECTURE_COLORS[preset.architecture] || '#666'), fontSize: 10 }}>{preset.architecture}</span>
                   <span style={{ ...S.badge(PROTOCOL_COLORS[preset.protocol] || '#666'), fontSize: 10 }}>{preset.protocol}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: '8px 9px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8 }}>
+                  <div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Durada</div>
+                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 700 }}>{formatDurationFriendly(Number(preset.duration))}</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Ràtio</div>
+                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 700 }}>{preset.rate} msg/s</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Payload</div>
+                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 700 }}>{formatBytesFriendly(Number(preset.payloadSize))}</div>
+                  </div>
                 </div>
                 <div style={{ fontSize: 11, color: preset.color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
                   <PlusIcon /> Usar com a base
@@ -1634,17 +1838,17 @@ export const ScenariosPage = () => {
           <div style={{ width: 1, height: 28, background: 'var(--border)', flexShrink: 0 }} />
 
           {/* Selects per cada filtre */}
-          {FILTER_DEFS.map(({ label, value, options, onChange, allLabel, accentColor }) => {
+          {FILTER_DEFS.map(({ label, value, options, onChange, allLabel, accentColor, minWidth, featured }) => {
             const active = value !== 'all';
             return (
-              <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: featured ? '6px 8px' : 0, borderRadius: 9, background: featured ? `${accentColor}0f` : 'transparent', border: featured ? `1px solid ${accentColor}22` : '1px solid transparent' }}>
                 <span style={{ fontSize: 10, fontWeight: 700, color: active ? accentColor : 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   {label}
                 </span>
                 <select
                   value={value}
                   onChange={e => onChange(e.target.value)}
-                  style={makeSelStyle(active, accentColor)}
+                  style={{ ...makeSelStyle(active, accentColor), minWidth }}
                 >
                   <option value="all">{allLabel}</option>
                   {options.map(o => <option key={o} value={o}>{DATA_FORMAT_LABELS[o] || o}</option>)}
@@ -1681,20 +1885,6 @@ export const ScenariosPage = () => {
                   {Object.keys(runningMap).length} en execució
                 </span>
               )}
-              {/* Search input */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8, padding: '4px 10px', minWidth: 180 }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-disabled)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                <input
-                  type="text"
-                  placeholder="Cerca per nom, arquitectura, protocol, plataforma o format"
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }}
-                />
-                {searchQuery && (
-                  <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, display: 'flex', fontSize: 14, lineHeight: 1 }}>×</button>
-                )}
-              </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {/* Bulk execute bar */}
@@ -1719,7 +1909,7 @@ export const ScenariosPage = () => {
                   </button>
                 </div>
               )}
-              <button onClick={fetchData} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}>
+              <button onClick={() => fetchData()} style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}>
                 <RefreshIcon /> Actualitzar
               </button>
             </div>
@@ -1776,7 +1966,7 @@ export const ScenariosPage = () => {
                   const st         = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
                   const isRunning  = !!runningMap[s.id!];
                   const dfColor    = DATA_FORMAT_COLORS[s.dataFormat || 'default'] || '#6b7280';
-                  const dfLabel    = DATA_FORMAT_LABELS[s.dataFormat || ''] || '';
+                  const dfLabel    = DATA_FORMAT_LABELS[s.dataFormat || 'default'] || 'Base';
                   const platName   = normalizePlatform(s.platform || s.broker);
                   const platColor  = PLATFORM_COLORS[platName] || 'var(--text-secondary)';
                   const isSelected = selectedScenario?.id === s.id;
@@ -1784,9 +1974,10 @@ export const ScenariosPage = () => {
                     <tr key={s.id || i}
                       style={{
                         ...S.tableRow,
-                        background:   isSelected ? 'var(--bg-hover)' : hoveredRow === i ? 'var(--bg-hover)' : selectedIds.has(s.id!) ? 'rgba(34,197,94,0.03)' : 'transparent',
+                        background:   isSelected ? 'rgba(37,99,235,0.10)' : hoveredRow === i ? 'var(--bg-hover)' : selectedIds.has(s.id!) ? 'rgba(34,197,94,0.03)' : 'transparent',
                         cursor:       'pointer',
                         borderLeft:   isSelected ? '3px solid var(--accent)' : '3px solid transparent',
+                        boxShadow:    isSelected ? 'inset 0 0 0 1px rgba(37,99,235,0.18)' : undefined,
                         transition:   'all 0.15s ease',
                       }}
                       onMouseEnter={() => setHoveredRow(i)} onMouseLeave={() => setHoveredRow(null)}
@@ -1825,7 +2016,7 @@ export const ScenariosPage = () => {
                       </td>
                       <td style={S.td}>
                         <span style={{ ...S.badge(dfColor), fontSize: 10 }}>
-                          {s.dataFormat && s.dataFormat !== 'default' ? dfLabel : 'Per defecte'}
+                          {dfLabel || 'Base'}
                         </span>
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }}>
@@ -1853,7 +2044,7 @@ export const ScenariosPage = () => {
                             </button>
                           )}
                           <button title="Duplicar escenari" aria-label={`Duplicar ${s.name}`} onClick={() => handleDuplicate(s)}
-                            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--text-secondary)' }}>
+                            style={{ background: 'rgba(37,99,235,0.08)', border: '1px solid rgba(37,99,235,0.32)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--accent)' }}>
                             <DuplicateIcon />
                           </button>
                           <button title="Editar" aria-label={`Editar ${s.name}`} onClick={() => openEdit(s)}

@@ -3,7 +3,7 @@ import { S } from '../theme';
 
 const labelStyle: React.CSSProperties = {
   fontSize: 10,
-  fontWeight: 800,
+  fontWeight: 850,
   textTransform: 'uppercase',
   letterSpacing: '0.08em',
   color: 'var(--text-disabled)',
@@ -12,14 +12,14 @@ const labelStyle: React.CSSProperties = {
 const paragraphStyle: React.CSSProperties = {
   margin: 0,
   fontSize: 12.5,
-  lineHeight: 1.62,
+  lineHeight: 1.65,
   color: 'var(--text-secondary)',
 };
 
 const headingStyle: React.CSSProperties = {
   margin: 0,
-  fontSize: 18,
-  fontWeight: 800,
+  fontSize: 19,
+  fontWeight: 900,
   letterSpacing: '-0.02em',
   color: 'var(--text-primary)',
 };
@@ -33,12 +33,22 @@ const DiagramHeader = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 18, flexWrap: 'wrap', minWidth: 0 }}>
+  <div
+    style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      gap: 16,
+      alignItems: 'flex-start',
+      marginBottom: 18,
+      flexWrap: 'wrap',
+      minWidth: 0,
+    }}
+  >
     <div style={{ minWidth: 0 }}>
       <div style={{ ...labelStyle, marginBottom: 6 }}>{eyebrow}</div>
       <h2 style={headingStyle}>{title}</h2>
     </div>
-    <p style={{ ...paragraphStyle, maxWidth: 520, minWidth: 0 }}>{children}</p>
+    <p style={{ ...paragraphStyle, maxWidth: 540, minWidth: 0 }}>{children}</p>
   </div>
 );
 
@@ -51,7 +61,7 @@ const miniBadge = (color: string): React.CSSProperties => ({
   background: `${color}14`,
   color,
   fontSize: 10,
-  fontWeight: 800,
+  fontWeight: 850,
   letterSpacing: '0.04em',
   textTransform: 'uppercase',
 });
@@ -60,108 +70,206 @@ const flowBox = (color: string): React.CSSProperties => ({
   border: `1px solid ${color}36`,
   background: `linear-gradient(180deg, ${color}12, var(--bg-subtle))`,
   borderRadius: 10,
-  padding: 14,
-  minHeight: 118,
+  padding: 15,
+  minHeight: 144,
+  display: 'flex',
+  flexDirection: 'column',
 });
+
+const RouteStep = ({
+  n,
+  title,
+  detail,
+  color,
+}: {
+  n: number;
+  title: string;
+  detail: string;
+  color: string;
+}) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr', gap: 9, alignItems: 'center' }}>
+    <div
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        background: `${color}18`,
+        border: `1px solid ${color}35`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color,
+        fontFamily: 'var(--font-mono)',
+        fontWeight: 900,
+        fontSize: 11,
+      }}
+    >
+      {n}
+    </div>
+    <div
+      style={{
+        minHeight: 34,
+        borderRadius: 8,
+        border: '1px solid var(--border)',
+        background: 'var(--bg-card)',
+        display: 'grid',
+        alignContent: 'center',
+        padding: '5px 10px',
+      }}
+    >
+      <div style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 850 }}>{title}</div>
+      <div style={{ fontSize: 10.5, color: 'var(--text-secondary)', lineHeight: 1.3 }}>{detail}</div>
+    </div>
+  </div>
+);
 
 export const BrokerFlowDiagram = () => (
   <section style={{ ...S.card, padding: 22, overflow: 'hidden', minWidth: 0 }}>
     <DiagramHeader eyebrow="Esquema base" title="Com funciona un broker">
-      Un productor publica missatges, el broker els ordena o distribueix segons el model triat, i un o més consumidors els llegeixen. La prova compara aquest recorregut sota la mateixa càrrega.
+      La prova sempre segueix el mateix recorregut: un productor genera payloads, el broker els rep i els encamina, i un consumidor confirma què ha arribat. Així es pot comparar cada combinació amb la mateixa càrrega.
     </DiagramHeader>
 
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))', gap: 12, alignItems: 'stretch' }}>
-      <div style={flowBox('var(--brand)')}>
-        <span style={miniBadge('var(--brand)')}>Productor</span>
-        <div style={{ marginTop: 12, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>t0</div>
+    <div className="async-flow-stage" style={{ display: 'grid', gridTemplateColumns: '1fr 64px 1.18fr 64px 1fr', gap: 0, alignItems: 'stretch' }}>
+      <div style={flowBox('#2563eb')}>
+        <span style={miniBadge('#2563eb')}>Productor</span>
+        <div style={{ marginTop: 14, fontSize: 24, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>t0</div>
         <p style={{ ...paragraphStyle, marginTop: 8 }}>
-          El generador de càrrega envia payloads amb una ràtio i durada definides per l'escenari.
+          El generador de càrrega crea missatges amb un format, payload i ràtio definits a l'escenari.
         </p>
-      </div>
-
-      <div style={{ ...flowBox('var(--rabbit)'), position: 'relative', padding: 16 }}>
-        <span style={miniBadge('var(--rabbit)')}>Broker</span>
-        <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-          {['Ingress', 'Topic / cua / subject', 'Particions o rutes', 'ACK / offset'].map((part, index) => (
-            <div key={part} style={{ display: 'grid', gridTemplateColumns: '28px 1fr', gap: 8, alignItems: 'center' }}>
-              <div style={{ width: 28, height: 28, borderRadius: 7, background: index === 1 ? 'var(--rabbit)' : 'var(--bg-card)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: index === 1 ? '#09090b' : 'var(--text-secondary)', fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 11 }}>
-                {index + 1}
-              </div>
-              <div style={{ height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'var(--bg-card)', display: 'flex', alignItems: 'center', padding: '0 10px', fontSize: 12, color: 'var(--text-primary)', fontWeight: 700 }}>
-                {part}
-              </div>
-            </div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 'auto', paddingTop: 14 }}>
+          {['JSON', 'IoT', 'vídeo', 'financer'].map(tag => (
+            <span key={tag} style={{ ...miniBadge('#2563eb'), fontSize: 10 }}>{tag}</span>
           ))}
         </div>
       </div>
 
-      <div style={flowBox('var(--nats)')}>
-        <span style={miniBadge('var(--nats)')}>Consumidor</span>
-        <div style={{ marginTop: 12, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>t1</div>
+      <div className="async-flow-arrow" aria-hidden="true">
+        <span>envia</span>
+      </div>
+
+      <div style={{ ...flowBox('#f59e0b'), padding: 17 }}>
+        <span style={miniBadge('#f59e0b')}>Broker</span>
+        <div style={{ display: 'grid', gap: 8, marginTop: 13 }}>
+          <RouteStep n={1} title="Entrada" detail="rep el missatge" color="#f59e0b" />
+          <RouteStep n={2} title="Ruta" detail="topic, cua o subject" color="#f59e0b" />
+          <RouteStep n={3} title="Partició / ACK" detail="ordena, confirma o distribueix" color="#f59e0b" />
+        </div>
+      </div>
+
+      <div className="async-flow-arrow async-flow-arrow-green" aria-hidden="true">
+        <span>entrega</span>
+      </div>
+
+      <div style={flowBox('#16a34a')}>
+        <span style={miniBadge('#16a34a')}>Consumidor</span>
+        <div style={{ marginTop: 14, fontSize: 24, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>t1</div>
         <p style={{ ...paragraphStyle, marginTop: 8 }}>
-          El client rep el missatge. La diferència t1 - t0 és la latència end-to-end.
+          El consumidor rep el missatge. La diferència entre t0 i t1 és la latència que veu l'usuari.
         </p>
+        <div style={{ marginTop: 'auto', paddingTop: 14, display: 'grid', gap: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-secondary)' }}>
+            <span>Missatges rebuts</span>
+            <strong style={{ color: 'var(--text-primary)' }}>comptador final</strong>
+          </div>
+        </div>
       </div>
     </div>
 
-    <svg width="100%" height="54" viewBox="0 0 920 54" role="img" aria-label="Flux productor broker consumidor" style={{ marginTop: 6, overflow: 'visible' }}>
-      <defs>
-        <marker id="broker-flow-arrow" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
-          <path d="M0,0 L8,4 L0,8 Z" fill="#58a6ff" />
-        </marker>
-      </defs>
-      <line x1="150" y1="24" x2="375" y2="24" stroke="#58a6ff" strokeWidth="2" markerEnd="url(#broker-flow-arrow)" />
-      <line x1="545" y1="24" x2="770" y2="24" stroke="#22c55e" strokeWidth="2" markerEnd="url(#broker-flow-arrow)" />
-      <text x="260" y="18" textAnchor="middle" fill="#8b949e" fontSize="11" fontFamily="JetBrains Mono, monospace">publish</text>
-      <text x="660" y="18" textAnchor="middle" fill="#8b949e" fontSize="11" fontFamily="JetBrains Mono, monospace">deliver</text>
-      <line x1="150" y1="42" x2="770" y2="42" stroke="#f59e0b" strokeWidth="2" strokeDasharray="5 5" />
-      <text x="460" y="53" textAnchor="middle" fill="#f59e0b" fontSize="11" fontFamily="JetBrains Mono, monospace">latència end-to-end</text>
-    </svg>
+    <div
+      style={{
+        marginTop: 14,
+        border: '1px solid rgba(245,158,11,0.28)',
+        background: 'rgba(245,158,11,0.08)',
+        borderRadius: 10,
+        padding: '10px 12px',
+        display: 'flex',
+        gap: 10,
+        alignItems: 'center',
+        flexWrap: 'wrap',
+      }}
+    >
+      <span style={{ ...miniBadge('#f59e0b'), flexShrink: 0 }}>Latència</span>
+      <span style={{ fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+        Temps total del missatge: des que el productor l'envia fins que el consumidor el rep. No cal que l'usuari separi cada tram per entendre el resultat principal.
+      </span>
+    </div>
   </section>
 );
 
 const anatomyParts = [
   {
-    title: 'Frontal Backstage',
-    color: '#6366f1',
-    text: "L'usuari tria escenari, perfil de càrrega i execució. No orquestra mesures; només inicia el flux.",
+    title: 'Backstage UI',
+    color: '#2563eb',
+    text: "És la pantalla de treball: esculls components, crees escenaris, llances execucions i mires resultats.",
   },
   {
     title: 'Backend compositor',
-    color: '#2D6BE4',
-    text: 'Tradueix el contracte Scenario a desplegaments Helm i jobs de prova sobre AKS.',
+    color: '#7c3aed',
+    text: 'Converteix l\'escenari en una prova executable. Aquí viuen les regles del TFG, no al frontend.',
   },
   {
-    title: 'Gateway / protocol',
-    color: '#14b8a6',
-    text: 'Adapta WebSocket, MQTT, gRPC o protocol natiu quan cal exposar el broker al client.',
+    title: 'AKS',
+    color: '#0891b2',
+    text: 'És el clúster on corren brokers, generadors de càrrega i serveis de suport.',
   },
   {
-    title: 'Broker intern',
+    title: 'Broker / protocol',
     color: '#f59e0b',
-    text: 'Topic, cua, subject, particions, ACKs i offsets. Aquí es mesura la latència de broker.',
+    text: 'És la peça comparada: Kafka, RabbitMQ, NATS o compatible, amb el protocol triat.',
   },
   {
     title: 'Mètriques',
-    color: '#22c55e',
-    text: 'Exporters i Prometheus capturen CPU, memòria, errors i percentils sense inventar mètrica artesanal.',
+    color: '#16a34a',
+    text: 'Cada run publica mesures amb latència, throughput, errors i comptadors de missatges.',
+  },
+  {
+    title: 'Resultats',
+    color: '#dc2626',
+    text: 'La UI compara execucions i ajuda a defensar quin disseny funciona millor.',
   },
 ];
 
 export const BrokerAnatomyDiagram = () => (
   <section style={{ ...S.card, padding: 22, overflow: 'hidden', minWidth: 0 }}>
-    <DiagramHeader eyebrow="Ubicació de peces" title="On viu cada part">
-      Aquest mapa separa UI, composició, protocol i broker real. Això evita confondre el portal amb l'orquestrador i deixa clar què s'està mesurant.
+    <DiagramHeader eyebrow="Estructura del portal" title="Quin paper fa cada peça">
+      Aquest mapa separa la pantalla, la preparació de la prova, l'execució al clúster i la comparació final. La idea és entendre el flux sense entrar en detalls interns.
     </DiagramHeader>
 
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(130px, 100%), 1fr))', gap: 10 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(150px, 100%), 1fr))', gap: 10 }}>
       {anatomyParts.map((part, index) => (
-        <div key={part.title} style={{ border: `1px solid ${part.color}30`, borderTop: `3px solid ${part.color}`, background: 'var(--bg-subtle)', borderRadius: 10, padding: 14, minHeight: 180, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ width: 34, height: 34, borderRadius: 9, background: `${part.color}16`, color: part.color, border: `1px solid ${part.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontWeight: 800 }}>
+        <div
+          key={part.title}
+          style={{
+            border: `1px solid ${part.color}30`,
+            borderTop: `3px solid ${part.color}`,
+            background: 'var(--bg-subtle)',
+            borderRadius: 10,
+            padding: 14,
+            minHeight: 168,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 9,
+              background: `${part.color}16`,
+              color: part.color,
+              border: `1px solid ${part.color}30`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontFamily: 'var(--font-mono)',
+              fontWeight: 900,
+            }}
+          >
             {index + 1}
           </div>
           <div>
-            <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 6 }}>{part.title}</div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 6 }}>{part.title}</div>
             <p style={paragraphStyle}>{part.text}</p>
           </div>
         </div>
@@ -171,37 +279,53 @@ export const BrokerAnatomyDiagram = () => (
 );
 
 const latencySegments = [
-  { label: 'Publish', width: '18%', color: '#2D6BE4', detail: 'timestamp t0 al productor' },
-  { label: 'Ingress', width: '16%', color: '#14b8a6', detail: 'xarxa i entrada al broker' },
-  { label: 'Broker', width: '24%', color: '#f59e0b', detail: 'persistència, ACK, routing' },
-  { label: 'Gateway', width: '18%', color: '#818cf8', detail: 'traducció protocol si existeix' },
-  { label: 'Receive', width: '24%', color: '#22c55e', detail: 'recepció i timestamp t1' },
+  { label: 'Enviament', width: '18%', color: '#2563eb', detail: 'el productor crea el missatge' },
+  { label: 'Entrada', width: '16%', color: '#0891b2', detail: 'arriba al broker' },
+  { label: 'Broker', width: '26%', color: '#f59e0b', detail: 'ruta, partició, cua o ACK' },
+  { label: 'Protocol', width: '18%', color: '#7c3aed', detail: 'adaptació si aplica' },
+  { label: 'Recepció', width: '22%', color: '#16a34a', detail: 'el consumidor rep el missatge' },
 ];
 
 export const LatencyMapDiagram = () => (
   <section style={{ ...S.card, padding: 22, overflow: 'hidden', minWidth: 0 }}>
-    <DiagramHeader eyebrow="Lectura de mètriques" title="On està la latència">
-      Les mètriques no són equivalents: la latència end-to-end cobreix tot el recorregut, mentre que la latència de broker només cobreix la part interna del broker.
+    <DiagramHeader eyebrow="Lectura de mesures" title="On es veu la latència">
+      Per a la Home només cal una idea: la latència és el temps que tarda el missatge a arribar. Després, a Resultats, es pot mirar amb més detall amb P50, P95 i P99.
     </DiagramHeader>
 
     <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg-subtle)', padding: 16 }}>
-      <div style={{ display: 'flex', minHeight: 82, borderRadius: 9, overflowX: 'auto', overflowY: 'hidden', border: '1px solid var(--border)' }}>
+      <div
+        className="async-latency-segments"
+        style={{ display: 'flex', minHeight: 86, borderRadius: 9, overflowX: 'auto', overflowY: 'hidden', border: '1px solid var(--border)' }}
+      >
         {latencySegments.map(segment => (
-          <div key={segment.label} style={{ width: segment.width, background: `linear-gradient(180deg, ${segment.color}22, ${segment.color}0c)`, borderRight: segment.label === 'Receive' ? 'none' : '1px solid var(--border)', padding: 12, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 96 }}>
-            <div style={{ fontSize: 12, fontWeight: 850, color: segment.color }}>{segment.label}</div>
+          <div
+            key={segment.label}
+            className="async-latency-segment"
+            style={{
+              width: segment.width,
+              background: `linear-gradient(180deg, ${segment.color}22, ${segment.color}0c)`,
+              borderRight: segment.label === 'Recepció' ? 'none' : '1px solid var(--border)',
+              padding: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              minWidth: 106,
+            }}
+          >
+            <div style={{ fontSize: 12, fontWeight: 900, color: segment.color }}>{segment.label}</div>
             <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.35 }}>{segment.detail}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gap: 8, marginTop: 14 }}>
+      <div style={{ display: 'grid', gap: 9, marginTop: 14 }}>
         {[
-          { label: 'Latència end-to-end', color: '#f59e0b', start: 0, end: 100, text: 'publish t0 → receive t1' },
-          { label: 'Latència de broker', color: '#2D6BE4', start: 34, end: 58, text: 'ingress broker → ACK/routing' },
-          { label: 'Overhead protocol/gateway', color: '#818cf8', start: 58, end: 76, text: 'adaptació WS/MQTT/gRPC si aplica' },
+          { label: 'Latència', color: '#f59e0b', start: 0, end: 100, text: 't0 productor -> t1 consumidor' },
+          { label: 'Temps dins del broker', color: '#2563eb', start: 34, end: 60, text: 'entrada -> ruta/ACK' },
+          { label: 'Cost del protocol', color: '#7c3aed', start: 60, end: 78, text: 'traducció o entrega' },
         ].map(row => (
-          <div key={row.label} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(170px, 100%), 1fr))', gap: 10, alignItems: 'center' }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: row.color }}>{row.label}</div>
+          <div key={row.label} style={{ display: 'grid', gridTemplateColumns: '150px 1fr 180px', gap: 10, alignItems: 'center' }} className="async-responsive-grid">
+            <div style={{ fontSize: 12, fontWeight: 900, color: row.color }}>{row.label}</div>
             <div style={{ height: 8, borderRadius: 999, background: 'var(--bg-card)', border: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
               <div style={{ position: 'absolute', left: `${row.start}%`, width: `${row.end - row.start}%`, top: 0, bottom: 0, background: row.color, borderRadius: 999 }} />
             </div>
@@ -212,3 +336,5 @@ export const LatencyMapDiagram = () => (
     </div>
   </section>
 );
+
+export default BrokerFlowDiagram;

@@ -1,0 +1,539 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[catalan]{babel}
+\usepackage[margin=1in]{geometry}
+\usepackage{lmodern}
+\usepackage[scaled]{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{fancyhdr}
+\usepackage{float}
+\usepackage{caption}
+
+\captionsetup[figure]{
+  font=small,
+  labelfont=bf,
+  labelsep=period,
+  justification=raggedright,
+  singlelinecheck=false,
+  skip=0.55em
+}
+
+\hypersetup{
+  hidelinks,
+  pdftitle={Projecte Final de Grau},
+  pdfauthor={Marc Font Marqu\'es}
+}
+
+\definecolor{udgblue}{RGB}{23,52,132}
+\definecolor{placeholdergray}{gray}{0.42}
+
+\newcommand{\pfgTitle}{APIs As\'incrones}
+\newcommand{\pfgAuthor}{Marc Font Marqu\'es}
+\newcommand{\pfgStudentId}{u1978934}
+\newcommand{\pfgEmail}{u1978934@campus.udg.edu}
+\newcommand{\pfgDegree}{Grau en Enginyeria Inform\`atica}
+\newcommand{\pfgAcademicYear}{2025/26}
+\newcommand{\pfgCall}{Juny 2026}
+\newcommand{\pfgDepartment}{Departament d'Arquitectura Digital}
+\newcommand{\pfgTutorUdG}{Jer\'onimo Hern\'andez Gonz\'alez}
+\newcommand{\pfgTutorCompany}{David Teres Carrillo}
+\newcommand{\pfgStart}{Mar\c{c} de 2026}
+\newcommand{\pfgEnd}{Juny de 2026}
+
+\newcommand{\requiredinfo}[1]{%
+  \vspace{0.4em}%
+  {\color{placeholdergray}\textit{Informaci\'o pendent per completar: #1.}}\par
+}
+
+\newcommand{\sectionintro}[1]{%
+  \vspace{0.25em}%
+  #1\par
+}
+
+\setstretch{1.08}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6\baselineskip}
+\setlength{\headheight}{14pt}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+
+\renewcommand{\contentsname}{\'Index}
+
+\titleformat{\section}{\Large\bfseries}{\thesection}{0.75em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.75em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.75em}{}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{PFG, curs \pfgAcademicYear\ GEINF}
+\fancyhead[R]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+
+\newcommand{\makepfgtitle}{%
+  \begin{titlepage}
+    \thispagestyle{empty}
+    \centering
+    \vspace*{1cm}
+
+    {\includegraphics[width=0.78\textwidth]{assets/udg-eps-header.png}\par}
+
+    \vspace{1cm}
+    {\Large \pfgDegree\par}
+
+    \vspace{0.5cm}
+    \vfill
+    {\large\bfseries PROJECTE FINAL DE GRAU\par}
+    \vspace{0.7cm}
+    {\rule{0.9\textwidth}{1.1pt}\par}
+    \vspace{0.55cm}
+    {\fontsize{26}{30}\selectfont\bfseries \pfgTitle\par}
+    \vspace{0.55cm}
+    {\rule{0.9\textwidth}{1.1pt}\par}
+
+    \vspace{1.0cm}
+    \begin{minipage}[t]{0.38\textwidth}
+      \raggedright
+      \textit{Autor:}\\
+      \pfgAuthor
+    \end{minipage}
+    \hfill
+    \begin{minipage}[t]{0.38\textwidth}
+      \raggedleft
+      \textit{Tutors:}\\
+      \pfgTutorUdG\\
+      \pfgTutorCompany
+    \end{minipage}
+
+    \vspace{1.3cm}
+    {\Large\bfseries MEM\`ORIA\par}
+
+    \vspace{0.8cm}
+    \begin{minipage}{0.35\textwidth}
+      \centering
+      \textbf{Convocat\`oria:}\\
+      \pfgCall
+    \end{minipage}
+
+    \vspace{1.2cm}
+    \begin{minipage}{0.55\textwidth}
+      \centering
+      \textbf{Departament:}\\
+      \pfgDepartment
+    \end{minipage}
+
+    \vfill
+  \end{titlepage}
+}
+
+\begin{document}
+
+\hypersetup{pageanchor=false}
+\makepfgtitle
+
+\clearpage
+\pagenumbering{arabic}
+\pagestyle{empty}
+\tableofcontents
+\clearpage
+\hypersetup{pageanchor=true}
+\pagestyle{fancy}
+
+\section{Introducci\'o, motivacions, prop\`osit i objectius del projecte}
+
+\subsection{Introducci\'o}
+Les arquitectures basades en esdeveniments i les APIs as\'incrones s'han convertit en una opci\'o habitual quan un sistema ha de treballar amb processos llargs, fluxos continus de dades o serveis que no poden quedar bloquejats esperant una resposta immediata. En una comunicaci\'o s\'incrona, el client fa una petici\'o i espera. En una comunicaci\'o as\'incrona, en canvi, els components poden continuar treballant mentre el missatge es processa en un altre punt del sistema. Aquest canvi sembla senzill, per\`o afecta directament el disseny, l'escalabilitat i la manera de mesurar el rendiment d'una arquitectura.
+
+El problema apareix quan s'ha de triar una tecnologia concreta. Hi ha molts protocols, com MQTT, AMQP, WebSocket o gRPC; plataformes de missatgeria com Apache Kafka, RabbitMQ o NATS, i diversos patrons d'arquitectura orientats a esdeveniments. La documentaci\'o de cada eina explica b\'e com funciona de manera a\"illada, per\`o no sempre ajuda a respondre una pregunta m\'es pr\`actica: quina combinaci\'o t\'e m\'es sentit en un cas d'\'us concret?
+
+Abans d'aquest treball es va elaborar, dins de NTT Data i sota la supervisi\'o de David Teres Carrillo, un document d'investigaci\'o sobre APIs as\'incrones. Aquell document estava pensat per a professionals que comen\c{c}aven a treballar en aquest \`ambit i tamb\'e per a professionals de l'empresa que volien tenir una visi\'o ordenada dels protocols, brokers, arquitectures i opcions de benchmarking disponibles. No era nom\'es un resum te\`oric: servia per entendre quines peces existien, com es relacionaven i quines preguntes quedaven obertes abans de portar-les a un entorn real.
+
+Aquest PFG parteix d'aquella investigaci\'o i la porta a una fase pr\`actica. L'objectiu ja no \'es descriure les tecnologies, sin\'o construir una plataforma que permeti desplegar escenaris reals sobre Azure Kubernetes Service (AKS), executar-los i obtenir m\`etriques comparables. La idea de fons \'es clara: si en un projecte futur cal decidir entre diverses combinacions de broker, protocol i arquitectura, aquesta decisi\'o hauria de poder recolzar-se en dades i no nom\'es en intu\"icions o recomanacions gen\`eriques.
+
+\subsection{Motivacions}
+La motivaci\'o principal neix durant l'elaboraci\'o del document d'investigaci\'o inicial. Durant mesos es van revisar protocols, plataformes i patrons amb el suport i les indicacions de David Teres Carrillo. Aquell seguiment va permetre entendre millor el domini, per\`o tamb\'e va deixar al descobert una limitaci\'o: saber com funciona Kafka, RabbitMQ, NATS o MQTT per separat no \'es el mateix que veure com es comporten quan formen part d'un escenari complet.
+
+A mesura que avan\c{c}ava l'an\`alisi, la mancan\c{c}a es va fer m\'es evident. Molts materials comparen tecnologies des d'un punt de vista conceptual, per\`o poques vegades mostren com varia la lat\`encia, el throughput o la taxa d'error quan es canvia una pe\c{c}a de l'arquitectura. Aquesta dist\`ancia entre la teoria i la prova pr\`actica \'es especialment rellevant per a equips d'arquitectura, que sovint han de justificar decisions en entorns on el rendiment i la reproductibilitat importen.
+
+A t\'itol personal, aquest treball tamb\'e ha estat una oportunitat per aprendre tecnologies que fins ara no havia utilitzat en profunditat. Treballar amb Backstage, serveis Node.js, Docker, Kubernetes i AKS ha convertit el projecte en una experi\`encia molt m\'es propera a un entorn professional que a un exercici acad\`emic tancat. El valor del treball no \'es nom\'es la plataforma resultant, sin\'o tamb\'e el proc\'es d'entendre com es construeix, es desplega i es mesura una arquitectura d'aquest tipus.
+
+\subsection{Prop\`osit del projecte}
+El prop\`osit d'aquest treball \'es construir una plataforma funcional que permeti comparar diferents combinacions de tecnologies as\'incrones en condicions controlades. La plataforma ha de facilitar la definici\'o d'escenaris, el seu desplegament sobre AKS, l'execuci\'o de proves i la consulta de resultats hist\`orics i en temps real.
+
+La finalitat \'ultima \'es ajudar a entendre quina combinaci\'o pot encaixar millor segons el cas d'\'us. No es pret\'en demostrar que una tecnologia sigui sempre superior a una altra, perqu\`e aquest tipus de resposta gaireb\'e mai \'es realista. El que es busca \'es disposar d'un entorn repetible que permeti observar difer\`encies i justificar decisions amb m\`etriques concretes.
+
+\subsection{Objectius del projecte}
+Els objectius del projecte s'han separat en objectius de producte i objectius d'aprenentatge. Aquesta separaci\'o ajuda a distingir qu\`e havia de construir la plataforma i quins coneixements pr\`actics havia d'assolir l'estudiant durant el proc\'es.
+
+\textbf{Objectius de producte}
+\begin{itemize}
+  \item Analitzar les principals tecnologies d'APIs as\'incrones i seleccionar les combinacions m\'es representatives per al projecte.
+  \item Dissenyar una plataforma extensible basada en Backstage per definir, executar i consultar escenaris.
+  \item Implementar el desplegament autom\`atic d'escenaris sobre Azure Kubernetes Service.
+  \item Recollir i visualitzar m\`etriques de lat\`encia, throughput i taxa d'error durant les execucions.
+  \item Emmagatzemar els resultats a Elasticsearch per poder consultar-los i comparar execucions anteriors.
+  \item Documentar la plataforma de manera que l'equip d'arquitectura de NTT Data en pugui continuar l'\'us o l'evoluci\'o.
+\end{itemize}
+
+\textbf{Objectius d'aprenentatge}
+\begin{itemize}
+  \item Entendre com es comporten a la pr\`actica diferents combinacions de broker, protocol i arquitectura.
+  \item Aprendre a treballar amb Azure Kubernetes Service, un entorn nou per a l'estudiant abans d'aquest projecte.
+  \item Guanyar criteri t\`ecnic per interpretar m\`etriques de rendiment i relacionar-les amb decisions d'arquitectura.
+\end{itemize}
+
+\subsection{Abast del projecte}
+L'abast del projecte inclou la construcci\'o d'un portal Backstage adaptat al domini de les APIs as\'incrones. Des d'aquest portal, l'usuari pot consultar un cat\`aleg de tecnologies, crear escenaris, executar-los sobre AKS i consultar-ne els resultats. Un escenari representa una combinaci\'o de plataforma de missatgeria, protocol, arquitectura, format de dades i par\`ametres de c\`arrega.
+
+La plataforma recull tres fam\'ilies de m\`etriques. La lat\`encia indica el temps que passa des que un missatge s'envia fins que arriba al consumidor. El throughput mesura quants missatges es poden processar per segon de manera sostinguda. La taxa d'error mostra quin percentatge de missatges o connexions fallen durant l'execuci\'o. Aquestes m\`etriques es visualitzen en temps real mitjan\c{c}ant WebSocket i es guarden a Elasticsearch per mantenir un historial consultable.
+
+Tamb\'e forma part de l'abast la comparaci\'o d'execucions. Aix\`o permet revisar qu\`e ha passat en proves anteriors i posar els resultats costat a costat. Aquesta part \'es important perqu\`e el projecte no busca nom\'es executar escenaris, sin\'o ajudar a interpretar-los.
+
+Queden fora de l'abast alguns punts que es van considerar durant el projecte per\`o que no s'han incorporat per limitacions de permisos, cost o temps. El suport multi-cloud amb Amazon EKS i Google GKE es va descartar perqu\`e no es disposava d'acc\'es autoritzat a aquests serveis en el context de les pr\`actiques. Apache Pulsar tamb\'e es va descartar perqu\`e, en les condicions disponibles, requeria una opci\'o de pagament. La capa d'event gateways i event meshes queda com a l\'inia futura, ja que afegia complexitat abans de tenir prou consolidat el flux principal. Finalment, no s'ha implementat autenticaci\'o d'usuaris perqu\`e la plataforma s'ha plantejat com una eina d'\'us intern, propera a una intranet d'equip, i no com un producte exposat a usuaris externs.
+
+\section{Estudi de viabilitat}
+\sectionintro{Aquest apartat mostra que el projecte era viable abans d'iniciar-lo i sintetitza els recursos, les limitacions i els condicionants principals que s'han hagut de considerar.}
+
+\subsection{Viabilitat t\`ecnica}
+Des del punt de vista tecnol\`ogic, el projecte \`es viable. Totes les tecnologies principals que constitueixen la plataforma estan disponibles de forma gratu\"ita i compten amb una comunitat activa i documentaci\'o \`amplia. Backstage \`es un framework de codi obert amb una adopci\'o creixent en l'\`ambit empresarial. Apache Kafka, RabbitMQ, NATS Server i Confluent Community Edition s\'on plataformes de missatgeria madures i \`ampliament desplegades en entorns de producci\'o. Kubernetes, en la seva variant gestionada AKS, \`es un servei consolidat en entorns cloud empresarials.
+
+Al llarg del desenvolupament s'han identificat diversos reptes t\`ecnics que han hagut de ser resolts: la comprensi\'o de l'arquitectura de plugins de Backstage, la integraci\'o entre el portal web i el cl\'uster AKS per al desplegament autom\`atic de pods, la compatibilitat entre protocols i plataformes de missatgeria, i la recollida i transmissi\'o de m\`etriques de rendiment en temps real cap a la interf\'icie d'usuari. En tots els casos s'han trobat solucions viables sense necessitat de rec\'orrer a tecnologies de pagament.
+
+L'\'unic condicionant extern significatiu ha estat la disponibilitat de permisos d'acc\'es als serveis de Kubernetes dels principals prove\"idors cloud. Davant la impossibilitat d'accedir a Amazon EKS i Google GKE en el context de l'empresa, es va optar per Azure AKS, el servei al qual NTT Data tenia acc\'es autoritzat. Aquesta restricci\'o no ha limitat les capacitats t\`ecniques del projecte, tot i que ha condicionat el prove\"idor cloud escollit.
+
+\subsection{Viabilitat econ\`omica}
+El desenvolupament de la plataforma ha estat dut a terme per un \`unic estudiant en el marc d'unes pr\`actiques remunerades a NTT Data. La dedicaci\'o prevista ha estat de 20 hores setmanals al llarg del per\'iode de desenvolupament, amb una estimaci\'o global de 360 hores de treball.
+
+Per tal de quantificar el cost real de desenvolupament, s'ha aplicat una tarifa de refer\`encia de mercat pr\`opia d'un perfil de desenvolupador j\'unior especialitzat en sistemes distribu\"its i infraestructura cloud, fixada en 15 EUR per hora. Aix\`o resulta en un cost de recursos humans de 5.400 EUR.
+
+Pel que fa a la infraestructura, el cl\'uster d'Azure Kubernetes Service ha estat proporcionat per NTT Data com a part d'un projecte d'infraestructura existent. En la pr\`actica, el cost directe per a l'estudiant \`es nul, ja que la infraestructura es troba coberta per l'empresa mitjan\c{c}ant els seus recursos interns i el partenariat amb Microsoft Azure. Tanmateix, prenent com a refer\`encia l'Azure Pricing Calculator per a una configuraci\'o equivalent, el cost aproximat de desplegar aquesta infraestructura per compte propi seria de 373,54 EUR.
+
+Tot el programari utilitzat \`es de distribuci\'o lliure i de codi obert. Backstage, Apache Kafka, RabbitMQ, NATS Server i Confluent Community Edition no comporten cap cost de llic\`encia. La incorporaci\'o d'Apache Pulsar, considerada inicialment, es va descartar perqu\`e en les condicions previstes del projecte requeria una subscripci\'o de pagament no disponible.
+
+\begin{table}[ht]
+  \centering
+  \small
+  \begin{tabularx}{0.94\textwidth}{@{}X>{\raggedleft\arraybackslash}p{5.2cm}@{}}
+    \toprule
+    Concepte & Cost estimat \\
+    \midrule
+    Recursos humans, 360 hores a 15 EUR per hora & 5.400 EUR \\
+    Infraestructura AKS, cost real per a l'estudiant & 0 EUR \\
+    Infraestructura AKS, cost de refer\`encia segons Azure Pricing Calculator & 373,54 EUR \\
+    Llic\`encies de programari & 0 EUR \\
+    \midrule
+    Total te\`oric si es contract\'es tot per compte propi & 5.773,54 EUR \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\subsection{Viabilitat temporal}
+Des d'un punt de vista temporal, el projecte tamb\'e era viable. La dedicaci\'o de 20 hores setmanals permetia repartir el treball en fases progressives: configuraci\'o del portal, connexi\'o amb AKS, integraci\'o dels brokers, construcci\'o del sistema de m\`etriques, validaci\'o i redacci\'o de la mem\`oria. Aquesta distribuci\'o era coherent amb l'abast del projecte i amb el context d'unes pr\`actiques curriculars.
+
+Durant el desenvolupament es van produir ajustos d'abast, com la ren\'uncia al suport multi-cloud, l'exclusi\'o dels gateways i la no incorporaci\'o d'Apache Pulsar. Tanmateix, aquests canvis no van comprometre el calendari global, sin\'o que van permetre concentrar l'esfor\c{c} en les funcionalitats nuclears i mantenir el projecte dins del termini previst.
+
+\subsection{Viabilitat legal i \`etica}
+La plataforma desenvolupada no processa dades personals d'usuaris finals. Les \`uniques dades que gestiona s\'on m\`etriques de rendiment generades pels mateixos brokers i pels productors i consumidors desplegats al cl\'uster, que no contenen cap informaci\'o de car\`acter personal. Per tant, no hi ha obligacions derivades del Reglament General de Protecci\'o de Dades que afectin el funcionament del sistema.
+
+Respecte a la propietat intel\textperiodcentered lectual, tot el codi desenvolupat fa \'us exclusiu de biblioteques i frameworks sota llic\`encies de codi obert permissives, principalment Apache 2.0 i MIT, compatibles amb l'\'us en projectes acad\`emics i comercials. No s'ha fet \'us de cap component propietari. Quant a la confidencialitat del projecte respecte a NTT Data, no s'ha establert cap acord formal de confidencialitat, tot i que es recomana verificar aquest punt amb l'empresa abans del dip\`osit de la mem\`oria.
+
+
+\subsection{Conclusions de l'estudi de viabilitat}
+El projecte \`es viable des dels punts de vista econ\`omic, tecnol\`ogic, legal i \`etic. El cost de desenvolupament \`es assumible en el context d'unes pr\`actiques empresarials, la infraestructura necess\`aria ha estat accessible mitjan\c{c}ant els recursos de NTT Data i totes les tecnologies emprades estan disponibles sota llic\`encies lliures. Els riscos t\`ecnics identificats s'han resolt durant el proc\'es de desenvolupament sense desviacions inassumibles respecte a la planificaci\'o inicial.
+
+\section{Metodologia}
+\sectionintro{A causa del car\`acter individual, exploratori i experimental del treball, la metodologia adoptada s'ha basat en iteracions curtes, revisi\'o cont\'inua amb el tutor d'empresa i validaci\'o progressiva dels resultats.}
+
+\subsection{Enfocament metodol\`ogic del projecte}
+El projecte no ha seguit cap metodologia de desenvolupament formal, com ara Scrum o Kanban. Aquesta decisi\'o es justifica per les caracter\'istiques pr\`opies del treball: desenvolupament individual, naturalesa explorat\`oria i experimental del projecte, i abs\`encia d'un equip que requer\'is coordinaci\'o formal de tasques. En un context d'aquestes caracter\'istiques, l'aplicaci\'o estricta d'una metodologia \`agil hauria introdu\"it una sobrec\`arrega administrativa sense una aportaci\'o real al progr\'es del projecte.
+
+En canvi, s'ha seguit un enfocament iteratiu i incremental de car\`acter informal, basat en cicles curts de treball guiats per reunions peri\`odiques amb el tutor d'empresa. En cada iteraci\'o, el tutor proposava una l\'inia de treball o un objectiu concret per a la setmana o per a les dues setmanes seg\"uents; l'estudiant implementava, investigava i resolia els problemes que anaven sorgint de manera aut\`onoma; i, al final de cada cicle, es revisava el resultat conjuntament, es validava l'aven\c{c} i es definien els passos seg\"uents.
+
+Aquest model ha perm\`es adaptar la direcci\'o del projecte de forma cont\'inua a mesura que apareixien nous coneixements o restriccions t\`ecniques. La Figura~\ref{fig:enfocament-metodologic} sintetitza aquest enfocament de treball.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.84\textwidth]{assets/fig_enfocament_metodologic.png}
+  \caption{Enfocament metodol\`ogic del projecte. El diagrama relaciona la investigaci\'o pr\`evia sobre APIs as\'incrones, el disseny de la plataforma, la implementaci\'o iterativa i l'an\`alisi final de les m\`etriques obtingudes.}
+  \label{fig:enfocament-metodologic}
+\end{figure}
+
+\subsection{Fases de desenvolupament}
+Les fases reals del projecte han estat la configuraci\'o del portal a partir de Backstage, la connexi\'o amb Azure Kubernetes Service, la integraci\'o dels brokers, la implementaci\'o del sistema de m\`etriques i de la interf\'icie d'usuari, les proves finals i la redacci\'o de la mem\`oria. Aquestes fases no s'han executat de manera estrictament seq\"uencial, sin\'o que s'han solapat quan ha estat convenient, especialment en la construcci\'o de la interf\'icie i en la documentaci\'o del projecte. La Figura~\ref{fig:fases-desenvolupament} resumeix visualment aquesta seq\"u\`encia de treball.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.86\textwidth]{assets/fig_fases_desenvolupament.png}
+  \caption{Fases de desenvolupament del projecte. S'hi representa la seq\"u\`encia iterativa de configuraci\'o del portal, connexi\'o amb AKS, integraci\'o dels brokers, construcci\'o del sistema de m\`etriques, validaci\'o final i redacci\'o de la mem\`oria.}
+  \label{fig:fases-desenvolupament}
+\end{figure}
+
+\subsection{Metodologia espec\'ifica del projecte}
+Tot el codi del projecte ha estat gestionat amb Git i allotjat en un repositori de GitHub, que ha servit com a eina principal de control de versions i de registre del progr\'es. No s'ha fet \'us de cap sistema formal de gesti\'o de tasques com Jira, Trello o GitHub Issues. Donat el car\`acter individual del projecte, el seguiment s'ha gestionat de forma personal entre les reunions setmanals amb el tutor, on es revisava l'estat del treball i es definien els pr\`oxims passos.
+
+\subsection{Metodologia d'avaluaci\'o}
+L'avaluaci\'o del projecte s'ha basat en la validaci\'o progressiva de cada iteraci\'o i en l'an\`alisi de les m\`etriques de rendiment obtingudes en execucions reals dels escenaris. Per a cada combinaci\'o de protocol, plataforma i arquitectura, el sistema recull lat\`encia, throughput i taxa d'error, i aquests valors es visualitzen i es comparen des del portal. Aquest enfocament ha perm\`es comprovar tant el funcionament t\`ecnic dels desplegaments com la utilitat de la plataforma per a la presa de decisions arquitect\`oniques. La Figura~\ref{fig:metodologia-avaluacio} resumeix el flux d'avaluaci\'o dels escenaris executats.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.84\textwidth]{assets/fig_metodologia_avaluacio.png}
+  \caption{Metodologia d'avaluaci\'o dels escenaris. El flux mostra la definici\'o de l'escenari, el desplegament a AKS, l'execuci\'o dels components, la persist\`encia de m\`etriques i la comparaci\'o posterior dels resultats.}
+  \label{fig:metodologia-avaluacio}
+\end{figure}
+
+\subsection{\'Us d'eines d'intel\textperiodcentered lig\`encia artificial generativa}
+
+L'\'us d'aquestes eines s'ha centrat en la resoluci\'o de dubtes t\`ecnics i la depuraci\'o d'errors durant la implementaci\'o, la millora de l'efici\`encia i la llegibilitat del codi ja escrit, la generaci\'o de comentaris i documentaci\'o inline del codi, i la revisi\'o i millora de la redacci\'o d'aquest document. En cap cas s'han utilitzat per generar blocs de codi funcionals de manera aut\`onoma sense la comprensi\'o i validaci\'o pr\`evies per part de l'estudiant. Tot el codi del projecte ha estat revisat, ent\`es i, quan ha calgut, modificat per l'estudiant abans de ser incorporat al repositori.
+
+Cal remarcar que el punt de partida del codi ha estat el repositori p\'ublic de Backstage i les seves extensions oficials de codi obert, sobre les quals s'ha constru\"it tota la implementaci\'o espec\'ifica del projecte. Les eines d'IA han actuat com a acceleradors del proc\'es d'aprenentatge i de resoluci\'o de problemes, no com a autores del treball.
+
+\section{Planificaci\'o}
+\sectionintro{La planificaci\'o s'ha alineat amb la metodologia iterativa seguida i amb els objectius definits, tot distribuint el treball en fases progressives i parcialment solapades.}
+
+\subsection{Pla de treball, tasques i paquets de treball}
+El desenvolupament del projecte s'ha estructurat en sis fases principals. Les tasques i els resultats esperats de cada fase s\'on els seg\"uents:
+
+\begin{itemize}
+  \item \textbf{Fase 1. Configuraci\'o de Backstage i estructura del portal, del 17 de febrer de 2026 al 14 de mar\c{c} de 2026.} Aquesta fase ha consistit a configurar el framework Backstage com a base del portal i definir l'estructura general de l'aplicaci\'o, incloent-hi la navegaci\'o, les p\`agines principals i la integraci\'o amb el repositori de codi a GitHub. El resultat esperat era disposar d'un portal funcional i desplegable localment, amb la navegaci\'o b\`asica definida.
+  \item \textbf{Fase 2. Connexi\'o amb Azure Kubernetes Service, de l'1 de mar\c{c} de 2026 al 19 de mar\c{c} de 2026.} Paral\textperiodcentered lelament a la configuraci\'o de Backstage, es va treballar en l'obtenci\'o de credencials d'acc\'es a AKS i en la connexi\'o del portal amb el cl\'uster. Aquesta fase va requerir coordinaci\'o amb companys de l'equip d'infraestructura d'NTT Data. El resultat esperat era que el portal pogu\'es enviar ordres al cl\'uster i rebre'n resposta.
+  \item \textbf{Fase 3. Implementaci\'o dels brokers, del 19 de mar\c{c} de 2026 al 7 d'abril de 2026.} Amb l'acc\'es a AKS establert, es van integrar les plataformes de missatgeria al cat\`aleg: Apache Kafka, Confluent Community Edition, RabbitMQ i NATS Server. Cadascuna es desplega com a imatge de Docker dins d'un pod de Kubernetes. El resultat esperat era que totes les plataformes poguessin ser llan\c{c}ades i aturades des del portal.
+  \item \textbf{Fase 4. Sistema de m\`etriques i interf\'icie d'usuari, del 19 de mar\c{c} de 2026 al 20 d'abril de 2026.} De forma concurrent amb la fase anterior, es va desenvolupar el sistema de recollida i visualitzaci\'o de m\`etriques, la l\`ogica de puntuaci\'o per format de dades i la interf\'icie de visualitzaci\'o de resultats en temps real. Les dades de les execucions s'emmagatzemen a Elasticsearch per a la consulta posterior. El resultat esperat era disposar d'una interf\'icie completa des de la qual crear, executar i visualitzar escenaris.
+  \item \textbf{Fase 5. Proves i ajustos finals, del 15 d'abril de 2026 al 4 de maig de 2026.} Amb el sistema funcional, es va dedicar un per\'iode a la validaci\'o dels resultats, la correcci\'o d'errors detectats i la millora de la interf\'icie d'usuari. El resultat esperat era un sistema estable, amb les m\`etriques verificades i la interf\'icie polida.
+  \item \textbf{Fase 6. Redacci\'o de la mem\`oria, del 15 d'abril de 2026 a l'1 de juny de 2026.} La redacci\'o de la mem\`oria ha transcorregut en paral\textperiodcentered lel amb les darreres fases de desenvolupament. El resultat esperat \`es el present document, completat dins del termini de dip\`osit establert.
+\end{itemize}
+
+\subsection{Cronograma del projecte}
+La planificaci\'o global del projecte abasta des del 17 de febrer de 2026 fins a l'1 de juny de 2026. El cronograma resumit de les fases \`es el seg\"uent:
+
+\begin{table}[h]
+  \centering
+  \small
+  \begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{3.8cm}X@{}}
+    \toprule
+    Fase & Per\'iode & Resultat esperat \\
+    \midrule
+    1 & 17/02/2026 a 14/03/2026 & Portal basat en Backstage, funcional localment i amb la navegaci\'o b\`asica definida. \\
+    2 & 01/03/2026 a 19/03/2026 & Connexi\'o operativa entre el portal i el cl\'uster AKS. \\
+    3 & 19/03/2026 a 07/04/2026 & Integraci\'o dels brokers i capacitat de llan\c{c}ar-los des del portal. \\
+    4 & 19/03/2026 a 20/04/2026 & Sistema de m\`etriques operatiu i interf\'icie d'usuari per crear i analitzar escenaris. \\
+    5 & 15/04/2026 a 04/05/2026 & Validaci\'o funcional, correcci\'o d'errors i poliment de la interf\'icie. \\
+    6 & 15/04/2026 a 01/06/2026 & Mem\`oria redactada i preparada per al dip\`osit. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+La Figura~\ref{fig:cronograma-fites} recull les principals fites temporals del projecte, mentre que la Figura~\ref{fig:gantt-projecte} mostra el solapament real entre les diferents fases de treball.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\textwidth]{assets/fig_cronograma_fites.png}
+  \caption{Cronograma de fites del projecte. S'hi recullen els principals punts de control i lliurables assolits entre l'inici del treball i el dip\`osit de la mem\`oria.}
+  \label{fig:cronograma-fites}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\textwidth]{assets/fig_gantt_projecte.png}
+  \caption{Cronograma del projecte en forma de diagrama de Gantt. La figura mostra la distribuci\'o temporal de les fases principals i el seu solapament al llarg del desenvolupament.}
+  \label{fig:gantt-projecte}
+\end{figure}
+
+\subsection{Seguiment i desviacions de la planificaci\'o}
+El seguiment de la planificaci\'o s'ha dut a terme mitjan\c{c}ant reunions setmanals amb el tutor d'empresa. En aquestes sessions es revisava l'estat del treball, es validaven els aven\c{c}os assolits i es redefinien els pr\`oxims passos en funci\'o dels resultats obtinguts i de les limitacions detectades.
+
+Al llarg del desenvolupament s'han produ\"it tres desviacions respecte al plantejament inicial del projecte:
+
+\begin{itemize}
+  \item \textbf{Suport multi-cloud.} La idea original contemplava desplegar escenaris en diversos prove\"idors de Kubernetes, Amazon EKS, Google GKE i Azure AKS, de manera que l'usuari pogu\'es escollir el prove\"idor on executar cada escenari. Aquesta funcionalitat es va descartar en no poder obtenir permisos d'acc\'es a EKS i GKE en el context de les pr\`actiques, limitant el desplegament exclusivament a Azure AKS.
+  \item \textbf{Gateways i event meshes.} Inicialment es va plantejar incloure aquesta capa com a variable addicional en la definici\'o d'escenaris. Durant el desenvolupament, per\`o, es va concloure que la variaci\'o que introduiria un gateway sobre les m\`etriques de lat\`encia i throughput seria poc significativa en comparaci\'o amb la complexitat afegida al sistema, de manera que es va decidir excloure'l de l'abast.
+  \item \textbf{Apache Pulsar.} Pulsar estava considerat en el cat\`aleg inicial, per\`o la seva incorporaci\'o en les condicions previstes del projecte requeria una subscripci\'o de pagament que no estava disponible en el context del treball.
+\end{itemize}
+
+\section{Marc de treball i conceptes previs}
+\sectionintro{Aquest cap\'itol descriu el marc empresarial i tecnol\`ogic del projecte i introdueix els conceptes imprescindibles per entendre la soluci\'o desenvolupada.}
+
+\subsection{Marc de treball del projecte}
+
+\subsubsection{Context del projecte i abast del sistema}
+El projecte s'ha desenvolupat en el marc de les pr\`actiques realitzades a NTT Data, dins de l'equip d'Arquitectura Digital. L'abast del sistema se centra en el desenvolupament d'un portal web capa\c{c} de definir, executar i analitzar escenaris d'APIs as\'incrones desplegats sobre Azure Kubernetes Service.
+
+Les persones involucrades en el projecte han estat les seg\"uents:
+
+\begin{itemize}
+  \item \textbf{David Teres Carrillo,} API Architect de l'equip d'Arquitectura Digital, ha exercit el rol de tutor d'empresa. Ha guiat el desenvolupament del projecte amb reunions setmanals de seguiment, proposant l\'inies de treball i validant els aven\c{c}os de cada iteraci\'o.
+  \item \textbf{Jonathan Paul Benito,} membre de l'equip, ha contribu\"it en la fase d'implementaci\'o dels brokers, mostrant com desplegar plataformes de missatgeria com a imatges de Docker dins d'un cl\'uster de Kubernetes.
+  \item \textbf{\'Angel Alepuz,} membre de l'equip, ha facilitat la comprensi\'o de l'arquitectura i del sistema de plugins de Backstage en les fases inicials del projecte.
+  \item \textbf{Julio Eduardo Hidalgo Caro,} responsable d'infraestructura, ha proporcionat l'acc\'es al cl\'uster d'Azure Kubernetes Service i ha donat suport en la configuraci\'o inicial de l'entorn.
+\end{itemize}
+
+\subsubsection{Eines, sistemes i punt de partida}
+Durant el desenvolupament del projecte s'han utilitzat Visual Studio Code i WebStorm com a entorns de desenvolupament integrats, GitHub per al control de versions i com a repositori del codi, Microsoft Azure i l'Azure Portal per a la gesti\'o del cl\'uster de Kubernetes, i la terminal d'AKS per a la gesti\'o directa dels recursos del cl\'uster.
+
+En el moment d'iniciar el TFG, no existia cap implementaci\'o t\`ecnica pr\`evia. El punt de partida ha estat el document d'investigaci\'o sobre APIs as\'incrones elaborat durant les pr\`actiques, entre octubre de 2025 i febrer de 2026, que ha servit de fonament conceptual i de guia per definir quines tecnologies integrar a la plataforma. A partir d'aquest document i del repositori oficial de codi obert de Backstage, disponible a GitHub, s'ha constru\"it tota la implementaci\'o.
+
+\subsubsection{Definici\'o del problema}
+El problema que resol el projecte \`es l'abs\`encia d'un entorn pr\`actic que permeti comparar, en condicions homog\`enies, combinacions de protocols, plataformes de missatgeria i arquitectures as\'incrones. La documentaci\'o te\`orica descriu aquestes tecnologies de manera a\"illada, per\`o no facilita eines per observar-ne el comportament conjunt ni per obtenir m\`etriques objectives de rendiment.
+
+\subsubsection{Entrades, dades i sortides del sistema}
+Les entrades del sistema s\'on els par\`ametres que defineixen cada escenari: protocol, plataforma de missatgeria, arquitectura, format de dades, payload i ratio de missatges. Durant l'execuci\'o, el pod desplegat al cl\'uster genera dades experimentals i m\`etriques de rendiment, principalment lat\`encia, throughput i taxa d'error. La sortida del sistema consisteix en la visualitzaci\'o d'aquestes m\`etriques en temps real, l'historial d'execucions i les comparacions posteriors entre configuracions, amb emmagatzematge de resultats a Elasticsearch.
+
+\subsubsection{Entorn de desenvolupament}
+L'entorn de desenvolupament combina treball local i infraestructura cloud. El portal s'ha desenvolupat localment sobre la base de Backstage, mentre que els escenaris s'executen sobre un cl\'uster real d'Azure Kubernetes Service. Aquesta combinaci\'o ha perm\`es provar el sistema en condicions properes a un entorn professional i validar tant la part de portal com la d'orquestraci\'o i execuci\'o.
+
+\subsection{Conceptes previs del domini}
+\textbf{API as\'incrona i API s\'incrona.} Una API s\'incrona \`es aquella en qu\`e el client emet una petici\'o i queda bloquejat fins a rebre la resposta del servidor. Una API as\'incrona, en canvi, permet que el client continu\"i operant sense esperar la resposta, de manera que el servidor processa la petici\'o de forma independent i notifica el resultat per un canal separat.
+
+\textbf{Broker, productor i consumidor.} En arquitectures as\'incrones, el broker \`es el component intermediari que gestiona la transmissi\'o de missatges entre productors i consumidors. El productor \`es el component que genera i publica missatges al broker, i el consumidor \`es el component que subscriu i processa aquells missatges. El broker desacobla els dos extrems, ja que el productor no necessita saber qui consumir\`a el missatge ni quan ho far\`a.
+
+\textbf{Arquitectura orientada a esdeveniments.} Es tracta d'un model en el qual la comunicaci\'o entre serveis es basa en la generaci\'o, publicaci\'o i consum d'esdeveniments que representen canvis d'estat del sistema. El document d'investigaci\'o previ recull una an\`alisi dels principals patrons d'arquitectura as\'incrona, com l'event driven architecture, la queue based architecture, la log centric architecture, l'event mesh architecture i la serverless event architecture.
+
+\textbf{Kubernetes i pods.} Kubernetes \`es un sistema d'orquestraci\'o de contenidors que automatitza el desplegament, l'escalat i la gesti\'o d'aplicacions en contenidors. La unitat m\'inima de desplegament \`es el pod, un grup d'un o m\'es contenidors que comparteixen xarxa i emmagatzematge. En aquest projecte, cada escenari desplega un pod al cl\'uster que cont\'e el broker, el productor i el consumidor de la configuraci\'o seleccionada.
+
+\textbf{Azure Kubernetes Service.} AKS \`es el servei gestionat de Kubernetes ofert per Microsoft Azure. Aquest servei elimina la necessitat de gestionar manualment el pla de control del cl\'uster i ha estat l'entorn utilitzat per desplegar tots els components del projecte.
+
+\textbf{M\`etriques de rendiment.} Les m\`etriques recollides durant cada execuci\'o s\'on la lat\`encia, que mesura el temps transcorregut entre l'enviament d'un missatge i la seva recepci\'o; el throughput, que quantifica el nombre de missatges processats per unitat de temps; i la taxa d'error, que indica el percentatge de missatges que no arriben correctament al consumidor.
+
+\subsection{Tecnologies clau del projecte}
+Les tecnologies clau del projecte s\'on Backstage, com a base del portal; Azure Kubernetes Service, com a plataforma d'execuci\'o; Apache Kafka, Confluent Community Edition, RabbitMQ i NATS Server, com a plataformes de missatgeria disponibles; Elasticsearch, com a sistema d'emmagatzematge dels resultats; i GitHub, com a repositori i eina de control de versions.
+
+\subsection{Consideracions arquitect\`oniques rellevants}
+La decisi\'o arquitect\`onica principal ha estat separar el portal de control de l'execuci\'o dels escenaris. El portal actua com a punt \`unic de configuraci\'o, desplegament i consulta de resultats, mentre que cada escenari s'executa sobre AKS amb els components necessaris per produir, transmetre i consumir missatges. Aquesta separaci\'o facilita la repetibilitat de les proves, l'a\"illament de configuracions i la comparaci\'o de resultats en condicions homog\`enies. L'execuci\'o centralitzada a AKS respon, a m\'es, a la restricci\'o real d'acc\'es als prove\"idors cloud disponibles a l'empresa. La Figura~\ref{fig:arquitectura-plataforma} sintetitza aquesta arquitectura conceptual de la plataforma.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.94\textwidth]{assets/fig_arquitectura_plataforma.png}
+  \caption{Arquitectura conceptual de la plataforma. S'hi representen el portal Backstage, el motor de desplegament, l'execuci\'o dels escenaris sobre AKS i la recollida de m\`etriques per a l'an\`alisi posterior.}
+  \label{fig:arquitectura-plataforma}
+\end{figure}
+
+\section{Requisits del sistema}
+\sectionintro{Els requisits seg\"uents sintetitzen el comportament esperat del producte desenvolupat i diferencien clarament les funcionalitats del sistema de les seves restriccions de qualitat i d'explotaci\'o.}
+
+\subsection{Requisits funcionals}
+\begin{itemize}
+  \item \textbf{RF1. Visualitzaci\'o del cat\`aleg.} El sistema ha de permetre a l'usuari consultar el cat\`aleg de protocols, plataformes de missatgeria i arquitectures disponibles, amb una descripci\'o de les caracter\'istiques de cadascun.
+  \item \textbf{RF2. Gesti\'o d'escenaris.} L'usuari ha de poder crear, modificar, duplicar i eliminar escenaris. Cada escenari defineix una combinaci\'o de protocol, plataforma, arquitectura, format de dades, payload i ratio de missatges.
+  \item \textbf{RF3. Escenaris predefinits.} El sistema ha de proporcionar un conjunt d'escenaris predefinits que representin combinacions recomanades per a cada format de dades, per facilitar l'exploraci\'o inicial dels usuaris.
+  \item \textbf{RF4. Execuci\'o d'escenaris.} L'usuari ha de poder llan\c{c}ar l'execuci\'o d'un escenari directament des del portal. L'execuci\'o desplega autom\`aticament un pod al cl\'uster AKS amb la configuraci\'o seleccionada, on un productor envia missatges a un consumidor a trav\'es del broker corresponent. L'usuari tamb\'e ha de poder aturar l'execuci\'o en qualsevol moment.
+  \item \textbf{RF5. Mode d'execuci\'o indefinida.} El sistema ha d'oferir un mode d'execuci\'o indefinida, amb una durada m\`axima d'una hora, durant el qual el pod envia el m\`axim de missatges possible per tal d'avaluar el rendiment l\'imit de la configuraci\'o.
+  \item \textbf{RF6. Visualitzaci\'o de m\`etriques en temps real.} Durant l'execuci\'o d'un escenari, el sistema ha de mostrar en temps real les m\`etriques de lat\`encia, throughput i taxa d'error generades pel broker.
+  \item \textbf{RF7. Historial d'execucions.} El sistema ha de conservar els resultats de totes les execucions realitzades i permetre'n la consulta posterior des d'una secci\'o d'historial.
+  \item \textbf{RF8. Comparaci\'o de resultats.} L'usuari ha de poder comparar els resultats d'execucions diferents, filtrant per format de dades, protocol, plataforma i arquitectura.
+  \item \textbf{RF9. Sistema de puntuaci\'o per format de dades.} El sistema ha de calcular una puntuaci\'o per a cada execuci\'o en funci\'o del format de dades de l'escenari. Cada format, com transaccions financeres, streaming de v\'ideo o IoT, atorga un pes diferent a cada m\`etrica, de manera que la puntuaci\'o reflecteixi quina combinaci\'o tecnol\`ogica s'adapta millor als requisits de cada cas d'\'us.
+  \item \textbf{RF10. Reinici de l'entorn.} L'usuari ha de poder eliminar totes les execucions de l'historial i reiniciar el cl\'uster des de la interf\'icie del portal.
+  \item \textbf{RF11. Personalitzaci\'o de la interf\'icie.} El sistema ha d'oferir un mode fosc accessible des de la secci\'o de configuraci\'o.
+\end{itemize}
+
+\subsection{Requisits no funcionals}
+\begin{itemize}
+  \item \textbf{RNF1. Disponibilitat.} La plataforma \`es accessible a trav\'es d'una IP p\'ublica assignada per AKS. La disponibilitat del servei dep\`en que el cl\'uster estigui actiu; quan el cl\'uster s'atura, el portal deixa de ser accessible.
+  \item \textbf{RNF2. Control d'acc\'es.} La plataforma no implementa cap sistema d'autenticaci\'o d'usuaris. Qualsevol persona amb acc\'es a la URL pot crear, executar i eliminar escenaris. Aquesta decisi\'o \`es adequada per a l'\'us intern previst com a eina d'equip dins d'NTT Data.
+  \item \textbf{RNF3. Temps d'execuci\'o.} La durada m\`axima d'una execuci\'o en mode indefinit \`es d'una hora. Les execucions normals no tenen un l\'imit de temps preestablert i finalitzen quan l'usuari les atura manualment.
+  \item \textbf{RNF4. Reproductibilitat.} El sistema ha de documentar la versi\'o de cada plataforma, protocol i component desplegat, de manera que qualsevol usuari pugui reproduir les mateixes condicions d'una execuci\'o anterior i obtenir resultats comparables.
+  \item \textbf{RNF5. Programari de codi obert.} Tots els components del sistema han de ser de distribuci\'o lliure i sense cost de llic\`encia, per garantir la sostenibilitat del projecte en el context de les pr\`actiques.
+\end{itemize}
+
+\section{Estudis i decisions}
+\sectionintro{Aquest apartat ha de justificar les decisions t\`ecniques preses al llarg del projecte i explicar per qu\`e s'han triat unes alternatives i no unes altres.}
+\requiredinfo{alternatives tecnol\`ogiques considerades, eines i llibreries finals, llenguatges, entorns, arquitectures avaluades, criteris de selecci\'o i decisions relatives a seguretat, escalabilitat, desplegament i m\`etriques}
+
+\subsection{Elecci\'o del llenguatge de programaci\'o i entorn de desenvolupament}
+\subsection{Eines, llibreries i plataformes utilitzades}
+\subsection{Alternatives tecnol\`ogiques considerades}
+\subsection{Decisions d'arquitectura}
+\subsection{Decisions sobre desplegament, seguretat i escalabilitat}
+\subsection{Decisions sobre l'avaluaci\'o i les m\`etriques}
+
+\section{An\`alisi i disseny del sistema}
+\sectionintro{En aquest cap\'itol s'ha de passar dels requisits a una soluci\'o concreta: actors, casos d'\'us, model de dades, interf\'icies i decisions de disseny.}\requiredinfo{tipus d'usuaris, rols, casos d'\'us principals, an\`alisi dels requisits, model de dades, decisions de disseny, filosofia d'interf\'icie i patrons de disseny aplicats}
+
+\subsection{Tipus d'usuari i rols del sistema}
+\subsection{An\`alisi de requisits}
+\subsubsection{Flux principal del sistema}
+\subsubsection{Gesti\'o d'operacions i dades}
+\subsubsection{Integracions externes o components relacionats}
+\subsubsection{Restriccions t\`ecniques, consist\`encia i seguretat}
+
+\subsection{Casos d'\'us principals}
+\subsection{Model conceptual de dades}
+\subsection{Disseny de les interf\'icies}
+\subsection{Patrons de disseny aplicats}
+
+\section{Implementaci\'o i proves}
+\sectionintro{Aquest apartat ha de descriure com s'ha implementat la soluci\'o, com s'han integrat els components i com s'ha verificat que tot funciona correctament. La guia exigeix, a m\'es, un v\'ideo de codi de m\`axim 3 minuts i l'acc\'es al codi.}
+\requiredinfo{arquitectura general, eines i tecnologies finals, descripci\'o dels m\`oduls principals, problemes trobats i resoluci\'o, estrat\`egia d'integraci\'o, proves unit\`aries o funcionals, validacions finals, enlla\c{c} al repositori i enlla\c{c} al v\'ideo de codi de m\`axim 3 minuts}
+
+\subsection{Arquitectura general del sistema}
+\subsection{Eines, llibreries i tecnologies utilitzades}
+\subsubsection{Llenguatge de programaci\'o i entorn d'execuci\'o}
+\subsubsection{Backend, serveis i l\`ogica de negoci}
+\subsubsection{Persist\`encia, dades i comunicacions}
+\subsubsection{Monitoratge, proves i visualitzaci\'o}
+\subsubsection{Control de versions i gesti\'o del projecte}
+
+\subsection{Desenvolupament dels m\`oduls principals}
+\subsubsection{M\`odul principal del sistema}
+\subsubsection{L\`ogica de negoci i regles del domini}
+\subsubsection{Integracions i comunicaci\'o entre components}
+\subsubsection{Automatitzaci\'o, scripts i desplegament t\`ecnic}
+\subsubsection{Validaci\'o funcional de cada m\`odul}
+
+\subsection{Integraci\'o i proves}
+\subsubsection{Integraci\'o dels m\`oduls del sistema}
+\subsubsection{Estrat\`egia de proves}
+\subsubsection{Verificaci\'o dels escenaris principals}
+\subsubsection{Incid\`encies, limitacions i resoluci\'o de problemes}
+
+\section{Implantaci\'o i resultats}
+\sectionintro{Cal explicar com s'ha desplegat o posat en marxa la soluci\'o i demostrar, amb resultats, que s'han assolit els objectius i requisits. La guia exigeix un v\'ideo de demostraci\'o del producte de m\`axim 5 minuts.}
+\requiredinfo{entorn de desplegament, instal\textperiodcentered laci\'o i configuraci\'o, funcionament final del sistema, resultats mesurables, compliment dels objectius, compliment de requisits no funcionals, rendiment, aspectes legals i de protecci\'o de dades, i enlla\c{c} al v\'ideo de demostraci\'o de m\`axim 5 minuts}
+
+\subsection{Implantaci\'o del sistema}
+\subsection{Funcionament i demostraci\'o del producte}
+\subsubsection{Preparaci\'o de l'entorn}
+\subsubsection{Proc\'es d'execuci\'o o validaci\'o}
+\subsubsection{Resultats obtinguts}
+\subsubsection{Format i emmagatzematge dels resultats, si escau}
+
+\subsection{An\`alisi dels resultats}
+\subsection{S\'intesi global del projecte}
+\subsubsection{Grau d'assoliment dels objectius}
+\subsubsection{Compliment dels requisits funcionals}
+\subsubsection{Compliment dels requisits no funcionals}
+\subsubsection{Indicadors de rendiment o qualitat}
+\subsubsection{An\`alisi qualitativa dels resultats}
+\subsubsection{Incid\`encies destacables i discussi\'o}
+\subsubsection{Conclusi\'o global dels resultats}
+
+\section{Conclusions}
+\sectionintro{Les conclusions han de separar l'assoliment dels objectius acad\`emics del PFG de l'assoliment dels requisits del producte desenvolupat.}\requiredinfo{resum dels objectius, quins s'han assolit i quins no, principals resultats, aportacions personals, aprenentatge obtingut i desviacions respecte de la planificaci\'o inicial}
+
+\section{Treball futur}
+\sectionintro{Aquest apartat ha de proposar millores realistes, extensions naturals del projecte i possibles l\'inies de continu\"itat.}\requiredinfo{ampliacions futures, millores t\`ecniques, noves funcionalitats, optimitzacions i possibles l\'inies de recerca o evoluci\'o del producte}
+
+\section{Bibliografia}
+\sectionintro{Les refer\`encies han d'estar citades al llarg del document i han de seguir un criteri homogeni de citaci\'o.}\requiredinfo{llibres, articles, documentaci\'o oficial, webs, tutorials, repositoris i qualsevol altra font utilitzada durant el projecte}
+
+\appendix
+\section{Annexos}
+\sectionintro{Els annexos queden fora del l\'imit de 60 p\`agines i s'hi pot incloure el material complementari que refor\c{c}a la mem\`oria. Segons la guia, el manual d'usuari i el manual d'instal\textperiodcentered laci\'o es poden incorporar aqu\'i.}
+\requiredinfo{pressupost detallat, taules llargues, fragments de codi, experiments complementaris, repositori, manual d'usuari, manual d'instal\textperiodcentered laci\'o i material addicional rellevant}
+
+\subsection{Pressupost detallat}
+\subsection{Fragments de codi i material t\`ecnic complementari}
+\subsection{Resultats complementaris}
+\subsection{Manual d'usuari}
+\subsection{Manual d'instal\textperiodcentered laci\'o}
+
+\end{document}

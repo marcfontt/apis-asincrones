@@ -1,1090 +1,334 @@
-/**
- * CatalogPage.tsx -- Cataleg de components del benchmark
- *
- * Mostra tots els components (arquitectures, protocols, plataformes) disponibles
- * per construir escenaris de benchmark. Les dades venen del catalog-service.
- *
- * Dades: GET /api/proxy/catalog-service/components
- *
- * Seccions principals:
- *  1. Capçalera: titol + subtitol
- *  2. Stats/filtres per categoria: botons que actuen com a comptadors i filtres
- *  3. Taula ordenable i cercable de components
- *  4. Modal de detall quan es clica una fila
- *
- * Canvis aplicats:
- *  - Titol corregit a "Catàleg" (amb accent grave, forma correcta en catala)
- *  - Em-dashes (--) substituïts per guions (-) en valors buits de la taula
- *  - Filtre de gateway ocult: la categoria 'gateway' no es mostra (es interna)
- *  - Versions conegudes hardcoded a VERSIONES_CONOCIDAS_COMPONENTES (el servei no sempre les retorna)
- *  - Ordenacio per columnes (nom, categoria, descripcio, nom curt, versio)
- *  - Cerca combinada amb filtre de categoria
- */
-
-import { useEffect, useState } from 'react';
-import React from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { S, CATEGORY_COLORS } from '../theme';
-import { CompatibilityMatrix } from '../components/CompatibilityMatrix';
 import { FilterPanel } from '../components/FilterPanel';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
+import {
+  ALL_PLATFORMS,
+  COMPATIBILITY,
+  DISABLED_PLATFORMS,
+} from '../shared/catalog/compatibility';
 import {
   getKnownComponentVersion,
   getReproducibilityRows,
   getReproducibilitySnippet,
   getReproducibilityStatus,
+  type ReproducibilityStatus,
 } from '../shared/catalog/reproducibility';
 
-// Endpoint del servei de cataleg (proxied per Backstage)
 const API_BASE = '/api/proxy/catalog-service';
 
-// ── Etiquetes visibles per categoria ──────────────────────────────────────────
-// Les categories a la BD son en angles minuscules; aqui es tradueïxen a catala.
+type CatalogComponent = {
+  id?: string;
+  shortName?: string;
+  name?: string;
+  category?: 'architecture' | 'protocol' | 'platform' | string;
+  description?: string;
+  version?: string;
+  tags?: string[];
+  predefined?: boolean;
+  createdAt?: string;
+};
+
+type CategoryFilter = 'all' | 'architecture' | 'protocol' | 'platform';
+type SortKey = 'name' | 'category' | 'version' | 'repro' | 'description';
+type SortDir = 'asc' | 'desc' | null;
+
 const CATEGORY_LABELS: Record<string, string> = {
   architecture: 'Arquitectura',
-  protocol:     'Protocol',
-  platform:     'Plataforma',
+  protocol: 'Protocol',
+  platform: 'Plataforma',
 };
 
-// ── Versions conegudes per als components predefinits ─────────────────────────
-// El cataleg no sempre emmagatzema la versio. Aquesta taula serveix com a
-// fallback per als components mes comuns del benchmark.
-// Claus en minuscules per facilitar la comparacio case-insensitive.
-export const VERSIONES_CONOCIDAS_COMPONENTES: Record<string, string> = {
-  'kafka':          '4.1.1',
-  'confluent':      '7.6',
-  'rabbitmq':       '3.13',
-  'nats server':    '2.12.5',
-  'nats':           '2.12.5',
-  'emqx':           '5.6',
-  'activemq':       '6.1',
-  'mqtt':           '5.0',
-  'amqp':           '1.0',
-  'websocket':      '13',
-  'ws':             '13',
-  'grpc':           '1.64',
-  'http/2':         '2.0',
-  'nats protocol':  '2.12.5',
-  'kafka protocol': '4.1.1',
-};
-
-const COMPONENTES_ANTIGUOS_OCULTOS = ['pulsar', 'apache pulsar', 'sse', 'server-sent events', 'coap'];
-
-const esComponenteAntiguoOculto = (component: any): boolean => {
-  const valoresDelComponente = [
-    component?.name,
-    component?.shortName,
-    component?.description,
-    ...(Array.isArray(component?.tags) ? component.tags : []),
-  ].map(value => String(value || '').toLowerCase());
-  return valoresDelComponente.some(valor =>
-    COMPONENTES_ANTIGUOS_OCULTOS.some(textoOculto => valor.includes(textoOculto)),
-  );
-};
-
-/**
- * Obte la versio d'un component.
- * Prioritza la versio de la BD; si no n'hi ha, busca a VERSIONES_CONOCIDAS_COMPONENTES
- * pel shortName i despres pel name.
- */
-// Estil senzill, sense optional chaining encadenat. Si el component porta
-// la versio explicita, la fem servir. Si no, mirem VERSIONES_CONOCIDAS_COMPONENTES pel
-// shortName i, en ultim cas, pel name complet.
-const obtenerVersionComponente = (component: any): string => {
-  return getKnownComponentVersion(component);
-};
-
-// ── Descripcions de context per cada categoria ────────────────────────────────
-// Mostrades al modal de detall per ajudar l'usuari a entendre el rol del component.
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
-  architecture: 'Patron estructural que defineix com s\'organitzen els components del sistema i com interactuen entre ells.',
-  protocol:     'Conjunt de regles de comunicacio que determinen com s\'envien i reben els missatges entre productors i consumidors.',
-  platform:     'Infraestructura de missatgeria que actua com a broker, gestionant la distribucio dels missatges.',
+  architecture:
+    "Patró que descriu com circulen els missatges dins d'un escenari: per esdeveniments, cues, logs o streaming.",
+  protocol:
+    "Regles de comunicació que indiquen com s'envien i es reben els missatges entre productor, broker i consumidor.",
+  platform:
+    "Broker o plataforma real desplegada al clúster. És la peça que processa missatges i condiciona els resultats.",
 };
-
-// ── Detalls de reproductibilitat per plataforma ───────────────────────────────
-// Aquesta taula explica COM està desplegat cada broker dins el cluster AKS:
-// quants nodes, quantes particions, quina memoria, etc. Es mostra al modal
-// de detall perque qualsevol pugui replicar el setup en local i obtenir
-// resultats comparables.
-//
-// Si en el futur el backend exposes aquesta info, podriem llegir-la d'alla.
-// De moment ho mantenim com a taula estatica per claredat.
-const ESPECIFICACION_COMUN_BROKER: Array<{ label: string; value: string }> = [
-  { label: 'Criteri igualador', value: '1 broker actiu per prova, 1 productor i 1 consumidor per run' },
-  { label: 'Recursos objectiu', value: '500m CPU i 1Gi de memòria per broker; requests i limits iguals quan el manifest és nostre' },
-  { label: 'Persistència', value: 'retenció curta o emmagatzematge efímer per evitar que una execució afecti la següent' },
-  { label: 'Payload màxim', value: '4 MB quan el broker ho limita, necessari per executar video-8k sense bloquejos' },
-];
-
-const DETALLE_REPRODUCTIBILIDAD_POR_PLATAFORMA: Record<string, Array<{ label: string; value: string }>> = {
-  'Apache Kafka': [
-    ...ESPECIFICACION_COMUN_BROKER,
-    { label: 'Versió Kafka', value: '4.1.1 (metadata 4.1-IV0)' },
-    { label: 'Operador',     value: 'Strimzi amb KRaft i node pool dual-role' },
-    { label: 'Nodes Kafka',  value: '1 replica amb rol controller + broker' },
-    { label: 'Particions',   value: '1 partició per topic de run' },
-    { label: 'Replicació',   value: 'factor 1 per mantenir el mateix cost que la resta de brokers' },
-    { label: 'Namespace',    value: 'kafka-strimzi' },
-  ],
-  'Confluent Platform': [
-    ...ESPECIFICACION_COMUN_BROKER,
-    { label: 'Imatge',       value: 'redpandadata/redpanda (Kafka API compatible)' },
-    { label: 'Nodes',        value: '1 broker (single-node)' },
-    { label: 'Particions',   value: '1 partició per topic de run' },
-    { label: 'Namespace',    value: 'brokers' },
-  ],
-  'RabbitMQ': [
-    ...ESPECIFICACION_COMUN_BROKER,
-    { label: 'Imatge',       value: 'rabbitmq:3.13-management' },
-    { label: 'Mode',         value: 'single-node, plugin de management actiu' },
-    { label: 'Cues',         value: 'classic queues efímeres (autoDelete)' },
-    { label: 'Namespace',    value: 'brokers' },
-  ],
-  'NATS Server': [
-    ...ESPECIFICACION_COMUN_BROKER,
-    { label: 'Versió real observada', value: 'nats-server 2.12.5 segons logs del pod nats-0' },
-    { label: 'Mode',         value: 'single-node + JetStream' },
-    { label: 'max_payload',  value: '4 MB / 4194304 bytes per permetre video-8k' },
-    { label: 'Servei monitoratge', value: 'port 8222 exposat a svc/nats-headless, no a svc/nats' },
-    { label: 'Namespace',    value: 'brokers' },
-  ],
-};
-
-// Detalls per als components d'arquitectura i protocol: explica EN QUE
-// es tradueix concretament la decisio quan s'executa el benchmark.
-const DETALLE_REPRODUCTIBILIDAD_POR_NOMBRE: Record<string, Array<{ label: string; value: string }>> = {
-  'Event-Driven Architecture': [
-    { label: 'Implementació', value: 'Topic/queue per scenarioId, productors fire-and-forget' },
-    { label: 'Consumidors',   value: '1 consumidor per pod (escalat horitzontal opcional)' },
-  ],
-  'Queue-Based Architecture': [
-    { label: 'Implementació', value: 'Cua AMQP amb consumidors competidors' },
-    { label: 'ACKs',          value: 'manual al consumidor' },
-  ],
-  'Log-Centric Architecture': [
-    { label: 'Implementació', value: 'Log particionat (Kafka), offsets gestionats per group-id' },
-    { label: 'Consumidors',   value: 'group-id efímer per run' },
-  ],
-  'Kafka': [
-    { label: 'Implementació', value: 'Topic per run i 1 partició per mantenir el cost comparable amb NATS i RabbitMQ' },
-    { label: 'Consum',        value: 'group-id efímer per run per evitar heretar offsets antics' },
-  ],
-  'AMQP': [
-    { label: 'Implementació', value: 'Cua RabbitMQ efímera amb lliurament per consumidor' },
-    { label: 'ACKs',          value: 'model AMQP amb confirmació del consumidor quan aplica' },
-  ],
-  'MQTT': [
-    { label: 'Implementació', value: 'Publicació/subscripció per topic amb payload petit o IoT' },
-    { label: 'Cas d ús',      value: "telemetria d'alta freqüència i missatges petits" },
-  ],
-  'gRPC': [
-    { label: 'Implementació', value: 'Streaming cap al consumidor quan la plataforma ho exposa amb gateway' },
-    { label: 'Cas d ús',      value: 'baixa latència i integració fortament tipada' },
-  ],
-  'WS': [
-    { label: 'Implementació', value: 'Canal WebSocket cap al consumidor per fluxos en temps real' },
-    { label: 'Cas d ús',      value: 'consumidors web o dashboards que necessiten dades push' },
-  ],
-  'NATS': [
-    { label: 'Implementació', value: "Subject NATS per run amb preflight de max_payload abans d'enviar" },
-    { label: 'Límit video-8k', value: 'max_payload del broker ha de ser com a mínim 4 MB' },
-  ],
-};
-
-/**
- * Retorna la llista de files per al bloc de reproductibilitat del modal.
- * Si no tenim cap detall pre-definit per aquest component, retorna null
- * i el bloc no es renderitza.
- */
-export function obtenirDetallReproductibilitat(component: any): Array<{ label: string; value: string }> | null {
-  if (!component) return null;
-  const nom = String(component.name || '');
-  const short = String(component.shortName || '');
-  const detallExplicit =
-    DETALLE_REPRODUCTIBILIDAD_POR_NOMBRE[nom] ||
-    DETALLE_REPRODUCTIBILIDAD_POR_NOMBRE[short] ||
-    DETALLE_REPRODUCTIBILIDAD_POR_PLATAFORMA[nom];
-  if (detallExplicit) return detallExplicit;
-  // Detall generic: nomes mostrem nodes i namespace per orientar l'usuari.
-  if (component.category === 'platform') {
-    return [
-      { label: 'Cluster',   value: 'Azure Kubernetes Service (AKS) k8s 1.33.6' },
-      { label: 'Namespace', value: 'brokers' },
-    ];
-  }
-  if (component.category === 'architecture' || component.category === 'protocol') {
-    return [
-      { label: 'Implementació', value: "definida per l'escenari: plataforma, protocol, payload, ràtio i durada" },
-    ];
-  }
-  return null;
-}
-
-// ── Snippets de "com ho hem fet nosaltres" ─────────────────────────────────
-// Per a cada component clau, oferim un fragment senzill que un usuari
-// pot copiar i adaptar a un cluster propi. NO pretenen ser scripts
-// complets: son la peca minima per veure que estem fent.
-const SNIPPETS_REPRODUCTIBILITAT: Record<string, { titol: string; codi: string }> = {
-  'Apache Kafka': {
-    titol: 'Desplegar Kafka via Strimzi al cluster',
-    codi: [
-      '# 1) Operador Strimzi al seu propi namespace',
-      'kubectl create namespace kafka-strimzi',
-      "kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka-strimzi' -n kafka-strimzi",
-      '',
-      '# 2) Cluster Kafka i node pool del repositori',
-      'kubectl apply -f k8s/kafka/kafkanodepool.yaml -n kafka-strimzi',
-      'kubectl apply -f k8s/kafka/kafka-cluster.yaml -n kafka-strimzi',
-    ].join('\n'),
-  },
-  'Confluent Platform': {
-    titol: 'Desplegar Redpanda (Kafka API compatible)',
-    codi: [
-      'helm repo add redpanda https://charts.redpanda.com/',
-      'helm install redpanda redpanda/redpanda -n brokers \\',
-      '  --set storage.persistentVolume.size=5Gi',
-    ].join('\n'),
-  },
-  'RabbitMQ': {
-    titol: 'Desplegar RabbitMQ amb credencials per defecte',
-    codi: [
-      'helm repo add bitnami https://charts.bitnami.com/bitnami',
-      'helm install rabbitmq bitnami/rabbitmq -n brokers \\',
-      '  --set auth.username=admin \\',
-      '  --set auth.password=BenchmarkAdmin2024',
-    ].join('\n'),
-  },
-  'NATS Server': {
-    titol: 'Desplegar NATS amb max_payload=4MB (necessari per video-8k)',
-    codi: [
-      'helm repo add nats https://nats-io.github.io/k8s/helm/charts/',
-      'helm repo update',
-      'helm upgrade nats nats/nats -n brokers --reuse-values \\',
-      "  --set-string config.merge.max_payload='<< 4MB >>'",
-      '',
-      '# Verifica el limit despres del desplegament:',
-      'kubectl port-forward -n brokers svc/nats-headless 8222:8222 &',
-      'curl -s http://127.0.0.1:8222/varz | grep max_payload',
-    ].join('\n'),
-  },
-  'Event-Driven Architecture': {
-    titol: 'Crear un escenari EDA des de la UI o per API',
-    codi: [
-      '# Via UI: pestanya Escenaris > Nou escenari > Arquitectura: EDA',
-      '# Via API:',
-      'curl -X POST http://catalog-service:3001/scenarios \\',
-      "  -H 'Content-Type: application/json' \\",
-      "  -d '{ \"name\":\"demo-eda\", \"architecture\":\"EDA\", \"platform\":\"Kafka\", \"protocol\":\"Kafka\", \"dataFormat\":\"default\" }'",
-    ].join('\n'),
-  },
-  'Queue-Based Architecture': {
-    titol: 'Crear un escenari QBA (cua + consumidors competidors)',
-    codi: [
-      'curl -X POST http://catalog-service:3001/scenarios \\',
-      "  -H 'Content-Type: application/json' \\",
-      "  -d '{ \"name\":\"demo-qba\", \"architecture\":\"QBA\", \"platform\":\"RabbitMQ\", \"protocol\":\"AMQP\", \"dataFormat\":\"financial\" }'",
-    ].join('\n'),
-  },
-  'Log-Centric Architecture': {
-    titol: 'Crear un escenari LCA (log particionat)',
-    codi: [
-      'curl -X POST http://catalog-service:3001/scenarios \\',
-      "  -H 'Content-Type: application/json' \\",
-      "  -d '{ \"name\":\"demo-lca\", \"architecture\":\"LCA\", \"platform\":\"Kafka\", \"protocol\":\"Kafka\", \"dataFormat\":\"video-4k\" }'",
-    ].join('\n'),
-  },
-};
-
-export function obtenirSnippetReproductibilitat(component: any): { titol: string; codi: string } | null {
-  if (!component) return null;
-  const nom = String(component.name || '');
-  if (SNIPPETS_REPRODUCTIBILITAT[nom]) {
-    return SNIPPETS_REPRODUCTIBILITAT[nom];
-  }
-  const short = String(component.shortName || '');
-  if (SNIPPETS_REPRODUCTIBILITAT[short]) {
-    return SNIPPETS_REPRODUCTIBILITAT[short];
-  }
-  return null;
-}
 
 const CATEGORY_IMPACTS: Record<string, string> = {
-  architecture: 'Canvia el patro de circulacio del missatge i, per tant, la latencia habitual i la capacitat de desacoblament.',
-  protocol: 'Canvia el llenguatge de transport i la manera d\'entregar o confirmar missatges. Afecta compatibilitat, latencia i fiabilitat.',
-  platform: 'Canvia la implementacio real que corre al cluster. Aqui es veu l\'impacte directe sobre throughput, percentils i estabilitat.',
+  architecture:
+    'Canvia la forma del flux i, per tant, pot afectar latència, desacoblament i capacitat de consum.',
+  protocol:
+    "Canvia el transport i les confirmacions. Pot afectar compatibilitat, errors, latència i pèrdua de missatges.",
+  platform:
+    'Canvia la implementació que corre a AKS. Aquí és on versions, ports, topologia i límits importen per replicar.',
 };
 
-// ── Skeleton loader style ──────────────────────────────────────────────────────
-// Reutilitzat a la taula mentre es carreguen les dades del cataleg.
-const SK_STYLE = {
-  background:     'linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%)',
-  backgroundSize: '200% 100%',
-  animation:      'shimmer 1.5s ease-in-out infinite',
-  borderRadius:   4,
+const CATEGORY_ORDER: CategoryFilter[] = ['all', 'platform', 'protocol', 'architecture'];
+
+const HIDDEN_LEGACY_COMPONENTS = ['pulsar', 'apache pulsar', 'sse', 'server-sent events', 'coap'];
+
+const SearchIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <circle cx="11" cy="11" r="8" />
+    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+  </svg>
+);
+
+const RefreshIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="23 4 23 10 17 10" />
+    <polyline points="1 20 1 14 7 14" />
+    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+  </svg>
+);
+
+const CloseIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+const CategoryIcon = ({ category }: { category: string }) => {
+  if (category === 'platform') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <rect x="3" y="4" width="18" height="6" rx="2" />
+        <rect x="3" y="14" width="18" height="6" rx="2" />
+        <line x1="7" y1="7" x2="7.01" y2="7" />
+        <line x1="7" y1="17" x2="7.01" y2="17" />
+      </svg>
+    );
+  }
+
+  if (category === 'protocol') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+      </svg>
+    );
+  }
+
+  if (category === 'architecture') {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <rect x="3" y="3" width="7" height="7" rx="1.5" />
+        <rect x="14" y="3" width="7" height="7" rx="1.5" />
+        <rect x="8.5" y="14" width="7" height="7" rx="1.5" />
+        <path d="M10 6.5h4" />
+        <path d="M12 10v4" />
+      </svg>
+    );
+  }
+
+  return <SearchIcon />;
 };
 
-// ── Icones SVG inline ──────────────────────────────────────────────────────────
-/** X per tancar el modal de detall */
-const CloseIcon   = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const normalizeText = (value: unknown): string =>
+  String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
-/** Fletxes circulars per recarregar el cataleg */
-const RefreshIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>;
+const componentColor = (component: CatalogComponent): string =>
+  CATEGORY_COLORS[component.category || ''] || 'var(--accent)';
 
-/** Cercle amb i -- per a notes informatives al modal */
-const InfoIcon    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
+const componentCategoryLabel = (component: CatalogComponent): string =>
+  CATEGORY_LABELS[component.category || ''] || component.category || 'Sense categoria';
 
-// ── Modal de detall ────────────────────────────────────────────────────────────
-/**
- * ComponentDetailModal -- Panel flotant que mostra tots els detalls d'un component.
- *
- * S'obre quan l'usuari clica una fila de la taula del cataleg.
- * Mostra: nom, categoria, descripcio, context de la categoria, metadades
- * tecniques, etiquetes (tags), i un link per crear un escenari amb aquest component.
- *
- * Props:
- *  component: objecte del component (de l'API del cataleg)
- *  onClose:   callback per tancar el modal
- */
-const ComponentDetailModal = ({ component, onClose }: { component: any; onClose: () => void }) => {
-  const color = CATEGORY_COLORS[component.category] || 'var(--accent)';
-  const label = CATEGORY_LABELS[component.category] || component.category;
+const isLegacyComponent = (component: CatalogComponent): boolean => {
+  const searchableValues = [
+    component.name,
+    component.shortName,
+    component.description,
+    ...(Array.isArray(component.tags) ? component.tags : []),
+  ].map(normalizeText);
 
-  /**
-   * Fila de detall: etiqueta a l'esquerra, valor a la dreta.
-   * Valor en font monoespaiada per a dades tecniques (versio, nom curt...).
-   */
-  const Row = ({ label: l, value }: { label: string; value: string }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
-      <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>{l}</span>
-      <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 600 }}>{value || '-'}</span>
-    </div>
-  );
-
-  return (
-    // Overlay fosc amb blur: bloca la interaccio amb la pagina de darrera
-    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(4px)' }}>
-      {/* Panell del modal: animat amb fadeUp (definit a theme.ts) */}
-      <div style={{ background: 'var(--bg-card)', border: `1px solid ${color}40`, borderRadius: 14, padding: 32, width: 540, maxHeight: '88vh', overflowY: 'auto', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
-
-        {/* ── Capçalera del modal ── */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
-              <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-                {component.name}
-              </h2>
-              {/* Badge de nom curt (shortName) en font mono -- ex: "MQTT", "gRPC" */}
-              {component.shortName && (
-                <code style={{
-                  background: color + '18',
-                  color,
-                  border:     '1px solid ' + color + '40',
-                  padding:    '2px 10px',
-                  borderRadius: 6,
-                  fontSize:   12,
-                  fontFamily: 'var(--font-mono)',
-                  fontWeight: 700,
-                }}>
-                  {component.shortName}
-                </code>
-              )}
-            </div>
-            {/* Badge de categoria: Arquitectura / Protocol / Plataforma */}
-            <span style={{ ...S.badge(color), fontSize: 12 }}>{label}</span>
-          </div>
-          {/* Boto de tancament */}
-          <button
-            onClick={onClose}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: 4, borderRadius: 6, marginLeft: 12, flexShrink: 0 }}
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        {/* ── Descripcio del component ── */}
-        {component.description && (
-          <div style={{ marginBottom: 20, padding: '14px 18px', background: `${color}08`, borderRadius: 8, border: `1px solid ${color}25` }}>
-            <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-              {component.description}
-            </p>
-          </div>
-        )}
-
-        {/* ── Context de la categoria ── */}
-        {/* Explica breument que vol dir aquesta categoria (arquitectura, protocol...) */}
-        {CATEGORY_DESCRIPTIONS[component.category] && (
-          <div style={{ marginBottom: 20, padding: '10px 14px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-            <span style={{ color: 'var(--text-disabled)', flexShrink: 0, marginTop: 1 }}><InfoIcon /></span>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-disabled)', lineHeight: 1.55 }}>
-              <strong style={{ color: 'var(--text-secondary)' }}>{label}:</strong> {CATEGORY_DESCRIPTIONS[component.category]}
-            </p>
-          </div>
-        )}
-
-        {/* ── Metadades tecniques ── */}
-        {CATEGORY_IMPACTS[component.category] && (
-          <div style={{ marginBottom: 20, padding: '12px 14px', background: `${color}0c`, borderRadius: 8, border: `1px solid ${color}26` }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: color, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-              Impacte al benchmark
-            </div>
-            <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              {CATEGORY_IMPACTS[component.category]}
-            </p>
-          </div>
-        )}
-
-        <div style={{ marginBottom: 20 }}>
-          <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-            Detalls tècnics
-          </div>
-          <Row label="Categoria"  value={label} />
-          <Row label="Nom curt"   value={component.shortName || '-'} />
-          <Row label="Versió"     value={obtenerVersionComponente(component) || '-'} />
-          {component.createdAt && (
-            <Row label="Afegit el" value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
-          )}
-        </div>
-
-        {/*
-          Bloc de reproductibilitat: explica EXACTAMENT com esta desplegat
-          aquest component dins el cluster AKS. Ho fem perque qualsevol
-          tribunal o lector pugui replicar el setup en local i obtenir
-          els mateixos resultats.
-
-          Els valors son una taula estatica per categoria/plataforma.
-          Si en el futur volem extreure-ho del backend, aqui hi ha el
-          punt d'ancoratge.
-        */}
-        {(() => {
-          const detallReproductibilitat = getReproducibilityRows(component);
-          const snippet = getReproducibilitySnippet(component);
-          if (!detallReproductibilitat && !snippet) return null;
-          return (
-            <div style={{
-              marginBottom: 20,
-              padding: '12px 14px',
-              background: 'var(--bg-subtle)',
-              border: '1px solid var(--border)',
-              borderRadius: 10,
-            }}>
-              <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
-                Reproductibilitat al cluster AKS
-              </div>
-
-              {detallReproductibilitat && (
-                <div style={{ marginBottom: snippet ? 14 : 0 }}>
-                  {detallReproductibilitat.map(linia => (
-                    <Row key={linia.label} label={linia.label} value={linia.value} />
-                  ))}
-                </div>
-              )}
-
-              {/*
-                "Com ho hem fet nosaltres": petit fragment que l'usuari
-                pot copiar i adaptar al seu cluster. No es una guia
-                completa, nomes la peca minima per replicar la nostra
-                configuracio. Inclou un boto explicit "Copiar" per
-                evitar que cal seleccionar el text a ma.
-              */}
-              {snippet && (
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
-                      {snippet.titol}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (navigator && navigator.clipboard) {
-                          navigator.clipboard.writeText(snippet.codi).catch(() => {});
-                        }
-                      }}
-                      style={{
-                        fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                        padding: '4px 10px', borderRadius: 6,
-                        border: '1px solid var(--border)', background: 'var(--bg-card)',
-                        color: 'var(--text-primary)', fontFamily: 'var(--font)',
-                      }}
-                    >
-                      Copiar
-                    </button>
-                  </div>
-                  <pre style={{
-                    margin: 0,
-                    padding: 12,
-                    background: 'var(--bg-card)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 8,
-                    fontSize: 12,
-                    fontFamily: 'var(--font-mono)',
-                    color: 'var(--text-primary)',
-                    overflow: 'auto',
-                    maxHeight: 220,
-                    whiteSpace: 'pre' as const,
-                  }}>{snippet.codi}</pre>
-                  <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-disabled)', lineHeight: 1.45 }}>
-                    Aquest fragment és el mínim per replicar la nostra configuració. Adapta noms de namespace i credencials abans d'executar-ho.
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })()}
-
-        {/* ── Tags / etiquetes ── */}
-        {component.tags && component.tags.length > 0 && (
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 10, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
-              Etiquetes
-            </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {component.tags.map((tag: string) => (
-                <span key={tag} style={{ ...S.badge(color), fontSize: 11 }}>{tag}</span>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ── Link per crear escenari ── */}
-        {/* Promou l'accio principal: usar aquest component en un nou escenari */}
-        <div style={{ padding: '12px 16px', background: 'var(--bg-subtle)', borderRadius: 8, border: '1px solid var(--border)', marginBottom: 24, fontSize: 12, color: 'var(--text-secondary)' }}>
-          Pots usar <strong style={{ color: 'var(--text-primary)' }}>{component.name}</strong> com a {label.toLowerCase()} al crear un nou escenari de benchmark.{' '}
-          <a href="/escenaris?create=true" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Crear escenari</a>
-        </div>
-
-        {/* Boto Tanca -- usa el color de la categoria per consistencia visual */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={onClose} style={{ ...S.btnPrimary, fontSize: 13, background: color, boxShadow: 'none' }}>Tanca</button>
-        </div>
-      </div>
-    </div>
+  return searchableValues.some(value =>
+    HIDDEN_LEGACY_COMPONENTS.some(hidden => value.includes(hidden)),
   );
 };
 
-// ── Icona de cerca ─────────────────────────────────────────────────────────────
-const SearchIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+const buildScenarioUrl = (component: CatalogComponent): string => {
+  const params = new URLSearchParams({ create: 'true' });
+  const value = component.shortName || component.name || '';
 
-// ── Icones per categoria ───────────────────────────────────────────────────────
-// Icones SVG diferenciades per a cada tipus de component.
-// S'usen als botons de filtre i a la columna de nom de la taula.
-const CAT_ICONS: Record<string, React.ReactNode> = {
-  // Cadena (link): protocols son connectors entre components
-  protocol:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
-  // Pantalla: plataformes son la infraestructura de missatgeria
-  platform:     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
-  // Capes: arquitectures son patrons d'organitzacio en capes
-  architecture: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>,
+  if (component.category === 'platform') {
+    params.set('platform', value);
+  }
+  if (component.category === 'protocol') {
+    params.set('protocol', value);
+  }
+  if (component.category === 'architecture') {
+    params.set('architecture', value);
+  }
+
+  return `/escenaris?${params.toString()}`;
 };
 
-// ── Tipus per a l'ordenacio de columnes ───────────────────────────────────────
-type SortDir = 'asc' | 'desc';
+const StatusBadge = ({ status }: { status: ReproducibilityStatus }) => {
+  const color =
+    status === 'Completa'
+      ? 'var(--success)'
+      : status === 'Parcial'
+        ? 'var(--warning)'
+        : 'var(--neutral)';
 
-// ── Capçalera de columna ordenable ────────────────────────────────────────────
-/**
- * CapcaleraOrdenable -- Capçalera de taula amb suport per a ordenacio.
- *
- * Mostra una fletxa up/down quan esta activa, un doble fletxa quan no.
- * En clicar: asc -> desc -> reset (cap ordenacio).
- *
- * Props:
- *  label:      text de la capçalera
- *  campoOrdenacion:       camp de l'objecte a ordenar
- *  campoOrdenacionActual: camp actiu (null si no hi ha ordenacio)
- *  direccionOrdenacion:   direccio actual ('asc' | 'desc' | null)
- *  onOrdenar:             callback quan es clica la capçalera
- *  extraStyle: estils addicionals opcionals (textAlign, etc.)
- */
-const CapcaleraOrdenable = ({ label, campoOrdenacion, campoOrdenacionActual, direccionOrdenacion, onOrdenar, extraStyle }: {
+  return <span style={{ ...S.badge(color), fontSize: 11 }}>{status}</span>;
+};
+
+const SortHeader = ({
+  label,
+  sortKey,
+  currentKey,
+  direction,
+  onSort,
+}: {
   label: string;
-  campoOrdenacion: string;
-  campoOrdenacionActual: string | null;
-  direccionOrdenacion: SortDir | null;
-  onOrdenar: (campoOrdenacion: string) => void;
-  extraStyle?: React.CSSProperties;
+  sortKey: SortKey;
+  currentKey: SortKey | null;
+  direction: SortDir;
+  onSort: (key: SortKey) => void;
 }) => {
-  const estaActiva = campoOrdenacionActual === campoOrdenacion;
+  const active = currentKey === sortKey;
+  const arrow = !active ? '↕' : direction === 'asc' ? '↑' : '↓';
+
   return (
-    <th
-      style={{ ...S.th, cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' as const, ...extraStyle }}
-      onClick={() => onOrdenar(campoOrdenacion)}
-      aria-sort={estaActiva ? (direccionOrdenacion === 'asc' ? 'ascending' : 'descending') : 'none'}
-    >
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <th style={S.th}>
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: 'none',
+          padding: 0,
+          background: 'transparent',
+          color: active ? 'var(--accent)' : 'inherit',
+          cursor: 'pointer',
+          font: 'inherit',
+          textTransform: 'inherit',
+          letterSpacing: 'inherit',
+        }}
+      >
         {label}
-        {/*
-          Indicador de direccio. Nomes una fletxa, sense text "ascendent"
-          ni "descendent" (l'aria-sort de la <th> ja ho cobreix per a
-          lectors de pantalla). Aixi evitem que algun renderitzat mostri
-          accidentalment etiquetes "UP/UD" sobre la capçalera.
-        */}
-        <span aria-hidden="true" style={{ fontSize: 12, color: estaActiva ? 'var(--accent)' : 'var(--text-disabled)' }}>
-          {estaActiva && direccionOrdenacion === 'asc' ? '↑' : estaActiva && direccionOrdenacion === 'desc' ? '↓' : '↕'}
-        </span>
-      </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10 }}>{arrow}</span>
+      </button>
     </th>
   );
 };
 
-// ── Component principal ────────────────────────────────────────────────────────
-/**
- * CatalogPage -- Cataleg de components del benchmark.
- *
- * Estat local:
- *  - components:        llista bruta de l'API
- *  - loading:           true mentre carrega
- *  - error:             missatge d'error (si la peticio falla)
- *  - activeFilter:      categoria activa ('all' | 'protocol' | 'platform' | 'architecture')
- *  - hoveredRow:        index de la fila amb hover
- *  - selectedIdx:       index de la fila seleccionada (modal obert)
- *  - selectedComponent: objecte del component seleccionat (modal)
- *  - sortKey:           camp pel qual s'ordena (null = sense ordenacio)
- *  - sortDir:           direccio de l'ordenacio
- *  - searchQuery:       text de cerca
- */
-export const CatalogPage = () => {
-  const [components,        setComponents]        = useState<any[]>([]);
-  const [loading,           setLoading]           = useState(true);
-  const [error,             setError]             = useState('');
-  const [activeFilter,      setActiveFilter]      = useState('all');
-  const [hoveredRow,        setHoveredRow]        = useState<number | null>(null);
-  const [selectedIdx,       setSelectedIdx]       = useState<number | null>(null);
-  const [selectedComponent, setSelectedComponent] = useState<any | null>(null);
-  const [sortKey,           setSortKey]           = useState<string | null>(null);
-  const [sortDir,           setSortDir]           = useState<SortDir | null>(null);
-  const [searchQuery,       setSearchQuery]       = useState('');
+const CategoryCard = ({
+  category,
+  title,
+  count,
+  active,
+  onClick,
+}: {
+  category: 'architecture' | 'protocol' | 'platform';
+  title: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) => {
+  const color = CATEGORY_COLORS[category] || 'var(--accent)';
 
-  /**
-   * Gestio de l'ordenacio per columnes.
-   * Cicle: cap -> asc -> desc -> cap (reset)
-   */
-  const handleSort = (campoOrdenacion: string) => {
-    if (sortKey !== campoOrdenacion) { setSortKey(campoOrdenacion); setSortDir('asc'); return; }
-    if (sortDir === 'asc')   { setSortDir('desc');                 return; }
-    setSortKey(null); setSortDir(null);
-  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        ...S.card,
+        textAlign: 'left',
+        borderTop: `3px solid ${color}`,
+        background: active ? `${color}10` : 'var(--bg-card)',
+        cursor: 'pointer',
+        transition: 'border-color var(--transition), background var(--transition), transform var(--transition)',
+      }}
+      className="card-hover"
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', marginBottom: 12 }}>
+        <div
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 8,
+            background: `${color}14`,
+            border: `1px solid ${color}30`,
+            color,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <CategoryIcon category={category} />
+        </div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 850, color }}>
+          {count}
+        </div>
+      </div>
+      <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 6 }}>{title}</div>
+      <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+        {CATEGORY_DESCRIPTIONS[category]}
+      </p>
+    </button>
+  );
+};
 
-  // Titol del document
-  useEffect(() => { document.title = 'Catàleg | APIs Asíncrones'; }, []);
-
-  /**
-   * Carrega tots els components del cataleg.
-   * Estableix loading=true al principi i false en acabar (ok o error).
-   */
-  const fetchComponents = () => {
-    setLoading(true);
-    fetch(`${API_BASE}/components`)
-      .then(r => r.json())
-      .then(data => { setComponents(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(e => { setError(e.message); setLoading(false); });
-  };
-  useEffect(() => { fetchComponents(); }, []);
-
-  // ── Filtres ───────────────────────────────────────────────────────────────────
-  // 'real': components predefinits, sense la categoria 'gateway' (us intern)
-  // Els components amb predefined===false son creats per l'usuari i no s'han
-  // de mostrar al cataleg general.
-  const componentesVisibles = components.filter(c =>
-    c.predefined !== false &&
-    c.category !== 'gateway' &&
-    !esComponenteAntiguoOculto(c),
+const CompatibilitySummary = () => {
+  const chip = (value: string, color: string) => (
+    <span key={value} style={{ ...S.badge(color), fontSize: 10, padding: '2px 7px' }}>
+      {value}
+    </span>
   );
 
-  // Helper: comptador per categoria (per als botons de filtre)
-  const countByCategory = (cat: string) => componentesVisibles.filter(c => c.category === cat).length;
-  const architectureCount = countByCategory('architecture');
-  const protocolCount = countByCategory('protocol');
-  const platformCount = countByCategory('platform');
-  const baseCombinationCount = architectureCount * protocolCount * platformCount;
-  // Abans hi havia "activeFilterLabel" pero amb la nova fila compacta
-  // del cataleg ja no es fa servir. Eliminat per netejar el build TS.
-  const selectedColor = selectedComponent
-    ? (CATEGORY_COLORS[selectedComponent.category] || 'var(--accent)')
-    : 'var(--accent)';
-
-  // Filtratge per categoria + cerca de text
-  const filtered = componentesVisibles.filter(c => {
-    // Primer: filtre de categoria (si no es 'all')
-    if (activeFilter !== 'all' && c.category !== activeFilter) return false;
-    // Segon: cerca de text sobre nom, shortName, descripcio i categoria
-    if (searchQuery.trim()) {
-      const q     = searchQuery.trim().toLowerCase();
-      const name  = (c.name        || '').toLowerCase();
-      const short = (c.shortName   || '').toLowerCase();
-      const desc  = (c.description || '').toLowerCase();
-      const cat   = (CATEGORY_LABELS[c.category] || c.category || '').toLowerCase();
-      if (!name.includes(q) && !short.includes(q) && !desc.includes(q) && !cat.includes(q)) return false;
-    }
-    return true;
-  });
-
-  // Ordenacio sobre els filtrats
-  // Cas especial per a 'version' i 'category': normalitzats abans de comparar
-  const sortedFiltered = sortKey == null
-    ? filtered
-    : [...filtered].sort((a, b) => {
-        let av: string, bv: string;
-        if (sortKey === 'version') {
-          av = obtenerVersionComponente(a);
-          bv = obtenerVersionComponente(b);
-        } else if (sortKey === 'repro') {
-          av = getReproducibilityStatus(a);
-          bv = getReproducibilityStatus(b);
-        } else if (sortKey === 'category') {
-          av = CATEGORY_LABELS[a.category] || a.category || '';
-          bv = CATEGORY_LABELS[b.category] || b.category || '';
-        } else {
-          av = String((a as any)[sortKey] ?? '');
-          bv = String((b as any)[sortKey] ?? '');
-        }
-        // localeCompare 'ca': ordre catala (respecta accents i caracters especials)
-        const cmp = av.localeCompare(bv, 'ca');
-        return sortDir === 'desc' ? -cmp : cmp;
-      });
-
-  // ── Render ────────────────────────────────────────────────────────────────────
   return (
-    <div style={{ ...S.page }}>
-      {/* CSS global: fonts (IBM Plex Sans + JetBrains Mono), animacions, tokens */}
-      <GlobalBenchmarkStyles />
-
-      {/* Modal de detall: renderitzat quan hi ha un component seleccionat */}
-      {selectedComponent && (
-        <ComponentDetailModal
-          component={selectedComponent}
-          onClose={() => setSelectedComponent(null)}
-        />
-      )}
-
-      {/* ── Capçalera ────────────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-            Catàleg de Components
-          </h1>
-          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
-            Arquitectures, protocols i plataformes disponibles per construir escenaris
-          </p>
-        </div>
-      </div>
-
-      {/* ── Botons de filtre per categoria ───────────────────────────────── */}
-      {/* Actuen com a comptadors i com a filtres simultaniament.
-          Clicar un boto estableix activeFilter i neteja la cerca. */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 20 }}>
-        {[
-          { key: 'architecture', title: 'Arquitectura', color: CATEGORY_COLORS.architecture, body: CATEGORY_DESCRIPTIONS.architecture, impact: CATEGORY_IMPACTS.architecture },
-          { key: 'protocol', title: 'Protocol', color: CATEGORY_COLORS.protocol, body: CATEGORY_DESCRIPTIONS.protocol, impact: CATEGORY_IMPACTS.protocol },
-          { key: 'platform', title: 'Plataforma', color: CATEGORY_COLORS.platform, body: CATEGORY_DESCRIPTIONS.platform, impact: CATEGORY_IMPACTS.platform },
-        ].map(item => (
-          <div key={item.key} style={{ ...S.card, borderTop: `3px solid ${item.color}` }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: item.color, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 8 }}>
-              {item.title}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: 10 }}>
-              {item.body}
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text-primary)', lineHeight: 1.55 }}>
-              {item.impact}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <details style={{ ...S.card, marginBottom: 20, padding: 0, overflow: 'hidden' }}>
-        <summary style={{ cursor: 'pointer', padding: '14px 18px', fontWeight: 700, color: 'var(--text-primary)', borderBottom: '1px solid var(--border)' }}>
-          Compatibilitat del portal
-          <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
-            Mostra les combinacions provades amb protocols antics ocults
-          </span>
-        </summary>
-        <div style={{ padding: 16 }}>
-          <CompatibilityMatrix
-            compact
-            title="Combinacions compatibles del portal"
-            description="Referencia de treball per crear escenaris. Nomes es mostren els protocols que formen part de la prova final."
-          />
-        </div>
-      </details>
-
-      <FilterPanel
-        title="Filtres"
-        activeFilterCount={activeFilter !== 'all' ? 1 : 0}
-        visibleCount={loading ? 0 : filtered.length}
-        totalCount={componentesVisibles.length}
-        searchValue={searchQuery}
-        searchPlaceholder="Cerca per nom, categoria, protocol o plataforma"
-        onSearchChange={setSearchQuery}
-        onClearFilters={() => { setActiveFilter('all'); setSearchQuery(''); }}
+    <details style={{ ...S.card, marginBottom: 20, padding: 0, overflow: 'hidden' }}>
+      <summary
+        style={{
+          cursor: 'pointer',
+          padding: '14px 18px',
+          fontWeight: 800,
+          color: 'var(--text-primary)',
+          borderBottom: '1px solid var(--border)',
+        }}
       >
-        <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-          El cataleg mostra producte, versio i reproductibilitat. Obre una fila per veure configuracio, limits i comandes de verificacio.
-        </div>
-      </FilterPanel>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 20 }}>
-        {[
-          {
-            cat: 'all', label: 'Tots', value: componentesVisibles.length,
-            color: 'var(--text-secondary)', bg: 'var(--bg-card)',
-            icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>,
-          },
-          { cat: 'protocol',     label: 'Protocols',     value: countByCategory('protocol'),     color: CATEGORY_COLORS.protocol,     bg: CATEGORY_COLORS.protocol     + '0e', icon: CAT_ICONS.protocol },
-          { cat: 'platform',     label: 'Plataformes',   value: countByCategory('platform'),     color: CATEGORY_COLORS.platform,     bg: CATEGORY_COLORS.platform     + '0e', icon: CAT_ICONS.platform },
-          { cat: 'architecture', label: 'Arquitectures', value: countByCategory('architecture'), color: CATEGORY_COLORS.architecture, bg: CATEGORY_COLORS.architecture + '0e', icon: CAT_ICONS.architecture },
-        ].map(s => {
-          const isActive = activeFilter === s.cat;
-          return (
-            <button
-              key={s.cat}
-              onClick={() => { setActiveFilter(s.cat); setSearchQuery(''); }}
-              style={{
-                // Fons de color suau quan actiu (15% opacitat del color de categoria)
-                background: isActive ? (s.cat === 'all' ? 'var(--bg-hover)' : s.color + '15') : 'var(--bg-card)',
-                border:     `1px solid ${isActive ? (s.cat === 'all' ? 'var(--border)' : s.color + '50') : 'var(--border)'}`,
-                borderRadius: 10, padding: '12px 16px', cursor: 'pointer',
-                textAlign: 'left', fontFamily: 'var(--font)', transition: 'all 0.15s ease',
-                display: 'flex', alignItems: 'center', gap: 10,
-                boxShadow: isActive ? `0 0 0 1px ${s.cat === 'all' ? 'transparent' : s.color + '20'}` : 'none',
-              }}
-            >
-              {/* Icona de categoria en contenidor quadrat de 34px */}
-              <div style={{
-                width: 34, height: 34, borderRadius: 8, flexShrink: 0,
-                background: s.cat === 'all' ? 'var(--bg-subtle)' : s.color + '18',
-                border:     `1px solid ${s.cat === 'all' ? 'var(--border)' : s.color + '30'}`,
-                display:    'flex', alignItems: 'center', justifyContent: 'center',
-                color:      s.cat === 'all' ? 'var(--text-secondary)' : s.color,
-              }}>
-                {s.icon}
-              </div>
-              <div style={{ minWidth: 0 }}>
-                {/* Numero de components: gran i en negreta per destacar */}
-                <div style={{ fontSize: 20, fontWeight: 800, letterSpacing: '-0.02em', lineHeight: 1.1,
-                  color: isActive ? (s.cat === 'all' ? 'var(--text-primary)' : s.color) : 'var(--text-primary)' }}>
-                  {loading ? '-' : s.value}
-                </div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: isActive && s.cat !== 'all' ? s.color : 'var(--text-secondary)', marginTop: 2, whiteSpace: 'nowrap' as const }}>
-                  {s.label}
-                </div>
-              </div>
-            </button>
-          );
-        })}
-      </div>
-
-      {/*
-        Resum compacte del cataleg en una sola linia.
-        Abans hi havia tres targes grosses (Combinacions base / Vista actual /
-        Proper pas) que ocupaven moltissim espai. Ho hem reduit a una linia
-        discreta amb la mateixa informacio essencial, perque la taula del
-        cataleg sigui el protagonista i la pagina respiri millor.
-      */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 16,
-        flexWrap: 'wrap',
-        padding: '10px 14px',
-        marginBottom: 16,
-        background: 'var(--bg-subtle)',
-        border: '1px solid var(--border)',
-        borderRadius: 10,
-        fontSize: 13,
-        color: 'var(--text-secondary)',
-      }}>
-        <span>
-          <strong style={{ color: '#0ea5e9', fontFamily: 'var(--font-mono)' }}>{loading ? '-' : baseCombinationCount}</strong>
-          {' '}combinacions provades
-          <span style={{ color: 'var(--text-disabled)', marginLeft: 6 }}>
-            ({architectureCount} arq. x {protocolCount} prot. x {platformCount} plat.)
-          </span>
+        Combinacions compatibles del portal
+        <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
+          Taula compacta per entendre quina plataforma accepta cada arquitectura i protocol
         </span>
-        <span style={{ color: 'var(--text-disabled)' }}>·</span>
-        <span>
-          <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>{loading ? '-' : filtered.length}</strong>
-          {' '}visibles
-          <span style={{ color: 'var(--text-disabled)', marginLeft: 6 }}>
-            de {componentesVisibles.length} totals
-          </span>
-        </span>
-        {selectedComponent && (
-          <>
-            <span style={{ color: 'var(--text-disabled)' }}>·</span>
-            <span>
-              Seleccionat:{' '}
-              <strong style={{ color: selectedColor }}>{selectedComponent.name}</strong>
-              <a href="/escenaris?create=true" style={{ marginLeft: 10, color: 'var(--accent)', textDecoration: 'none', fontWeight: 700, fontSize: 12 }}>
-                Crear escenari →
-              </a>
-            </span>
-          </>
-        )}
-      </div>
-
-      {/* Missatge d'error (si la peticio ha fallat) */}
-      {error && <p style={{ color: 'var(--error)', padding: '0 0 16px' }}>Error: {error}</p>}
-
-      {/* ── Taula del cataleg ─────────────────────────────────────────────── */}
-      <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
-
-        {/* ── Barra superior: comptador + cerca + actualitzar ── */}
-        <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {/* Comptador de components filtrats */}
-            <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{loading ? '-' : filtered.length}</span>
-            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-              component{filtered.length !== 1 ? 's' : ''}
-              {activeFilter !== 'all' && (
-                <span style={{ color: CATEGORY_COLORS[activeFilter] }}> - {CATEGORY_LABELS[activeFilter]}</span>
-              )}
-            </span>
-            {/* "de X totals" quan hi ha filtres actius */}
-            {(activeFilter !== 'all' || searchQuery) && !loading && (
-              <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10 }}>
-                de {componentesVisibles.length} totals
-              </span>
-            )}
-            {/* Camp de cerca de text */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-subtle)', border: `1px solid ${searchQuery ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 7, padding: '4px 10px', minWidth: 190, transition: 'border-color 0.15s' }}>
-              <span style={{ color: searchQuery ? 'var(--accent)' : 'var(--text-disabled)', display: 'flex', flexShrink: 0 }}><SearchIcon /></span>
-              <input
-                type="text"
-                placeholder="Cerca per nom, categoria, protocol o plataforma"
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                style={{ background: 'none', border: 'none', outline: 'none', fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font)', width: '100%' }}
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, display: 'flex', fontSize: 16, lineHeight: 1 }}
-                >
-                  x
-                </button>
-              )}
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>Clica per veure detalls</span>
-            {/* Boto de refresc: linkStyle per no competir visuament amb la taula */}
-            <button
-              onClick={fetchComponents}
-              style={{ background: 'none', border: 'none', color: 'var(--accent)', cursor: 'pointer', fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font)' }}
-            >
-              <RefreshIcon /> Actualitzar
-            </button>
-          </div>
-        </div>
-
-        {/* ── Taula ── */}
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+      </summary>
+      <div style={{ padding: 16, overflowX: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
           <thead>
             <tr style={S.tableHeader}>
-              {/*
-                Columnes visibles a la taula del cataleg.
-                La versio i l estat de reproductibilitat es mostren a la
-                taula perque el cataleg sigui una fitxa reproduible, no nomes
-                una llista descriptiva de components.
-              */}
-              <CapcaleraOrdenable label="Nom"        campoOrdenacion="name"        campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
-              <CapcaleraOrdenable label="Categoria"  campoOrdenacion="category"    campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
-              <CapcaleraOrdenable label="Versio"      campoOrdenacion="version"     campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
-              <CapcaleraOrdenable label="Reproduct."  campoOrdenacion="repro"       campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
-              <CapcaleraOrdenable label="Descripció" campoOrdenacion="description" campoOrdenacionActual={sortKey} direccionOrdenacion={sortDir} onOrdenar={handleSort} />
+              <th style={{ ...S.th, width: 170 }}>Plataforma</th>
+              <th style={S.th}>Arquitectures admeses</th>
+              <th style={S.th}>Protocols admesos</th>
+              <th style={S.th}>Lectura ràpida</th>
             </tr>
           </thead>
           <tbody>
-            {loading ? (
-              // Skeleton loader: 8 files de 5 columnes
-              Array.from({ length: 8 }).map((_, i) => (
-                <tr key={i}>
-                  {/* Skeleton: 3 columnes (nom, categoria, descripcio) */}
-                  {[45, 25, 30, 35, 65].map((w, j) => (
-                    <td key={j} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-                      <div style={{ ...SK_STYLE, height: 11, width: `${w}%`, animationDelay: `${i * 0.07}s` }} />
-                    </td>
-                  ))}
-                </tr>
-              ))
-            ) : filtered.length === 0 ? (
-              // Estat buit: cap component que coincideixi
-              <tr>
-                <td colSpan={5} style={{ padding: 48, textAlign: 'center', color: 'var(--text-secondary)', fontSize: 14 }}>
-                  Cap component trobat.
-                </td>
-              </tr>
-            ) : sortedFiltered.map((c, i) => {
-              const color      = CATEGORY_COLORS[c.category] || 'var(--accent)';
-              const isSelected = selectedIdx === i;
-              const isHovered  = hoveredRow === i;
-              const versioComponent = obtenerVersionComponente(c);
-              const estatReproductibilitat = getReproducibilityStatus(c);
-              const colorReproductibilitat = estatReproductibilitat === 'Completa'
-                ? 'var(--success)'
-                : estatReproductibilitat === 'Parcial'
-                  ? 'var(--warning)'
-                  : 'var(--neutral)';
+            {ALL_PLATFORMS.map(platform => {
+              const entry = COMPATIBILITY[platform];
+              const disabled = DISABLED_PLATFORMS.includes(platform);
               return (
-                <tr
-                  key={c.id || i}
-                  className="card-hover"
-                  style={{
-                    ...S.tableRow,
-                    // Fons de color suau si seleccionat, gris hover si no
-                    background:   isSelected ? color + '0d' : isHovered ? 'var(--bg-hover)' : 'transparent',
-                    // Linia de color a l'esquerra quan selected o hovered
-                    borderLeft:   `3px solid ${isSelected || isHovered ? color : 'transparent'}`,
-                    cursor:       'pointer',
-                    transition:   'background var(--transition), border-left-color var(--transition)',
-                  }}
-                  onMouseEnter={() => setHoveredRow(i)}
-                  onMouseLeave={() => setHoveredRow(null)}
-                  onClick={() => {
-                    // Toggle: clicar una fila seleccionada la deselecciona
-                    setSelectedIdx(isSelected ? null : i);
-                    setSelectedComponent(isSelected ? null : c);
-                  }}
-                >
-                  {/* ── Nom amb icona de categoria ── */}
-                  <td style={{ ...S.td, fontWeight: 700 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      {/* Icona quadrada de 28px amb color de categoria */}
-                      <div style={{
-                        width: 28, height: 28, borderRadius: 6,
-                        background: color + '15', border: `1px solid ${color}28`,
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0, color,
-                      }}>
-                        {CAT_ICONS[c.category] || <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/></svg>}
-                      </div>
-                      {c.name || '-'}
+                <tr key={platform} style={S.tableRow}>
+                  <td style={{ ...S.td, fontWeight: 850 }}>
+                    {platform}
+                    {disabled && (
+                      <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 3 }}>No desplegada</div>
+                    )}
+                  </td>
+                  <td style={S.td}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {(entry?.architectures || []).map(value => chip(value, CATEGORY_COLORS.architecture))}
                     </div>
                   </td>
-
-                  {/* ── Badge de categoria ── */}
                   <td style={S.td}>
-                    {c.category
-                      ? <span style={{ ...S.badge(color), fontSize: 11 }}>{CATEGORY_LABELS[c.category] || c.category}</span>
-                      : <span style={{ color: 'var(--text-disabled)' }}>-</span>}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                      {(entry?.protocols || []).map(value => chip(value, CATEGORY_COLORS.protocol))}
+                    </div>
                   </td>
-
-                  {/* ── Descripcio truncada (maxWidth + ellipsis) ── */}
-                  {/*
-                    La descripcio queda truncada per no tapar la versio i
-                    la reproductibilitat, que son dades importants per al TFG.
-                  */}
-                  <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: versioComponent ? 'var(--text-primary)' : 'var(--text-disabled)' }}>
-                    {versioComponent || '-'}
-                  </td>
-
-                  <td style={S.td}>
-                    <span style={{ ...S.badge(colorReproductibilitat), fontSize: 11 }}>
-                      {estatReproductibilitat}
-                    </span>
-                  </td>
-
-                  <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 540, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>
-                    {c.description || <span style={{ color: 'var(--text-disabled)', fontStyle: 'italic' }}>Sense descripcio</span>}
+                  <td style={{ ...S.td, color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.5 }}>
+                    Una fila és una plataforma real. Les dues columnes centrals indiquen quines arquitectures i protocols es poden escollir per crear un escenari reproduïble.
                   </td>
                 </tr>
               );
@@ -1092,6 +336,698 @@ export const CatalogPage = () => {
           </tbody>
         </table>
       </div>
+    </details>
+  );
+};
+
+const DetailRow = ({ label, value }: { label: string; value: string }) => (
+  <div
+    style={{
+      display: 'grid',
+      gridTemplateColumns: '150px minmax(0, 1fr)',
+      gap: 12,
+      padding: '10px 0',
+      borderBottom: '1px solid var(--border)',
+    }}
+  >
+    <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      {label}
+    </div>
+    <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.55, wordBreak: 'break-word' }}>
+      {value || '-'}
+    </div>
+  </div>
+);
+
+const ComponentDetailModal = ({
+  component,
+  onClose,
+}: {
+  component: CatalogComponent;
+  onClose: () => void;
+}) => {
+  const [copied, setCopied] = useState(false);
+  const color = componentColor(component);
+  const label = componentCategoryLabel(component);
+  const version = getKnownComponentVersion(component);
+  const reproducibilityRows = getReproducibilityRows(component);
+  const snippet = getReproducibilitySnippet(component);
+  const scenarioUrl = buildScenarioUrl(component);
+
+  const copySnippet = () => {
+    if (!snippet || !navigator?.clipboard) {
+      return;
+    }
+
+    navigator.clipboard.writeText(snippet.codi).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    }).catch(() => {});
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 3200,
+        background: 'rgba(2,6,23,0.72)',
+        backdropFilter: 'blur(6px)',
+        overflowY: 'auto',
+        padding: '88px 24px 32px',
+      }}
+      role="dialog"
+      aria-modal="true"
+      onClick={event => {
+        if (event.target === event.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <aside
+        style={{
+          width: '100%',
+          maxWidth: 860,
+          margin: '0 auto',
+          background: 'var(--bg-card)',
+          border: `1px solid ${color}40`,
+          borderRadius: 14,
+          boxShadow: 'var(--shadow-lg)',
+          padding: 26,
+          animation: 'fadeUp 0.18s ease',
+          color: 'var(--text-primary)',
+          fontFamily: 'var(--font)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, marginBottom: 18 }}>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 9, marginBottom: 8 }}>
+              <span style={{ ...S.badge(color), fontSize: 11 }}>{label}</span>
+              {component.shortName && (
+                <code
+                  style={{
+                    background: `${color}12`,
+                    border: `1px solid ${color}30`,
+                    color,
+                    borderRadius: 6,
+                    padding: '2px 8px',
+                    fontSize: 12,
+                    fontWeight: 800,
+                    fontFamily: 'var(--font-mono)',
+                  }}
+                >
+                  {component.shortName}
+                </code>
+              )}
+            </div>
+            <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.15, fontWeight: 900, letterSpacing: '-0.02em' }}>
+              {component.name || 'Component sense nom'}
+            </h2>
+            <p style={{ margin: '10px 0 0', maxWidth: 680, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
+              {component.description || 'Aquest component encara no té una descripció al catàleg.'}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tanca el detall del component"
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: 9,
+              border: '1px solid var(--border)',
+              background: 'var(--bg-subtle)',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <CloseIcon />
+          </button>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(260px, 0.9fr)', gap: 16 }} className="async-responsive-grid">
+          <section style={{ ...S.card, boxShadow: 'none' }}>
+            <div style={{ fontSize: 11, color, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              Què representa dins del benchmark
+            </div>
+            <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.65 }}>
+              {CATEGORY_DESCRIPTIONS[component.category || ''] || 'Component utilitzat pel portal de benchmark.'}
+            </p>
+            <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+              {CATEGORY_IMPACTS[component.category || ''] || 'El seu impacte depèn de com es combina dins de l’escenari.'}
+            </p>
+          </section>
+
+          <section style={{ ...S.card, boxShadow: 'none' }}>
+            <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              Fitxa ràpida
+            </div>
+            <DetailRow label="Categoria" value={label} />
+            <DetailRow label="Nom curt" value={component.shortName || '-'} />
+            <DetailRow label="Versió" value={version || '-'} />
+            <DetailRow label="Reproductibilitat" value={getReproducibilityStatus(component)} />
+            {component.createdAt && (
+              <DetailRow label="Afegit el" value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
+            )}
+          </section>
+        </div>
+
+        {(reproducibilityRows || snippet) && (
+          <section style={{ ...S.card, boxShadow: 'none', marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
+              <div>
+                <div style={{ fontSize: 11, color, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  Reproductibilitat
+                </div>
+                <p style={{ margin: '5px 0 0', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                  Aquests valors expliquen com està definit o desplegat el component perquè una altra persona pugui replicar la prova.
+                </p>
+              </div>
+              <StatusBadge status={getReproducibilityStatus(component)} />
+            </div>
+
+            {reproducibilityRows && (
+              <div style={{ borderTop: '1px solid var(--border)' }}>
+                {reproducibilityRows.map(row => (
+                  <DetailRow key={row.label} label={row.label} value={row.value} />
+                ))}
+              </div>
+            )}
+
+            {snippet && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
+                  <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--text-primary)' }}>{snippet.titol}</div>
+                  <button
+                    type="button"
+                    onClick={copySnippet}
+                    style={{ ...S.btn, fontSize: 12, padding: '5px 11px' }}
+                  >
+                    {copied ? 'Copiat' : 'Copiar'}
+                  </button>
+                </div>
+                <pre
+                  style={{
+                    margin: 0,
+                    padding: 12,
+                    background: 'var(--bg-subtle)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 8,
+                    overflow: 'auto',
+                    maxHeight: 220,
+                    fontSize: 12,
+                    fontFamily: 'var(--font-mono)',
+                    color: 'var(--text-primary)',
+                    whiteSpace: 'pre' as const,
+                  }}
+                >
+                  {snippet.codi}
+                </pre>
+              </div>
+            )}
+          </section>
+        )}
+
+        {Array.isArray(component.tags) && component.tags.length > 0 && (
+          <section style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              Etiquetes
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {component.tags.map(tag => (
+                <span key={tag} style={{ ...S.badge(color), fontSize: 11 }}>{tag}</span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div
+          style={{
+            marginTop: 22,
+            padding: 16,
+            borderRadius: 10,
+            border: `1px solid ${color}30`,
+            background: `${color}0f`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 14,
+            flexWrap: 'wrap',
+          }}
+        >
+          <div style={{ minWidth: 220 }}>
+            <div style={{ fontSize: 14, fontWeight: 850, color: 'var(--text-primary)' }}>Utilitzar aquest component</div>
+            <div style={{ marginTop: 4, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              Obre el formulari d’escenaris amb aquest valor preseleccionat quan sigui possible.
+            </div>
+          </div>
+          <a
+            href={scenarioUrl}
+            style={{
+              ...S.btnPrimary,
+              background: color,
+              textDecoration: 'none',
+              padding: '10px 18px',
+              fontSize: 14,
+              fontWeight: 850,
+            }}
+          >
+            Crear escenari
+          </a>
+        </div>
+      </aside>
+    </div>
+  );
+};
+
+export const CatalogPage = () => {
+  const [components, setComponents] = useState<CatalogComponent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState('');
+  const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
+  const [activeReproducibility, setActiveReproducibility] = useState<'all' | ReproducibilityStatus>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortKey, setSortKey] = useState<SortKey | null>('category');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [selectedComponent, setSelectedComponent] = useState<CatalogComponent | null>(null);
+
+  useEffect(() => {
+    document.title = 'Catàleg | APIs Asíncrones';
+  }, []);
+
+  const fetchComponents = async () => {
+    const firstLoad = components.length === 0;
+    setError('');
+    if (firstLoad) {
+      setLoading(true);
+    } else {
+      setRefreshing(true);
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/components`);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const data = await response.json();
+      setComponents(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComponents();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const visibleComponents = useMemo(
+    () =>
+      components.filter(component =>
+        component.predefined !== false &&
+        component.category !== 'gateway' &&
+        !isLegacyComponent(component),
+      ),
+    [components],
+  );
+
+  const countByCategory = (category: CategoryFilter): number => {
+    if (category === 'all') {
+      return visibleComponents.length;
+    }
+    return visibleComponents.filter(component => component.category === category).length;
+  };
+
+  const activeFilterCount =
+    (activeCategory !== 'all' ? 1 : 0) +
+    (activeReproducibility !== 'all' ? 1 : 0);
+
+  const filteredComponents = useMemo(() => {
+    const normalizedQuery = normalizeText(searchQuery);
+
+    return visibleComponents.filter(component => {
+      if (activeCategory !== 'all' && component.category !== activeCategory) {
+        return false;
+      }
+
+      if (
+        activeReproducibility !== 'all' &&
+        getReproducibilityStatus(component) !== activeReproducibility
+      ) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const searchHaystack = [
+        component.name,
+        component.shortName,
+        component.description,
+        componentCategoryLabel(component),
+        getKnownComponentVersion(component),
+        getReproducibilityStatus(component),
+        ...(Array.isArray(component.tags) ? component.tags : []),
+      ].map(normalizeText);
+
+      return searchHaystack.some(value => value.includes(normalizedQuery));
+    });
+  }, [activeCategory, activeReproducibility, searchQuery, visibleComponents]);
+
+  const sortedComponents = useMemo(() => {
+    if (!sortKey || !sortDir) {
+      return filteredComponents;
+    }
+
+    const getSortValue = (component: CatalogComponent): string => {
+      if (sortKey === 'category') {
+        return componentCategoryLabel(component);
+      }
+      if (sortKey === 'version') {
+        return getKnownComponentVersion(component);
+      }
+      if (sortKey === 'repro') {
+        return getReproducibilityStatus(component);
+      }
+      return String(component[sortKey] || '');
+    };
+
+    return [...filteredComponents].sort((a, b) => {
+      const result = getSortValue(a).localeCompare(getSortValue(b), 'ca', { sensitivity: 'base' });
+      return sortDir === 'asc' ? result : -result;
+    });
+  }, [filteredComponents, sortDir, sortKey]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir('asc');
+      return;
+    }
+
+    if (sortDir === 'asc') {
+      setSortDir('desc');
+      return;
+    }
+
+    setSortKey(null);
+    setSortDir(null);
+  };
+
+  const resetFilters = () => {
+    setActiveCategory('all');
+    setActiveReproducibility('all');
+    setSearchQuery('');
+  };
+
+  const architectureCount = countByCategory('architecture');
+  const protocolCount = countByCategory('protocol');
+  const platformCount = countByCategory('platform');
+  const baseCombinationCount = architectureCount * protocolCount * platformCount;
+
+  const tableCardStyle: CSSProperties = {
+    ...S.card,
+    padding: 0,
+    overflow: 'hidden',
+  };
+
+  return (
+    <div style={{ ...S.page, maxWidth: 1240 }}>
+      <GlobalBenchmarkStyles />
+
+      {selectedComponent && (
+        <ComponentDetailModal
+          component={selectedComponent}
+          onClose={() => setSelectedComponent(null)}
+        />
+      )}
+
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, marginBottom: 22, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
+            Catàleg de components
+          </h1>
+          <p style={{ margin: '8px 0 0', maxWidth: 780, color: 'var(--text-secondary)', fontSize: 14.5, lineHeight: 1.65 }}>
+            Inventari de plataformes, protocols i arquitectures que poden formar un escenari. La prioritat d’aquesta pàgina és la reproductibilitat: versió, configuració i límits visibles abans de comparar resultats.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={fetchComponents}
+          disabled={refreshing}
+          style={{ ...S.btn, padding: '8px 14px' }}
+        >
+          <RefreshIcon /> {refreshing ? 'Actualitzant' : 'Actualitzar'}
+        </button>
+      </header>
+
+      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12, marginBottom: 18 }}>
+        <CategoryCard
+          category="platform"
+          title="Plataformes"
+          count={platformCount}
+          active={activeCategory === 'platform'}
+          onClick={() => setActiveCategory(activeCategory === 'platform' ? 'all' : 'platform')}
+        />
+        <CategoryCard
+          category="protocol"
+          title="Protocols"
+          count={protocolCount}
+          active={activeCategory === 'protocol'}
+          onClick={() => setActiveCategory(activeCategory === 'protocol' ? 'all' : 'protocol')}
+        />
+        <CategoryCard
+          category="architecture"
+          title="Arquitectures"
+          count={architectureCount}
+          active={activeCategory === 'architecture'}
+          onClick={() => setActiveCategory(activeCategory === 'architecture' ? 'all' : 'architecture')}
+        />
+      </section>
+
+      <CompatibilitySummary />
+
+      <FilterPanel
+        title="Filtres del catàleg"
+        activeFilterCount={activeFilterCount}
+        visibleCount={loading ? 0 : filteredComponents.length}
+        totalCount={visibleComponents.length}
+        searchValue={searchQuery}
+        searchPlaceholder="Cerca per nom, versió, tag, categoria o reproductibilitat"
+        onSearchChange={setSearchQuery}
+        onClearFilters={resetFilters}
+      >
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          {CATEGORY_ORDER.map(category => {
+            const isActive = activeCategory === category;
+            const label = category === 'all' ? 'Tots' : CATEGORY_LABELS[category];
+            const color = category === 'all' ? 'var(--accent)' : CATEGORY_COLORS[category];
+            return (
+              <button
+                key={category}
+                type="button"
+                onClick={() => setActiveCategory(category)}
+                style={{ ...S.chip(isActive, color), display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                {category !== 'all' && <CategoryIcon category={category} />}
+                {label}
+                <span style={{ fontFamily: 'var(--font-mono)', opacity: 0.72 }}>{countByCategory(category)}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          {(['all', 'Completa', 'Parcial'] as Array<'all' | ReproducibilityStatus>).map(status => {
+            const isActive = activeReproducibility === status;
+            const label = status === 'all' ? 'Tota reproductibilitat' : status;
+            const color = status === 'Completa' ? 'var(--success)' : status === 'Parcial' ? 'var(--warning)' : 'var(--neutral)';
+            return (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setActiveReproducibility(status)}
+                style={S.chip(isActive, color)}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+      </FilterPanel>
+
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 16,
+          flexWrap: 'wrap',
+          padding: '10px 14px',
+          marginBottom: 16,
+          background: 'var(--bg-subtle)',
+          border: '1px solid var(--border)',
+          borderRadius: 10,
+          fontSize: 13,
+          color: 'var(--text-secondary)',
+        }}
+      >
+        <span>
+          <strong style={{ color: CATEGORY_COLORS.platform, fontFamily: 'var(--font-mono)' }}>
+            {loading ? '-' : baseCombinationCount}
+          </strong>{' '}
+          combinacions base
+        </span>
+        <span style={{ color: 'var(--text-disabled)' }}>·</span>
+        <span>
+          <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+            {loading ? '-' : filteredComponents.length}
+          </strong>{' '}
+          components visibles de {visibleComponents.length}
+        </span>
+        <span style={{ color: 'var(--text-disabled)' }}>·</span>
+        <span>
+          SEA està inclosa com a arquitectura i es manté disponible per als escenaris compatibles.
+        </span>
+      </div>
+
+      {error && (
+        <div style={{ ...S.card, borderColor: 'rgba(220,38,38,0.35)', color: 'var(--error)', marginBottom: 16 }}>
+          No s’ha pogut carregar el catàleg: {error}
+        </div>
+      )}
+
+      <section style={tableCardStyle}>
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 850, color: 'var(--text-primary)' }}>
+              Components del benchmark
+            </div>
+            <div style={{ marginTop: 3, fontSize: 12, color: 'var(--text-secondary)' }}>
+              Obre una fila per veure la configuració, la versió i les ordres de verificació.
+            </div>
+          </div>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: searchQuery ? 'var(--accent)' : 'var(--text-disabled)', fontSize: 12 }}>
+            <SearchIcon />
+            {searchQuery ? `Cerca activa: ${searchQuery}` : 'Sense cerca activa'}
+          </div>
+        </div>
+
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
+            <thead>
+              <tr style={S.tableHeader}>
+                <SortHeader label="Component" sortKey="name" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label="Categoria" sortKey="category" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label="Versió" sortKey="version" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label="Reproductibilitat" sortKey="repro" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label="Què aporta" sortKey="description" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                Array.from({ length: 8 }).map((_, rowIndex) => (
+                  <tr key={rowIndex}>
+                    {[42, 24, 20, 26, 68].map((width, cellIndex) => (
+                      <td key={cellIndex} style={{ ...S.td, padding: '13px 12px' }}>
+                        <div
+                          style={{
+                            height: 11,
+                            width: `${width}%`,
+                            borderRadius: 5,
+                            background: 'linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%)',
+                            backgroundSize: '200% 100%',
+                            animation: `shimmer 1.5s ease-in-out infinite`,
+                            animationDelay: `${rowIndex * 0.06}s`,
+                          }}
+                        />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : sortedComponents.length === 0 ? (
+                <tr>
+                  <td colSpan={5} style={{ padding: 42, textAlign: 'center', color: 'var(--text-secondary)' }}>
+                    No s’ha trobat cap component amb els filtres actuals.
+                  </td>
+                </tr>
+              ) : (
+                sortedComponents.map(component => {
+                  const rowId = component.id || `${component.category}-${component.name}`;
+                  const color = componentColor(component);
+                  const selected = selectedComponent?.id === component.id && component.id != null;
+                  const hovered = hoveredId === rowId;
+                  const version = getKnownComponentVersion(component);
+                  const status = getReproducibilityStatus(component);
+
+                  return (
+                    <tr
+                      key={rowId}
+                      className="card-hover"
+                      onMouseEnter={() => setHoveredId(rowId)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      onClick={() => setSelectedComponent(component)}
+                      style={{
+                        ...S.tableRow,
+                        cursor: 'pointer',
+                        background: selected ? `${color}12` : hovered ? 'var(--bg-hover)' : 'transparent',
+                        borderLeft: `3px solid ${selected || hovered ? color : 'transparent'}`,
+                      }}
+                    >
+                      <td style={{ ...S.td, fontWeight: 850 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                          <span
+                            style={{
+                              width: 30,
+                              height: 30,
+                              borderRadius: 7,
+                              background: `${color}14`,
+                              border: `1px solid ${color}30`,
+                              color,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            <CategoryIcon category={component.category || ''} />
+                          </span>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {component.name || '-'}
+                          </span>
+                        </div>
+                      </td>
+                      <td style={S.td}>
+                        <span style={{ ...S.badge(color), fontSize: 11 }}>{componentCategoryLabel(component)}</span>
+                      </td>
+                      <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: version ? 'var(--text-primary)' : 'var(--text-disabled)' }}>
+                        {version || '-'}
+                      </td>
+                      <td style={S.td}>
+                        <StatusBadge status={status} />
+                      </td>
+                      <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 470 }}>
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {component.description || 'Sense descripció'}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 };

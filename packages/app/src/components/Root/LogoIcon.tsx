@@ -2,7 +2,7 @@ const LogoIcon = () => (
   <img
     src="/assets/async-logo-icon.svg"
     alt="APIs Asíncrones"
-    style={{ display: 'block', width: 30, height: 30, objectFit: 'contain' }}
+    style={{ display: 'block', width: 34, height: 34, objectFit: 'contain' }}
   />
 );
 
