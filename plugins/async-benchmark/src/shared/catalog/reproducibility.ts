@@ -95,6 +95,22 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
   ],
 };
 
+const PLATFORM_REPRODUCIBILITY_ALIASES: Record<string, string> = {
+  Kafka: 'Apache Kafka',
+  Confluent: 'Confluent Platform',
+  NATS: 'NATS Server',
+};
+
+const COMPONENT_SNIPPET_ALIASES: Record<string, string> = {
+  EDA: 'Event-Driven Architecture',
+  QBA: 'Queue-Based Architecture',
+  LCA: 'Log-Centric Architecture',
+  EMA: 'Event-Mesh Architecture',
+  SEA: 'Streaming Events Architecture',
+  Kafka: 'Kafka Protocol',
+  NATS: 'NATS Protocol',
+};
+
 const EDA_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
   { label: 'Què representa', value: 'productors i consumidors desacoblats que intercanvien esdeveniments mitjançant un broker' },
@@ -358,6 +374,36 @@ function hasNamedRows(componentName: string, shortName: string): boolean {
   return Boolean(REPRODUCIBILITY_BY_COMPONENT_NAME[componentName] || REPRODUCIBILITY_BY_COMPONENT_NAME[shortName]);
 }
 
+function getPlatformReproducibilityRows(componentName: string, shortName: string): ReproducibilityRow[] | null {
+  const directRows = REPRODUCIBILITY_BY_PLATFORM[componentName] || REPRODUCIBILITY_BY_PLATFORM[shortName];
+  if (directRows) {
+    return directRows;
+  }
+
+  const aliasedName = PLATFORM_REPRODUCIBILITY_ALIASES[componentName] || PLATFORM_REPRODUCIBILITY_ALIASES[shortName];
+  return aliasedName ? REPRODUCIBILITY_BY_PLATFORM[aliasedName] || null : null;
+}
+
+function getPlatformReproducibilitySnippet(componentName: string, shortName: string): ReproducibilitySnippet | null {
+  const directSnippet = REPRODUCIBILITY_SNIPPETS[componentName] || REPRODUCIBILITY_SNIPPETS[shortName];
+  if (directSnippet) {
+    return directSnippet;
+  }
+
+  const aliasedName = PLATFORM_REPRODUCIBILITY_ALIASES[componentName] || PLATFORM_REPRODUCIBILITY_ALIASES[shortName];
+  return aliasedName ? REPRODUCIBILITY_SNIPPETS[aliasedName] || null : null;
+}
+
+function getComponentReproducibilitySnippet(componentName: string, shortName: string): ReproducibilitySnippet | null {
+  const directSnippet = REPRODUCIBILITY_SNIPPETS[componentName] || REPRODUCIBILITY_SNIPPETS[shortName];
+  if (directSnippet) {
+    return directSnippet;
+  }
+
+  const aliasedName = COMPONENT_SNIPPET_ALIASES[componentName] || COMPONENT_SNIPPET_ALIASES[shortName];
+  return aliasedName ? REPRODUCIBILITY_SNIPPETS[aliasedName] || null : null;
+}
+
 export function getKnownComponentVersion(component: any): string {
   const shortName = normalizeComponentKey(component?.shortName);
   const componentName = normalizeComponentKey(component?.name);
@@ -385,8 +431,11 @@ export function getReproducibilityRows(component: any): ReproducibilityRow[] | n
   const componentName = String(component.name || '');
   const shortName = String(component.shortName || '');
 
-  if (component.category === 'platform' && REPRODUCIBILITY_BY_PLATFORM[componentName]) {
-    return REPRODUCIBILITY_BY_PLATFORM[componentName];
+  if (component.category === 'platform') {
+    const platformRows = getPlatformReproducibilityRows(componentName, shortName);
+    if (platformRows) {
+      return platformRows;
+    }
   }
 
   const explicitRows = REPRODUCIBILITY_BY_COMPONENT_NAME[componentName] || REPRODUCIBILITY_BY_COMPONENT_NAME[shortName];
@@ -419,16 +468,13 @@ export function getReproducibilitySnippet(component: any): ReproducibilitySnippe
   }
 
   const componentName = String(component.name || '');
-  if (REPRODUCIBILITY_SNIPPETS[componentName]) {
-    return REPRODUCIBILITY_SNIPPETS[componentName];
-  }
-
   const shortName = String(component.shortName || '');
-  if (REPRODUCIBILITY_SNIPPETS[shortName]) {
-    return REPRODUCIBILITY_SNIPPETS[shortName];
+
+  if (component.category === 'platform') {
+    return getPlatformReproducibilitySnippet(componentName, shortName);
   }
 
-  return null;
+  return getComponentReproducibilitySnippet(componentName, shortName);
 }
 
 export function getReproducibilityStatus(component: any): ReproducibilityStatus {
