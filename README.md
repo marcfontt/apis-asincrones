@@ -23,6 +23,97 @@ enginyer pot:
 
 ---
 
+## Arquitectura del sistema
+
+El sistema viu dins un cluster **AKS** organitzat en tres _namespaces_ que aïllen
+l'aplicació, el cluster Kafka gestionat per Strimzi, i la resta de brokers. El
+fitxer font del diagrama es troba a [`docs/architecture.mmd`](docs/architecture.mmd).
+
+```mermaid
+flowchart TB
+    user(["Usuari<br/>(alumne / professor / enginyer)"]):::external
+
+    subgraph cluster["Cluster AKS (Azure Kubernetes Service)"]
+        direction TB
+
+        subgraph nsApp["ns: apis-asincrones"]
+            direction TB
+            backstage["backstage-service<br/>(plugin async-benchmark)<br/>LoadBalancer 80:30304<br/>ext: 20.23.94.191"]:::app
+            catalog["catalog-service<br/>ClusterIP :3001"]:::app
+            scenario["scenario-service<br/>ClusterIP :3002"]:::app
+            orchestrator["benchmark-orchestrator<br/>ClusterIP :3003"]:::app
+            metrics["metrics-api<br/>ClusterIP :3004<br/>(REST + WebSocket)"]:::app
+            es[("elasticsearch<br/>ClusterIP :9200<br/>índex async-metrics")]:::data
+            grafana["grafana<br/>LoadBalancer 3000:31926<br/>ext: 98.64.47.155"]:::obs
+            loadgen[/"load-generator<br/>(K8s Job efímer)"/]:::job
+        end
+
+        subgraph nsKafka["ns: kafka-strimzi"]
+            direction TB
+            kafkaBoot["kafka-cluster-kafka-bootstrap<br/>:9091 / :9092"]:::broker
+            kafkaBrokers["kafka-cluster-kafka-brokers<br/>(headless) :9090 / :9091"]:::broker
+        end
+
+        subgraph nsBrokers["ns: brokers"]
+            direction TB
+            nats["nats<br/>:4222"]:::broker
+            natsHl["nats-headless<br/>:4222 / :8222"]:::broker
+            rabbit["rabbitmq<br/>:5672 / :15672"]:::broker
+            redpanda["redpanda<br/>:9644 / :8082 / :9093"]:::broker
+            redpandaExt["redpanda-external<br/>NodePort 9645:31644"]:::broker
+        end
+    end
+
+    user -- "HTTPS" --> backstage
+    user -- "HTTP (dashboards)" --> grafana
+
+    backstage -- "HTTP REST" --> catalog
+    backstage -- "HTTP REST" --> scenario
+    backstage -- "HTTP REST" --> orchestrator
+    backstage -- "HTTP REST + WS" --> metrics
+
+    orchestrator -- "kubectl create Job" --> loadgen
+
+    loadgen -- "Kafka (TCP 9092)" --> kafkaBoot
+    loadgen -- "AMQP (5672)" --> rabbit
+    loadgen -- "NATS (4222)" --> nats
+    loadgen -- "Kafka API (9093)" --> redpanda
+
+    loadgen -- "POST snapshots /5s" --> metrics
+    metrics -- "index / search" --> es
+    grafana -- "datasource" --> es
+
+    kafkaBoot -.-> kafkaBrokers
+
+    classDef external fill:#fef3c7,stroke:#b45309,stroke-width:2px,color:#1f2937;
+    classDef app fill:#dbeafe,stroke:#1d4ed8,stroke-width:1.5px,color:#0f172a;
+    classDef data fill:#ede9fe,stroke:#6d28d9,stroke-width:1.5px,color:#1f2937;
+    classDef obs fill:#dcfce7,stroke:#15803d,stroke-width:1.5px,color:#1f2937;
+    classDef broker fill:#ffe4e6,stroke:#be123c,stroke-width:1.5px,color:#1f2937;
+    classDef job fill:#fde68a,stroke:#b45309,stroke-width:1.5px,color:#1f2937,stroke-dasharray: 4 2;
+
+    style cluster fill:#f8fafc,stroke:#475569,stroke-width:2px
+    style nsApp fill:#eff6ff,stroke:#1d4ed8,stroke-width:1px
+    style nsKafka fill:#fff1f2,stroke:#be123c,stroke-width:1px
+    style nsBrokers fill:#fef2f2,stroke:#9f1239,stroke-width:1px
+```
+
+### Components
+
+- **Usuari** — accedeix al portal des del navegador. Punt d'entrada únic via IP pública del LoadBalancer (`20.23.94.191`).
+- **backstage-service** (`ns: apis-asincrones`) — portal Backstage que serveix el plugin `async-benchmark` (Home, Catàleg, Escenaris, Execucions, Resultats). Exposat amb LoadBalancer `80:30304/TCP`.
+- **catalog-service** (`:3001`) — CRUD del catàleg de components disponibles (arquitectures, protocols, plataformes, formats).
+- **scenario-service** (`:3002`) — CRUD d'escenaris de benchmark (combinacions reutilitzables amb paràmetres de càrrega).
+- **benchmark-orchestrator** (`:3003`) — converteix una petició `POST /runs` en un `Job` de Kubernetes que arrenca el `load-generator` dins un namespace efímer.
+- **load-generator** (`Job` K8s) — container efímer que es connecta al broker triat, envia missatges sota un contracte just (fire-and-forget, payload determinista) i envia snapshots de mètriques cada 5s.
+- **metrics-api** (`:3004`) — rep snapshots, els indexa a Elasticsearch i exposa REST (`/metrics`, `/metrics/summary`) i WebSocket per al directe.
+- **elasticsearch** (`:9200`) — emmagatzematge de sèries temporals (índex `async-metrics`).
+- **grafana** (`3000:31926`, ext `98.64.47.155`) — observabilitat operativa amb Elasticsearch com a datasource.
+- **kafka-strimzi** — cluster Kafka gestionat per l'operador Strimzi (`bootstrap` per a clients, `brokers` headless per a coordinació interna).
+- **brokers** — namespace que agrupa la resta de plataformes de missatgeria sota prova: **RabbitMQ** (AMQP), **NATS** (protocol propi), **Redpanda** (compatible amb l'API Kafka, també exposat com a NodePort per a accés extern).
+
+---
+
 ## Estructura del repositori
 
 ```

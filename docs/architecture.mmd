@@ -1,0 +1,88 @@
+%% Arquitectura del sistema - APIs Asíncrones (PFG)
+%% Diagrama actualitzat amb namespaces i serveis reals d'AKS
+flowchart TB
+    %% ============================================================
+    %% Usuari extern
+    %% ============================================================
+    user(["Usuari<br/>(alumne / professor / enginyer)"]):::external
+
+    %% ============================================================
+    %% Cluster AKS
+    %% ============================================================
+    subgraph cluster["Cluster AKS (Azure Kubernetes Service)"]
+        direction TB
+
+        %% --- Namespace: apis-asincrones ---
+        subgraph nsApp["ns: apis-asincrones"]
+            direction TB
+            backstage["backstage-service<br/>(plugin async-benchmark)<br/>LoadBalancer 80:30304<br/>ext: 20.23.94.191"]:::app
+            catalog["catalog-service<br/>ClusterIP :3001"]:::app
+            scenario["scenario-service<br/>ClusterIP :3002"]:::app
+            orchestrator["benchmark-orchestrator<br/>ClusterIP :3003"]:::app
+            metrics["metrics-api<br/>ClusterIP :3004<br/>(REST + WebSocket)"]:::app
+            es[("elasticsearch<br/>ClusterIP :9200<br/>índex async-metrics")]:::data
+            grafana["grafana<br/>LoadBalancer 3000:31926<br/>ext: 98.64.47.155"]:::obs
+            loadgen[/"load-generator<br/>(K8s Job efímer)"/]:::job
+        end
+
+        %% --- Namespace: kafka-strimzi ---
+        subgraph nsKafka["ns: kafka-strimzi"]
+            direction TB
+            kafkaBoot["kafka-cluster-kafka-bootstrap<br/>:9091 / :9092"]:::broker
+            kafkaBrokers["kafka-cluster-kafka-brokers<br/>(headless) :9090 / :9091"]:::broker
+        end
+
+        %% --- Namespace: brokers ---
+        subgraph nsBrokers["ns: brokers"]
+            direction TB
+            nats["nats<br/>:4222"]:::broker
+            natsHl["nats-headless<br/>:4222 / :8222"]:::broker
+            rabbit["rabbitmq<br/>:5672 / :15672"]:::broker
+            redpanda["redpanda<br/>:9644 / :8082 / :9093"]:::broker
+            redpandaExt["redpanda-external<br/>NodePort 9645:31644"]:::broker
+        end
+    end
+
+    %% ============================================================
+    %% Edges - flux de l'usuari
+    %% ============================================================
+    user -- "HTTPS" --> backstage
+    user -- "HTTP (dashboards)" --> grafana
+
+    %% Plugin -> backends interns
+    backstage -- "HTTP REST" --> catalog
+    backstage -- "HTTP REST" --> scenario
+    backstage -- "HTTP REST" --> orchestrator
+    backstage -- "HTTP REST + WS" --> metrics
+
+    %% Orquestrador desplega Jobs
+    orchestrator -- "kubectl create Job" --> loadgen
+
+    %% Load generator -> brokers
+    loadgen -- "Kafka (TCP 9092)" --> kafkaBoot
+    loadgen -- "AMQP (5672)" --> rabbit
+    loadgen -- "NATS (4222)" --> nats
+    loadgen -- "Kafka API (9093)" --> redpanda
+
+    %% Mètriques
+    loadgen -- "POST snapshots /5s" --> metrics
+    metrics -- "index / search" --> es
+    grafana -- "datasource" --> es
+
+    %% Strimzi internal
+    kafkaBoot -.-> kafkaBrokers
+
+    %% ============================================================
+    %% Estils per namespace
+    %% ============================================================
+    classDef external fill:#fef3c7,stroke:#b45309,stroke-width:2px,color:#1f2937;
+    classDef app fill:#dbeafe,stroke:#1d4ed8,stroke-width:1.5px,color:#0f172a;
+    classDef data fill:#ede9fe,stroke:#6d28d9,stroke-width:1.5px,color:#1f2937;
+    classDef obs fill:#dcfce7,stroke:#15803d,stroke-width:1.5px,color:#1f2937;
+    classDef broker fill:#ffe4e6,stroke:#be123c,stroke-width:1.5px,color:#1f2937;
+    classDef job fill:#fde68a,stroke:#b45309,stroke-width:1.5px,color:#1f2937,stroke-dasharray: 4 2;
+
+    style cluster fill:#f8fafc,stroke:#475569,stroke-width:2px
+    style nsApp fill:#eff6ff,stroke:#1d4ed8,stroke-width:1px
+    style nsKafka fill:#fff1f2,stroke:#be123c,stroke-width:1px
+    style nsBrokers fill:#fef2f2,stroke:#9f1239,stroke-width:1px
