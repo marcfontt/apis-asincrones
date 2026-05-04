@@ -23,8 +23,58 @@ const HOME_CSS = `
   }
 
   .home-flow-card:hover {
-    transform: translateY(-2px);
+    transform: translateY(-4px);
     border-color: var(--border-strong) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.13) !important;
+  }
+
+  .home-flow-card:active {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.10) !important;
+  }
+
+  .home-btn-primary {
+    transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease;
+  }
+
+  .home-btn-primary:hover {
+    transform: translateY(-2px);
+    filter: brightness(1.08);
+    box-shadow: 0 10px 26px rgba(22,163,74,0.30) !important;
+  }
+
+  .home-btn-primary:active {
+    transform: translateY(0px);
+    filter: brightness(0.96);
+  }
+
+  .home-btn-secondary {
+    transition: transform 0.14s ease, border-color 0.14s ease, background 0.14s ease;
+  }
+
+  .home-btn-secondary:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent) !important;
+    background: rgba(37,99,235,0.08) !important;
+  }
+
+  .home-btn-secondary:active {
+    transform: translateY(0px);
+  }
+
+  .home-page-card {
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+
+  .home-page-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 32px rgba(0,0,0,0.15) !important;
+    border-color: var(--border-strong) !important;
+  }
+
+  .home-page-card:active {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 16px rgba(0,0,0,0.10) !important;
   }
 
   .home-pulse-dot {
@@ -39,7 +89,10 @@ const HOME_CSS = `
   @media (prefers-reduced-motion: reduce) {
     .home-pulse-dot,
     .home-flow-card,
-    .home-hero-panel {
+    .home-hero-panel,
+    .home-btn-primary,
+    .home-btn-secondary,
+    .home-page-card {
       animation: none !important;
       transition-duration: 1ms !important;
       transform: none !important;
@@ -121,19 +174,19 @@ const paginesDelPortal = [
 
 const metriquesPrincipals = [
   {
-    title: 'Latència',
+    title: 'Latència P99',
     color: '#f59e0b',
-    text: 'Temps que tarda un missatge des que surt del productor fins que arriba al consumidor.',
+    text: 'Temps que tarda un missatge des que surt del productor fins que arriba al consumidor. El percentil 99 revela el pitjor cas real: el 99% dels missatges arriben per sota d\'aquest valor. Una latència P99 baixa és clau per a sistemes de temps real.',
   },
   {
     title: 'Throughput',
     color: '#16a34a',
-    text: 'Quantitat de missatges processats per segon durant la prova.',
+    text: 'Quantitat de missatges processats per segon durant la prova. Indica la capacitat màxima del broker sota la càrrega configurada. Un throughput alt amb latència estable és el signe d\'un sistema ben dimensionat.',
   },
   {
-    title: 'Errors i pèrdua',
+    title: 'Taxa d\'error',
     color: '#dc2626',
-    text: 'Percentatge de missatges que fallen, es perden o no arriben correctament.',
+    text: 'Percentatge de missatges que fallen, es perden o no arriben correctament al consumidor. Inclou errors de xarxa, timeouts i missatges descartats pel broker. Un valor superior al 0,1% acostuma a ser un indicador d\'alerta.',
   },
 ];
 
@@ -385,11 +438,11 @@ export const HomePage = () => {
               Aquest portal compara combinacions de broker, protocol, arquitectura i format de dades. La idea és simple: executar proves equivalents i veure amb dades quin disseny respon millor.
             </p>
             <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-              <a href="/escenaris" style={{ ...S.btnPrimary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#16a34a', boxShadow: '0 6px 18px rgba(22,163,74,0.22)' }}>
-                Crear escenari <IconFletxa />
+              <a href="/escenaris" className="home-btn-primary" style={{ ...S.btnPrimary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#16a34a', boxShadow: '0 6px 18px rgba(22,163,74,0.22)' }}>
+                Crear escenari
               </a>
-              <a href="/catalog" style={{ ...S.btn, textDecoration: 'none' }}>Veure catàleg</a>
-              <a href="/resultats" style={{ ...S.btn, textDecoration: 'none' }}>Comparar resultats</a>
+              <a href="/catalog" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>Veure catàleg</a>
+              <a href="/resultats" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>Comparar resultats</a>
             </div>
           </div>
 
@@ -450,17 +503,71 @@ export const HomePage = () => {
         </div>
       </section>
 
+      <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
+        <SectionHeader
+          eyebrow="Concepte clau"
+          title="Com funciona un bròker?"
+          description="Un bròker de missatgeria desacobla els productors dels consumidors: cada part treballa al seu ritme sense dependre de l'altra."
+        />
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, alignItems: 'center', background: 'var(--bg-subtle)', borderRadius: 12, padding: '20px 16px' }} className="async-responsive-grid">
+          {/* Producers */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {['Productor A', 'Productor B', 'Productor C'].map((label, i) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ flex: 1, border: '1px solid rgba(37,99,235,0.35)', borderRadius: 8, padding: '8px 12px', background: 'rgba(37,99,235,0.07)', fontSize: 12, fontWeight: 850, color: '#2563eb', textAlign: 'center' }}>
+                  {label}
+                  <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    {['telemetria', 'events', 'transaccions'][i]}
+                  </div>
+                </div>
+                <span aria-hidden style={{ color: '#2563eb', fontSize: 14, fontWeight: 900 }}>→</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Broker (Topic) */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '0 12px' }}>
+            <div style={{ border: '2px solid rgba(245,158,11,0.5)', borderRadius: 12, padding: '14px 18px', background: 'rgba(245,158,11,0.08)', textAlign: 'center', width: '100%' }}>
+              <div style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Bròker</div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                Kafka · RabbitMQ<br />NATS · compatible
+              </div>
+              <div style={{ marginTop: 8, fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>Topic / Queue</div>
+            </div>
+            <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>
+              Emmagatzema i redistribueix missatges independentment de productors i consumidors
+            </p>
+          </div>
+
+          {/* Consumers */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {['Consumidor X', 'Consumidor Y', 'Consumidor Z'].map((label, i) => (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span aria-hidden style={{ color: '#16a34a', fontSize: 14, fontWeight: 900 }}>→</span>
+                <div style={{ flex: 1, border: '1px solid rgba(22,163,74,0.35)', borderRadius: 8, padding: '8px 12px', background: 'rgba(22,163,74,0.07)', fontSize: 12, fontWeight: 850, color: '#16a34a', textAlign: 'center' }}>
+                  {label}
+                  <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    {['streaming', 'analítica', 'alertes'][i]}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.26fr) minmax(280px, 0.74fr)', gap: 18, marginBottom: 18, alignItems: 'start' }} className="async-responsive-grid">
         <BrokerFlowDiagram />
         <div style={{ ...S.card, padding: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
             Mètriques principals
           </div>
-          <div style={{ display: 'grid', gap: 10 }}>
+          <div style={{ display: 'grid', gap: 10, gridTemplateRows: 'repeat(3, 1fr)' }}>
             {metriquesPrincipals.map(metric => (
-              <div key={metric.title} style={{ borderLeft: `3px solid ${metric.color}`, padding: '10px 12px', background: 'var(--bg-subtle)', borderRadius: 8 }}>
-                <div style={{ fontSize: 13, fontWeight: 900, color: metric.color, marginBottom: 4 }}>{metric.title}</div>
-                <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{metric.text}</p>
+              <div key={metric.title} style={{ borderLeft: `3px solid ${metric.color}`, padding: '12px 14px', background: 'var(--bg-subtle)', borderRadius: 8, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ fontSize: 13, fontWeight: 900, color: metric.color, marginBottom: 6 }}>{metric.title}</div>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.62, flex: 1 }}>{metric.text}</p>
               </div>
             ))}
           </div>
@@ -502,7 +609,7 @@ export const HomePage = () => {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           {paginesDelPortal.map(page => (
-            <a key={page.href} href={page.href} style={{ ...S.card, textDecoration: 'none', borderTop: `3px solid ${page.color}`, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 158, transition: 'transform 0.16s ease, border-color 0.16s ease' }} className="card-hover">
+            <a key={page.href} href={page.href} style={{ ...S.card, textDecoration: 'none', borderTop: `3px solid ${page.color}`, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 158 }} className="home-page-card">
               <div style={{ width: 40, height: 40, borderRadius: 9, background: `${page.color}14`, color: page.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <page.Icona />
               </div>

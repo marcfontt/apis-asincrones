@@ -83,13 +83,6 @@ const SearchIcon = () => (
   </svg>
 );
 
-const RefreshIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="23 4 23 10 17 10" />
-    <polyline points="1 20 1 14 7 14" />
-    <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
-  </svg>
-);
 
 const CloseIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -626,7 +619,7 @@ const ComponentDetailModal = ({
                   Reproductibilitat
                 </div>
                 <p style={{ margin: '5px 0 0', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                  Aquests valors expliquen com està definit o desplegat el component perquè una altra persona pugui replicar la prova.
+                  Versió, configuració i passos de replicació: tot el que cal per reproduir les mateixes condicions en un altre entorn.
                 </p>
               </div>
               <StatusBadge status={getReproducibilityStatus(component)} />
@@ -674,18 +667,6 @@ const ComponentDetailModal = ({
           </section>
         )}
 
-        {Array.isArray(component.tags) && component.tags.length > 0 && (
-          <section style={{ marginTop: 16 }}>
-            <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-              Etiquetes
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-              {component.tags.map(tag => (
-                <span key={tag} style={{ ...S.badge(color), fontSize: 11 }}>{tag}</span>
-              ))}
-            </div>
-          </section>
-        )}
 
         <div
           style={{
@@ -729,12 +710,10 @@ const ComponentDetailModal = ({
 export const CatalogPage = () => {
   const [components, setComponents] = useState<CatalogComponent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [catalogNotice, setCatalogNotice] = useState('');
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
-  const [activeReproducibility, setActiveReproducibility] = useState<'all' | ReproducibilityStatus>('all');
-  const [searchQuery, setSearchQuery] = useState('');
+const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey | null>('category');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -750,8 +729,6 @@ export const CatalogPage = () => {
     setCatalogNotice('');
     if (firstLoad) {
       setLoading(true);
-    } else {
-      setRefreshing(true);
     }
 
     try {
@@ -784,7 +761,6 @@ export const CatalogPage = () => {
       }
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   };
 
@@ -810,22 +786,13 @@ export const CatalogPage = () => {
     return visibleComponents.filter(component => component.category === category).length;
   };
 
-  const activeFilterCount =
-    (activeCategory !== 'all' ? 1 : 0) +
-    (activeReproducibility !== 'all' ? 1 : 0);
+  const activeFilterCount = (activeCategory !== 'all' ? 1 : 0);
 
   const filteredComponents = useMemo(() => {
     const normalizedQuery = normalizeText(searchQuery);
 
     return visibleComponents.filter(component => {
       if (activeCategory !== 'all' && component.category !== activeCategory) {
-        return false;
-      }
-
-      if (
-        activeReproducibility !== 'all' &&
-        getReproducibilityStatus(component) !== activeReproducibility
-      ) {
         return false;
       }
 
@@ -839,13 +806,12 @@ export const CatalogPage = () => {
         component.description,
         componentCategoryLabel(component),
         getKnownComponentVersion(component),
-        getReproducibilityStatus(component),
         ...(Array.isArray(component.tags) ? component.tags : []),
       ].map(normalizeText);
 
       return searchHaystack.some(value => value.includes(normalizedQuery));
     });
-  }, [activeCategory, activeReproducibility, searchQuery, visibleComponents]);
+  }, [activeCategory, searchQuery, visibleComponents]);
 
   const sortedComponents = useMemo(() => {
     if (!sortKey || !sortDir) {
@@ -889,7 +855,6 @@ export const CatalogPage = () => {
 
   const resetFilters = () => {
     setActiveCategory('all');
-    setActiveReproducibility('all');
     setSearchQuery('');
   };
 
@@ -911,10 +876,7 @@ export const CatalogPage = () => {
     [],
   );
 
-  const countByReproducibility = (status: ReproducibilityStatus): number =>
-    visibleComponents.filter(component => getReproducibilityStatus(component) === status).length;
-
-  const tableCardStyle: CSSProperties = {
+const tableCardStyle: CSSProperties = {
     ...S.card,
     padding: 0,
     overflow: 'hidden',
@@ -940,14 +902,6 @@ export const CatalogPage = () => {
             Inventari de plataformes, protocols i arquitectures que poden formar un escenari. La prioritat d’aquesta pàgina és la reproductibilitat: versió, configuració i límits visibles abans de comparar resultats.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={fetchComponents}
-          disabled={refreshing}
-          style={{ ...S.btn, padding: '8px 14px' }}
-        >
-          <RefreshIcon /> {refreshing ? 'Actualitzant' : 'Actualitzar'}
-        </button>
       </header>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12, marginBottom: 18 }}>
@@ -1006,34 +960,6 @@ export const CatalogPage = () => {
           })}
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          {(['all', 'Completa', 'Parcial'] as Array<'all' | ReproducibilityStatus>).map(status => {
-            const isActive = activeReproducibility === status;
-            const label = status === 'all' ? 'Tota reproductibilitat' : status;
-            const color = status === 'Completa' ? 'var(--success)' : status === 'Parcial' ? 'var(--warning)' : 'var(--neutral)';
-            const count = status === 'all' ? visibleComponents.length : countByReproducibility(status);
-            const disabled = status !== 'all' && count === 0;
-            return (
-              <button
-                key={status}
-                type="button"
-                disabled={disabled}
-                onClick={() => setActiveReproducibility(status)}
-                style={{
-                  ...S.chip(isActive, color),
-                  opacity: disabled ? 0.45 : 1,
-                  cursor: disabled ? 'not-allowed' : 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 6,
-                }}
-              >
-                {label}
-                <span style={{ fontFamily: 'var(--font-mono)', opacity: 0.72 }}>{count}</span>
-              </button>
-            );
-          })}
-        </div>
       </FilterPanel>
 
       <div
@@ -1096,10 +1022,12 @@ export const CatalogPage = () => {
               Obre una fila per veure la configuració, la versió i les ordres de verificació.
             </div>
           </div>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: searchQuery ? 'var(--accent)' : 'var(--text-disabled)', fontSize: 12 }}>
-            <SearchIcon />
-            {searchQuery ? `Cerca activa: ${searchQuery}` : 'Sense cerca activa'}
-          </div>
+          {searchQuery && (
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: 'var(--accent)', fontSize: 12 }}>
+              <SearchIcon />
+              {`Cerca activa: ${searchQuery}`}
+            </div>
+          )}
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -1109,15 +1037,14 @@ export const CatalogPage = () => {
                 <SortHeader label="Component" sortKey="name" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
                 <SortHeader label="Categoria" sortKey="category" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
                 <SortHeader label="Versió" sortKey="version" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
-                <SortHeader label="Reproductibilitat" sortKey="repro" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
-                <SortHeader label="Què aporta" sortKey="description" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label="Descripció" sortKey="description" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 Array.from({ length: 8 }).map((_, rowIndex) => (
                   <tr key={rowIndex}>
-                    {[42, 24, 20, 26, 68].map((width, cellIndex) => (
+                    {[42, 24, 20, 68].map((width, cellIndex) => (
                       <td key={cellIndex} style={{ ...S.td, padding: '13px 12px' }}>
                         <div
                           style={{
@@ -1136,7 +1063,7 @@ export const CatalogPage = () => {
                 ))
               ) : sortedComponents.length === 0 ? (
                 <tr>
-                  <td colSpan={5} style={{ padding: 42, textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <td colSpan={4} style={{ padding: 42, textAlign: 'center', color: 'var(--text-secondary)' }}>
                     No s’ha trobat cap component amb els filtres actuals.
                   </td>
                 </tr>
@@ -1147,7 +1074,6 @@ export const CatalogPage = () => {
                   const selected = selectedComponent?.id === component.id && component.id != null;
                   const hovered = hoveredId === rowId;
                   const version = getKnownComponentVersion(component);
-                  const status = getReproducibilityStatus(component);
 
                   return (
                     <tr
@@ -1191,9 +1117,6 @@ export const CatalogPage = () => {
                       </td>
                       <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: version ? 'var(--text-primary)' : 'var(--text-disabled)' }}>
                         {version || '-'}
-                      </td>
-                      <td style={S.td}>
-                        <StatusBadge status={status} />
                       </td>
                       <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 470 }}>
                         <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

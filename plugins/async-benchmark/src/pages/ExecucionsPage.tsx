@@ -27,7 +27,7 @@
  *   - Dark-mode OLED background is #09090b, applied via [data-theme="dark"] on <html>.
  */
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import React from 'react';
 import { S } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
@@ -89,6 +89,23 @@ const PLATFORM_COLORS: Record<string, string> = {
   'Confluent':   '#3b82f6',
   'RabbitMQ':    '#f59e0b',
   'NATS Server': '#22c55e',
+};
+
+
+/* ---------------------------------------------------------------------------
+ * METRIC_WEIGHTS
+ * Per-metric weights used when computing the composite benchmark score.
+ * Lower P99 latency and lower error rate are most important for async APIs;
+ * higher throughput and lower resource usage complete the picture.
+ * These values are surfaced in the "Detall de la puntuació" section of the
+ * run detail drawer.
+ * ---------------------------------------------------------------------------*/
+const METRIC_WEIGHTS: Record<string, { weight: number; label: string; unit: string; direction: 'lower' | 'higher' }> = {
+  p99Latency:   { weight: 0.35, label: 'Latència P99',   unit: 'ms',    direction: 'lower'  },
+  throughput:   { weight: 0.30, label: 'Throughput',      unit: 'msg/s', direction: 'higher' },
+  errorRate:    { weight: 0.20, label: "Taxa d'error",    unit: '%',     direction: 'lower'  },
+  cpuUsage:     { weight: 0.08, label: 'CPU',             unit: '%',     direction: 'lower'  },
+  memoryUsage:  { weight: 0.07, label: 'Memòria',         unit: 'MB',    direction: 'lower'  },
 };
 
 /*
@@ -190,11 +207,12 @@ const SK_STYLE = {
 const SearchIcon  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 // Filled square - standard "stop" symbol for stopping a run
 const StopIcon    = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>;
+// Circular arrows - manual refresh / reset actions
+const RefreshIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2"/><path d="M3 12a9 9 0 0 1 15.5-6.2"/><path d="M18 3v5h-5"/><path d="M6 21v-5h5"/></svg>;
 // Trash bin outline - delete a single run record
 const TrashIcon   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
 // Trash bin with extra lines inside - used for "delete all" to visually differ from single delete
 const TrashAllIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>;
-// Circular arrows - manual refresh button
 // Activity / EKG waveform - used as the icon for the live executions table
 const ActivityIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
 // Bulleted list - used as the icon for the history table
@@ -202,7 +220,7 @@ const ListIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="
 // Empty-state waveform icon - dimmed, shown when a table has no rows
 const EmptyIcon   = () => <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
 // Warning triangle with exclamation - shown inside the confirmation modal header
-const WarnIcon    = () => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
+const WarnIcon    = ({ color = 'var(--error)' }: { color?: string }) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 /*
  * CheckboxIcon
  * Returns one of two SVG elements depending on the checked state.
@@ -271,8 +289,76 @@ const formatDateTime = (iso?: string) =>
     minute: '2-digit',
   });
 
+const formatMetricNumber = (value: unknown, decimals = 2): string => {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return '-';
+  }
+
+  return numericValue.toLocaleString('ca-ES', {
+    maximumFractionDigits: decimals,
+  });
+};
+
+const formatMetricWithUnit = (value: unknown, unit: string, decimals = 2): string => {
+  const formattedValue = formatMetricNumber(value, decimals);
+  return formattedValue === '-' ? 'Encara no disponible' : `${formattedValue} ${unit}`;
+};
+
 const getRunDataFormat = (run: any, scenarioMap: Record<string, any>) =>
   run.dataFormat || scenarioMap[run.scenarioId]?.dataFormat || 'default';
+
+const isRunActive = (run: any): boolean =>
+  run?.status === 'running' || run?.status === 'pending';
+
+const getMetricTimestamp = (metric: any): string =>
+  metric?.timestamp || metric?.createdAt || metric?.created_at || '';
+
+const getLastMetricPoint = (metrics: any[]): any | null =>
+  metrics.length > 0 ? metrics[metrics.length - 1] : null;
+
+const enrichRunWithMetricPoints = (run: any, metrics: any[]): any => {
+  const lastMetric = getLastMetricPoint(metrics);
+  if (!lastMetric) {
+    return run;
+  }
+
+  const firstMetric = metrics[0];
+  const startedAt = getStartTime(run) || getMetricTimestamp(firstMetric);
+  const completedAt =
+    run.completedAt ||
+    run.completed_at ||
+    run.endedAt ||
+    run.ended_at ||
+    (isRunActive(run) ? '' : getMetricTimestamp(lastMetric));
+
+  return {
+    ...lastMetric,
+    ...run,
+    id: run.id || run.runId || lastMetric.runId,
+    runId: run.runId || run.id || lastMetric.runId,
+    scenarioId: run.scenarioId || lastMetric.scenarioId,
+    architecture: run.architecture || lastMetric.architecture,
+    protocol: run.protocol || lastMetric.protocol,
+    platform: run.platform || lastMetric.platform || lastMetric.broker,
+    broker: run.broker || lastMetric.broker,
+    dataFormat: run.dataFormat || lastMetric.dataFormat,
+    startedAt,
+    completedAt,
+    endedAt: run.endedAt || run.ended_at || completedAt,
+    pointCount: metrics.length,
+    measureCount: metrics.length,
+    messagesSent: lastMetric.messagesSent ?? lastMetric.messages_sent ?? run.messagesSent ?? run.messages_sent,
+    messagesRecv: lastMetric.messagesRecv ?? lastMetric.messages_recv ?? run.messagesRecv ?? run.messages_recv ?? run.count,
+    count: lastMetric.messages_recv ?? lastMetric.messagesRecv ?? run.count,
+    avgLatency: lastMetric.avgLatency ?? lastMetric.latency ?? run.avgLatency,
+    avgThroughput: lastMetric.avgThroughput ?? lastMetric.throughput_stable ?? lastMetric.throughput ?? run.avgThroughput,
+    avgErrorRate: lastMetric.avgErrorRate ?? lastMetric.errorRate ?? run.avgErrorRate,
+    p50Latency: lastMetric.p50Latency ?? lastMetric.p50_latency_ms ?? run.p50Latency,
+    p95Latency: lastMetric.p95Latency ?? lastMetric.p95_latency_ms ?? run.p95Latency,
+    p99Latency: lastMetric.p99Latency ?? lastMetric.p99_latency_ms ?? run.p99Latency,
+  };
+};
 
 const FilterChip = ({
   label,
@@ -305,6 +391,111 @@ const FilterChip = ({
   </button>
 );
 
+const ChevronIcon = ({ open }: { open: boolean }) => (
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.16s ease' }}
+  >
+    <polyline points="6 9 12 15 18 9" />
+  </svg>
+);
+
+const ExecucionsGuide = ({
+  open,
+  onToggle,
+}: {
+  open: boolean;
+  onToggle: () => void;
+}) => (
+  <section style={{ ...S.card, marginBottom: 20, padding: 0, overflow: 'hidden' }}>
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={open}
+      style={{
+        width: '100%',
+        border: 'none',
+        background: 'var(--bg-card)',
+        color: 'var(--text-primary)',
+        cursor: 'pointer',
+        padding: '15px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 14,
+        fontFamily: 'var(--font)',
+        textAlign: 'left',
+      }}
+    >
+      <span>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>
+          Guia ràpida d'execucions
+        </span>
+        <span style={{ display: 'block', marginTop: 3, fontSize: 12, color: 'var(--text-secondary)' }}>
+          Què significa cada estat, com s'esborren registres i com passen les dades a Resultats.
+        </span>
+      </span>
+      <span style={{ color: 'var(--text-secondary)', display: 'inline-flex' }}>
+        <ChevronIcon open={open} />
+      </span>
+    </button>
+
+    {open && (
+      <div style={{ borderTop: '1px solid var(--border)', padding: 18 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+          {[
+            {
+              title: 'Estats',
+              color: '#3b82f6',
+              text: 'Pendent encara no ha començat, en execució està generant càrrega, completada ha arribat al final, aturada s’ha cancel·lat manualment i error indica que el run ha fallat.',
+            },
+            {
+              title: 'Detall d’un run',
+              color: '#22c55e',
+              text: 'Clica una fila per veure configuració, timeline, mesures registrades, missatges enviats i missatges rebuts. Si el run ja no és a l’orquestrador, es recupera des d’Elasticsearch.',
+            },
+            {
+              title: 'Accions',
+              color: '#f59e0b',
+              text: 'Aturar conserva les mesures que hagin arribat. Esborrar elimina aquella execució i les seves mostres. Reinicia tot buida execucions i mesures; per això sempre demana confirmació.',
+            },
+            {
+              title: 'Relació amb Resultats',
+              color: '#8b5cf6',
+              text: 'Execucions mostra runs individuals. Resultats llegeix les mesures persistides i les compara; cada execució manté el seu runId perquè no es barregin repeticions del mateix escenari.',
+            },
+          ].map(item => (
+            <div
+              key={item.title}
+              style={{
+                border: `1px solid ${item.color}30`,
+                borderLeft: `3px solid ${item.color}`,
+                background: `${item.color}0d`,
+                borderRadius: 10,
+                padding: 13,
+              }}
+            >
+              <div style={{ fontSize: 12, fontWeight: 800, color: item.color, marginBottom: 6 }}>
+                {item.title}
+              </div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                {item.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
+  </section>
+);
+
 /* ---------------------------------------------------------------------------
  * ConfirmModal
  *
@@ -319,24 +510,24 @@ const FilterChip = ({
  *   - message      : body content (ReactNode to allow bold/links)
  *   - onConfirm    : called when the user clicks the confirm button
  *   - onCancel     : called when the user clicks Cancel or the backdrop
- *   - confirmLabel : text for the confirm button (default "Eliminar")
+ *   - confirmLabel : text for the confirm button (default "Esborra")
  *   - danger       : controls button color - true = red (var(--error)),
- *                    false = accent (var(--accent)) for non-destructive actions
+ *                    false = amber (var(--warning)) for non-destructive stops
  *
  * Design change: originally the confirm button was always labelled "Eliminar"
  * and always red. This was misleading for the "stop all" action because
  * stopping a run does NOT delete data. The `confirmLabel` and `danger` props
  * were added so the same modal component can be used for both delete (red,
- * "Eliminar") and stop (accent, "Atura") flows without code duplication.
+ * "Eliminar") and stop (amber, "Atura") flows without code duplication.
  * ---------------------------------------------------------------------------*/
 const ConfirmModal = ({
-  open, title, message, onConfirm, onCancel, confirmLabel = 'Eliminar', danger = true,
+  open, title, message, onConfirm, onCancel, confirmLabel = 'Esborra', danger = true,
 }: {
   open: boolean; title: string; message: React.ReactNode;
   onConfirm: () => void; onCancel: () => void;
-  /* confirmLabel: overrides the button text - defaults to "Eliminar" for backwards compat */
+  /* confirmLabel: overrides the button text - defaults to "Esborra" */
   confirmLabel?: string;
-  /* danger: when false the confirm button uses the accent color instead of red */
+  /* danger: when false the confirm button uses amber instead of red */
   danger?: boolean;
 }) => {
   // Return nothing when closed to keep it out of the DOM entirely
@@ -357,8 +548,8 @@ const ConfirmModal = ({
       >
         {/* Icon + Title row - icon background switches between red and accent based on `danger` */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
-          <div style={{ flexShrink: 0, padding: 10, borderRadius: 10, background: danger ? 'rgba(220,38,38,0.08)' : 'var(--accent-soft)', display: 'flex' }}>
-            <WarnIcon />
+          <div style={{ flexShrink: 0, padding: 10, borderRadius: 10, background: danger ? 'rgba(220,38,38,0.08)' : 'rgba(245,158,11,0.10)', display: 'flex' }}>
+            <WarnIcon color={danger ? 'var(--error)' : 'var(--warning)'} />
           </div>
           <div>
             <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>{title}</h3>
@@ -368,11 +559,11 @@ const ConfirmModal = ({
 
         {/* Action buttons */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-          <button onClick={onCancel} style={{ ...S.btn }}>Cancel·lar</button>
-          {/* Confirm button color: red for destructive deletes, accent for non-destructive stops */}
+          <button onClick={onCancel} style={{ ...S.btn }}>Cancel·la</button>
+          {/* Confirm button color: red for destructive deletes, amber for non-destructive stops */}
           <button
             onClick={onConfirm}
-            style={{ ...S.btnPrimary, background: danger ? 'var(--error)' : 'var(--accent)' }}
+            style={{ ...S.btnPrimary, background: danger ? 'var(--error)' : 'var(--warning)' }}
           >
             {confirmLabel}
           </button>
@@ -654,8 +845,8 @@ const RunTable = ({
 
                     {/* Status badge - active runs show a pulsing dot to signal live activity */}
                     <td style={{ ...S.td, textAlign: 'center' }}>
-                      <span style={{ background: st.bg, color: st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                        {isActive && <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.color, display: 'inline-block', animation: 'pulseDot 1.5s ease infinite' }} />}
+                      <span style={{ background: st.bg, color: st.color, border: `1px solid ${st.color}30`, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: '50%', background: st.color, display: 'inline-block', animation: isActive ? 'pulseDot 1.5s ease infinite' : 'none', boxShadow: `0 0 0 2px ${st.color}22` }} />
                         {st.label}
                       </span>
                     </td>
@@ -683,16 +874,16 @@ const RunTable = ({
                             title="Aturar execució"
                             style={{
                               display: 'flex', alignItems: 'center', gap: 4,
-                              padding: '4px 9px', borderRadius: 6, border: 'none',
-                              background: 'var(--error)', color: '#fff',
+                              padding: '4px 9px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.32)',
+                              background: 'rgba(245,158,11,0.12)', color: '#d97706',
                               cursor: cancellingId === r.id ? 'not-allowed' : 'pointer',
-                              fontSize: 11, fontWeight: 600,
+                              fontSize: 11, fontWeight: 800,
                               opacity: cancellingId === r.id ? 0.6 : 1,
                               fontFamily: 'var(--font)',
                             }}
                           >
                             {/* Show "..." while the cancel request is in-flight */}
-                            <StopIcon /> {cancellingId === r.id ? '...' : 'Stop'}
+                            <StopIcon /> {cancellingId === r.id ? '...' : 'Atura'}
                           </button>
                         )}
                         {/* Delete button - only for finished rows (not active) */}
@@ -749,16 +940,20 @@ export const ExecucionsPage = () => {
   const [historySearch, setHistorySearch] = useState('');
   // Global run search applied to live and history lists
   const [runSearch,     setRunSearch]     = useState('');
+  const [refreshing,    setRefreshing]    = useState(false);
+  const [refreshError,  setRefreshError]  = useState('');
+  const hasLoadedRunsRef = useRef(false);
   const [filterPlatform, setFilterPlatform] = useState<string[]>([]);
   const [filterProtocol, setFilterProtocol] = useState<string[]>([]);
   const [filterArchitecture, setFilterArchitecture] = useState<string[]>([]);
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
-  // Timestamp of the last successful data fetch (used for the "updated X seconds ago" label)
+  const [selectedRunMetrics, setSelectedRunMetrics] = useState<any[]>([]);
+  const [selectedRunMetricsLoading, setSelectedRunMetricsLoading] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(true);
+  // Timestamp of the last successful data fetch (used for the "updated HH:MM:SS" label)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
-  // Seconds elapsed since lastRefreshed, incremented by a 1s interval
-  const [secsAgo,       setSecsAgo]       = useState(0);
 
   /*
    * confirmState holds all the dynamic data for the shared ConfirmModal instance.
@@ -767,7 +962,7 @@ export const ExecucionsPage = () => {
    * is always the exact function appropriate for the current action.
    *
    * confirmLabel and danger were added to allow the stop-all action to display
-   * a non-red "Atura" button instead of the default red "Eliminar" button.
+   * a non-red "Atura" button instead of the default red delete button.
    * This matters because stopping is reversible (runs can be re-triggered) while
    * deleting is permanent.
    */
@@ -776,7 +971,7 @@ export const ExecucionsPage = () => {
     title: string;
     message: React.ReactNode;
     onConfirm: () => void;
-    confirmLabel?: string; // overrides the default "Eliminar" button label
+    confirmLabel?: string; // overrides the default "Esborra" button label
     danger?: boolean;      // false = accent-colored button; true = red (default)
   }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
@@ -795,8 +990,12 @@ export const ExecucionsPage = () => {
       .catch(() => {}); // non-critical - format badges will fall back to 'default'
   }, []);
 
-  // Build a lookup map from scenario ID to scenario object for O(1) access in render
-  const scenarioMap: Record<string, any> = Object.fromEntries(scenarios.map(s => [s.id, s]));
+  // Build a lookup map from scenario ID to scenario object for O(1) access in render.
+  // Memoized so it only re-computes when scenarios actually change, not on every runs poll.
+  const scenarioMap: Record<string, any> = useMemo(
+    () => Object.fromEntries(scenarios.map(s => [s.id, s])),
+    [scenarios],
+  );
 
   /*
    * fetchRuns
@@ -805,7 +1004,11 @@ export const ExecucionsPage = () => {
    * the interval on every render.
    */
   const fetchRuns = useCallback(() => {
-    setLoading(true);
+    if (!hasLoadedRunsRef.current) {
+      setLoading(true);
+    }
+    setRefreshing(true);
+    setRefreshError('');
     // Fetch BOTH sources in parallel:
     //   1. Orchestrator /runs   -> source of truth for live/pending/just-finished runs,
     //                              but only holds them in memory (lost on pod restart).
@@ -825,12 +1028,44 @@ export const ExecucionsPage = () => {
         const orchRuns: any[] = Array.isArray(orchData) ? orchData : [];
         const summary:  any[] = Array.isArray(summaryData) ? summaryData : [];
 
-        const orchIds = new Set(orchRuns.map(r => r.id));
+        const summaryByRunId = new Map<string, any>();
+        summary.forEach((s: any) => {
+          if (s.runId) {
+            summaryByRunId.set(String(s.runId), s);
+          }
+        });
+
+        const enrichedOrchRuns = orchRuns.map(run => {
+          const runId = run.id || run.runId;
+          const metricsSummary = runId ? summaryByRunId.get(String(runId)) : undefined;
+
+          if (!metricsSummary) {
+            return run;
+          }
+
+          return {
+            ...metricsSummary,
+            ...run,
+            id: runId,
+            runId,
+            scenarioId: run.scenarioId || metricsSummary.scenarioId,
+            scenarioName: run.scenarioName || metricsSummary.scenarioName || metricsSummary.scenarioId,
+            platform: run.platform || metricsSummary.platform || metricsSummary.broker,
+            broker: run.broker || metricsSummary.broker,
+            dataFormat: run.dataFormat || metricsSummary.dataFormat,
+            startedAt: getStartTime(run) || metricsSummary.startedAt,
+            completedAt: run.completedAt || run.completed_at || metricsSummary.endedAt,
+            endedAt: metricsSummary.endedAt || run.completedAt || run.completed_at,
+            _source: 'orchestrator+metrics',
+          };
+        });
+
+        const orchIds = new Set(enrichedOrchRuns.map(r => String(r.id || r.runId)));
         // For each ES summary that is NOT already in the orchestrator list,
         // synthesize a completed run object. Unknown fields stay undefined —
         // the table renderer already handles missing badges gracefully.
         const synthetic = summary
-          .filter((s: any) => s.runId && !orchIds.has(s.runId))
+          .filter((s: any) => s.runId && !orchIds.has(String(s.runId)))
           .map((s: any) => ({
             ...s,
             id:            s.runId,
@@ -844,36 +1079,43 @@ export const ExecucionsPage = () => {
             _source:       'metrics',
           }));
 
-        const merged = [...orchRuns, ...synthetic].sort((a, b) => {
-          const at = a.startedAt ? Date.parse(a.startedAt) : 0;
-          const bt = b.startedAt ? Date.parse(b.startedAt) : 0;
+        const merged = [...enrichedOrchRuns, ...synthetic].sort((a, b) => {
+          const at = getStartTime(a) ? Date.parse(getStartTime(a)) : 0;
+          const bt = getStartTime(b) ? Date.parse(getStartTime(b)) : 0;
           return bt - at;
         });
 
         setRuns(merged);
+        hasLoadedRunsRef.current = true;
         setLoading(false);
+        setRefreshing(false);
         setLastRefreshed(new Date()); // record when this fresh data arrived
-        setSecsAgo(0);               // reset the elapsed-time counter
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setRefreshError("No s'han pogut actualitzar les execucions. Es manté l'última informació carregada.");
+        if (!hasLoadedRunsRef.current) {
+          setLoading(false);
+        }
+        setRefreshing(false);
+      });
   }, []);
 
-  // Start polling immediately on mount; clean up the interval on unmount
+  // Track whether any runs are active so the polling interval can be skipped
+  // when all runs are finished (avoids unnecessary network traffic when idle).
+  const hasActiveRuns = runs.some(r => r.status === 'running' || r.status === 'pending');
+
+  // Poll every 8 s only while there are active runs; stop interval when idle.
   useEffect(() => {
-    fetchRuns();
-    const i = setInterval(fetchRuns, 8000); // poll every 8 seconds
+    fetchRuns(); // initial fetch on mount
+    if (!hasActiveRuns && hasLoadedRunsRef.current) {
+      // All runs are finished — no need to keep polling; user can refresh manually
+      return undefined;
+    }
+    const i = setInterval(fetchRuns, 8000);
     return () => clearInterval(i);
-  }, [fetchRuns]);
+  }, [fetchRuns, hasActiveRuns]);
 
-  /*
-   * Ticker effect - increments secsAgo every second independently of the
-   * poll interval. This gives a smooth "updated Xs ago" label without needing
-   * to re-render the whole page on every tick (only the label re-renders).
-   */
-  useEffect(() => {
-    const t = setInterval(() => setSecsAgo(s => s + 1), 1000);
-    return () => clearInterval(t);
-  }, []);
+
 
   // Auto-dismiss toast notifications after 3.5 seconds
   useEffect(() => {
@@ -887,6 +1129,47 @@ export const ExecucionsPage = () => {
       setSelectedRunId(null);
     }
   }, [runs, selectedRunId]);
+
+  useEffect(() => {
+    if (!selectedRunId) {
+      setSelectedRunMetrics([]);
+      setSelectedRunMetricsLoading(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const selectedRun = runs.find(run => run.id === selectedRunId);
+    const shouldPollMetrics = isRunActive(selectedRun);
+
+    const loadSelectedRunMetrics = async () => {
+      setSelectedRunMetricsLoading(true);
+      try {
+        const response = await fetch(`${METRICS_BASE}/metrics?runId=${encodeURIComponent(selectedRunId)}`);
+        const data = response.ok ? await response.json() : [];
+        if (!cancelled) {
+          setSelectedRunMetrics(Array.isArray(data) ? data : []);
+        }
+      } catch {
+        if (!cancelled) {
+          setSelectedRunMetrics([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setSelectedRunMetricsLoading(false);
+        }
+      }
+    };
+
+    loadSelectedRunMetrics();
+    const interval = shouldPollMetrics ? window.setInterval(loadSelectedRunMetrics, 5000) : undefined;
+
+    return () => {
+      cancelled = true;
+      if (interval) {
+        window.clearInterval(interval);
+      }
+    };
+  }, [selectedRunId, runs]);
 
   /* ---------------------------------------------------------------------------
    * Local helpers
@@ -920,7 +1203,7 @@ export const ExecucionsPage = () => {
     try {
       const r = await fetch(`${ORCHESTRATOR}/runs/${run.id}/cancel`, { method: 'POST' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      showToast(`Execucio "${run.scenarioName || run.id.slice(0, 8)}" aturada.`);
+      showToast(`Execució "${run.scenarioName || run.id.slice(0, 8)}" aturada.`);
       fetchRuns(); // refresh the list so the status badge updates immediately
     } catch (e: any) { showToast('Error en cancel·lar: ' + e.message); }
     finally { setCancellingId(null); }
@@ -937,12 +1220,12 @@ export const ExecucionsPage = () => {
     const name = run.scenarioName || run.id?.slice(0, 12) || 'aquesta execució';
     setConfirmState({
       open: true,
-      title: 'Eliminar execució',
+      title: 'Estàs segur que vols esborrar?',
       message: (
         <>
-          Segur que vols eliminar <strong>"{name}"</strong>?
+          Esborraràs el registre de <strong>"{name}"</strong> i les mostres associades a aquest run.
           <br />
-          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Aquesta accio no es pot desfer.</span>
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Aquesta acció no es pot desfer.</span>
         </>
       ),
       onConfirm: async () => {
@@ -976,12 +1259,12 @@ export const ExecucionsPage = () => {
     if (ids.length === 0) return;
     setConfirmState({
       open: true,
-      title: 'Eliminar seleccionats',
+      title: 'Estàs segur que vols esborrar?',
       message: (
         <>
-          Segur que vols eliminar <strong>{ids.length} execució{ids.length !== 1 ? 'ns' : ''}</strong>?
+          Esborraràs <strong>{ids.length} execució{ids.length !== 1 ? 'ns' : ''}</strong> seleccionada{ids.length !== 1 ? 's' : ''}.
           <br />
-          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Aquesta accio no es pot desfer.</span>
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Aquesta acció no es pot desfer.</span>
         </>
       ),
       onConfirm: async () => {
@@ -1027,12 +1310,12 @@ export const ExecucionsPage = () => {
     if (finished.length === 0) return; // guard: nothing to delete
     setConfirmState({
       open: true,
-      title: 'Eliminar totes les execucións',
+      title: 'Estàs segur que vols esborrar?',
       message: (
         <>
-          Segur que vols eliminar <strong>totes les {finished.length} execucións</strong> de l'historial?
+          Esborraràs <strong>totes les {finished.length} execucions</strong> de l'historial.
           <br />
-          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucións en curs no s'eliminaran. Aquesta acció no es pot desfer.</span>
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucions en curs no s'esborraran. Aquesta acció no es pot desfer.</span>
         </>
       ),
       onConfirm: async () => {
@@ -1053,7 +1336,7 @@ export const ExecucionsPage = () => {
         setRuns(prev => prev.filter(r => !deleted.includes(r.id)));
         setSelectedIds(new Set()); // clear all selections since the rows are gone
         ids.forEach(unmarkDeleting);
-        showToast(`${deleted.length} execucións eliminades.`);
+        showToast(`${deleted.length} execucions eliminades.`);
       },
     });
   };
@@ -1147,18 +1430,20 @@ export const ExecucionsPage = () => {
   const completedFiltered = historySearch.trim()
     ? completedAll.filter(r => {
         const q = historySearch.trim().toLowerCase();
+        const dataFormat = getRunDataFormat(r, scenarioMap);
         return (scenarioMap[r.scenarioId]?.name || r.scenarioName || '').toLowerCase().includes(q)
             || (r.architecture || '').toLowerCase().includes(q)
             || (r.protocol || '').toLowerCase().includes(q)
             || (normalizePlatform(r.platform || r.broker || '') || '').toLowerCase().includes(q)
+            || (DATA_FORMAT_LABELS[dataFormat] || dataFormat || '').toLowerCase().includes(q)
             || (r.status || '').toLowerCase().includes(q);
       })
     : completedAll;
 
-  // Ordenacio: les execucións FALLIDES primer (vermelles, urgents).
-  // Despres les normals per data descendent (ultima primer).
-  // Aixo respon al feedback de l'usuari: vol veure els errors a dalt
-  // de tot perque destaquin i no passin desapercebuts.
+  // Ordenació: les execucions fallides primer (vermelles, urgents).
+  // Després les normals per data descendent (última primer).
+  // Això respon al feedback de l'usuari: vol veure els errors a dalt
+  // de tot perquè destaquin i no passin desapercebuts.
   const completed = [...completedFiltered].sort((a: any, b: any) => {
     const aFailed = isFailedRun(a) ? 1 : 0;
     const bFailed = isFailedRun(b) ? 1 : 0;
@@ -1168,7 +1453,18 @@ export const ExecucionsPage = () => {
     return tb - ta;
   });
 
-  const selectedRun = selectedRunId ? runs.find(run => run.id === selectedRunId) || null : null;
+  const selectedRunBase = selectedRunId ? runs.find(run => run.id === selectedRunId) || null : null;
+  const selectedRun = selectedRunBase ? enrichRunWithMetricPoints(selectedRunBase, selectedRunMetrics) : null;
+  const lastRefreshedTime = lastRefreshed
+    ? lastRefreshed.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : null;
+  const refreshLabel = refreshError
+    ? <span style={{ color: 'var(--error)' }}>{refreshError}</span>
+    : refreshing
+      ? <span>Actualitzant en segon pla...</span>
+      : lastRefreshedTime
+        ? `Última actualització: ${lastRefreshedTime}${hasActiveRuns ? ' · auto cada 8s' : ''}`
+        : 'Pendent de la primera actualització';
   const activeFilterCount = filterPlatform.length + filterProtocol.length + filterArchitecture.length + filterDataFormat.length + filterStatus.length + (runSearch.trim() ? 1 : 0);
   const availablePlatforms = Array.from(new Set(runs.map(run => normalizePlatform(run.platform || run.broker || '')).filter(Boolean))).sort();
   const availableProtocols = Array.from(new Set(
@@ -1177,7 +1473,7 @@ export const ExecucionsPage = () => {
   const availableArchitectures = Array.from(new Set(runs.map(run => run.architecture).filter(Boolean))).sort();
   const availableDataFormats = Array.from(new Set(runs.map(run => getRunDataFormat(run, scenarioMap)).filter(Boolean))).sort();
   const availableStatusFilters = [
-    { key: 'running', label: 'En execucio', color: '#3b82f6', count: runs.filter(r => r.status === 'running').length },
+    { key: 'running', label: 'En execució', color: '#3b82f6', count: runs.filter(r => r.status === 'running').length },
     { key: 'pending', label: 'Pendents', color: '#f59e0b', count: runs.filter(r => r.status === 'pending').length },
     { key: 'completed', label: 'Completades', color: '#22c55e', count: runs.filter(r => r.status === 'completed').length },
     { key: 'cancelled', label: 'Aturades', color: '#f59e0b', count: runs.filter(r => r.status === 'cancelled').length },
@@ -1189,7 +1485,7 @@ export const ExecucionsPage = () => {
    * Shows a confirmation modal to stop ALL currently running/pending executions.
    *
    * Key design decision: this uses confirmLabel='Atura' and danger=false so that
-   * the confirm button is accent-colored (not red). This distinguishes "stop"
+   * the confirm button is amber-colored (not red). This distinguishes "stop"
    * from "delete" - stopping pauses the runs and moves them to 'cancelled' state
    * but does NOT remove any data. The original label "Eliminar" was misleading
    * because it implied permanent data deletion.
@@ -1198,22 +1494,22 @@ export const ExecucionsPage = () => {
    * in the table while the batch cancel is in-flight, preventing double-clicks.
    */
   const handleStopAll = () => {
-    if (running.length === 0) return; // guard: nothing to stop
+    if (runningAll.length === 0) return; // guard: nothing to stop
     setConfirmState({
       open: true,
-      title: 'Atura totes les execucións',
+      title: 'Estàs segur que vols aturar?',
       confirmLabel: 'Atura',   // non-destructive label (was "Eliminar" - incorrect)
       danger: false,            // accent button, not red - stop is not a delete action
       message: (
         <>
-          Segur que vols aturar <strong>{running.length} execució{running.length !== 1 ? 'ns' : ''}</strong> en curs o pendents?
+          Aturaràs <strong>{runningAll.length} execució{runningAll.length !== 1 ? 'ns' : ''}</strong> en curs o pendent{runningAll.length !== 1 ? 's' : ''}.
           <br />
-          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucións passaran a estat "Aturat".</span>
+          <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>Les execucions passaran a estat "Aturada" i conservaran les mostres que ja s'hagin guardat.</span>
         </>
       ),
       onConfirm: async () => {
         closeConfirm();
-        const ids = running.map((r: any) => r.id).filter(Boolean);
+        const ids = runningAll.map((r: any) => r.id).filter(Boolean);
         // Use '__all__' sentinel so all stop buttons in the table are disabled
         setCancellingId('__all__');
         try {
@@ -1239,15 +1535,15 @@ export const ExecucionsPage = () => {
   const handleResetAll = () => {
     setConfirmState({
       open: true,
-      title: 'Reinicia tot',
+      title: 'Estàs segur que vols reiniciar?',
       confirmLabel: 'Reinicia',
       danger: true,
       message: (
         <>
-          Aquesta acció <strong>esborra totes les execucións i totes les mostres</strong> del cluster.
+          Aquesta acció <strong>esborra totes les execucions i totes les mostres</strong> del cluster.
           <br />
           <span style={{ color: 'var(--text-disabled)', fontSize: 12 }}>
-            No es pot desfer. Historial i Execucions quedaran buits. Les execucións actives es cancel·laran.
+            No es pot desfer. Historial i Execucions quedaran buits. Les execucions actives es cancel·laran.
           </span>
         </>
       ),
@@ -1304,7 +1600,7 @@ export const ExecucionsPage = () => {
         message={confirmState.message}
         onConfirm={confirmState.onConfirm}
         onCancel={closeConfirm}
-        confirmLabel={confirmState.confirmLabel} /* undefined falls back to "Eliminar" */
+        confirmLabel={confirmState.confirmLabel} /* undefined falls back to "Esborra" */
         danger={confirmState.danger}             /* undefined falls back to true (red)  */
       />
 
@@ -1327,43 +1623,52 @@ export const ExecucionsPage = () => {
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <a
               href="/resultats"
-              style={{ ...S.btn, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              style={{ ...S.btn, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: 'rgba(37,99,235,0.28)', color: 'var(--accent)', background: 'var(--accent-soft)', fontWeight: 700 }}
               title="Obre la comparativa històrica per escenari"
             >
-              <ListIcon /> Veure Resultats
+              <ListIcon /> Veure resultats
             </a>
+            <button
+              onClick={fetchRuns}
+              disabled={refreshing && !loading}
+              title="Actualitza execucions i mètriques sense buidar la pantalla"
+              style={{ ...S.btn, fontSize: 13 }}
+            >
+              <span style={{ display: 'inline-flex', animation: refreshing && !loading ? 'spin 0.8s linear infinite' : 'none' }}>
+                <RefreshIcon />
+              </span>
+              {refreshing && !loading ? 'Actualitzant' : 'Actualitza'}
+            </button>
             {/* "Atura tot" button - only shown when there are active runs to stop */}
-            {running.length > 0 && (
+            {runningAll.length > 0 && (
               <button
                 onClick={handleStopAll}
-                title="Atura totes les execucións en curs o pendents"
-                style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
+                title="Atura totes les execucions en curs o pendents"
+                style={{ ...S.btn, fontSize: 13, borderColor: 'rgba(245,158,11,0.32)', color: '#d97706', background: 'rgba(245,158,11,0.10)', fontWeight: 700 }}
               >
-                <StopIcon /> Atura tot ({running.length})
+                <StopIcon /> Atura tot ({runningAll.length})
               </button>
             )}
             {runs.length > 0 && (
               <button
                 onClick={handleResetAll}
-                title="Esborra totes les execucións i mostres del cluster"
+                title="Esborra totes les execucions i mostres del cluster"
                 style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
               >
-                Reinicia tot
+                <RefreshIcon /> Reinicia tot
               </button>
             )}
           </div>
           {/* "Last refreshed" label - hidden during loading to avoid showing stale time */}
-          {lastRefreshed && !loading && (
+          {!loading && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text-disabled)' }}>
               {/* Inline clock icon - too small to warrant its own named component */}
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               {/* Show "Actualitzat ara" in green for the first 5 seconds, then show elapsed time */}
-              {secsAgo < 5
-                ? <span style={{ color: 'var(--success)' }}>Actualitzat ara</span>
-                : `Actualitzat fa ${secsAgo}s · auto cada 8s`}
+              {refreshLabel}
             </div>
           )}
         </div>
@@ -1374,8 +1679,10 @@ export const ExecucionsPage = () => {
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
             { label: 'Total',       value: runs.length,                                            color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execució', value: running.length,                                         color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
-            { label: 'Completats',  value: runs.filter(r => r.status === 'completed' || r.status === 'cancelled').length, color: 'var(--success)', bg: 'rgba(34,197,94,0.08)' },
+            { label: 'En execució', value: runs.filter(r => r.status === 'running').length,        color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
+            { label: 'Pendents',    value: runs.filter(r => r.status === 'pending').length,        color: '#d97706',               bg: 'rgba(245,158,11,0.10)' },
+            { label: 'Completades', value: runs.filter(r => r.status === 'completed').length,      color: 'var(--success)',        bg: 'rgba(34,197,94,0.08)' },
+            { label: 'Aturades',    value: runs.filter(r => r.status === 'cancelled').length,      color: '#d97706',               bg: 'rgba(245,158,11,0.10)' },
             { label: 'Errors',      value: runs.filter(isFailedRun).length,                        color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -1386,24 +1693,20 @@ export const ExecucionsPage = () => {
         </div>
       )}
 
-      {!loading && runs.length > 0 && (
-        <div style={{ ...S.card, marginBottom: 24, padding: '12px 16px', borderLeft: '3px solid #3b82f6', background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(59,130,246,0.04) 100%)' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
-            Relació entre Execucions i Resultats
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            Aquesta pàgina mostra execucións individuals. A <a href="/resultats" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Resultats</a>, l&apos;historial agrupa aquestes execucións per escenari i suma les seves mesures registrades.
-          </div>
-        </div>
+      {!loading && (
+        <ExecucionsGuide
+          open={guideOpen}
+          onToggle={() => setGuideOpen(value => !value)}
+        />
       )}
 
       {!loading && runs.length > 0 && (
         <div style={{ ...S.card, marginBottom: 24 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Filtra execucións</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Filtra execucions</div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-                Aquesta cerca afecta els runs en viu i l'historial. La cerca de la taula d'historial continua disponible per a un segon nivell de filtratge.
+                Cerca per nom, plataforma, protocol, arquitectura, format o estat. La cerca de l'historial continua disponible com a segon filtre.
               </div>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1586,7 +1889,7 @@ export const ExecucionsPage = () => {
           <RunTable
             data={completed}          /* filtered by search query */
             totalCount={completedBase.length} /* unfiltered count shown in the badge */
-            title="Historial"
+            title="Historial complet"
             showStop={false}
             icon={<ListIcon />}
             searchValue={historySearch}
@@ -1621,7 +1924,27 @@ export const ExecucionsPage = () => {
         const sentCount = getRunSentCount(selectedRun);
         const status = STATUS_CONFIG[selectedRun.status] || { color: '#94a3b8', label: selectedRun.status || 'Desconegut', bg: 'transparent' };
         const runStartedAt = getStartTime(selectedRun);
-        const runEndedAt = selectedRun.completedAt || selectedRun.completed_at || selectedRun.updatedAt || selectedRun.updated_at || '';
+        const runEndedAt = selectedRun.completedAt || selectedRun.completed_at || selectedRun.endedAt || selectedRun.ended_at || selectedRun.updatedAt || selectedRun.updated_at || '';
+        const firstMetric = selectedRunMetrics[0] || null;
+        const lastMetric = getLastMetricPoint(selectedRunMetrics);
+        const firstMetricAt = getMetricTimestamp(firstMetric);
+        const lastMetricAt = getMetricTimestamp(lastMetric);
+        const scenarioRunsForSelected = runs
+          .filter(run => run.scenarioId && run.scenarioId === selectedRun.scenarioId)
+          .sort((a, b) => {
+            const at = getStartTime(a) ? Date.parse(getStartTime(a)) : 0;
+            const bt = getStartTime(b) ? Date.parse(getStartTime(b)) : 0;
+            return at - bt;
+          });
+        const runSequenceIndex = scenarioRunsForSelected.findIndex(run => run.id === selectedRun.id);
+        const runSequenceLabel = runSequenceIndex >= 0
+          ? `${runSequenceIndex + 1} de ${scenarioRunsForSelected.length}`
+          : '-';
+        const sourceLabel = selectedRun._source === 'metrics'
+          ? 'Metrics API / Elasticsearch'
+          : selectedRun._source === 'orchestrator+metrics'
+            ? 'Orquestrador + Elasticsearch'
+            : 'Orquestrador';
         const mostraAvisNatsVideo8k = isFailedRun(selectedRun) && platform === 'NATS Server' && dataFormat === 'video-8k';
 
         return (
@@ -1631,7 +1954,9 @@ export const ExecucionsPage = () => {
             eyebrow="Detall d'execució"
             title={scenarioName}
             monoId={selectedRun.id || undefined}
-            subtitle="Aquest panell resumeix la configuracio del run seleccionat, quantes mesures hi ha guardades i quin volum de missatges s'ha processat."
+            subtitle={selectedRunMetricsLoading
+              ? 'Carregant les mostres persistides d’aquest run...'
+              : 'Aquest panell resumeix la configuració del run seleccionat, les mostres guardades i el volum de missatges processat.'}
             accent={status.color}
             badges={[
               { label: status.label, color: status.color },
@@ -1644,7 +1969,7 @@ export const ExecucionsPage = () => {
               {
                 label: 'Mesures',
                 value: measureCount,
-                helper: 'Punts de telemetria persistits per aquest run.',
+                helper: selectedRunMetricsLoading ? 'Actualitzant les mostres guardades.' : 'Mostres persistides per aquest run.',
                 color: '#22c55e',
               },
               {
@@ -1668,10 +1993,11 @@ export const ExecucionsPage = () => {
             ]}
             sections={[
               {
-                title: 'Configuracio',
+                title: 'Configuració',
                 items: [
                   { label: 'Run ID', value: <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedRun.id || '-'}</code> },
                   { label: 'Escenari', value: scenarioName },
+                  { label: 'Repetició', value: runSequenceLabel },
                   { label: 'Arquitectura', value: selectedRun.architecture || '-' },
                   { label: 'Protocol', value: selectedRun.protocol || '-' },
                   { label: 'Plataforma', value: platform || '-' },
@@ -1683,18 +2009,42 @@ export const ExecucionsPage = () => {
                 items: [
                   { label: 'Inici', value: formatDateTime(runStartedAt) },
                   { label: 'Fi', value: formatDateTime(runEndedAt) },
-                  { label: 'Font', value: selectedRun._source === 'metrics' ? 'Metrics API / Elasticsearch' : 'Orquestrador' },
+                  { label: 'Primera mostra', value: formatDateTime(firstMetricAt) },
+                  { label: 'Última mostra', value: formatDateTime(lastMetricAt) },
+                  { label: 'Font', value: sourceLabel },
                   { label: 'Estat intern', value: selectedRun.status || '-' },
                 ],
               },
               {
-                title: 'Metriques disponibles',
+                title: 'Mètriques disponibles',
                 items: [
-                  { label: 'Latència mitjana', value: selectedRun.avgLatency != null ? `${Number(selectedRun.avgLatency).toFixed(2)} ms` : 'Encara no disponible' },
-                  { label: 'Throughput avg', value: selectedRun.avgThroughput != null ? `${Number(selectedRun.avgThroughput).toFixed(2)} msg/s` : 'Encara no disponible' },
-                  { label: 'Error rate', value: selectedRun.avgErrorRate != null ? `${Number(selectedRun.avgErrorRate).toFixed(3)} %` : 'Encara no disponible' },
+                  { label: 'Latència', value: formatMetricWithUnit(selectedRun.avgLatency, 'ms') },
+                  { label: 'P50', value: formatMetricWithUnit(selectedRun.p50Latency, 'ms') },
+                  { label: 'P95', value: formatMetricWithUnit(selectedRun.p95Latency, 'ms') },
+                  { label: 'P99', value: formatMetricWithUnit(selectedRun.p99Latency, 'ms') },
+                  { label: 'Throughput', value: formatMetricWithUnit(selectedRun.avgThroughput, 'msg/s') },
+                  { label: 'Taxa d’error', value: formatMetricWithUnit(selectedRun.avgErrorRate, '%', 3) },
+                  { label: 'Errors', value: selectedRun.errors != null ? formatMetricNumber(selectedRun.errors, 0) : 'Encara no disponible' },
                 ],
               },
+              {
+                title: 'Detall de la puntuació',
+                items: Object.entries(METRIC_WEIGHTS).map(([key, cfg]) => ({
+                  label: `${cfg.label} (pes ${Math.round(cfg.weight * 100)}%)`,
+                  value: <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                    {(selectedRun as any)[key] != null
+                      ? `${Number((selectedRun as any)[key]).toLocaleString('ca-ES', { maximumFractionDigits: 2 })} ${cfg.unit} · ${cfg.direction === 'lower' ? 'menys és millor' : 'més és millor'}`
+                      : 'Encara no disponible'}
+                  </span>,
+                })),
+              },
+              ...((selectedRun.errorCode || selectedRun.errorDetail) ? [{
+                title: 'Diagnòstic',
+                items: [
+                  { label: 'Codi', value: selectedRun.errorCode || '-' },
+                  { label: 'Detall', value: selectedRun.errorDetail || 'Sense detall tècnic guardat.' },
+                ],
+              }] : []),
             ]}
           >
             {mostraAvisNatsVideo8k && (
@@ -1703,7 +2053,7 @@ export const ExecucionsPage = () => {
                   Error probable: NATS_MAX_PAYLOAD_EXCEEDED
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                  Video8K envia payloads d aproximadament 2 MB. Si NATS esta amb el limit per defecte d 1 MB, rebutja el missatge. Verifica que <code style={{ fontFamily: 'var(--font-mono)' }}>/varz</code> mostri <code style={{ fontFamily: 'var(--font-mono)' }}>"max_payload": 4194304</code> i aplica el chart amb <code style={{ fontFamily: 'var(--font-mono)' }}>config.merge.max_payload='&lt;&lt; 4MB &gt;&gt;'</code>.
+                  Video8K envia payloads d’aproximadament 2 MB. Si NATS està amb el límit per defecte d’1 MB, rebutja el missatge. Verifica que <code style={{ fontFamily: 'var(--font-mono)' }}>/varz</code> mostri <code style={{ fontFamily: 'var(--font-mono)' }}>"max_payload": 4194304</code> i aplica el chart amb <code style={{ fontFamily: 'var(--font-mono)' }}>config.merge.max_payload='&lt;&lt; 4MB &gt;&gt;'</code>.
                 </div>
               </div>
             )}
@@ -1712,7 +2062,7 @@ export const ExecucionsPage = () => {
                 Com interpretar aquest run
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Si la part d'en viu esta a zero quan tornes a executar un escenari, es correcte: el run es nou i els comptadors recomencen. Quan finalitza, les seves mesures passen a Resultats i s'acumulen a l'historial del mateix escenari.
+                Si la part en viu està a zero quan tornes a executar un escenari, és correcte: el run és nou i els comptadors recomencen. Quan finalitza o s’atura manualment, les mostres guardades passen a Resultats amb el seu propi runId.
               </div>
             </div>
           </MetricsDetailDrawer>

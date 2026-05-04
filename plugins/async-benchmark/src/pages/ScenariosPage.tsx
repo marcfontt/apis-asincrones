@@ -100,7 +100,6 @@ const PLATFORM_COLORS: Record<string, string> = {
 // per aixo (el broker rebutja silenciosament els missatges).
 // Per habilitar-los caldria configurar message.max.bytes > 2MB al broker.
 const DATA_FORMATS = [
-  { value: '',          label: 'Base controlada (256 B)' },
   { value: 'default',   label: 'Base controlada (256 B)' },
   { value: 'video-4k',  label: 'Streaming vídeo 4K (500 KB)' },
   { value: 'video-8k',  label: 'Streaming vídeo 8K (2 MB)' },
@@ -300,7 +299,7 @@ const EMPTY_FORM = {
 // CANVI: 'idle' era #94a3b8 (gris neutre, semblava desactivat/cancelat).
 // Ara es #10b981 (emerald verd) per indicar que l'escenari esta LLEST per
 // executar-se -- una lectura positiva, no neutral. El gris s'ha reservat
-// per als estats realment inactius (cancelled a RunsPage).
+// per als estats realment inactius (cancelled/cleanup).
 const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
   idle:      { color: '#10b981', label: 'Llest',       bg: 'rgba(16,185,129,0.10)' }, // verd: llest per executar
   pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  }, // ambre: esperant inici al cluster
@@ -368,15 +367,15 @@ const PREDEFINED_PRESETS = [
     color:        '#7c3aed',
   },
   {
-    name:         'RabbitMQ MQTT IoT',
+    name:         'RabbitMQ transaccions financeres',
     platform:     'RabbitMQ',
     architecture: 'EDA',
-    protocol:     'MQTT',
-    dataFormat:   'iot',
+    protocol:     'AMQP',
+    dataFormat:   'financial',
     duration:     '90',
-    rate:         '350',
-    payloadSize:  '64',
-    desc:         'MQTT sobre RabbitMQ per sensors i missatges petits. Permet comparar IoT contra NATS amb el mateix format.',
+    rate:         '300',
+    payloadSize:  '256',
+    desc:         'AMQP sobre RabbitMQ amb format financer JSON compacte. Permet comparar latència i errors en transaccions curtes.',
     color:        '#eab308',
   },
   {
@@ -780,7 +779,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
           <div>
             <label style={lbl}>Format de dades</label>
             <select style={{ ...S.input }} value={form.dataFormat} onChange={e => set('dataFormat', e.target.value)}>
-              {DATA_FORMATS.filter((f, i) => i === 0 || f.value !== '').map(f => (
+              {DATA_FORMATS.map(f => (
                 <option key={f.value} value={f.value}>{f.label}</option>
               ))}
             </select>
@@ -1194,7 +1193,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
                 (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 14px rgba(34,197,94,0.35)';
               }}
             >
-              <PlayIcon /> Executar ara
+              <PlayIcon /> Executar
             </button>
           )}
         </div>
