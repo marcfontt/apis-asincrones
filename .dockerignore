@@ -1,6 +1,66 @@
+# .dockerignore
+# ==============================================================================
+# Arxiu per ignorar fitxers quan Docker construeix la imatge del contenidor.
+# Reduit la mida de la imatge i velocitat de construccio ignorant arxius que no
+# necessita l'aplicacio dins del contenidor.
+# ==============================================================================
+
+# === Control de Versions ===
 .git
+.gitignore
+.gitattributes
+.github/
+.gitlab/
+.gitlab-ci.yml
+
+# === Yarn Cache i Logs ===
 .yarn/cache
 .yarn/install-state.gz
+yarn-error.log*
+
+# === Dependencles (s'instal·laran dins) ===
 node_modules
 packages/*/node_modules
+npm-debug.log*
+
+# === Configuracio Local i Credentials ===
+.env
+.env.local
+.env.*.local
 *.local.yaml
+*.local.json
+
+# === Build Artifacts ===
+dist
+dist-types
+coverage
+build
+*.tsbuildinfo
+
+# === Development Tools ===
+.vscode/
+.idea/
+.notion/
+
+# === Documentation ===
+README.md
+CHANGELOG.md
+docs/
+examples/
+
+# === Tests ===
+test/
+tests/
+e2e-test-report/
+playwright.config.ts
+playwright-report/
+
+# === Editor Files ===
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# === Miscellaneous ===
+*.local.sql

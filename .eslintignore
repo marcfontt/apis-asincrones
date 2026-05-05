@@ -1,1 +1,39 @@
+# .eslintignore
+# ==============================================================================
+# Arxiu per ignorar fitxers que ESLint NO hauria d'analitzar per a errors de
+# sintaxi i estil. Millora la velocitat i evita warnings falsos.
+# ==============================================================================
+
+# === Build & Distribution ===
+dist
+dist-types
+build
+*.tsbuildinfo
+
+# === Dependencies ===
+node_modules
+packages/*/node_modules
+
+# === Test Configuration ===
 playwright.config.ts
+jest.config.ts
+karma.config.ts
+
+# === Coverage & Reports ===
+coverage
+e2e-test-report
+playwright-report
+
+# === Yarn & Package Management ===
+.yarn/
+.pnp.*
+
+# === Generated Files ===
+.next
+.nuxt
+
+# === Cache & Lock Files ===
+.eslintcache
+*.lock
+pnpm-lock.yaml
+yarn.lock

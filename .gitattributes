@@ -1,2 +1,47 @@
-# Auto detect text files and perform LF normalization
+# .gitattributes
+# ==============================================================================
+# Arxiu per configurar com Git tracta els salts de linia (line endings) als
+# diferents sistemes operatius. Evita la barreja de LF (Linux) i CRLF (Windows).
+# ==============================================================================
+
+# Auto detect text files and normalize line endings to LF
 * text=auto
+
+# === Scripts (Always Unix-style LF) ===
+*.sh text eol=lf
+*.bash text eol=lf
+.env text eol=lf
+
+# === Windows Scripts (CRLF) ===
+*.ps1 text eol=crlf
+*.cmd text eol=crlf
+*.bat text eol=crlf
+
+# === Code Files (LF) ===
+*.js text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+
+# === Binary Files (No Conversion) ===
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.gif binary
+*.ico binary
+*.mov binary
+*.mp4 binary
+*.mp3 binary
+*.gz binary
+*.zip binary
+*.7z binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary

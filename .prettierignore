@@ -1,4 +1,43 @@
+# .prettierignore
+# ==============================================================================
+# Arxiu per ignorar fitxers que Prettier NO hauria de reformatejar.
+# Util per evitar tocar fitxers generats, configuracio, o binaris.
+# ==============================================================================
+
+# === Build & Distribution ===
 dist
 dist-types
+build
+
+# === Dependencies ===
+node_modules
+packages/*/node_modules
+
+# === Test & Coverage ===
 coverage
+e2e-test-report
+playwright-report
+test-results
+
+# === Configuration & Package Files ===
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+.yarn/
+
+# === IDE & Local Configuration ===
 .vscode
+.idea
+
+# === Generated Files ===
+.next
+.nuxt
+*.tsbuildinfo
+
+# === Cache ===
+.eslintcache
+.prettierignore.local
+
+# === Documentation (usually pre-formatted) ===
+README.md
+CHANGELOG.md
