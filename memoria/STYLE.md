@@ -100,6 +100,7 @@ No és obligatori — només és una xarxa de seguretat quan no surt res.
 | Concepte | Com dir-ho |
 |---|---|
 | Multi-cloud descartat | "Es va plantejar inicialment, però..." (mai "no es va poder fer") |
+| Eines d'IA | "Suport puntual de ChatGPT durant la implementació" |
 | Mètriques | "latència mitjana, P50, P95 i P99, throughput i taxa d'error" |
 | Decisions de l'empresa | "Per indicació de l'equip d'arquitectura, s'ha optat per..." |
 | Errors propis | "Una primera versió funcionava amb X, però en provar-ho amb càrregues més altes vam veure que..." |

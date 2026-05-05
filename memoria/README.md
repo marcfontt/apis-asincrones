@@ -12,7 +12,6 @@ memoria/
 ├── references.bib        # Bibliografia en BibTeX (citat a main.tex)
 ├── build.sh              # Script per compilar PDF i DOCX
 ├── assets/               # Imatges finals integrades a la memòria (PNG)
-├── figures-src/          # Diagrama i figures fonts (actualment buit)
 ├── STYLE.md              # Guia d'estil LaTeX (format, nomenclatura)
 └── README.md             # Aquest fitxer
 ```
