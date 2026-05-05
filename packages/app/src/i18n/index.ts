@@ -1,33 +1,26 @@
-import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
-
 import ca from './locales/ca.json';
 import es from './locales/es.json';
 import en from './locales/en.json';
 
-const LANGUAGE_KEY = 'apis-asincrones.language';
+type Locale = 'ca' | 'es' | 'en';
+const STORAGE_KEY = 'apis-asincrones.language';
+const DICTIONARIES: Record<Locale, Record<string, string>> = { ca, es, en };
+const listeners = new Set<(lang: Locale) => void>();
+let currentLanguage: Locale = (localStorage.getItem(STORAGE_KEY) as Locale | null) ?? 'ca';
 
-const savedLanguage = (() => {
-  try {
-    return localStorage.getItem(LANGUAGE_KEY) ?? 'ca';
-  } catch {
-    return 'ca';
-  }
-})();
+export function getLanguage(): Locale { return currentLanguage; }
 
-i18n
-  .use(initReactI18next)
-  .init({
-    resources: {
-      ca: { translation: ca },
-      es: { translation: es },
-      en: { translation: en },
-    },
-    lng: savedLanguage,
-    fallbackLng: 'ca',
-    interpolation: {
-      escapeValue: false,
-    },
-  });
+export function changeLanguage(lang: Locale): void {
+  currentLanguage = lang;
+  localStorage.setItem(STORAGE_KEY, lang);
+  listeners.forEach(fn => fn(lang));
+}
 
-export default i18n;
+export function t(key: string): string {
+  return DICTIONARIES[currentLanguage]?.[key] ?? key;
+}
+
+export function subscribe(fn: (lang: Locale) => void): () => void {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}

@@ -10,7 +10,8 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from '../../i18n/useTranslation';
+import { changeLanguage } from '../../i18n';
 import { useApi, identityApiRef, storageApiRef } from '@backstage/core-plugin-api';
 import { S, GLOBAL_CSS } from '../../../../../plugins/async-benchmark/src/theme';
 
@@ -142,7 +143,7 @@ const IdentitySection = () => {
 
 // ── 2. Secció Idioma ──────────────────────────────────────────────────────────
 const LanguageSection = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
   const savedLang = (): Language => {
     try {
@@ -169,7 +170,7 @@ const LanguageSection = () => {
     } catch {
       // ignore
     }
-    i18n.changeLanguage(lang);
+    changeLanguage(lang);
   };
 
   return (
