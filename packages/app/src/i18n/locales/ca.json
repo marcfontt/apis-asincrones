@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "home": "Home",
+    "catalog": "Catàleg",
+    "escenaris": "Escenaris",
+    "execucions": "Execucions",
+    "resultats": "Resultats",
+    "configuracio": "Configuració"
+  },
+  "settings": {
+    "title": "Configuració",
+    "identity": {
+      "title": "Identitat",
+      "user": "Usuari",
+      "email": "Correu",
+      "entity": "Entitat"
+    },
+    "language": {
+      "title": "Idioma",
+      "description": "Selecciona l'idioma de la interfície",
+      "ca": "Català",
+      "es": "Espanyol",
+      "en": "Anglès"
+    },
+    "appearance": {
+      "title": "Aparença",
+      "description": "Canvia el tema visual de l'aplicació",
+      "light": "Clar",
+      "dark": "Fosc"
+    }
+  },
+  "common": {
+    "execute": "Executar",
+    "cancel": "Cancel·lar",
+    "update": "Actualitzar",
+    "close": "Tancar",
+    "save": "Guardar",
+    "loading": "Carregant...",
+    "error": "Error",
+    "success": "Èxit"
+  }
+}

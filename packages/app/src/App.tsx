@@ -1,6 +1,6 @@
+import './i18n';
 import { PropsWithChildren } from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import { UserSettingsPage } from '@backstage/plugin-user-settings';
 import { SearchPage } from '@backstage/plugin-search';
 import { AlertDisplay, OAuthRequestDialog, SignInPage } from '@backstage/core-components';
 import { createApp } from '@backstage/app-defaults';
@@ -18,6 +18,7 @@ import { apis } from './apis';
 import { searchPage } from './components/search/SearchPage';
 import { Root } from './components/Root';
 import { HomePage, CatalogPage, ScenariosPage, ExecucionsPage, ResultatsPage } from '../../../plugins/async-benchmark/src/plugin';
+import { SettingsPage } from './components/settings/SettingsPage';
 
 const lightPortalTheme = createUnifiedTheme({
   palette: palettes.light,
@@ -102,7 +103,7 @@ const routes = (
     <Route path="/bs-catalog" element={<CatalogIndexPage />} />
     <Route path="/bs-catalog/:namespace/:kind/:name" element={<CatalogEntityPage />}>{entityPage}</Route>
     <Route path="/search"        element={<SearchPage />}>{searchPage}</Route>
-    <Route path="/settings"      element={<UserSettingsPage />} />
+    <Route path="/settings"      element={<SettingsPage />} />
     <Route path="/notifications" element={<NotificationsPage />} />
   </FlatRoutes>
 );

@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "home": "Home",
+    "catalog": "Catalog",
+    "escenaris": "Scenarios",
+    "execucions": "Executions",
+    "resultats": "Results",
+    "configuracio": "Settings"
+  },
+  "settings": {
+    "title": "Settings",
+    "identity": {
+      "title": "Identity",
+      "user": "User",
+      "email": "Email",
+      "entity": "Entity"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Select the interface language",
+      "ca": "Catalan",
+      "es": "Spanish",
+      "en": "English"
+    },
+    "appearance": {
+      "title": "Appearance",
+      "description": "Change the visual theme of the application",
+      "light": "Light",
+      "dark": "Dark"
+    }
+  },
+  "common": {
+    "execute": "Execute",
+    "cancel": "Cancel",
+    "update": "Update",
+    "close": "Close",
+    "save": "Save",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  }
+}

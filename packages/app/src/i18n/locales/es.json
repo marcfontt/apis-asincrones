@@ -1,0 +1,42 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "catalog": "Catálogo",
+    "escenaris": "Escenarios",
+    "execucions": "Ejecuciones",
+    "resultats": "Resultados",
+    "configuracio": "Configuración"
+  },
+  "settings": {
+    "title": "Configuración",
+    "identity": {
+      "title": "Identidad",
+      "user": "Usuario",
+      "email": "Correo",
+      "entity": "Entidad"
+    },
+    "language": {
+      "title": "Idioma",
+      "description": "Selecciona el idioma de la interfaz",
+      "ca": "Catalán",
+      "es": "Español",
+      "en": "Inglés"
+    },
+    "appearance": {
+      "title": "Apariencia",
+      "description": "Cambia el tema visual de la aplicación",
+      "light": "Claro",
+      "dark": "Oscuro"
+    }
+  },
+  "common": {
+    "execute": "Ejecutar",
+    "cancel": "Cancelar",
+    "update": "Actualizar",
+    "close": "Cerrar",
+    "save": "Guardar",
+    "loading": "Cargando...",
+    "error": "Error",
+    "success": "Éxito"
+  }
+}
