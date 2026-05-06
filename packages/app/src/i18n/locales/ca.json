@@ -5,7 +5,22 @@
     "escenaris": "Escenaris",
     "execucions": "Execucions",
     "resultats": "Resultats",
-    "configuracio": "Configuració"
+    "configuracio": "Configuració",
+    "descriptions": {
+      "home": "Visió general del portal",
+      "catalog": "Components i versions",
+      "escenaris": "Configuració de proves",
+      "execucions": "Runs actius i historial",
+      "resultats": "Comparatives i mètriques",
+      "configuracio": "Preferències Backstage"
+    },
+    "aria": {
+      "brand": "APIs Asíncrones - Home",
+      "primary": "Navegació principal",
+      "mobile": "Navegació principal mòbil",
+      "openMenu": "Obrir menú de navegació",
+      "closeMenu": "Tancar menú de navegació"
+    }
   },
   "settings": {
     "title": "Configuració",
@@ -358,6 +373,15 @@
   },
   "scenarios": {
     "pageTitle": "Escenaris | APIs Asíncrones",
+    "heading": "Escenaris de benchmark",
+    "subtitle": "Configuracions de càrrega per provar combinacions d'APIs asíncrones",
+    "actions": {
+      "new": "Nou escenari"
+    },
+    "stats": {
+      "total": "Total",
+      "running": "En execució"
+    },
     "format": {
       "appliedRecommendations": "S'aplicarà ràtio i payload recomanats"
     },
@@ -451,9 +475,56 @@
     },
     "guide": {
       "title": "Guia ràpida",
+      "how": "Com funcionen els escenaris?",
       "show": "Mostra guia",
       "hide": "Amaga guia",
       "compatSummary": "Resum de compatibilitat",
+      "architectures": "Arquitectures",
+      "protocols": "Protocols",
+      "tipLabel": "Consell",
+      "tipPrefix": "Utilitza els",
+      "tipHighlight": "escenaris predefinits",
+      "tipSuffix": "com a punt de partida. Estan optimitzats per als casos d'ús més habituals i serveixen de referència per entendre les combinacions recomanades.",
+      "steps": {
+        "platform": {
+          "label": "Tria una plataforma",
+          "sub": "Kafka, RabbitMQ, NATS..."
+        },
+        "architecture": {
+          "label": "Selecciona arquitectura i protocol",
+          "sub": "Compatibles amb la plataforma"
+        },
+        "load": {
+          "label": "Configura la càrrega",
+          "sub": "Durada · Ràtio · Payload · Format"
+        },
+        "execute": {
+          "label": "Executa a AKS",
+          "sub": "Botó \"Executa\" o en lot"
+        },
+        "results": {
+          "label": "Analitza resultats",
+          "sub": "Mètriques en directe i historial"
+        }
+      },
+      "items": {
+        "structure": {
+          "title": "Estructura d'un escenari",
+          "desc": "Cada escenari combina una Plataforma, una Arquitectura de missatgeria i un Protocol de transport. Selecciona'ls en ordre: la plataforma filtra automàticament les arquitectures i protocols compatibles."
+        },
+        "parameters": {
+          "title": "Paràmetres d'execució",
+          "desc": "La durada controla quant temps corre el benchmark. El ràtio és la taxa d'enviament. El payload és la mida de cada missatge. Junts determinen la càrrega total sobre el clúster AKS."
+        },
+        "sustained": {
+          "title": "Mode sostingut",
+          "desc": "El mode sostingut substitueix el vell mode indefinit: sempre queda limitat a una hora i aplica un ràtio i un payload recomanats segons format, plataforma, arquitectura i protocol."
+        },
+        "formats": {
+          "title": "Formats de dades",
+          "desc": "El format de dades simula càrregues reals. Base controlada: 256 B. Vídeo 4K: 500 KB. Vídeo 8K: 2 MB. Financer: missatges JSON petits. IoT: telemetria mínima d'alta freqüència."
+        }
+      },
       "tip": "Comença seleccionant la plataforma per filtrar les opcions compatibles."
     },
     "table": {
@@ -465,11 +536,41 @@
       "colStatus": "Estat",
       "colActions": "Accions",
       "empty": "Cap escenari trobat. Crea el primer escenari per començar.",
+      "emptyShort": "Cap escenari trobat",
+      "emptyFiltered": "Prova a canviar els filtres.",
+      "emptyCreate": "Crea'n un amb el botó de dalt.",
       "btnBulkExecute": "Executar seleccionats",
       "btnBulkExecuting": "Executant..."
     },
     "presets": {
-      "btnUse": "Usar com a base"
+      "heading": "Escenaris predefinits recomanats",
+      "btnUse": "Usar com a base",
+      "items": {
+        "rabbitmqFinancialReliable": {
+          "name": "RabbitMQ financer fiable",
+          "desc": "Cues AMQP per transaccions curtes. És el preset més defensable per veure latència i errors sense carregar payloads gegants."
+        },
+        "natsIotTelemetry": {
+          "name": "NATS telemetria IoT",
+          "desc": "Pub/sub lleuger amb payload mínim. És el cas recomanat per NATS abans de provar càrregues pesades."
+        },
+        "kafka4kStreaming": {
+          "name": "Kafka streaming 4K",
+          "desc": "Log de streaming amb payload de 500 KB. Serveix per mesurar volum sostingut sense arribar al límit de 8K."
+        },
+        "rabbitmqFinancialTransactions": {
+          "name": "RabbitMQ transaccions financeres",
+          "desc": "AMQP sobre RabbitMQ amb format financer JSON compacte. Permet comparar latència i errors en transaccions curtes."
+        },
+        "confluent8kVideo": {
+          "name": "Confluent vídeo 8K",
+          "desc": "Escenari pesat per validar límits de payload i throughput. Només és recomanable si el broker accepta missatges de 2 MB."
+        },
+        "kafkaBaselineControl": {
+          "name": "Kafka control base",
+          "desc": "Preset curt per comprovar que la ruta productor-broker-consumidor funciona abans de fer proves fortes."
+        }
+      }
     },
     "toasts": {
       "updated": "Escenari actualitzat.",

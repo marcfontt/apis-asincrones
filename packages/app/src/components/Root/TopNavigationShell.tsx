@@ -10,6 +10,8 @@ import MenuIcon from '@material-ui/icons/Menu';
 import CloseIcon from '@material-ui/icons/Close';
 import LogoFull from './LogoFull';
 import LogoIcon from './LogoIcon';
+import { LanguageDomBridge } from '../../i18n/LanguageDomBridge';
+import { useTranslation } from '../../i18n/useTranslation';
 
 type ElementNavegacio = {
   etiqueta: string;
@@ -18,19 +20,19 @@ type ElementNavegacio = {
   descripcio: string;
 };
 
-const elementsNavegacioPrincipal: ElementNavegacio[] = [
-  { etiqueta: 'Home', ruta: '/home', Icona: HomeIcon, descripcio: 'Visió general del portal' },
-  { etiqueta: 'Catàleg', ruta: '/catalog', Icona: StorageIcon, descripcio: 'Components i versions' },
-  { etiqueta: 'Escenaris', ruta: '/escenaris', Icona: ListAltIcon, descripcio: 'Configuració de proves' },
-  { etiqueta: 'Execucions', ruta: '/execucions', Icona: PlayArrowIcon, descripcio: 'Runs actius i historial' },
-  { etiqueta: 'Resultats', ruta: '/resultats', Icona: BarChartIcon, descripcio: 'Comparatives i mètriques' },
+const elementsNavegacioPrincipalBase = [
+  { etiquetaKey: 'nav.home', ruta: '/home', Icona: HomeIcon, descripcioKey: 'nav.descriptions.home' },
+  { etiquetaKey: 'nav.catalog', ruta: '/catalog', Icona: StorageIcon, descripcioKey: 'nav.descriptions.catalog' },
+  { etiquetaKey: 'nav.escenaris', ruta: '/escenaris', Icona: ListAltIcon, descripcioKey: 'nav.descriptions.escenaris' },
+  { etiquetaKey: 'nav.execucions', ruta: '/execucions', Icona: PlayArrowIcon, descripcioKey: 'nav.descriptions.execucions' },
+  { etiquetaKey: 'nav.resultats', ruta: '/resultats', Icona: BarChartIcon, descripcioKey: 'nav.descriptions.resultats' },
 ];
 
-const elementConfiguracio: ElementNavegacio = {
-  etiqueta: 'Configuració',
+const elementConfiguracioBase = {
+  etiquetaKey: 'nav.configuracio',
   ruta: '/settings',
   Icona: SettingsIcon,
-  descripcio: 'Preferències Backstage',
+  descripcioKey: 'nav.descriptions.configuracio',
 };
 
 const TOP_NAVIGATION_CSS = `
@@ -339,8 +341,21 @@ const NavigationLink = ({
 };
 
 export const TopNavigationShell = ({ children }: PropsWithChildren<{}>) => {
+  const { t } = useTranslation();
   const location = useLocation();
   const [menuMobilObert, setMenuMobilObert] = useState(false);
+  const elementsNavegacioPrincipal: ElementNavegacio[] = elementsNavegacioPrincipalBase.map(element => ({
+    etiqueta: t(element.etiquetaKey),
+    ruta: element.ruta,
+    Icona: element.Icona,
+    descripcio: t(element.descripcioKey),
+  }));
+  const elementConfiguracio: ElementNavegacio = {
+    etiqueta: t(elementConfiguracioBase.etiquetaKey),
+    ruta: elementConfiguracioBase.ruta,
+    Icona: elementConfiguracioBase.Icona,
+    descripcio: t(elementConfiguracioBase.descripcioKey),
+  };
   const totsElsElements = [...elementsNavegacioPrincipal, elementConfiguracio];
   useTopNavigationCssInHead();
 
@@ -360,14 +375,15 @@ export const TopNavigationShell = ({ children }: PropsWithChildren<{}>) => {
 
   return (
     <div className="portal-shell">
+      <LanguageDomBridge />
       <header className="portal-topbar">
         <div className="portal-topbar-inner">
-          <RouterLink to="/home" className="portal-brand" aria-label="APIs Asíncrones - Home">
+          <RouterLink to="/home" className="portal-brand" aria-label={t('nav.aria.brand')}>
             <span className="portal-brand-full"><LogoFull /></span>
             <span className="portal-brand-icon"><LogoIcon /></span>
           </RouterLink>
 
-          <nav className="portal-desktop-nav" aria-label="Navegació principal">
+          <nav className="portal-desktop-nav" aria-label={t('nav.aria.primary')}>
             {elementsNavegacioPrincipal.map(element => (
               <NavigationLink key={element.ruta} element={element} rutaActual={location.pathname} />
             ))}
@@ -378,7 +394,7 @@ export const TopNavigationShell = ({ children }: PropsWithChildren<{}>) => {
             <button
               type="button"
               className="portal-mobile-button"
-              aria-label={menuMobilObert ? 'Tancar menú de navegació' : 'Obrir menú de navegació'}
+              aria-label={menuMobilObert ? t('nav.aria.closeMenu') : t('nav.aria.openMenu')}
               aria-expanded={menuMobilObert}
               onClick={() => setMenuMobilObert(obert => !obert)}
             >
@@ -389,7 +405,7 @@ export const TopNavigationShell = ({ children }: PropsWithChildren<{}>) => {
       </header>
 
       {menuMobilObert && (
-        <nav className="portal-mobile-panel" aria-label="Navegació principal mòbil">
+        <nav className="portal-mobile-panel" aria-label={t('nav.aria.mobile')}>
           {totsElsElements.map(element => (
             <NavigationLink
               key={element.ruta}

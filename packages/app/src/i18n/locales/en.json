@@ -5,7 +5,22 @@
     "escenaris": "Scenarios",
     "execucions": "Executions",
     "resultats": "Results",
-    "configuracio": "Settings"
+    "configuracio": "Settings",
+    "descriptions": {
+      "home": "Portal overview",
+      "catalog": "Components and versions",
+      "escenaris": "Test configuration",
+      "execucions": "Active runs and history",
+      "resultats": "Comparisons and metrics",
+      "configuracio": "Backstage preferences"
+    },
+    "aria": {
+      "brand": "Asynchronous APIs - Home",
+      "primary": "Primary navigation",
+      "mobile": "Mobile primary navigation",
+      "openMenu": "Open navigation menu",
+      "closeMenu": "Close navigation menu"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -358,6 +373,15 @@
   },
   "scenarios": {
     "pageTitle": "Scenarios | Async APIs",
+    "heading": "Benchmark scenarios",
+    "subtitle": "Load configurations for testing asynchronous API combinations",
+    "actions": {
+      "new": "New scenario"
+    },
+    "stats": {
+      "total": "Total",
+      "running": "Running"
+    },
     "format": {
       "appliedRecommendations": "Recommended rate and payload will be applied"
     },
@@ -451,9 +475,56 @@
     },
     "guide": {
       "title": "Quick guide",
+      "how": "How do scenarios work?",
       "show": "Show guide",
       "hide": "Hide guide",
       "compatSummary": "Compatibility summary",
+      "architectures": "Architectures",
+      "protocols": "Protocols",
+      "tipLabel": "Tip",
+      "tipPrefix": "Use the",
+      "tipHighlight": "predefined scenarios",
+      "tipSuffix": "as a starting point. They are optimized for common use cases and act as references for understanding the recommended combinations.",
+      "steps": {
+        "platform": {
+          "label": "Choose a platform",
+          "sub": "Kafka, RabbitMQ, NATS..."
+        },
+        "architecture": {
+          "label": "Select architecture and protocol",
+          "sub": "Compatible with the platform"
+        },
+        "load": {
+          "label": "Configure the load",
+          "sub": "Duration · Rate · Payload · Format"
+        },
+        "execute": {
+          "label": "Run on AKS",
+          "sub": "\"Execute\" button or batch"
+        },
+        "results": {
+          "label": "Analyze results",
+          "sub": "Live metrics and history"
+        }
+      },
+      "items": {
+        "structure": {
+          "title": "Scenario structure",
+          "desc": "Each scenario combines a Platform, a messaging Architecture and a transport Protocol. Select them in order: the platform automatically filters compatible architectures and protocols."
+        },
+        "parameters": {
+          "title": "Execution parameters",
+          "desc": "Duration controls how long the benchmark runs. Rate is the send rate. Payload is the size of each message. Together they determine the total load on the AKS cluster."
+        },
+        "sustained": {
+          "title": "Sustained mode",
+          "desc": "Sustained mode replaces the old indefinite mode: it is always capped at one hour and applies a recommended rate and payload based on format, platform, architecture and protocol."
+        },
+        "formats": {
+          "title": "Data formats",
+          "desc": "The data format simulates real loads. Controlled baseline: 256 B. 4K video: 500 KB. 8K video: 2 MB. Financial: small JSON messages. IoT: minimal high-frequency telemetry."
+        }
+      },
       "tip": "Start by selecting the platform to filter compatible options."
     },
     "table": {
@@ -465,11 +536,41 @@
       "colStatus": "Status",
       "colActions": "Actions",
       "empty": "No scenarios found. Create the first scenario to get started.",
+      "emptyShort": "No scenario found",
+      "emptyFiltered": "Try changing the filters.",
+      "emptyCreate": "Create one with the button above.",
       "btnBulkExecute": "Execute selected",
       "btnBulkExecuting": "Executing..."
     },
     "presets": {
-      "btnUse": "Use as base"
+      "heading": "Recommended predefined scenarios",
+      "btnUse": "Use as base",
+      "items": {
+        "rabbitmqFinancialReliable": {
+          "name": "Reliable financial RabbitMQ",
+          "desc": "AMQP queues for short transactions. This is the most defensible preset for observing latency and errors without huge payloads."
+        },
+        "natsIotTelemetry": {
+          "name": "NATS IoT telemetry",
+          "desc": "Lightweight pub/sub with minimal payload. This is the recommended NATS case before testing heavy loads."
+        },
+        "kafka4kStreaming": {
+          "name": "Kafka 4K streaming",
+          "desc": "Streaming log with a 500 KB payload. Useful for measuring sustained volume without reaching the 8K limit."
+        },
+        "rabbitmqFinancialTransactions": {
+          "name": "RabbitMQ financial transactions",
+          "desc": "AMQP over RabbitMQ with a compact financial JSON format. It compares latency and errors in short transactions."
+        },
+        "confluent8kVideo": {
+          "name": "Confluent 8K video",
+          "desc": "Heavy scenario for validating payload and throughput limits. Recommended only if the broker accepts 2 MB messages."
+        },
+        "kafkaBaselineControl": {
+          "name": "Kafka baseline control",
+          "desc": "Short preset to verify the producer-broker-consumer path before heavier tests."
+        }
+      }
     },
     "toasts": {
       "updated": "Scenario updated.",

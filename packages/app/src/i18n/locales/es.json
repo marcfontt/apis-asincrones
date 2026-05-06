@@ -5,7 +5,22 @@
     "escenaris": "Escenarios",
     "execucions": "Ejecuciones",
     "resultats": "Resultados",
-    "configuracio": "Configuración"
+    "configuracio": "Configuración",
+    "descriptions": {
+      "home": "Visión general del portal",
+      "catalog": "Componentes y versiones",
+      "escenaris": "Configuración de pruebas",
+      "execucions": "Runs activos e historial",
+      "resultats": "Comparativas y métricas",
+      "configuracio": "Preferencias de Backstage"
+    },
+    "aria": {
+      "brand": "APIs Asíncronas - Inicio",
+      "primary": "Navegación principal",
+      "mobile": "Navegación principal móvil",
+      "openMenu": "Abrir menú de navegación",
+      "closeMenu": "Cerrar menú de navegación"
+    }
   },
   "settings": {
     "title": "Configuración",
@@ -358,6 +373,15 @@
   },
   "scenarios": {
     "pageTitle": "Escenarios | APIs Asíncronas",
+    "heading": "Escenarios de benchmark",
+    "subtitle": "Configuraciones de carga para probar combinaciones de APIs asíncronas",
+    "actions": {
+      "new": "Nuevo escenario"
+    },
+    "stats": {
+      "total": "Total",
+      "running": "En ejecución"
+    },
     "format": {
       "appliedRecommendations": "Se aplicarán ratio y payload recomendados"
     },
@@ -451,9 +475,56 @@
     },
     "guide": {
       "title": "Guía rápida",
+      "how": "¿Cómo funcionan los escenarios?",
       "show": "Mostrar guía",
       "hide": "Ocultar guía",
       "compatSummary": "Resumen de compatibilidad",
+      "architectures": "Arquitecturas",
+      "protocols": "Protocolos",
+      "tipLabel": "Consejo",
+      "tipPrefix": "Utiliza los",
+      "tipHighlight": "escenarios predefinidos",
+      "tipSuffix": "como punto de partida. Están optimizados para los casos de uso más habituales y sirven de referencia para entender las combinaciones recomendadas.",
+      "steps": {
+        "platform": {
+          "label": "Elige una plataforma",
+          "sub": "Kafka, RabbitMQ, NATS..."
+        },
+        "architecture": {
+          "label": "Selecciona arquitectura y protocolo",
+          "sub": "Compatibles con la plataforma"
+        },
+        "load": {
+          "label": "Configura la carga",
+          "sub": "Duración · Ratio · Payload · Formato"
+        },
+        "execute": {
+          "label": "Ejecuta en AKS",
+          "sub": "Botón \"Ejecutar\" o en lote"
+        },
+        "results": {
+          "label": "Analiza resultados",
+          "sub": "Métricas en directo e historial"
+        }
+      },
+      "items": {
+        "structure": {
+          "title": "Estructura de un escenario",
+          "desc": "Cada escenario combina una Plataforma, una Arquitectura de mensajería y un Protocolo de transporte. Selecciónalos en orden: la plataforma filtra automáticamente las arquitecturas y protocolos compatibles."
+        },
+        "parameters": {
+          "title": "Parámetros de ejecución",
+          "desc": "La duración controla cuánto tiempo corre el benchmark. El ratio es la tasa de envío. El payload es el tamaño de cada mensaje. Juntos determinan la carga total sobre el clúster AKS."
+        },
+        "sustained": {
+          "title": "Modo sostenido",
+          "desc": "El modo sostenido sustituye el viejo modo indefinido: siempre queda limitado a una hora y aplica un ratio y un payload recomendados según formato, plataforma, arquitectura y protocolo."
+        },
+        "formats": {
+          "title": "Formatos de datos",
+          "desc": "El formato de datos simula cargas reales. Base controlada: 256 B. Vídeo 4K: 500 KB. Vídeo 8K: 2 MB. Financiero: mensajes JSON pequeños. IoT: telemetría mínima de alta frecuencia."
+        }
+      },
       "tip": "Comienza seleccionando la plataforma para filtrar las opciones compatibles."
     },
     "table": {
@@ -465,11 +536,41 @@
       "colStatus": "Estado",
       "colActions": "Acciones",
       "empty": "No hay escenarios. Crea el primero para empezar.",
+      "emptyShort": "Ningún escenario encontrado",
+      "emptyFiltered": "Prueba a cambiar los filtros.",
+      "emptyCreate": "Crea uno con el botón superior.",
       "btnBulkExecute": "Ejecutar seleccionados",
       "btnBulkExecuting": "Ejecutando..."
     },
     "presets": {
-      "btnUse": "Usar como base"
+      "heading": "Escenarios predefinidos recomendados",
+      "btnUse": "Usar como base",
+      "items": {
+        "rabbitmqFinancialReliable": {
+          "name": "RabbitMQ financiero fiable",
+          "desc": "Colas AMQP para transacciones cortas. Es el preset más defendible para ver latencia y errores sin cargar payloads gigantes."
+        },
+        "natsIotTelemetry": {
+          "name": "NATS telemetría IoT",
+          "desc": "Pub/sub ligero con payload mínimo. Es el caso recomendado para NATS antes de probar cargas pesadas."
+        },
+        "kafka4kStreaming": {
+          "name": "Kafka streaming 4K",
+          "desc": "Log de streaming con payload de 500 KB. Sirve para medir volumen sostenido sin llegar al límite de 8K."
+        },
+        "rabbitmqFinancialTransactions": {
+          "name": "RabbitMQ transacciones financieras",
+          "desc": "AMQP sobre RabbitMQ con formato financiero JSON compacto. Permite comparar latencia y errores en transacciones cortas."
+        },
+        "confluent8kVideo": {
+          "name": "Confluent vídeo 8K",
+          "desc": "Escenario pesado para validar límites de payload y throughput. Solo es recomendable si el broker acepta mensajes de 2 MB."
+        },
+        "kafkaBaselineControl": {
+          "name": "Kafka control base",
+          "desc": "Preset corto para comprobar que la ruta productor-broker-consumidor funciona antes de hacer pruebas fuertes."
+        }
+      }
     },
     "toasts": {
       "updated": "Escenario actualizado.",

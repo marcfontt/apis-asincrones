@@ -348,6 +348,7 @@ const SK_STYLE = {
 const PREDEFINED_PRESETS = [
   {
     name:         'RabbitMQ financer fiable',
+    nameKey:      'scenarios.presets.items.rabbitmqFinancialReliable.name',
     platform:     'RabbitMQ',
     architecture: 'QBA',
     protocol:     'AMQP',
@@ -356,11 +357,13 @@ const PREDEFINED_PRESETS = [
     warmup:       '120',
     rate:         '200',
     payloadSize:  '512',
+    descKey:      'scenarios.presets.items.rabbitmqFinancialReliable.desc',
     desc:         'Cues AMQP per transaccions curtes. És el preset més defensable per veure latència i errors sense carregar payloads gegants.',
     color:        '#0891b2',
   },
   {
     name:         'NATS telemetria IoT',
+    nameKey:      'scenarios.presets.items.natsIotTelemetry.name',
     platform:     'NATS Server',
     architecture: 'EDA',
     protocol:     'NATS',
@@ -369,11 +372,13 @@ const PREDEFINED_PRESETS = [
     warmup:       '120',
     rate:         '500',
     payloadSize:  '64',
+    descKey:      'scenarios.presets.items.natsIotTelemetry.desc',
     desc:         'Pub/sub lleuger amb payload mínim. És el cas recomanat per NATS abans de provar càrregues pesades.',
     color:        '#16a34a',
   },
   {
     name:         'Kafka streaming 4K',
+    nameKey:      'scenarios.presets.items.kafka4kStreaming.name',
     platform:     'Kafka',
     architecture: 'SEA',
     protocol:     'Kafka',
@@ -382,11 +387,13 @@ const PREDEFINED_PRESETS = [
     warmup:       '120',
     rate:         '10',
     payloadSize:  '500000',
+    descKey:      'scenarios.presets.items.kafka4kStreaming.desc',
     desc:         'Log de streaming amb payload de 500 KB. Serveix per mesurar volum sostingut sense arribar al límit de 8K.',
     color:        '#7c3aed',
   },
   {
     name:         'RabbitMQ transaccions financeres',
+    nameKey:      'scenarios.presets.items.rabbitmqFinancialTransactions.name',
     platform:     'RabbitMQ',
     architecture: 'EDA',
     protocol:     'AMQP',
@@ -395,11 +402,13 @@ const PREDEFINED_PRESETS = [
     warmup:       '120',
     rate:         '300',
     payloadSize:  '256',
+    descKey:      'scenarios.presets.items.rabbitmqFinancialTransactions.desc',
     desc:         'AMQP sobre RabbitMQ amb format financer JSON compacte. Permet comparar latència i errors en transaccions curtes.',
     color:        '#eab308',
   },
   {
     name:         'Confluent vídeo 8K',
+    nameKey:      'scenarios.presets.items.confluent8kVideo.name',
     platform:     'Confluent',
     architecture: 'SEA',
     protocol:     'Kafka',
@@ -408,11 +417,13 @@ const PREDEFINED_PRESETS = [
     warmup:       '120',
     rate:         '4',
     payloadSize:  '2000000',
+    descKey:      'scenarios.presets.items.confluent8kVideo.desc',
     desc:         'Escenari pesat per validar límits de payload i throughput. Només és recomanable si el broker accepta missatges de 2 MB.',
     color:        '#9333ea',
   },
   {
     name:         'Kafka control base',
+    nameKey:      'scenarios.presets.items.kafkaBaselineControl.name',
     platform:     'Kafka',
     architecture: 'EDA',
     protocol:     'Kafka',
@@ -421,6 +432,7 @@ const PREDEFINED_PRESETS = [
     warmup:       '120',
     rate:         '100',
     payloadSize:  '256',
+    descKey:      'scenarios.presets.items.kafkaBaselineControl.desc',
     desc:         'Preset curt per comprovar que la ruta productor-broker-consumidor funciona abans de fer proves fortes.',
     color:        '#ef4444',
   },
@@ -1252,31 +1264,47 @@ const GUIDE_ITEMS = [
   {
     color: '#2563eb',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>,
+    titleKey: 'scenarios.guide.items.structure.title',
+    descKey: 'scenarios.guide.items.structure.desc',
     title: 'Estructura d\'un escenari',
     desc: 'Cada escenari combina una Plataforma (broker), una Arquitectura de missatgeria i un Protocol de transport. Selecciona\'ls en ordre: la plataforma filtra automàticament les arquitectures i protocols compatibles.',
   },
   {
     color: '#16a34a',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>,
+    titleKey: 'scenarios.guide.items.parameters.title',
+    descKey: 'scenarios.guide.items.parameters.desc',
     title: 'Paràmetres d\'execució',
     desc: 'La Durada (en segons) controla quant temps corre el benchmark. El Ràtio (msg/s) és la taxa d\'enviament. El Payload (bytes) és la mida de cada missatge. Junts, determinen la càrrega total sobre el clúster AKS.',
   },
   {
     color: '#2563eb',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>,
+    titleKey: 'scenarios.guide.items.sustained.title',
+    descKey: 'scenarios.guide.items.sustained.desc',
     title: 'Mode sostingut',
     desc: 'El mode sostingut substitueix el vell mode indefinit: sempre queda limitat a 1 hora i aplica una ràtio i un payload recomanats segons format, plataforma, arquitectura i protocol.',
   },
   {
     color: '#7c3aed',
     icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
+    titleKey: 'scenarios.guide.items.formats.title',
+    descKey: 'scenarios.guide.items.formats.desc',
     title: 'Formats de dades',
     desc: 'El Format de dades simula càrregues reals. Base controlada: 256 B. Vídeo 4K: 500 KB. Vídeo 8K: 2 MB. Financer: missatges JSON petits. IoT: telemetria mínima d\'alta freqüència.',
   },
 ];
 
 const ScenarioGuide = () => {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const steps = [
+    { n: '1', label: t('scenarios.guide.steps.platform.label'), sub: t('scenarios.guide.steps.platform.sub'), color: '#2563eb' },
+    { n: '2', label: t('scenarios.guide.steps.architecture.label'), sub: t('scenarios.guide.steps.architecture.sub'), color: '#7c3aed' },
+    { n: '3', label: t('scenarios.guide.steps.load.label'), sub: t('scenarios.guide.steps.load.sub'), color: '#16a34a' },
+    { n: '4', label: t('scenarios.guide.steps.execute.label'), sub: t('scenarios.guide.steps.execute.sub'), color: '#f59e0b' },
+    { n: '5', label: t('scenarios.guide.steps.results.label'), sub: t('scenarios.guide.steps.results.sub'), color: '#22c55e' },
+  ];
   return (
     <div style={{ ...S.card, marginBottom: 24, padding: 0, overflow: 'hidden' }}>
       {/* Header (toggle) */}
@@ -1285,9 +1313,9 @@ const ScenarioGuide = () => {
         style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font)', textAlign: 'left' }}
       >
         <span style={{ color: 'var(--accent)', display: 'flex' }}><BookIcon /></span>
-        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', flex: 1 }}>Com funcionen els escenaris?</span>
+        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', flex: 1 }}>{t('scenarios.guide.how')}</span>
         <span style={{ fontSize: 11, color: 'var(--text-disabled)', marginRight: 8 }}>
-          {open ? 'Amagar' : 'Mostrar guia'}
+          {open ? t('scenarios.guide.hide') : t('scenarios.guide.show')}
         </span>
         <span style={{ color: 'var(--text-secondary)', display: 'flex' }}><ChevronIcon open={open} /></span>
       </button>
@@ -1296,13 +1324,7 @@ const ScenarioGuide = () => {
         <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--border)' }}>
           {/* Flux de treball */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 0, margin: '16px 0 20px', overflowX: 'auto', paddingBottom: 4 }}>
-            {[
-              { n: '1', label: 'Tria una plataforma', sub: 'Kafka, RabbitMQ, NATS…', color: '#2563eb' },
-              { n: '2', label: 'Selecciona arquitectura i protocol', sub: 'Compatibles amb la plataforma', color: '#7c3aed' },
-              { n: '3', label: 'Configura la càrrega', sub: 'Durada · Ràtio · Payload · Format', color: '#16a34a' },
-              { n: '4', label: 'Executa a AKS', sub: 'Boto "Executa" o en lot', color: '#f59e0b' },
-              { n: '5', label: 'Analitza resultats', sub: 'Mètriques en directe i historial', color: '#22c55e' },
-            ].map((step, i, arr) => (
+            {steps.map((step, i, arr) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 4px' }}>
                   <div style={{ width: 32, height: 32, borderRadius: '50%', background: step.color + '18', border: `1.5px solid ${step.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: step.color, fontFamily: 'var(--font-mono)' }}>
@@ -1324,16 +1346,16 @@ const ScenarioGuide = () => {
               <div key={i} style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '12px 14px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <span style={{ color: item.color, display: 'flex' }}>{item.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{item.title}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{t(item.titleKey)}</span>
                 </div>
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.desc}</p>
+                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{t(item.descKey)}</p>
               </div>
             ))}
           </div>
 
           <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8 }}>
             <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 10 }}>
-              Compatibilitat resumida
+              {t('scenarios.guide.compatSummary')}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
               {Object.entries(COMPATIBILITY).map(([platform, config]) => {
@@ -1342,8 +1364,8 @@ const ScenarioGuide = () => {
                   <div key={platform} style={{ background: 'var(--bg-card)', border: `1px solid ${color}35`, borderRadius: 8, padding: '9px 10px' }}>
                     <div style={{ fontSize: 12, fontWeight: 800, color, marginBottom: 5 }}>{platform}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                      Arquitectures: <strong style={{ color: 'var(--text-primary)' }}>{config.architectures.join(', ')}</strong><br />
-                      Protocols: <strong style={{ color: 'var(--text-primary)' }}>{config.protocols.join(', ')}</strong>
+                      {t('scenarios.guide.architectures')}: <strong style={{ color: 'var(--text-primary)' }}>{config.architectures.join(', ')}</strong><br />
+                      {t('scenarios.guide.protocols')}: <strong style={{ color: 'var(--text-primary)' }}>{config.protocols.join(', ')}</strong>
                     </div>
                   </div>
                 );
@@ -1353,8 +1375,8 @@ const ScenarioGuide = () => {
 
           {/* Mode sostingut destacat */}
           <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
-            <strong style={{ color: 'var(--accent)' }}>Consell:</strong>{' '}
-            Utilitza els <strong style={{ color: 'var(--text-primary)' }}>escenaris predefinits</strong> com a punt de partida. Estan optimitzats per als casos d'ús més habituals i serveixen de referència per entendre les combinacions recomanades.
+            <strong style={{ color: 'var(--accent)' }}>{t('scenarios.guide.tipLabel')}:</strong>{' '}
+            {t('scenarios.guide.tipPrefix')} <strong style={{ color: 'var(--text-primary)' }}>{t('scenarios.guide.tipHighlight')}</strong> {t('scenarios.guide.tipSuffix')}
           </div>
         </div>
       )}
@@ -1743,15 +1765,15 @@ export const ScenariosPage = () => {
       {/* Capçalera */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Escenaris de Benchmark</h1>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{t('scenarios.heading')}</h1>
           <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
-            Configuracions de carrega per provar combinacions d'APIs asincrones
+            {t('scenarios.subtitle')}
           </p>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           <TutorialButton page="scenarios" createExampleHref={DEMO_SCENARIO_URL} />
           <button onClick={() => { setEditScenario(null); setShowModal(true); }} style={{ ...S.btnPrimary, whiteSpace: 'nowrap' }}>
-            <PlusIcon /> Nou Escenari
+            <PlusIcon /> {t('scenarios.actions.new')}
           </button>
         </div>
       </div>
@@ -1768,8 +1790,8 @@ export const ScenariosPage = () => {
       {!loading && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
-            { label: 'Total',       value: scenarios.length,              color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execució', value: Object.keys(runningMap).length, color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
+            { label: t('scenarios.stats.total'), value: scenarios.length,              color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
+            { label: t('scenarios.stats.running'), value: Object.keys(runningMap).length, color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
@@ -1785,7 +1807,7 @@ export const ScenariosPage = () => {
       {/* ── Escenaris Predefinits ── */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
-          Escenaris predefinits recomanats
+          {t('scenarios.presets.heading')}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(255px, 1fr))', gap: 12 }}>
           {PREDEFINED_PRESETS.map((preset, i) => {
@@ -1822,13 +1844,13 @@ export const ScenariosPage = () => {
                 }}
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>{preset.name}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.3 }}>{t(preset.nameKey)}</span>
                   <span style={{ ...S.badge(dfColor), fontSize: 10, flexShrink: 0, marginLeft: 6 }}>
-                    {DATA_FORMAT_LABELS[preset.dataFormat] || preset.dataFormat}
+                    {t(`scenarios.dataFormatShort.${preset.dataFormat}`) !== `scenarios.dataFormatShort.${preset.dataFormat}` ? t(`scenarios.dataFormatShort.${preset.dataFormat}`) : DATA_FORMAT_LABELS[preset.dataFormat] || preset.dataFormat}
                   </span>
                 </div>
                 <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  {preset.desc}
+                  {t(preset.descKey)}
                 </p>
                 <div
                   title={t('scenarios.warmup.tooltip')}
@@ -1843,11 +1865,11 @@ export const ScenariosPage = () => {
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, padding: '8px 9px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8 }}>
                   <div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Durada</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>{t('scenarios.detail.labelDuration')}</div>
                     <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 700 }}>{formatDurationFriendly(Number(preset.duration))}</div>
                   </div>
                   <div>
-                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>Ràtio</div>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase' as const, letterSpacing: '0.05em' }}>{t('scenarios.detail.labelRate')}</div>
                     <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)', fontWeight: 700 }}>{preset.rate} msg/s</div>
                   </div>
                   <div>
@@ -1856,7 +1878,7 @@ export const ScenariosPage = () => {
                   </div>
                 </div>
                 <div style={{ fontSize: 11, color: preset.color, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                  <PlusIcon /> Usar com a base
+                  <PlusIcon /> {t('scenarios.presets.btnUse')}
                 </div>
               </button>
             );
@@ -2008,9 +2030,9 @@ export const ScenariosPage = () => {
                     <td colSpan={9} style={{ padding: 60, textAlign: 'center' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
                         <EmptyIcon />
-                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>Cap escenari trobat</div>
+                        <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>{t('scenarios.table.emptyShort')}</div>
                         <div style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-                          {isFiltered ? 'Prova a canviar els filtres.' : "Crea'n un amb el boto de dalt."}
+                          {isFiltered ? t('scenarios.table.emptyFiltered') : t('scenarios.table.emptyCreate')}
                         </div>
                       </div>
                     </td>
@@ -2075,7 +2097,7 @@ export const ScenariosPage = () => {
                       <td style={{ ...S.td, textAlign: 'center' }}>
                         <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : st.bg, color: isRunning ? '#3b82f6' : st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
-                          {isRunning ? 'En execució' : st.label}
+                          {isRunning ? t('scenarios.stats.running') : st.label}
                         </span>
                       </td>
                       <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>

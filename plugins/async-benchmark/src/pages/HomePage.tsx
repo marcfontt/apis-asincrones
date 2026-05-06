@@ -191,7 +191,7 @@ export const HomePage = () => {
 
   useEffect(() => {
     document.title = t('home.title') + ' | Benchmark Portal';
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     let peticioCancelada = false;

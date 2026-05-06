@@ -1,10 +1,11 @@
 import ca from './locales/ca.json';
 import es from './locales/es.json';
 import en from './locales/en.json';
+import { RUNTIME_TEXT_TRANSLATIONS } from './runtimeText';
 
-type Locale = 'ca' | 'es' | 'en';
-type DictValue = string | string[] | Dictionary | DictValue[];
-type Dictionary = { [key: string]: DictValue };
+export type Locale = 'ca' | 'es' | 'en';
+export type DictValue = string | string[] | Dictionary | DictValue[];
+export type Dictionary = { [key: string]: DictValue };
 
 const STORAGE_KEY = 'apis-asincrones.language';
 const DICTIONARIES: Record<Locale, Dictionary> = {
@@ -15,6 +16,74 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
 const listeners = new Set<(lang: Locale) => void>();
 let currentLanguage: Locale =
   (localStorage.getItem(STORAGE_KEY) as Locale | null) ?? 'ca';
+
+const normalizeRenderedText = (value: string) => value.replace(/\s+/g, ' ').trim();
+
+const flattenStrings = (
+  node: DictValue | undefined,
+  prefix: string,
+  output: Record<string, string>,
+) => {
+  if (typeof node === 'string') {
+    output[prefix] = node;
+    return;
+  }
+  if (Array.isArray(node)) {
+    node.forEach((item, index) => flattenStrings(item, `${prefix}.${index}`, output));
+    return;
+  }
+  if (node && typeof node === 'object') {
+    Object.entries(node).forEach(([key, value]) => {
+      flattenStrings(value, prefix ? `${prefix}.${key}` : key, output);
+    });
+  }
+};
+
+const buildRenderedTextMaps = () => {
+  const flattened: Record<Locale, Record<string, string>> = {
+    ca: {},
+    es: {},
+    en: {},
+  };
+  (Object.keys(DICTIONARIES) as Locale[]).forEach(lang => {
+    flattenStrings(DICTIONARIES[lang], '', flattened[lang]);
+  });
+
+  const maps: Record<Locale, Map<string, string>> = {
+    ca: new Map(),
+    es: new Map(),
+    en: new Map(),
+  };
+
+  const addEntry = (entry: Record<Locale, string>) => {
+    const sources = [entry.ca, entry.es, entry.en].map(normalizeRenderedText).filter(Boolean);
+    (Object.keys(maps) as Locale[]).forEach(targetLanguage => {
+      const targetText = entry[targetLanguage];
+      sources.forEach(source => maps[targetLanguage].set(source, targetText));
+    });
+  };
+
+  Object.keys(flattened.ca).forEach(key => {
+    const entry = {
+      ca: flattened.ca[key],
+      es: flattened.es[key],
+      en: flattened.en[key],
+    };
+    if (entry.ca && entry.es && entry.en) {
+      addEntry(entry);
+    }
+  });
+
+  RUNTIME_TEXT_TRANSLATIONS.forEach(addEntry);
+  return maps;
+};
+
+const RENDERED_TEXT_MAPS = buildRenderedTextMaps();
+const RENDERED_TEXT_REPLACEMENTS: Record<Locale, Array<[string, string]>> = {
+  ca: Array.from(RENDERED_TEXT_MAPS.ca.entries()).sort((a, b) => b[0].length - a[0].length),
+  es: Array.from(RENDERED_TEXT_MAPS.es.entries()).sort((a, b) => b[0].length - a[0].length),
+  en: Array.from(RENDERED_TEXT_MAPS.en.entries()).sort((a, b) => b[0].length - a[0].length),
+};
 
 export function getLanguage(): Locale {
   return currentLanguage;
@@ -65,6 +134,24 @@ export function tRaw(key: string): DictValue | undefined {
     if (node === undefined) return undefined;
   }
   return node;
+}
+
+export function translateRenderedText(value: string, lang: Locale = currentLanguage): string {
+  const match = value.match(/^(\s*)([\s\S]*?)(\s*)$/);
+  if (!match) return value;
+  const [, leading, core, trailing] = match;
+  const normalized = normalizeRenderedText(core);
+  if (!normalized) return value;
+  const translated = RENDERED_TEXT_MAPS[lang].get(normalized);
+  if (translated) return `${leading}${translated}${trailing}`;
+
+  let translatedCore = normalized;
+  for (const [source, target] of RENDERED_TEXT_REPLACEMENTS[lang]) {
+    if (source.length < 8 || !translatedCore.includes(source)) continue;
+    translatedCore = translatedCore.split(source).join(target);
+  }
+
+  return translatedCore !== normalized ? `${leading}${translatedCore}${trailing}` : value;
 }
 
 export function subscribe(fn: (lang: Locale) => void): () => void {
