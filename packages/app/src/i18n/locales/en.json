@@ -38,5 +38,529 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success"
+  },
+  "home": {
+    "title": "Async APIs",
+    "subtitle": "Real benchmarks under the same load",
+    "description": "This portal compares combinations of broker, protocol, architecture and data format. The idea is simple: run equivalent tests and see with data which design performs best.",
+    "heroSubtitle": "Backstage to create tests, AKS to run them, and metrics to compare results.",
+    "btnCreateScenario": "Create scenario",
+    "btnViewCatalog": "View catalog",
+    "btnCompareResults": "Compare results",
+    "btnOpen": "Open",
+    "brokerLabel": "Broker",
+    "brokerBody": "Stores and redistributes messages independently of producers and consumers",
+    "producers": [
+      "telemetry",
+      "events",
+      "transactions"
+    ],
+    "consumers": [
+      "streaming",
+      "analytics",
+      "alerts"
+    ],
+    "statsLabels": {
+      "components": "Components",
+      "scenarios": "Scenarios",
+      "activeRuns": "Active runs",
+      "measures": "Measures"
+    },
+    "statsDesc": {
+      "components": "Available catalog",
+      "scenarios": "Configured",
+      "activeRuns": "Now in cluster",
+      "measures": "Recorded points"
+    },
+    "sections": {
+      "systemEyebrow": "System structure",
+      "systemTitle": "From scenario to results",
+      "systemDesc": "The portal is not the system being measured. Backstage is the interface; the backend prepares the test; AKS runs the components; and metrics enable comparison.",
+      "conceptsEyebrow": "Before looking at results",
+      "conceptsTitle": "What are you actually comparing?",
+      "conceptsDesc": "A test does not compare brand names: it compares a complete message path under a specific load.",
+      "brokerEyebrow": "Key concept",
+      "brokerTitle": "How does a broker work?",
+      "brokerDesc": "A message broker decouples producers from consumers: each side works at its own pace without depending on the other.",
+      "executionEyebrow": "Execution",
+      "executionTitle": "What happens when you launch a benchmark?",
+      "executionDesc": "Every run must go through the same steps so the comparison is defensible afterwards.",
+      "pagesEyebrow": "Inner pages",
+      "pagesTitle": "Where each task continues",
+      "metricsLabel": "Key metrics"
+    },
+    "systemParts": [
+      {
+        "title": "Backstage",
+        "subtitle": "Work portal",
+        "text": "The screen where the user creates scenarios, launches executions and reviews results."
+      },
+      {
+        "title": "Backend",
+        "subtitle": "Composer",
+        "text": "Applies the thesis rules and converts the scenario into an executable test."
+      },
+      {
+        "title": "AKS",
+        "subtitle": "Cluster",
+        "text": "Runs brokers, load generators and metric services in Kubernetes."
+      },
+      {
+        "title": "Broker",
+        "subtitle": "Measured system",
+        "text": "Kafka, RabbitMQ, NATS or compatible receive the same payloads under load."
+      },
+      {
+        "title": "Metrics",
+        "subtitle": "Run data",
+        "text": "Each execution publishes periodic measurements with counters and percentiles."
+      },
+      {
+        "title": "Comparison",
+        "subtitle": "Final result",
+        "text": "The UI shows differences between combinations and helps defend conclusions."
+      }
+    ],
+    "concepts": [
+      {
+        "title": "Architecture",
+        "text": "The way of organising producer, broker and consumer. Affects how the message flows."
+      },
+      {
+        "title": "Protocol",
+        "text": "The communication rules. Decides how the message is sent, acknowledged or delivered."
+      },
+      {
+        "title": "Data format",
+        "text": "The payload type. Sending IoT telemetry is not the same as video or transactions."
+      },
+      {
+        "title": "Broker",
+        "text": "The platform that receives and distributes messages. It is the main piece we compare."
+      }
+    ],
+    "executionSteps": [
+      {
+        "label": "Create scenario",
+        "sub": "choose broker, architecture, protocol and format"
+      },
+      {
+        "label": "Prepare execution",
+        "sub": "the backend applies duration, rate and payload"
+      },
+      {
+        "label": "Run on AKS",
+        "sub": "the generator sends payloads to the broker"
+      },
+      {
+        "label": "Save measurements",
+        "sub": "each run records latency, throughput and errors"
+      },
+      {
+        "label": "Compare results",
+        "sub": "the history lets you see what worked best"
+      }
+    ],
+    "pages": [
+      {
+        "label": "Catalog",
+        "desc": "Components, versions and configuration needed to replicate the tests."
+      },
+      {
+        "label": "Scenarios",
+        "desc": "Define broker, architecture, protocol, format, load, rate and payload."
+      },
+      {
+        "label": "Executions",
+        "desc": "Launch runs on the cluster, stop tests and review the status of each execution."
+      },
+      {
+        "label": "Results",
+        "desc": "Compare latency, throughput, errors and percentiles per execution or scenario."
+      }
+    ],
+    "metrics": [
+      {
+        "title": "P99 Latency",
+        "text": "Time a message takes from leaving the producer to reaching the consumer. The 99th percentile reveals the real worst case: 99% of messages arrive below this value. Low P99 latency is key for real-time systems."
+      },
+      {
+        "title": "Throughput",
+        "text": "Number of messages processed per second during the test. Indicates the maximum capacity of the broker under the configured load. High throughput with stable latency is the sign of a well-sized system."
+      },
+      {
+        "title": "Error rate",
+        "text": "Percentage of messages that fail, are lost or do not reach the consumer correctly. Includes network errors, timeouts and messages discarded by the broker. A value above 0.1% is usually a warning indicator."
+      }
+    ]
+  },
+  "catalog": {
+    "pageTitle": "Catalog | Async APIs",
+    "heading": "Component catalog",
+    "subheading": "Components, versions and configuration needed to replicate the tests.",
+    "filterTitle": "Catalog filters",
+    "searchPlaceholder": "Search by name, version, tag, category or reproducibility",
+    "filterAll": "All",
+    "noCategory": "No category",
+    "noDescription": "No description",
+    "noComponents": "No component found with the current filters.",
+    "colComponent": "Component",
+    "colCategory": "Category",
+    "colVersion": "Version",
+    "colDescription": "Description",
+    "tableHeading": "Benchmark components",
+    "tableSubheading": "Select a component to see the full card.",
+    "categoryLabels": {
+      "architecture": "Architecture",
+      "protocol": "Protocol",
+      "platform": "Platform"
+    },
+    "categoryTitles": {
+      "platform": "Platforms",
+      "protocol": "Protocols",
+      "architecture": "Architectures"
+    },
+    "categoryDescriptions": {
+      "architecture": "Pattern describing how messages flow within a scenario: via events, queues, logs or streaming.",
+      "protocol": "Communication rules that specify how messages are sent and received between producer, broker and consumer.",
+      "platform": "Real broker or platform deployed on the cluster. It is the piece that processes messages and determines results."
+    },
+    "categoryImpacts": {
+      "architecture": "Changes the flow shape and can therefore affect latency, decoupling and consumption capacity.",
+      "protocol": "Changes the transport and acknowledgements. Can affect compatibility, errors, latency and message loss.",
+      "platform": "Changes the implementation running on AKS. This is where versions, ports, topology and limits matter for replication."
+    },
+    "compatibilityNotes": {
+      "Kafka": "Reference for logs and streaming. When combined with non-Kafka protocols, the scenario must clearly declare the gateway or adapter.",
+      "RabbitMQ": "Strong in queues, ACKs and flexible routing. The natural platform for AMQP and queue-work tests.",
+      "Confluent": "Kafka-compatible variant to compare streaming behaviour with a different distribution of the same ecosystem.",
+      "NATS Server": "Very lightweight for pub/sub and low latency. For large payloads, verify max_payload before launching the benchmark."
+    },
+    "modal": {
+      "closeAriaLabel": "Close component detail",
+      "noName": "Unnamed component",
+      "noDescriptionLong": "This component does not yet have a description in the catalog.",
+      "sectionWhat": "What it represents within the benchmark",
+      "sectionCard": "Quick card",
+      "labelCategory": "Category",
+      "labelShortName": "Short name",
+      "labelVersion": "Version",
+      "labelRepro": "Reproducibility",
+      "labelCreatedAt": "Added on",
+      "btnCopied": "Copied",
+      "btnCopy": "Copy",
+      "btnUse": "Use this component",
+      "btnCreateScenario": "Create scenario"
+    },
+    "compatTable": {
+      "heading": "Platform compatibility",
+      "colPlatform": "Platform",
+      "colArchitectures": "Supported architectures",
+      "colProtocols": "Supported protocols",
+      "colQuickRead": "Quick read"
+    },
+    "compatDetails": {
+      "compatibleArchitectures": "Compatible architectures",
+      "compatibleProtocols": "Compatible protocols",
+      "platformsCanUse": "Platforms that can use it",
+      "supportedBy": "Supported by"
+    },
+    "stats": {
+      "compatibleCombinations": "compatible combinations",
+      "possibleCombinations": "possible combinations without applying the matrix",
+      "visibleOf": "visible components of"
+    },
+    "statusLabels": {
+      "complete": "Complete",
+      "partial": "Partial"
+    }
+  },
+  "scenarios": {
+    "pageTitle": "Scenarios | Async APIs",
+    "statusLabels": {
+      "idle": "Ready",
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "error": "Error"
+    },
+    "dataFormatLabels": {
+      "default": "Controlled baseline (256 B)",
+      "video-4k": "4K video streaming (500 KB)",
+      "video-8k": "8K video streaming (2 MB)",
+      "financial": "Financial transactions (4 KB)",
+      "iot": "IoT telemetry (128 B)"
+    },
+    "dataFormatShort": {
+      "default": "Baseline",
+      "video-4k": "4K Video",
+      "video-8k": "8K Video",
+      "financial": "Financial",
+      "iot": "IoT"
+    },
+    "filterAll": "All",
+    "filterAllFormats": "All formats",
+    "filterAllArchitectures": "All",
+    "filterAllPlatforms": "All",
+    "modal": {
+      "titleCreate": "Create Scenario",
+      "titleEdit": "Edit Scenario",
+      "labelName": "Name *",
+      "labelPlatform": "Platform / Broker *",
+      "placeholderSelectFirst": "(select first)",
+      "placeholderSelect": "Select...",
+      "placeholderNotAvailable": "(not available)",
+      "unavailablePlatforms": "Unavailable platforms:",
+      "labelArchitecture": "Architecture *",
+      "labelProtocol": "Protocol *",
+      "compatible": "compatible",
+      "incompatible": "(incompatible)",
+      "toggleSustained": "Sustained mode",
+      "toggleManual": "Manual mode",
+      "labelDuration": "Duration (s)",
+      "labelRate": "Rate (msg/s)",
+      "labelPayload": "Payload (bytes)",
+      "labelFormat": "Data format",
+      "natsWarning": "Remember to verify max_payload on the NATS broker before sending large payloads.",
+      "btnCancel": "Cancel",
+      "btnSaving": "Saving...",
+      "btnSaveChanges": "Save changes",
+      "btnCreate": "Create Scenario",
+      "validationRequired": "Name, platform, architecture and protocol are required."
+    },
+    "deleteModal": {
+      "title": "Delete Scenario",
+      "message": "Are you sure you want to delete this scenario? This action cannot be undone.",
+      "btnDelete": "Delete"
+    },
+    "executeModal": {
+      "titleConfirm": "Execute scenario",
+      "messageConfirm": "Are you sure you want to launch an execution for this scenario?",
+      "btnConfirm": "Execute",
+      "titleRunning": "Executing...",
+      "messageRunning": "The run is being created on the cluster. Please wait.",
+      "titleDone": "Run created",
+      "messageDone": "The execution was successfully launched on the cluster.",
+      "titleError": "Execution error",
+      "messageError": "Could not launch the run. Check the configuration or try again.",
+      "btnClose": "Close"
+    },
+    "detail": {
+      "labelPlatform": "Platform",
+      "labelArchitecture": "Architecture",
+      "labelProtocol": "Protocol",
+      "labelFormat": "Format",
+      "labelDuration": "Duration",
+      "labelRate": "Rate",
+      "labelPayload": "Payload",
+      "labelStatus": "Status",
+      "labelCreatedAt": "Created on",
+      "btnEdit": "Edit",
+      "btnDelete": "Delete",
+      "btnExecute": "Execute",
+      "btnDuplicate": "Duplicate"
+    },
+    "guide": {
+      "title": "Quick guide",
+      "show": "Show guide",
+      "hide": "Hide guide",
+      "compatSummary": "Compatibility summary",
+      "tip": "Start by selecting the platform to filter compatible options."
+    },
+    "table": {
+      "colName": "Name",
+      "colPlatform": "Platform",
+      "colArchitecture": "Architecture",
+      "colProtocol": "Protocol",
+      "colFormat": "Format",
+      "colStatus": "Status",
+      "colActions": "Actions",
+      "empty": "No scenarios found. Create the first scenario to get started.",
+      "btnBulkExecute": "Execute selected",
+      "btnBulkExecuting": "Executing..."
+    },
+    "presets": {
+      "btnUse": "Use as base"
+    },
+    "toasts": {
+      "updated": "Scenario updated.",
+      "created": "Scenario created.",
+      "deleted": "Scenario deleted.",
+      "executed": "Execution launched.",
+      "errorCreate": "Error creating scenario.",
+      "errorUpdate": "Error updating scenario.",
+      "errorDelete": "Error deleting scenario.",
+      "errorExecute": "Error launching execution."
+    }
+  },
+  "execucions": {
+    "pageTitle": "Executions | Async APIs",
+    "statusLabels": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "stopped": "Stopped",
+      "error": "Error"
+    },
+    "dataFormatLabels": {
+      "default": "Default",
+      "video-4k": "Video 4K",
+      "video-8k": "Video 8K",
+      "financial": "Financial",
+      "iot": "IoT"
+    },
+    "metricWeightLabels": {
+      "p99": "P99 Latency",
+      "throughput": "Throughput",
+      "errorRate": "Error rate",
+      "cpu": "CPU",
+      "memory": "Memory"
+    },
+    "notAvailable": "Not yet available",
+    "lastRefreshed": "Updated:",
+    "guide": {
+      "title": "Executions",
+      "subtitle": "Each run is an execution of a scenario on the AKS cluster.",
+      "items": [
+        {
+          "title": "Launch a run",
+          "text": "Go to Scenarios and press Execute. The system creates a run and adds it here."
+        },
+        {
+          "title": "Follow the progress",
+          "text": "Runs show real-time status: pending, running, completed or error."
+        },
+        {
+          "title": "Stop if needed",
+          "text": "You can stop a running run. The run is marked as stopped and partial data is preserved."
+        },
+        {
+          "title": "Review results",
+          "text": "Once completed, go to Results to compare metrics between runs and scenarios."
+        }
+      ]
+    },
+    "table": {
+      "colScenario": "Scenario Name",
+      "colArchitecture": "Architecture",
+      "colProtocol": "Protocol",
+      "colPlatform": "Platform",
+      "colFormat": "Format",
+      "colStatus": "Status",
+      "colDuration": "Duration",
+      "colStarted": "Started",
+      "colActions": "Actions",
+      "empty": "No executions in this group.",
+      "searchPlaceholder": "Search executions...",
+      "record": "record",
+      "records": "records",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "btnStop": "Stop",
+      "btnDelete": "Delete",
+      "btnDeleteSelected": "Delete selected",
+      "btnDeleteAll": "Delete all"
+    },
+    "confirm": {
+      "titleStop": "Stop execution",
+      "messageStop": "Are you sure you want to stop this execution?",
+      "titleDelete": "Delete execution",
+      "messageDelete": "Are you sure you want to delete this execution? The associated metric data will be lost.",
+      "titleDeleteSelected": "Delete selected",
+      "messageDeleteSelected": "Are you sure you want to delete the selected executions?",
+      "titleDeleteAll": "Delete all",
+      "messageDeleteAll": "Are you sure you want to delete all executions in this group?",
+      "btnConfirm": "Delete",
+      "btnCancel": "Cancel"
+    },
+    "toasts": {
+      "stopped": "stopped.",
+      "errorStop": "Error cancelling:",
+      "errorDelete": "Error deleting:",
+      "errorRefresh": "Could not update executions."
+    }
+  },
+  "resultats": {
+    "pageTitle": "Results | Async APIs",
+    "tabLive": "Live",
+    "tabHistory": "History and comparisons",
+    "dataFormatLabels": {
+      "default": "Default",
+      "video-4k": "Video 4K",
+      "video-8k": "Video 8K",
+      "financial": "Financial",
+      "iot": "IoT"
+    },
+    "glossary": {
+      "title": "How to interpret this page",
+      "heading": "Quick glossary",
+      "sectionMetrics": "Metrics shown in the table",
+      "sectionScore": "How the score works",
+      "scoreDescription": "The score orders the visible scenarios from best to worst. It combines latency, throughput, errors and resources into a single value to ease comparison.",
+      "sectionWeights": "Weights per data format"
+    },
+    "chart": {
+      "lowerBetter": "Lower is better",
+      "higherBetter": "Higher is better",
+      "noData": "No data",
+      "waiting": "Waiting for data..."
+    },
+    "live": {
+      "empty": "No active executions at this moment.",
+      "searchPlaceholder": "Search active executions...",
+      "lastUpdated": "Last updated:",
+      "finishedBanner": "Finished"
+    },
+    "history": {
+      "filterFormat": "Data Format",
+      "filterMore": "More filters (Protocol, Platform, Architecture)",
+      "filterProtocol": "Protocol",
+      "filterPlatform": "Platform",
+      "filterArchitecture": "Architecture",
+      "searchPlaceholder": "Search by scenario, platform, protocol or format",
+      "visibleRuns": "visible executions",
+      "showing": "Showing",
+      "of": "of",
+      "scenarios": "scenarios",
+      "clearAll": "Clear all",
+      "emptyTitle": "No results yet",
+      "emptyMessage": "Run scenarios to see the comparisons here.",
+      "emptyLink": "Go to Scenarios",
+      "emptyFilter": "No results match the current filters.",
+      "statsExecuted": "Scenarios executed",
+      "statsRuns": "Executions recorded",
+      "statsMeasures": "Measurements recorded",
+      "statsTelemetry": "Accumulated telemetry points",
+      "statsBest": "Best scenario (multi-factor)",
+      "sectionMetrics": "Metric Performance",
+      "chartLatency": "Average latency (ms)",
+      "chartThroughput": "Average throughput (msg/s)",
+      "chartError": "Average error rate (%)",
+      "comparisonTitle": "Head-to-head comparison",
+      "comparisonDesc": "Select two scenarios to compare their metrics.",
+      "btnCloseComparison": "Close comparison",
+      "difference": "Difference:",
+      "favorOf": "in favour of",
+      "tableTitle": "Full comparison table",
+      "tableSubtitle": "All executed scenarios with key metrics.",
+      "scenariosExecuted": "scenarios executed",
+      "run": "execution",
+      "runs": "executions"
+    },
+    "runCard": {
+      "running": "Running",
+      "finished": "Finished",
+      "pending": "Pending"
+    },
+    "drawer": {
+      "title": "History detail",
+      "subtitle": "Each execution that has contributed to the aggregated metrics.",
+      "colRunId": "Run ID",
+      "colStatus": "Status",
+      "colStart": "Start",
+      "colDuration": "Duration",
+      "colMeasures": "Measures",
+      "colMessages": "Messages"
+    }
   }
 }

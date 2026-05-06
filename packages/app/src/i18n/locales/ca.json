@@ -38,5 +38,529 @@
     "loading": "Carregant...",
     "error": "Error",
     "success": "Èxit"
+  },
+  "home": {
+    "title": "APIs Asíncrones",
+    "subtitle": "Benchmarks reals sota la mateixa càrrega",
+    "description": "Aquest portal compara combinacions de broker, protocol, arquitectura i format de dades. La idea és simple: executar proves equivalents i veure amb dades quin disseny respon millor.",
+    "heroSubtitle": "Backstage per crear proves, AKS per executar-les i mètriques per comparar resultats.",
+    "btnCreateScenario": "Crear escenari",
+    "btnViewCatalog": "Veure catàleg",
+    "btnCompareResults": "Comparar resultats",
+    "btnOpen": "Obrir",
+    "brokerLabel": "Bròker",
+    "brokerBody": "Emmagatzema i redistribueix missatges independentment de productors i consumidors",
+    "producers": [
+      "telemetria",
+      "events",
+      "transaccions"
+    ],
+    "consumers": [
+      "streaming",
+      "analítica",
+      "alertes"
+    ],
+    "statsLabels": {
+      "components": "Components",
+      "scenarios": "Escenaris",
+      "activeRuns": "Runs actius",
+      "measures": "Mesures"
+    },
+    "statsDesc": {
+      "components": "Catàleg disponible",
+      "scenarios": "Configurats",
+      "activeRuns": "Ara al clúster",
+      "measures": "Punts registrats"
+    },
+    "sections": {
+      "systemEyebrow": "Estructura del sistema",
+      "systemTitle": "De l'escenari als resultats",
+      "systemDesc": "El portal no és el sistema que es mesura. Backstage és la interfície; el backend prepara la prova; AKS executa els components; i les mètriques permeten comparar.",
+      "conceptsEyebrow": "Abans de mirar resultats",
+      "conceptsTitle": "Què estàs comparant realment?",
+      "conceptsDesc": "Una prova no compara noms comercials: compara un recorregut complet del missatge sota una càrrega concreta.",
+      "brokerEyebrow": "Concepte clau",
+      "brokerTitle": "Com funciona un bròker?",
+      "brokerDesc": "Un bròker de missatgeria desacobla els productors dels consumidors: cada part treballa al seu ritme sense dependre de l'altra.",
+      "executionEyebrow": "Execució",
+      "executionTitle": "Què passa quan llances un benchmark?",
+      "executionDesc": "Cada run ha de passar pels mateixos passos perquè després la comparació sigui defensable.",
+      "pagesEyebrow": "Pàgines interiors",
+      "pagesTitle": "On continua cada tasca",
+      "metricsLabel": "Mètriques principals"
+    },
+    "systemParts": [
+      {
+        "title": "Backstage",
+        "subtitle": "Portal de treball",
+        "text": "Pantalla on l'usuari crea escenaris, llança execucions i consulta resultats."
+      },
+      {
+        "title": "Backend",
+        "subtitle": "Compositor",
+        "text": "Aplica les regles del TFG i converteix l'escenari en una prova executable."
+      },
+      {
+        "title": "AKS",
+        "subtitle": "Clúster",
+        "text": "Executa brokers, generadors de càrrega i serveis de mètriques en Kubernetes."
+      },
+      {
+        "title": "Broker",
+        "subtitle": "Sistema mesurat",
+        "text": "Kafka, RabbitMQ, NATS o compatible reben els mateixos payloads sota càrrega."
+      },
+      {
+        "title": "Mètriques",
+        "subtitle": "Dades del run",
+        "text": "Cada execució publica mesures periòdiques amb comptadors i percentils."
+      },
+      {
+        "title": "Comparació",
+        "subtitle": "Resultat final",
+        "text": "La UI mostra diferències entre combinacions i ajuda a defensar conclusions."
+      }
+    ],
+    "concepts": [
+      {
+        "title": "Arquitectura",
+        "text": "La forma d'organitzar productor, broker i consumidor. Afecta com circula el missatge."
+      },
+      {
+        "title": "Protocol",
+        "text": "Les regles de comunicació. Decideix com s'envia, confirma o lliura el missatge."
+      },
+      {
+        "title": "Format de dades",
+        "text": "El tipus de payload. No és igual enviar telemetria IoT que vídeo o transaccions."
+      },
+      {
+        "title": "Broker",
+        "text": "La plataforma que rep i distribueix missatges. És la peça principal que comparem."
+      }
+    ],
+    "executionSteps": [
+      {
+        "label": "Crear escenari",
+        "sub": "tries broker, arquitectura, protocol i format"
+      },
+      {
+        "label": "Preparar execució",
+        "sub": "el backend aplica durada, ràtio i payload"
+      },
+      {
+        "label": "Executar a AKS",
+        "sub": "el generador envia payloads al broker"
+      },
+      {
+        "label": "Guardar mesures",
+        "sub": "cada run registra latència, throughput i errors"
+      },
+      {
+        "label": "Comparar resultats",
+        "sub": "l'historial permet veure què ha funcionat millor"
+      }
+    ],
+    "pages": [
+      {
+        "label": "Catàleg",
+        "desc": "Components, versions i configuració necessària per replicar les proves."
+      },
+      {
+        "label": "Escenaris",
+        "desc": "Defineix broker, arquitectura, protocol, format, càrrega, ràtio i payload."
+      },
+      {
+        "label": "Execucions",
+        "desc": "Llança runs al clúster, atura proves i revisa l'estat de cada execució."
+      },
+      {
+        "label": "Resultats",
+        "desc": "Compara latència, throughput, errors i percentils per execució o escenari."
+      }
+    ],
+    "metrics": [
+      {
+        "title": "Latència P99",
+        "text": "Temps que tarda un missatge des que surt del productor fins que arriba al consumidor. El percentil 99 revela el pitjor cas real: el 99% dels missatges arriben per sota d'aquest valor. Una latència P99 baixa és clau per a sistemes de temps real."
+      },
+      {
+        "title": "Throughput",
+        "text": "Quantitat de missatges processats per segon durant la prova. Indica la capacitat màxima del broker sota la càrrega configurada. Un throughput alt amb latència estable és el signe d'un sistema ben dimensionat."
+      },
+      {
+        "title": "Taxa d'error",
+        "text": "Percentatge de missatges que fallen, es perden o no arriben correctament al consumidor. Inclou errors de xarxa, timeouts i missatges descartats pel broker. Un valor superior al 0,1% acostuma a ser un indicador d'alerta."
+      }
+    ]
+  },
+  "catalog": {
+    "pageTitle": "Catàleg | APIs Asíncrones",
+    "heading": "Catàleg de components",
+    "subheading": "Components, versions i configuració necessària per replicar les proves.",
+    "filterTitle": "Filtres del catàleg",
+    "searchPlaceholder": "Cerca per nom, versió, tag, categoria o reproductibilitat",
+    "filterAll": "Tots",
+    "noCategory": "Sense categoria",
+    "noDescription": "Sense descripció",
+    "noComponents": "No s'ha trobat cap component amb els filtres actuals.",
+    "colComponent": "Component",
+    "colCategory": "Categoria",
+    "colVersion": "Versió",
+    "colDescription": "Descripció",
+    "tableHeading": "Components del benchmark",
+    "tableSubheading": "Selecciona un component per veure la fitxa completa.",
+    "categoryLabels": {
+      "architecture": "Arquitectura",
+      "protocol": "Protocol",
+      "platform": "Plataforma"
+    },
+    "categoryTitles": {
+      "platform": "Plataformes",
+      "protocol": "Protocols",
+      "architecture": "Arquitectures"
+    },
+    "categoryDescriptions": {
+      "architecture": "Patró que descriu com circulen els missatges dins d'un escenari: per esdeveniments, cues, logs o streaming.",
+      "protocol": "Regles de comunicació que indiquen com s'envien i es reben els missatges entre productor, broker i consumidor.",
+      "platform": "Broker o plataforma real desplegada al clúster. És la peça que processa missatges i condiciona els resultats."
+    },
+    "categoryImpacts": {
+      "architecture": "Canvia la forma del flux i, per tant, pot afectar latència, desacoblament i capacitat de consum.",
+      "protocol": "Canvia el transport i les confirmacions. Pot afectar compatibilitat, errors, latència i pèrdua de missatges.",
+      "platform": "Canvia la implementació que corre a AKS. Aquí és on versions, ports, topologia i límits importen per replicar."
+    },
+    "compatibilityNotes": {
+      "Kafka": "Referència per logs i streaming. Quan es combini amb protocols que no són Kafka, cal que l'escenari declari clarament el gateway o adaptador.",
+      "RabbitMQ": "Fort en cues, ACKs i encaminament flexible. És la plataforma natural per AMQP i proves de treball en cua.",
+      "Confluent": "Variant Kafka-compatible per comparar comportament de streaming amb una distribució diferent del mateix ecosistema.",
+      "NATS Server": "Molt lleuger per pub/sub i baixa latència. Per payloads grans cal verificar max_payload abans de llançar el benchmark."
+    },
+    "modal": {
+      "closeAriaLabel": "Tanca el detall del component",
+      "noName": "Component sense nom",
+      "noDescriptionLong": "Aquest component encara no té una descripció al catàleg.",
+      "sectionWhat": "Que representa dins del benchmark",
+      "sectionCard": "Fitxa ràpida",
+      "labelCategory": "Categoria",
+      "labelShortName": "Nom curt",
+      "labelVersion": "Versió",
+      "labelRepro": "Reproductibilitat",
+      "labelCreatedAt": "Afegit el",
+      "btnCopied": "Copiat",
+      "btnCopy": "Copiar",
+      "btnUse": "Utilitzar aquest component",
+      "btnCreateScenario": "Crear escenari"
+    },
+    "compatTable": {
+      "heading": "Compatibilitat de plataformes",
+      "colPlatform": "Plataforma",
+      "colArchitectures": "Arquitectures admèses",
+      "colProtocols": "Protocols admèsos",
+      "colQuickRead": "Lectura ràpida"
+    },
+    "compatDetails": {
+      "compatibleArchitectures": "Arquitectures compatibles",
+      "compatibleProtocols": "Protocols compatibles",
+      "platformsCanUse": "Plataformes que la poden usar",
+      "supportedBy": "Compatible amb"
+    },
+    "stats": {
+      "compatibleCombinations": "combinacions compatibles",
+      "possibleCombinations": "combinacions possibles sense aplicar la matriu",
+      "visibleOf": "components visibles de"
+    },
+    "statusLabels": {
+      "complete": "Completa",
+      "partial": "Parcial"
+    }
+  },
+  "scenarios": {
+    "pageTitle": "Escenaris | APIs Asíncrones",
+    "statusLabels": {
+      "idle": "Llest",
+      "pending": "Pendent",
+      "running": "En execució",
+      "completed": "Completat",
+      "error": "Error"
+    },
+    "dataFormatLabels": {
+      "default": "Base controlada (256 B)",
+      "video-4k": "Streaming vídeo 4K (500 KB)",
+      "video-8k": "Streaming vídeo 8K (2 MB)",
+      "financial": "Transaccions financeres (4 KB)",
+      "iot": "Telemetria IoT (128 B)"
+    },
+    "dataFormatShort": {
+      "default": "Base",
+      "video-4k": "Vídeo 4K",
+      "video-8k": "Vídeo 8K",
+      "financial": "Financer",
+      "iot": "IoT"
+    },
+    "filterAll": "Tots",
+    "filterAllFormats": "Tots els formats",
+    "filterAllArchitectures": "Totes",
+    "filterAllPlatforms": "Tots",
+    "modal": {
+      "titleCreate": "Crea Escenari",
+      "titleEdit": "Edita Escenari",
+      "labelName": "Nom *",
+      "labelPlatform": "Plataforma / Broker *",
+      "placeholderSelectFirst": "(selecciona primer)",
+      "placeholderSelect": "Selecciona...",
+      "placeholderNotAvailable": "(no disponible)",
+      "unavailablePlatforms": "Plataformes no disponibles:",
+      "labelArchitecture": "Arquitectura *",
+      "labelProtocol": "Protocol *",
+      "compatible": "compatibles",
+      "incompatible": "(incompatible)",
+      "toggleSustained": "Mode sostingut",
+      "toggleManual": "Mode manual",
+      "labelDuration": "Durada (s)",
+      "labelRate": "Ràtio (msg/s)",
+      "labelPayload": "Payload (bytes)",
+      "labelFormat": "Format de dades",
+      "natsWarning": "Recordeu verificar max_payload al broker NATS abans de llançar payloads grans.",
+      "btnCancel": "Cancel·la",
+      "btnSaving": "Desant...",
+      "btnSaveChanges": "Desa els canvis",
+      "btnCreate": "Crea Escenari",
+      "validationRequired": "Nom, plataforma, arquitectura i protocol són obligatoris."
+    },
+    "deleteModal": {
+      "title": "Eliminar Escenari",
+      "message": "Segur que vols eliminar l'escenari? Aquesta acció no es pot desfer.",
+      "btnDelete": "Elimina"
+    },
+    "executeModal": {
+      "titleConfirm": "Executar escenari",
+      "messageConfirm": "Segur que vols llançar una execució per a aquest escenari?",
+      "btnConfirm": "Executar",
+      "titleRunning": "Executant...",
+      "messageRunning": "S'està creant el run al clúster. Espereu.",
+      "titleDone": "Run creat",
+      "messageDone": "L'execució s'ha llançat correctament al clúster.",
+      "titleError": "Error en executar",
+      "messageError": "No s'ha pogut llançar el run. Reviseu la configuració o torneu-ho a intentar.",
+      "btnClose": "Tancar"
+    },
+    "detail": {
+      "labelPlatform": "Plataforma",
+      "labelArchitecture": "Arquitectura",
+      "labelProtocol": "Protocol",
+      "labelFormat": "Format",
+      "labelDuration": "Durada",
+      "labelRate": "Ràtio",
+      "labelPayload": "Payload",
+      "labelStatus": "Estat",
+      "labelCreatedAt": "Creat el",
+      "btnEdit": "Editar",
+      "btnDelete": "Eliminar",
+      "btnExecute": "Executar",
+      "btnDuplicate": "Duplicar"
+    },
+    "guide": {
+      "title": "Guia ràpida",
+      "show": "Mostra guia",
+      "hide": "Amaga guia",
+      "compatSummary": "Resum de compatibilitat",
+      "tip": "Comença seleccionant la plataforma per filtrar les opcions compatibles."
+    },
+    "table": {
+      "colName": "Nom",
+      "colPlatform": "Plataforma",
+      "colArchitecture": "Arquitectura",
+      "colProtocol": "Protocol",
+      "colFormat": "Format",
+      "colStatus": "Estat",
+      "colActions": "Accions",
+      "empty": "Cap escenari trobat. Crea el primer escenari per començar.",
+      "btnBulkExecute": "Executar seleccionats",
+      "btnBulkExecuting": "Executant..."
+    },
+    "presets": {
+      "btnUse": "Usar com a base"
+    },
+    "toasts": {
+      "updated": "Escenari actualitzat.",
+      "created": "Escenari creat.",
+      "deleted": "Escenari eliminat.",
+      "executed": "Execució llançada.",
+      "errorCreate": "Error en crear l'escenari.",
+      "errorUpdate": "Error en actualitzar l'escenari.",
+      "errorDelete": "Error en eliminar l'escenari.",
+      "errorExecute": "Error en llançar l'execució."
+    }
+  },
+  "execucions": {
+    "pageTitle": "Execucions | APIs Asíncrones",
+    "statusLabels": {
+      "pending": "Pendent",
+      "running": "En execució",
+      "completed": "Completat",
+      "stopped": "Aturada",
+      "error": "Error"
+    },
+    "dataFormatLabels": {
+      "default": "Per defecte",
+      "video-4k": "Video 4K",
+      "video-8k": "Video 8K",
+      "financial": "Financer",
+      "iot": "IoT"
+    },
+    "metricWeightLabels": {
+      "p99": "Latència P99",
+      "throughput": "Throughput",
+      "errorRate": "Taxa d'error",
+      "cpu": "CPU",
+      "memory": "Memòria"
+    },
+    "notAvailable": "Encara no disponible",
+    "lastRefreshed": "Actualitzat:",
+    "guide": {
+      "title": "Execucions",
+      "subtitle": "Cada run és una execució d'un escenari al clúster AKS.",
+      "items": [
+        {
+          "title": "Llança un run",
+          "text": "Ves a Escenaris i prem Executar. El sistema crea un run i l'afegeix aquí."
+        },
+        {
+          "title": "Segueix el progrés",
+          "text": "Els runs mostren estat en temps real: pendent, en execució, completat o error."
+        },
+        {
+          "title": "Atura si cal",
+          "text": "Pots aturar un run en execució. El run queda marcat com a aturat i les dades parcials es conserven."
+        },
+        {
+          "title": "Revisa resultats",
+          "text": "Un cop completat, ves a Resultats per comparar mètriques entre runs i escenaris."
+        }
+      ]
+    },
+    "table": {
+      "colScenario": "Nom Escenari",
+      "colArchitecture": "Arquitectura",
+      "colProtocol": "Protocol",
+      "colPlatform": "Plataforma",
+      "colFormat": "Format",
+      "colStatus": "Estat",
+      "colDuration": "Durada",
+      "colStarted": "Iniciat",
+      "colActions": "Accions",
+      "empty": "Cap execució en aquest grup.",
+      "searchPlaceholder": "Cerca execucions...",
+      "record": "registre",
+      "records": "registres",
+      "selectAll": "Seleccionar tots",
+      "deselectAll": "Deseleccionar tots",
+      "btnStop": "Atura",
+      "btnDelete": "Eliminar",
+      "btnDeleteSelected": "Eliminar seleccionats",
+      "btnDeleteAll": "Eliminar tot"
+    },
+    "confirm": {
+      "titleStop": "Aturar execució",
+      "messageStop": "Segur que vols aturar aquesta execució?",
+      "titleDelete": "Eliminar execució",
+      "messageDelete": "Segur que vols esborrar aquesta execució? Les dades de mètriques associades es perdran.",
+      "titleDeleteSelected": "Eliminar seleccionats",
+      "messageDeleteSelected": "Segur que vols esborrar les execucions seleccionades?",
+      "titleDeleteAll": "Eliminar tot",
+      "messageDeleteAll": "Segur que vols esborrar totes les execucions d'aquest grup?",
+      "btnConfirm": "Esborra",
+      "btnCancel": "Cancel·la"
+    },
+    "toasts": {
+      "stopped": "aturada.",
+      "errorStop": "Error en cancel·lar:",
+      "errorDelete": "Error en eliminar:",
+      "errorRefresh": "No s'han pogut actualitzar les execucions."
+    }
+  },
+  "resultats": {
+    "pageTitle": "Resultats | APIs Asíncrones",
+    "tabLive": "En directe",
+    "tabHistory": "Historial i comparatives",
+    "dataFormatLabels": {
+      "default": "Per defecte",
+      "video-4k": "Video 4K",
+      "video-8k": "Video 8K",
+      "financial": "Financer",
+      "iot": "IoT"
+    },
+    "glossary": {
+      "title": "Com interpretar aquesta pàgina",
+      "heading": "Glossari ràpid",
+      "sectionMetrics": "Mètriques que veus a la taula",
+      "sectionScore": "Com funciona la puntuació",
+      "scoreDescription": "La puntuació ordena els escenaris visibles de millor a pitjor. Combina latència, throughput, errors i recursos en un sol valor per facilitar la comparació.",
+      "sectionWeights": "Pesos per format de dades"
+    },
+    "chart": {
+      "lowerBetter": "Menor és millor",
+      "higherBetter": "Major és millor",
+      "noData": "Sense dades",
+      "waiting": "Esperant dades..."
+    },
+    "live": {
+      "empty": "Cap execució activa en aquest moment.",
+      "searchPlaceholder": "Cerca execucions actives...",
+      "lastUpdated": "Darrera actualització:",
+      "finishedBanner": "Finalitzat"
+    },
+    "history": {
+      "filterFormat": "Format de Dades",
+      "filterMore": "Més filtres (Protocol, Plataforma, Arquitectura)",
+      "filterProtocol": "Protocol",
+      "filterPlatform": "Plataforma",
+      "filterArchitecture": "Arquitectura",
+      "searchPlaceholder": "Cerca per escenari, plataforma, protocol o format",
+      "visibleRuns": "execucions visibles",
+      "showing": "Mostrant",
+      "of": "de",
+      "scenarios": "escenaris",
+      "clearAll": "Esborra tots",
+      "emptyTitle": "Encara no hi ha resultats",
+      "emptyMessage": "Executa escenaris per veure les comparatives aqui.",
+      "emptyLink": "Anar a Escenaris",
+      "emptyFilter": "Cap resultat coincideix amb els filtres actuals.",
+      "statsExecuted": "Escenaris executats",
+      "statsRuns": "Execucions registrades",
+      "statsMeasures": "Mesures registrades",
+      "statsTelemetry": "Punts de telemetria acumulats",
+      "statsBest": "Millor escenari (multi-factor)",
+      "sectionMetrics": "Rendiment Mètric",
+      "chartLatency": "Latència mitjana (ms)",
+      "chartThroughput": "Throughput mitja (msg/s)",
+      "chartError": "Taxa d'error mitjana (%)",
+      "comparisonTitle": "Comparativa cara a cara",
+      "comparisonDesc": "Selecciona dos escenaris per comparar les seves mètriques.",
+      "btnCloseComparison": "Tancar comparativa",
+      "difference": "Diferència:",
+      "favorOf": "a favor de",
+      "tableTitle": "Taula comparativa completa",
+      "tableSubtitle": "Tots els escenaris executats amb les mètriques principals.",
+      "scenariosExecuted": "escenaris executats",
+      "run": "execució",
+      "runs": "execucions"
+    },
+    "runCard": {
+      "running": "En execució",
+      "finished": "Finalitzat",
+      "pending": "Pendent"
+    },
+    "drawer": {
+      "title": "Detall d'historial",
+      "subtitle": "Cada execució que ha contribuït a les mètriques agregades.",
+      "colRunId": "Run ID",
+      "colStatus": "Estat",
+      "colStart": "Inici",
+      "colDuration": "Durada",
+      "colMeasures": "Mesures",
+      "colMessages": "Missatges"
+    }
   }
 }

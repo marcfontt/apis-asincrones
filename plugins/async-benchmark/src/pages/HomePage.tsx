@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
+import { useTranslation } from '../i18n';
 import { S } from '../theme';
 import { BrokerAnatomyDiagram, BrokerFlowDiagram, LatencyMapDiagram } from '../components/BrokerEducation';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
@@ -141,150 +142,6 @@ const IconResultats = () => (
   </svg>
 );
 
-const paginesDelPortal = [
-  {
-    href: '/catalog',
-    label: 'Catàleg',
-    desc: 'Components, versions i configuració necessària per replicar les proves.',
-    Icona: IconCataleg,
-    color: '#f59e0b',
-  },
-  {
-    href: '/escenaris',
-    label: 'Escenaris',
-    desc: 'Defineix broker, arquitectura, protocol, format, càrrega, ràtio i payload.',
-    Icona: IconEscenaris,
-    color: '#2563eb',
-  },
-  {
-    href: '/execucions',
-    label: 'Execucions',
-    desc: 'Llança runs al clúster, atura proves i revisa l’estat de cada execució.',
-    Icona: IconExecucions,
-    color: '#16a34a',
-  },
-  {
-    href: '/resultats',
-    label: 'Resultats',
-    desc: 'Compara latència, throughput, errors i percentils per execució o escenari.',
-    Icona: IconResultats,
-    color: '#dc2626',
-  },
-];
-
-const metriquesPrincipals = [
-  {
-    title: 'Latència P99',
-    color: '#f59e0b',
-    text: 'Temps que tarda un missatge des que surt del productor fins que arriba al consumidor. El percentil 99 revela el pitjor cas real: el 99% dels missatges arriben per sota d\'aquest valor. Una latència P99 baixa és clau per a sistemes de temps real.',
-  },
-  {
-    title: 'Throughput',
-    color: '#16a34a',
-    text: 'Quantitat de missatges processats per segon durant la prova. Indica la capacitat màxima del broker sota la càrrega configurada. Un throughput alt amb latència estable és el signe d\'un sistema ben dimensionat.',
-  },
-  {
-    title: 'Taxa d\'error',
-    color: '#dc2626',
-    text: 'Percentatge de missatges que fallen, es perden o no arriben correctament al consumidor. Inclou errors de xarxa, timeouts i missatges descartats pel broker. Un valor superior al 0,1% acostuma a ser un indicador d\'alerta.',
-  },
-];
-
-const passosExecucio = [
-  {
-    n: '1',
-    label: 'Crear escenari',
-    sub: 'tries broker, arquitectura, protocol i format',
-    color: '#2563eb',
-  },
-  {
-    n: '2',
-    label: 'Preparar execució',
-    sub: 'el backend aplica durada, ràtio i payload',
-    color: '#7c3aed',
-  },
-  {
-    n: '3',
-    label: 'Executar a AKS',
-    sub: 'el generador envia payloads al broker',
-    color: '#0891b2',
-  },
-  {
-    n: '4',
-    label: 'Guardar mesures',
-    sub: 'cada run registra latència, throughput i errors',
-    color: '#16a34a',
-  },
-  {
-    n: '5',
-    label: 'Comparar resultats',
-    sub: 'l’historial permet veure què ha funcionat millor',
-    color: '#dc2626',
-  },
-];
-
-const partsDelSistema = [
-  {
-    title: 'Backstage',
-    subtitle: 'Portal de treball',
-    text: 'Pantalla on l’usuari crea escenaris, llança execucions i consulta resultats.',
-    color: '#2563eb',
-  },
-  {
-    title: 'Backend',
-    subtitle: 'Compositor',
-    text: 'Aplica les regles del TFG i converteix l’escenari en una prova executable.',
-    color: '#7c3aed',
-  },
-  {
-    title: 'AKS',
-    subtitle: 'Clúster',
-    text: 'Executa brokers, generadors de càrrega i serveis de mètriques en Kubernetes.',
-    color: '#0891b2',
-  },
-  {
-    title: 'Broker',
-    subtitle: 'Sistema mesurat',
-    text: 'Kafka, RabbitMQ, NATS o compatible reben els mateixos payloads sota càrrega.',
-    color: '#f59e0b',
-  },
-  {
-    title: 'Mètriques',
-    subtitle: 'Dades del run',
-    text: 'Cada execució publica mesures periòdiques amb comptadors i percentils.',
-    color: '#16a34a',
-  },
-  {
-    title: 'Comparació',
-    subtitle: 'Resultat final',
-    text: 'La UI mostra diferències entre combinacions i ajuda a defensar conclusions.',
-    color: '#dc2626',
-  },
-];
-
-const conceptesClau = [
-  {
-    title: 'Arquitectura',
-    color: '#2563eb',
-    text: 'La forma d’organitzar productor, broker i consumidor. Afecta com circula el missatge.',
-  },
-  {
-    title: 'Protocol',
-    color: '#7c3aed',
-    text: 'Les regles de comunicació. Decideix com s’envia, confirma o lliura el missatge.',
-  },
-  {
-    title: 'Format de dades',
-    color: '#0891b2',
-    text: 'El tipus de payload. No és igual enviar telemetria IoT que vídeo o transaccions.',
-  },
-  {
-    title: 'Broker',
-    color: '#f59e0b',
-    text: 'La plataforma que rep i distribueix missatges. És la peça principal que comparem.',
-  },
-];
-
 const miniCard = (color: string): CSSProperties => ({
   border: `1px solid ${color}28`,
   background: `linear-gradient(180deg, ${color}0d, var(--bg-card))`,
@@ -321,6 +178,7 @@ const SectionHeader = ({
 );
 
 export const HomePage = () => {
+  const { t } = useTranslation();
   const [estadistiquesPortal, setEstadistiquesPortal] = useState({
     loading: true,
     components: 0,
@@ -331,7 +189,7 @@ export const HomePage = () => {
   });
 
   useEffect(() => {
-    document.title = 'Home | APIs Asíncrones';
+    document.title = t('home.title') + ' | Benchmark Portal';
   }, []);
 
   useEffect(() => {
@@ -381,11 +239,51 @@ export const HomePage = () => {
     };
   }, []);
 
+  const paginesDelPortal = [
+    { href: '/catalog', label: t('home.pages.0.label') , desc: t('home.pages.0.desc'), Icona: IconCataleg, color: '#f59e0b' },
+    { href: '/escenaris', label: t('home.pages.1.label'), desc: t('home.pages.1.desc'), Icona: IconEscenaris, color: '#2563eb' },
+    { href: '/execucions', label: t('home.pages.2.label'), desc: t('home.pages.2.desc'), Icona: IconExecucions, color: '#16a34a' },
+    { href: '/resultats', label: t('home.pages.3.label'), desc: t('home.pages.3.desc'), Icona: IconResultats, color: '#dc2626' },
+  ];
+
+  const metriquesPrincipals = [
+    { title: t('home.metrics.0.title'), color: '#f59e0b', text: t('home.metrics.0.text') },
+    { title: t('home.metrics.1.title'), color: '#16a34a', text: t('home.metrics.1.text') },
+    { title: t('home.metrics.2.title'), color: '#dc2626', text: t('home.metrics.2.text') },
+  ];
+
+  const passosExecucio = [
+    { n: '1', label: t('home.executionSteps.0.label'), sub: t('home.executionSteps.0.sub'), color: '#2563eb' },
+    { n: '2', label: t('home.executionSteps.1.label'), sub: t('home.executionSteps.1.sub'), color: '#7c3aed' },
+    { n: '3', label: t('home.executionSteps.2.label'), sub: t('home.executionSteps.2.sub'), color: '#0891b2' },
+    { n: '4', label: t('home.executionSteps.3.label'), sub: t('home.executionSteps.3.sub'), color: '#16a34a' },
+    { n: '5', label: t('home.executionSteps.4.label'), sub: t('home.executionSteps.4.sub'), color: '#dc2626' },
+  ];
+
+  const partsDelSistema = [
+    { title: t('home.systemParts.0.title'), subtitle: t('home.systemParts.0.subtitle'), text: t('home.systemParts.0.text'), color: '#2563eb' },
+    { title: t('home.systemParts.1.title'), subtitle: t('home.systemParts.1.subtitle'), text: t('home.systemParts.1.text'), color: '#7c3aed' },
+    { title: t('home.systemParts.2.title'), subtitle: t('home.systemParts.2.subtitle'), text: t('home.systemParts.2.text'), color: '#0891b2' },
+    { title: t('home.systemParts.3.title'), subtitle: t('home.systemParts.3.subtitle'), text: t('home.systemParts.3.text'), color: '#f59e0b' },
+    { title: t('home.systemParts.4.title'), subtitle: t('home.systemParts.4.subtitle'), text: t('home.systemParts.4.text'), color: '#16a34a' },
+    { title: t('home.systemParts.5.title'), subtitle: t('home.systemParts.5.subtitle'), text: t('home.systemParts.5.text'), color: '#dc2626' },
+  ];
+
+  const conceptesClau = [
+    { title: t('home.concepts.0.title'), color: '#2563eb', text: t('home.concepts.0.text') },
+    { title: t('home.concepts.1.title'), color: '#7c3aed', text: t('home.concepts.1.text') },
+    { title: t('home.concepts.2.title'), color: '#0891b2', text: t('home.concepts.2.text') },
+    { title: t('home.concepts.3.title'), color: '#f59e0b', text: t('home.concepts.3.text') },
+  ];
+
+  const producers = [t('home.producers.0'), t('home.producers.1'), t('home.producers.2')];
+  const consumers = [t('home.consumers.0'), t('home.consumers.1'), t('home.consumers.2')];
+
   const estadistiques = [
-    { label: 'Components', value: estadistiquesPortal.components, color: '#f59e0b', desc: 'Catàleg disponible' },
-    { label: 'Escenaris', value: estadistiquesPortal.scenarios, color: '#2563eb', desc: 'Configurats' },
-    { label: 'Runs actius', value: estadistiquesPortal.activeRuns, color: '#16a34a', desc: 'Ara al clúster' },
-    { label: 'Mesures', value: estadistiquesPortal.totalMeasures, color: '#dc2626', desc: 'Punts registrats' },
+    { label: t('home.statsLabels.components'), value: estadistiquesPortal.components, color: '#f59e0b', desc: t('home.statsDesc.components') },
+    { label: t('home.statsLabels.scenarios'), value: estadistiquesPortal.scenarios, color: '#2563eb', desc: t('home.statsDesc.scenarios') },
+    { label: t('home.statsLabels.activeRuns'), value: estadistiquesPortal.activeRuns, color: '#16a34a', desc: t('home.statsDesc.activeRuns') },
+    { label: t('home.statsLabels.measures'), value: estadistiquesPortal.totalMeasures, color: '#dc2626', desc: t('home.statsDesc.measures') },
   ];
 
   return (
@@ -423,26 +321,26 @@ export const HomePage = () => {
                   Benchmark Portal
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 4 }}>
-                  Backstage per crear proves, AKS per executar-les i mètriques per comparar resultats.
+                  {t('home.heroSubtitle')}
                 </div>
               </div>
             </div>
 
             <h1 style={{ margin: 0, maxWidth: 720, fontSize: 43, lineHeight: 1.06, fontWeight: 950, letterSpacing: '-0.03em', color: 'var(--text-primary)' }}>
-              APIs Asíncrones
+              {t('home.title')}
             </h1>
             <p style={{ margin: '10px 0 0', fontSize: 18, fontWeight: 900, color: 'var(--teal)' }}>
-              Benchmarks reals sota la mateixa càrrega
+              {t('home.subtitle')}
             </p>
             <p style={{ margin: '18px 0 24px', maxWidth: 750, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.78 }}>
-              Aquest portal compara combinacions de broker, protocol, arquitectura i format de dades. La idea és simple: executar proves equivalents i veure amb dades quin disseny respon millor.
+              {t('home.description')}
             </p>
             <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
               <a href="/escenaris" className="home-btn-primary" style={{ ...S.btnPrimary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#16a34a', boxShadow: '0 6px 18px rgba(22,163,74,0.22)' }}>
-                Crear escenari
+                {t('home.btnCreateScenario')}
               </a>
-              <a href="/catalog" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>Veure catàleg</a>
-              <a href="/resultats" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>Comparar resultats</a>
+              <a href="/catalog" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>{t('home.btnViewCatalog')}</a>
+              <a href="/resultats" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>{t('home.btnCompareResults')}</a>
             </div>
           </div>
 
@@ -462,9 +360,9 @@ export const HomePage = () => {
 
       <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
         <SectionHeader
-          eyebrow="Estructura del sistema"
-          title="De l’escenari als resultats"
-          description="El portal no és el sistema que es mesura. Backstage és la interfície; el backend prepara la prova; AKS executa els components; i les mètriques permeten comparar."
+          eyebrow={t('home.sections.systemEyebrow')}
+          title={t('home.sections.systemTitle')}
+          description={t('home.sections.systemDesc')}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(130px, 1fr))', gap: 10 }} className="async-responsive-grid">
@@ -488,9 +386,9 @@ export const HomePage = () => {
 
       <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
         <SectionHeader
-          eyebrow="Abans de mirar resultats"
-          title="Què estàs comparant realment?"
-          description="Una prova no compara noms comercials: compara un recorregut complet del missatge sota una càrrega concreta."
+          eyebrow={t('home.sections.conceptsEyebrow')}
+          title={t('home.sections.conceptsTitle')}
+          description={t('home.sections.conceptsDesc')}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
@@ -505,9 +403,9 @@ export const HomePage = () => {
 
       <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
         <SectionHeader
-          eyebrow="Concepte clau"
-          title="Com funciona un bròker?"
-          description="Un bròker de missatgeria desacobla els productors dels consumidors: cada part treballa al seu ritme sense dependre de l'altra."
+          eyebrow={t('home.sections.brokerEyebrow')}
+          title={t('home.sections.brokerTitle')}
+          description={t('home.sections.brokerDesc')}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, alignItems: 'center', background: 'var(--bg-subtle)', borderRadius: 12, padding: '20px 16px' }} className="async-responsive-grid">
@@ -518,7 +416,7 @@ export const HomePage = () => {
                 <div style={{ flex: 1, border: '1px solid rgba(37,99,235,0.35)', borderRadius: 8, padding: '8px 12px', background: 'rgba(37,99,235,0.07)', fontSize: 12, fontWeight: 850, color: '#2563eb', textAlign: 'center' }}>
                   {label}
                   <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    {['telemetria', 'events', 'transaccions'][i]}
+                    {producers[i]}
                   </div>
                 </div>
                 <span aria-hidden style={{ color: '#2563eb', fontSize: 14, fontWeight: 900 }}>→</span>
@@ -529,14 +427,14 @@ export const HomePage = () => {
           {/* Broker (Topic) */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '0 12px' }}>
             <div style={{ border: '2px solid rgba(245,158,11,0.5)', borderRadius: 12, padding: '14px 18px', background: 'rgba(245,158,11,0.08)', textAlign: 'center', width: '100%' }}>
-              <div style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Bròker</div>
+              <div style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('home.brokerLabel')}</div>
               <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                 Kafka · RabbitMQ<br />NATS · compatible
               </div>
               <div style={{ marginTop: 8, fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>Topic / Queue</div>
             </div>
             <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>
-              Emmagatzema i redistribueix missatges independentment de productors i consumidors
+              {t('home.brokerBody')}
             </p>
           </div>
 
@@ -548,7 +446,7 @@ export const HomePage = () => {
                 <div style={{ flex: 1, border: '1px solid rgba(22,163,74,0.35)', borderRadius: 8, padding: '8px 12px', background: 'rgba(22,163,74,0.07)', fontSize: 12, fontWeight: 850, color: '#16a34a', textAlign: 'center' }}>
                   {label}
                   <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    {['streaming', 'analítica', 'alertes'][i]}
+                    {consumers[i]}
                   </div>
                 </div>
               </div>
@@ -561,7 +459,7 @@ export const HomePage = () => {
         <BrokerFlowDiagram />
         <div style={{ ...S.card, padding: 20 }}>
           <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
-            Mètriques principals
+            {t('home.sections.metricsLabel')}
           </div>
           <div style={{ display: 'grid', gap: 10, gridTemplateRows: 'repeat(3, 1fr)' }}>
             {metriquesPrincipals.map(metric => (
@@ -576,9 +474,9 @@ export const HomePage = () => {
 
       <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
         <SectionHeader
-          eyebrow="Execució"
-          title="Què passa quan llances un benchmark?"
-          description="Cada run ha de passar pels mateixos passos perquè després la comparació sigui defensable."
+          eyebrow={t('home.sections.executionEyebrow')}
+          title={t('home.sections.executionTitle')}
+          description={t('home.sections.executionDesc')}
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(140px, 1fr))', gap: 12 }} className="async-responsive-grid">
@@ -605,7 +503,7 @@ export const HomePage = () => {
       </div>
 
       <section style={{ ...S.card, padding: 22 }}>
-        <SectionHeader eyebrow="Pàgines interiors" title="On continua cada tasca" />
+        <SectionHeader eyebrow={t('home.sections.pagesEyebrow')} title={t('home.sections.pagesTitle')} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
           {paginesDelPortal.map(page => (
@@ -618,7 +516,7 @@ export const HomePage = () => {
                 <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{page.desc}</p>
               </div>
               <div style={{ marginTop: 'auto', color: page.color, fontSize: 12, fontWeight: 850, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                Obrir <IconFletxa />
+{t('home.btnOpen')} <IconFletxa />
               </div>
             </a>
           ))}

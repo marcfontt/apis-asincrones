@@ -38,5 +38,529 @@
     "loading": "Cargando...",
     "error": "Error",
     "success": "Éxito"
+  },
+  "home": {
+    "title": "APIs Asíncronas",
+    "subtitle": "Benchmarks reales bajo la misma carga",
+    "description": "Este portal compara combinaciones de broker, protocolo, arquitectura y formato de datos. La idea es simple: ejecutar pruebas equivalentes y ver con datos qué diseño responde mejor.",
+    "heroSubtitle": "Backstage para crear pruebas, AKS para ejecutarlas y métricas para comparar resultados.",
+    "btnCreateScenario": "Crear escenario",
+    "btnViewCatalog": "Ver catálogo",
+    "btnCompareResults": "Comparar resultados",
+    "btnOpen": "Abrir",
+    "brokerLabel": "Bróker",
+    "brokerBody": "Almacena y redistribuye mensajes independientemente de productores y consumidores",
+    "producers": [
+      "telemetría",
+      "eventos",
+      "transacciones"
+    ],
+    "consumers": [
+      "streaming",
+      "analítica",
+      "alertas"
+    ],
+    "statsLabels": {
+      "components": "Componentes",
+      "scenarios": "Escenarios",
+      "activeRuns": "Runs activos",
+      "measures": "Medidas"
+    },
+    "statsDesc": {
+      "components": "Catálogo disponible",
+      "scenarios": "Configurados",
+      "activeRuns": "Ahora en el clúster",
+      "measures": "Puntos registrados"
+    },
+    "sections": {
+      "systemEyebrow": "Estructura del sistema",
+      "systemTitle": "Del escenario a los resultados",
+      "systemDesc": "El portal no es el sistema que se mide. Backstage es la interfaz; el backend prepara la prueba; AKS ejecuta los componentes; y las métricas permiten comparar.",
+      "conceptsEyebrow": "Antes de mirar resultados",
+      "conceptsTitle": "¿Qué estás comparando realmente?",
+      "conceptsDesc": "Una prueba no compara nombres comerciales: compara un recorrido completo del mensaje bajo una carga concreta.",
+      "brokerEyebrow": "Concepto clave",
+      "brokerTitle": "¿Cómo funciona un bróker?",
+      "brokerDesc": "Un bróker de mensajería desacopla los productores de los consumidores: cada parte trabaja a su ritmo sin depender de la otra.",
+      "executionEyebrow": "Ejecución",
+      "executionTitle": "¿Qué ocurre cuando lanzas un benchmark?",
+      "executionDesc": "Cada run debe pasar por los mismos pasos para que después la comparación sea defendible.",
+      "pagesEyebrow": "Páginas interiores",
+      "pagesTitle": "Dónde continúa cada tarea",
+      "metricsLabel": "Métricas principales"
+    },
+    "systemParts": [
+      {
+        "title": "Backstage",
+        "subtitle": "Portal de trabajo",
+        "text": "Pantalla donde el usuario crea escenarios, lanza ejecuciones y consulta resultados."
+      },
+      {
+        "title": "Backend",
+        "subtitle": "Compositor",
+        "text": "Aplica las reglas del TFG y convierte el escenario en una prueba ejecutable."
+      },
+      {
+        "title": "AKS",
+        "subtitle": "Clúster",
+        "text": "Ejecuta brokers, generadores de carga y servicios de métricas en Kubernetes."
+      },
+      {
+        "title": "Broker",
+        "subtitle": "Sistema medido",
+        "text": "Kafka, RabbitMQ, NATS o compatible reciben los mismos payloads bajo carga."
+      },
+      {
+        "title": "Métricas",
+        "subtitle": "Datos del run",
+        "text": "Cada ejecución publica medidas periódicas con contadores y percentiles."
+      },
+      {
+        "title": "Comparación",
+        "subtitle": "Resultado final",
+        "text": "La UI muestra diferencias entre combinaciones y ayuda a defender conclusiones."
+      }
+    ],
+    "concepts": [
+      {
+        "title": "Arquitectura",
+        "text": "La forma de organizar productor, broker y consumidor. Afecta cómo circula el mensaje."
+      },
+      {
+        "title": "Protocolo",
+        "text": "Las reglas de comunicación. Decide cómo se envía, confirma o entrega el mensaje."
+      },
+      {
+        "title": "Formato de datos",
+        "text": "El tipo de payload. No es lo mismo enviar telemetría IoT que vídeo o transacciones."
+      },
+      {
+        "title": "Broker",
+        "text": "La plataforma que recibe y distribuye mensajes. Es la pieza principal que comparamos."
+      }
+    ],
+    "executionSteps": [
+      {
+        "label": "Crear escenario",
+        "sub": "eliges broker, arquitectura, protocolo y formato"
+      },
+      {
+        "label": "Preparar ejecución",
+        "sub": "el backend aplica duración, ratio y payload"
+      },
+      {
+        "label": "Ejecutar en AKS",
+        "sub": "el generador envía payloads al broker"
+      },
+      {
+        "label": "Guardar medidas",
+        "sub": "cada run registra latencia, throughput y errores"
+      },
+      {
+        "label": "Comparar resultados",
+        "sub": "el historial muestra qué ha funcionado mejor"
+      }
+    ],
+    "pages": [
+      {
+        "label": "Catálogo",
+        "desc": "Componentes, versiones y configuración necesaria para replicar las pruebas."
+      },
+      {
+        "label": "Escenarios",
+        "desc": "Define broker, arquitectura, protocolo, formato, carga, ratio y payload."
+      },
+      {
+        "label": "Ejecuciones",
+        "desc": "Lanza runs al clúster, detén pruebas y revisa el estado de cada ejecución."
+      },
+      {
+        "label": "Resultados",
+        "desc": "Compara latencia, throughput, errores y percentiles por ejecución o escenario."
+      }
+    ],
+    "metrics": [
+      {
+        "title": "Latencia P99",
+        "text": "Tiempo que tarda un mensaje desde que sale del productor hasta que llega al consumidor. El percentil 99 revela el peor caso real: el 99% de los mensajes llegan por debajo de este valor. Una latencia P99 baja es clave para sistemas de tiempo real."
+      },
+      {
+        "title": "Throughput",
+        "text": "Cantidad de mensajes procesados por segundo durante la prueba. Indica la capacidad máxima del broker bajo la carga configurada. Un throughput alto con latencia estable es la señal de un sistema bien dimensionado."
+      },
+      {
+        "title": "Tasa de error",
+        "text": "Porcentaje de mensajes que fallan, se pierden o no llegan correctamente al consumidor. Incluye errores de red, timeouts y mensajes descartados por el broker. Un valor superior al 0,1% suele ser un indicador de alerta."
+      }
+    ]
+  },
+  "catalog": {
+    "pageTitle": "Catálogo | APIs Asíncronas",
+    "heading": "Catálogo de componentes",
+    "subheading": "Componentes, versiones y configuración necesaria para replicar las pruebas.",
+    "filterTitle": "Filtros del catálogo",
+    "searchPlaceholder": "Buscar por nombre, versión, tag, categoría o reproducibilidad",
+    "filterAll": "Todos",
+    "noCategory": "Sin categoría",
+    "noDescription": "Sin descripción",
+    "noComponents": "No se ha encontrado ningún componente con los filtros actuales.",
+    "colComponent": "Componente",
+    "colCategory": "Categoría",
+    "colVersion": "Versión",
+    "colDescription": "Descripción",
+    "tableHeading": "Componentes del benchmark",
+    "tableSubheading": "Selecciona un componente para ver la ficha completa.",
+    "categoryLabels": {
+      "architecture": "Arquitectura",
+      "protocol": "Protocolo",
+      "platform": "Plataforma"
+    },
+    "categoryTitles": {
+      "platform": "Plataformas",
+      "protocol": "Protocolos",
+      "architecture": "Arquitecturas"
+    },
+    "categoryDescriptions": {
+      "architecture": "Patrón que describe cómo circulan los mensajes dentro de un escenario: por eventos, colas, logs o streaming.",
+      "protocol": "Reglas de comunicación que indican cómo se envían y reciben los mensajes entre productor, broker y consumidor.",
+      "platform": "Broker o plataforma real desplegada en el clúster. Es la pieza que procesa mensajes y condiciona los resultados."
+    },
+    "categoryImpacts": {
+      "architecture": "Cambia la forma del flujo y, por tanto, puede afectar latencia, desacoplamiento y capacidad de consumo.",
+      "protocol": "Cambia el transporte y las confirmaciones. Puede afectar compatibilidad, errores, latencia y pérdida de mensajes.",
+      "platform": "Cambia la implementación que corre en AKS. Aquí es donde versiones, puertos, topología y límites importan para replicar."
+    },
+    "compatibilityNotes": {
+      "Kafka": "Referencia para logs y streaming. Cuando se combine con protocolos que no son Kafka, el escenario debe declarar claramente el gateway o adaptador.",
+      "RabbitMQ": "Fuerte en colas, ACKs y enrutamiento flexible. Es la plataforma natural para AMQP y pruebas de trabajo en cola.",
+      "Confluent": "Variante Kafka-compatible para comparar comportamiento de streaming con una distribución diferente del mismo ecosistema.",
+      "NATS Server": "Muy ligero para pub/sub y baja latencia. Para payloads grandes hay que verificar max_payload antes de lanzar el benchmark."
+    },
+    "modal": {
+      "closeAriaLabel": "Cerrar el detalle del componente",
+      "noName": "Componente sin nombre",
+      "noDescriptionLong": "Este componente todavía no tiene una descripción en el catálogo.",
+      "sectionWhat": "Qué representa dentro del benchmark",
+      "sectionCard": "Ficha rápida",
+      "labelCategory": "Categoría",
+      "labelShortName": "Nombre corto",
+      "labelVersion": "Versión",
+      "labelRepro": "Reproducibilidad",
+      "labelCreatedAt": "Añadido el",
+      "btnCopied": "Copiado",
+      "btnCopy": "Copiar",
+      "btnUse": "Utilizar este componente",
+      "btnCreateScenario": "Crear escenario"
+    },
+    "compatTable": {
+      "heading": "Compatibilidad de plataformas",
+      "colPlatform": "Plataforma",
+      "colArchitectures": "Arquitecturas admitidas",
+      "colProtocols": "Protocolos admitidos",
+      "colQuickRead": "Lectura rápida"
+    },
+    "compatDetails": {
+      "compatibleArchitectures": "Arquitecturas compatibles",
+      "compatibleProtocols": "Protocolos compatibles",
+      "platformsCanUse": "Plataformas que la pueden usar",
+      "supportedBy": "Compatible con"
+    },
+    "stats": {
+      "compatibleCombinations": "combinaciones compatibles",
+      "possibleCombinations": "combinaciones posibles sin aplicar la matriz",
+      "visibleOf": "componentes visibles de"
+    },
+    "statusLabels": {
+      "complete": "Completa",
+      "partial": "Parcial"
+    }
+  },
+  "scenarios": {
+    "pageTitle": "Escenarios | APIs Asíncronas",
+    "statusLabels": {
+      "idle": "Listo",
+      "pending": "Pendiente",
+      "running": "En ejecución",
+      "completed": "Completado",
+      "error": "Error"
+    },
+    "dataFormatLabels": {
+      "default": "Base controlada (256 B)",
+      "video-4k": "Streaming vídeo 4K (500 KB)",
+      "video-8k": "Streaming vídeo 8K (2 MB)",
+      "financial": "Transacciones financieras (4 KB)",
+      "iot": "Telemetría IoT (128 B)"
+    },
+    "dataFormatShort": {
+      "default": "Base",
+      "video-4k": "Vídeo 4K",
+      "video-8k": "Vídeo 8K",
+      "financial": "Financiero",
+      "iot": "IoT"
+    },
+    "filterAll": "Todos",
+    "filterAllFormats": "Todos los formatos",
+    "filterAllArchitectures": "Todas",
+    "filterAllPlatforms": "Todos",
+    "modal": {
+      "titleCreate": "Crear Escenario",
+      "titleEdit": "Editar Escenario",
+      "labelName": "Nombre *",
+      "labelPlatform": "Plataforma / Broker *",
+      "placeholderSelectFirst": "(selecciona primero)",
+      "placeholderSelect": "Selecciona...",
+      "placeholderNotAvailable": "(no disponible)",
+      "unavailablePlatforms": "Plataformas no disponibles:",
+      "labelArchitecture": "Arquitectura *",
+      "labelProtocol": "Protocolo *",
+      "compatible": "compatibles",
+      "incompatible": "(incompatible)",
+      "toggleSustained": "Modo sostenido",
+      "toggleManual": "Modo manual",
+      "labelDuration": "Duración (s)",
+      "labelRate": "Ratio (msg/s)",
+      "labelPayload": "Payload (bytes)",
+      "labelFormat": "Formato de datos",
+      "natsWarning": "Recuerda verificar max_payload en el broker NATS antes de lanzar payloads grandes.",
+      "btnCancel": "Cancelar",
+      "btnSaving": "Guardando...",
+      "btnSaveChanges": "Guardar cambios",
+      "btnCreate": "Crear Escenario",
+      "validationRequired": "Nombre, plataforma, arquitectura y protocolo son obligatorios."
+    },
+    "deleteModal": {
+      "title": "Eliminar Escenario",
+      "message": "¿Seguro que quieres eliminar el escenario? Esta acción no se puede deshacer.",
+      "btnDelete": "Eliminar"
+    },
+    "executeModal": {
+      "titleConfirm": "Ejecutar escenario",
+      "messageConfirm": "¿Seguro que quieres lanzar una ejecución para este escenario?",
+      "btnConfirm": "Ejecutar",
+      "titleRunning": "Ejecutando...",
+      "messageRunning": "Se está creando el run en el clúster. Espera.",
+      "titleDone": "Run creado",
+      "messageDone": "La ejecución se ha lanzado correctamente en el clúster.",
+      "titleError": "Error al ejecutar",
+      "messageError": "No se ha podido lanzar el run. Revisa la configuración o inténtalo de nuevo.",
+      "btnClose": "Cerrar"
+    },
+    "detail": {
+      "labelPlatform": "Plataforma",
+      "labelArchitecture": "Arquitectura",
+      "labelProtocol": "Protocolo",
+      "labelFormat": "Formato",
+      "labelDuration": "Duración",
+      "labelRate": "Ratio",
+      "labelPayload": "Payload",
+      "labelStatus": "Estado",
+      "labelCreatedAt": "Creado el",
+      "btnEdit": "Editar",
+      "btnDelete": "Eliminar",
+      "btnExecute": "Ejecutar",
+      "btnDuplicate": "Duplicar"
+    },
+    "guide": {
+      "title": "Guía rápida",
+      "show": "Mostrar guía",
+      "hide": "Ocultar guía",
+      "compatSummary": "Resumen de compatibilidad",
+      "tip": "Comienza seleccionando la plataforma para filtrar las opciones compatibles."
+    },
+    "table": {
+      "colName": "Nombre",
+      "colPlatform": "Plataforma",
+      "colArchitecture": "Arquitectura",
+      "colProtocol": "Protocolo",
+      "colFormat": "Formato",
+      "colStatus": "Estado",
+      "colActions": "Acciones",
+      "empty": "No hay escenarios. Crea el primero para empezar.",
+      "btnBulkExecute": "Ejecutar seleccionados",
+      "btnBulkExecuting": "Ejecutando..."
+    },
+    "presets": {
+      "btnUse": "Usar como base"
+    },
+    "toasts": {
+      "updated": "Escenario actualizado.",
+      "created": "Escenario creado.",
+      "deleted": "Escenario eliminado.",
+      "executed": "Ejecución lanzada.",
+      "errorCreate": "Error al crear el escenario.",
+      "errorUpdate": "Error al actualizar el escenario.",
+      "errorDelete": "Error al eliminar el escenario.",
+      "errorExecute": "Error al lanzar la ejecución."
+    }
+  },
+  "execucions": {
+    "pageTitle": "Ejecuciones | APIs Asíncronas",
+    "statusLabels": {
+      "pending": "Pendiente",
+      "running": "En ejecución",
+      "completed": "Completado",
+      "stopped": "Detenida",
+      "error": "Error"
+    },
+    "dataFormatLabels": {
+      "default": "Por defecto",
+      "video-4k": "Video 4K",
+      "video-8k": "Video 8K",
+      "financial": "Financiero",
+      "iot": "IoT"
+    },
+    "metricWeightLabels": {
+      "p99": "Latencia P99",
+      "throughput": "Throughput",
+      "errorRate": "Tasa de error",
+      "cpu": "CPU",
+      "memory": "Memoria"
+    },
+    "notAvailable": "Aún no disponible",
+    "lastRefreshed": "Actualizado:",
+    "guide": {
+      "title": "Ejecuciones",
+      "subtitle": "Cada run es una ejecución de un escenario en el clúster AKS.",
+      "items": [
+        {
+          "title": "Lanza un run",
+          "text": "Ve a Escenarios y pulsa Ejecutar. El sistema crea un run y lo añade aquí."
+        },
+        {
+          "title": "Sigue el progreso",
+          "text": "Los runs muestran estado en tiempo real: pendiente, en ejecución, completado o error."
+        },
+        {
+          "title": "Detén si es necesario",
+          "text": "Puedes detener un run en ejecución. El run queda marcado como detenido y los datos parciales se conservan."
+        },
+        {
+          "title": "Revisa resultados",
+          "text": "Una vez completado, ve a Resultados para comparar métricas entre runs y escenarios."
+        }
+      ]
+    },
+    "table": {
+      "colScenario": "Nombre Escenario",
+      "colArchitecture": "Arquitectura",
+      "colProtocol": "Protocolo",
+      "colPlatform": "Plataforma",
+      "colFormat": "Formato",
+      "colStatus": "Estado",
+      "colDuration": "Duración",
+      "colStarted": "Iniciado",
+      "colActions": "Acciones",
+      "empty": "No hay ejecuciones en este grupo.",
+      "searchPlaceholder": "Buscar ejecuciones...",
+      "record": "registro",
+      "records": "registros",
+      "selectAll": "Seleccionar todos",
+      "deselectAll": "Deseleccionar todos",
+      "btnStop": "Detener",
+      "btnDelete": "Eliminar",
+      "btnDeleteSelected": "Eliminar seleccionados",
+      "btnDeleteAll": "Eliminar todo"
+    },
+    "confirm": {
+      "titleStop": "Detener ejecución",
+      "messageStop": "¿Seguro que quieres detener esta ejecución?",
+      "titleDelete": "Eliminar ejecución",
+      "messageDelete": "¿Seguro que quieres borrar esta ejecución? Los datos de métricas asociados se perderán.",
+      "titleDeleteSelected": "Eliminar seleccionados",
+      "messageDeleteSelected": "¿Seguro que quieres borrar las ejecuciones seleccionadas?",
+      "titleDeleteAll": "Eliminar todo",
+      "messageDeleteAll": "¿Seguro que quieres borrar todas las ejecuciones de este grupo?",
+      "btnConfirm": "Eliminar",
+      "btnCancel": "Cancelar"
+    },
+    "toasts": {
+      "stopped": "detenida.",
+      "errorStop": "Error al cancelar:",
+      "errorDelete": "Error al eliminar:",
+      "errorRefresh": "No se han podido actualizar las ejecuciones."
+    }
+  },
+  "resultats": {
+    "pageTitle": "Resultados | APIs Asíncronas",
+    "tabLive": "En directo",
+    "tabHistory": "Historial y comparativas",
+    "dataFormatLabels": {
+      "default": "Por defecto",
+      "video-4k": "Video 4K",
+      "video-8k": "Video 8K",
+      "financial": "Financiero",
+      "iot": "IoT"
+    },
+    "glossary": {
+      "title": "Cómo interpretar esta página",
+      "heading": "Glosario rápido",
+      "sectionMetrics": "Métricas que ves en la tabla",
+      "sectionScore": "Cómo funciona la puntuación",
+      "scoreDescription": "La puntuación ordena los escenarios visibles de mejor a peor. Combina latencia, throughput, errores y recursos en un solo valor para facilitar la comparación.",
+      "sectionWeights": "Pesos por formato de datos"
+    },
+    "chart": {
+      "lowerBetter": "Menor es mejor",
+      "higherBetter": "Mayor es mejor",
+      "noData": "Sin datos",
+      "waiting": "Esperando datos..."
+    },
+    "live": {
+      "empty": "No hay ejecuciones activas en este momento.",
+      "searchPlaceholder": "Buscar ejecuciones activas...",
+      "lastUpdated": "Última actualización:",
+      "finishedBanner": "Finalizado"
+    },
+    "history": {
+      "filterFormat": "Formato de Datos",
+      "filterMore": "Más filtros (Protocolo, Plataforma, Arquitectura)",
+      "filterProtocol": "Protocolo",
+      "filterPlatform": "Plataforma",
+      "filterArchitecture": "Arquitectura",
+      "searchPlaceholder": "Buscar por escenario, plataforma, protocolo o formato",
+      "visibleRuns": "ejecuciones visibles",
+      "showing": "Mostrando",
+      "of": "de",
+      "scenarios": "escenarios",
+      "clearAll": "Borrar todos",
+      "emptyTitle": "Todavía no hay resultados",
+      "emptyMessage": "Ejecuta escenarios para ver las comparativas aquí.",
+      "emptyLink": "Ir a Escenarios",
+      "emptyFilter": "Ningún resultado coincide con los filtros actuales.",
+      "statsExecuted": "Escenarios ejecutados",
+      "statsRuns": "Ejecuciones registradas",
+      "statsMeasures": "Medidas registradas",
+      "statsTelemetry": "Puntos de telemetría acumulados",
+      "statsBest": "Mejor escenario (multi-factor)",
+      "sectionMetrics": "Rendimiento Métrico",
+      "chartLatency": "Latencia media (ms)",
+      "chartThroughput": "Throughput medio (msg/s)",
+      "chartError": "Tasa de error media (%)",
+      "comparisonTitle": "Comparativa cara a cara",
+      "comparisonDesc": "Selecciona dos escenarios para comparar sus métricas.",
+      "btnCloseComparison": "Cerrar comparativa",
+      "difference": "Diferencia:",
+      "favorOf": "a favor de",
+      "tableTitle": "Tabla comparativa completa",
+      "tableSubtitle": "Todos los escenarios ejecutados con las métricas principales.",
+      "scenariosExecuted": "escenarios ejecutados",
+      "run": "ejecución",
+      "runs": "ejecuciones"
+    },
+    "runCard": {
+      "running": "En ejecución",
+      "finished": "Finalizado",
+      "pending": "Pendiente"
+    },
+    "drawer": {
+      "title": "Detalle de historial",
+      "subtitle": "Cada ejecución que ha contribuido a las métricas agregadas.",
+      "colRunId": "Run ID",
+      "colStatus": "Estado",
+      "colStart": "Inicio",
+      "colDuration": "Duración",
+      "colMeasures": "Medidas",
+      "colMessages": "Mensajes"
+    }
   }
 }
