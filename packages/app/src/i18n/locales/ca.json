@@ -257,15 +257,15 @@
     "metrics": [
       {
         "title": "Latència P99",
-        "text": "Temps que tarda un missatge des que surt del productor fins que arriba al consumidor. El percentil 99 revela el pitjor cas real: el 99% dels missatges arriben per sota d'aquest valor. Una latència P99 baixa és clau per a sistemes de temps real."
+        "text": "Mesura el temps que tarda un missatge des que surt del productor fins que arriba al consumidor. El percentil 99 revela el pitjor cas real: el 99% dels missatges arriben per sota d'aquest valor. Una latència P99 baixa és clau per a sistemes de temps real."
       },
       {
         "title": "Throughput",
-        "text": "Quantitat de missatges processats per segon durant la prova. Indica la capacitat màxima del broker sota la càrrega configurada. Un throughput alt amb latència estable és el signe d'un sistema ben dimensionat."
+        "text": "Calcula la quantitat de missatges processats per segon durant la prova. Indica la capacitat màxima del broker sota la càrrega configurada. Un throughput alt amb latència estable és el signe d'un sistema ben dimensionat."
       },
       {
         "title": "Taxa d'error",
-        "text": "Percentatge de missatges que fallen, es perden o no arriben correctament al consumidor. Inclou errors de xarxa, timeouts i missatges descartats pel broker. Un valor superior al 0,1% acostuma a ser un indicador d'alerta."
+        "text": "Mostra el percentatge de missatges que fallen, es perden o no arriben correctament al consumidor. Inclou errors de xarxa, timeouts i missatges descartats pel broker. Un valor superior al 0,1% acostuma a ser un indicador d'alerta."
       }
     ]
   },

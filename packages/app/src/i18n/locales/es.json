@@ -257,15 +257,15 @@
     "metrics": [
       {
         "title": "Latencia P99",
-        "text": "Tiempo que tarda un mensaje desde que sale del productor hasta que llega al consumidor. El percentil 99 revela el peor caso real: el 99% de los mensajes llegan por debajo de este valor. Una latencia P99 baja es clave para sistemas de tiempo real."
+        "text": "Mide el tiempo que tarda un mensaje desde que sale del productor hasta que llega al consumidor. El percentil 99 revela el peor caso real: el 99% de los mensajes llegan por debajo de este valor. Una latencia P99 baja es clave para sistemas de tiempo real."
       },
       {
         "title": "Throughput",
-        "text": "Cantidad de mensajes procesados por segundo durante la prueba. Indica la capacidad máxima del broker bajo la carga configurada. Un throughput alto con latencia estable es la señal de un sistema bien dimensionado."
+        "text": "Calcula la cantidad de mensajes procesados por segundo durante la prueba. Indica la capacidad máxima del broker bajo la carga configurada. Un throughput alto con latencia estable es la señal de un sistema bien dimensionado."
       },
       {
         "title": "Tasa de error",
-        "text": "Porcentaje de mensajes que fallan, se pierden o no llegan correctamente al consumidor. Incluye errores de red, timeouts y mensajes descartados por el broker. Un valor superior al 0,1% suele ser un indicador de alerta."
+        "text": "Muestra el porcentaje de mensajes que fallan, se pierden o no llegan correctamente al consumidor. Incluye errores de red, timeouts y mensajes descartados por el broker. Un valor superior al 0,1% suele ser un indicador de alerta."
       }
     ]
   },

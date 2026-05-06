@@ -257,15 +257,15 @@
     "metrics": [
       {
         "title": "P99 Latency",
-        "text": "Time a message takes from leaving the producer to reaching the consumer. The 99th percentile reveals the real worst case: 99% of messages arrive below this value. Low P99 latency is key for real-time systems."
+        "text": "Measures the time a message takes from leaving the producer to reaching the consumer. The 99th percentile reveals the real worst case: 99% of messages arrive below this value. Low P99 latency is key for real-time systems."
       },
       {
         "title": "Throughput",
-        "text": "Number of messages processed per second during the test. Indicates the maximum capacity of the broker under the configured load. High throughput with stable latency is the sign of a well-sized system."
+        "text": "Calculates the number of messages processed per second during the test. Indicates the maximum capacity of the broker under the configured load. High throughput with stable latency is the sign of a well-sized system."
       },
       {
         "title": "Error rate",
-        "text": "Percentage of messages that fail, are lost or do not reach the consumer correctly. Includes network errors, timeouts and messages discarded by the broker. A value above 0.1% is usually a warning indicator."
+        "text": "Shows the percentage of messages that fail, are lost or do not reach the consumer correctly. Includes network errors, timeouts and messages discarded by the broker. A value above 0.1% is usually a warning indicator."
       }
     ]
   },

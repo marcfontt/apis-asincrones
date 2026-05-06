@@ -373,7 +373,7 @@ export const HomePage = () => {
                   {index + 1}
                 </div>
                 {index < partsDelSistema.length - 1 && (
-                  <span aria-hidden style={{ color: part.color, fontSize: 16, fontWeight: 900 }}>→</span>
+                  <span aria-hidden style={{ color: part.color, fontSize: 14, fontWeight: 650, opacity: 0.35 }}>→</span>
                 )}
               </div>
               <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 4 }}>{part.title}</div>
@@ -401,21 +401,30 @@ export const HomePage = () => {
         </div>
       </section>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.26fr) minmax(280px, 0.74fr)', gap: 18, marginBottom: 18, alignItems: 'start' }} className="async-responsive-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 18, marginBottom: 18 }}>
         <BrokerFlowDiagram />
-        <div style={{ ...S.card, padding: 20 }}>
+        <section style={{ padding: '4px 0 0' }}>
           <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>
             {t('home.sections.metricsLabel')}
           </div>
-          <div style={{ display: 'grid', gap: 10, gridTemplateRows: 'repeat(3, 1fr)' }}>
-            {metriquesPrincipals.map(metric => (
-              <div key={metric.title} style={{ borderLeft: `3px solid ${metric.color}`, padding: '12px 14px', background: 'var(--bg-subtle)', borderRadius: 8, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }} className="async-responsive-grid">
+            {metriquesPrincipals.map((metric, index) => (
+              <div key={metric.title} style={{ position: 'relative', border: `1px solid ${metric.color}24`, borderLeft: `3px solid ${metric.color}`, padding: '14px 16px', background: 'var(--bg-card)', borderRadius: 8, minHeight: 132, display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-sm)' }}>
+                {index < metriquesPrincipals.length - 1 && (
+                  <span
+                    aria-hidden
+                    className="async-hide-mobile"
+                    style={{ position: 'absolute', right: -17, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-disabled)', opacity: 0.45, fontSize: 16, fontWeight: 700, zIndex: 1 }}
+                  >
+                    →
+                  </span>
+                )}
                 <div style={{ fontSize: 13, fontWeight: 900, color: metric.color, marginBottom: 6 }}>{metric.title}</div>
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.62, flex: 1 }}>{metric.text}</p>
               </div>
             ))}
           </div>
-        </div>
+        </section>
       </div>
 
       <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
