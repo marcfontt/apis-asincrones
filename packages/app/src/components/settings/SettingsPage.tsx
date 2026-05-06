@@ -9,7 +9,7 @@
  * Utilitza el patró S de theme.ts per a tots els estils inline.
  */
 
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from '../../i18n/useTranslation';
 import { changeLanguage } from '../../i18n';
 import { useApi, identityApiRef, storageApiRef } from '@backstage/core-plugin-api';
@@ -39,18 +39,19 @@ const SettingsCard = ({
   children,
 }: {
   title: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) => (
   <div
     style={{
       ...S.card,
-      marginBottom: 16,
+      marginBottom: 24,
+      padding: 24,
     }}
   >
     <h2
       style={{
         margin: '0 0 16px',
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: 700,
         color: 'var(--text-primary)',
         fontFamily: 'var(--font)',
@@ -198,7 +199,7 @@ const LanguageSection = () => {
                 ...(active
                   ? {
                       background: 'var(--accent-soft)',
-                      borderColor: 'var(--accent)',
+                      border: '1px solid var(--accent)',
                       color: 'var(--accent)',
                       fontWeight: 600,
                     }
@@ -251,9 +252,9 @@ const AppearanceSection = () => {
     storageApi.forBucket('core').set('themeId', id);
   };
 
-  const options: { value: 'light' | 'dark'; label: string; icon: string }[] = [
-    { value: 'light', label: t('settings.appearance.light'), icon: '☀️' },
-    { value: 'dark', label: t('settings.appearance.dark'), icon: '🌙' },
+  const options: { value: 'light' | 'dark'; label: string }[] = [
+    { value: 'light', label: t('settings.appearance.light') },
+    { value: 'dark', label: t('settings.appearance.dark') },
   ];
 
   return (
@@ -281,23 +282,61 @@ const AppearanceSection = () => {
                 ...(active
                   ? {
                       background: 'var(--accent-soft)',
-                      borderColor: 'var(--accent)',
+                      border: '1px solid var(--accent)',
                       color: 'var(--accent)',
                       fontWeight: 600,
                     }
                   : {}),
                 minWidth: 110,
                 justifyContent: 'center',
-                gap: 8,
               }}
               aria-pressed={active}
             >
-              <span aria-hidden="true">{opt.icon}</span>
               {opt.label}
             </button>
           );
         })}
       </div>
+    </SettingsCard>
+  );
+};
+
+const SessionSection = () => {
+  const { t } = useTranslation();
+
+  const handleLogout = () => {
+    localStorage.removeItem('apis-asincrones.language');
+    // Future: clear auth token here
+    window.location.href = '/';
+  };
+
+  return (
+    <SettingsCard title={t('settings.session.title')}>
+      <p
+        style={{
+          margin: '0 0 16px',
+          fontSize: 14,
+          fontWeight: 400,
+          color: 'var(--text-secondary)',
+          fontFamily: 'var(--font)',
+          lineHeight: 1.6,
+        }}
+      >
+        {t('settings.session.description')}
+      </p>
+      <button
+        type="button"
+        onClick={handleLogout}
+        style={{
+          ...S.btn,
+          background: 'var(--danger-soft)',
+          color: 'var(--danger)',
+          border: '1px solid var(--danger-border)',
+          fontWeight: 700,
+        }}
+      >
+        {t('settings.session.logout')}
+      </button>
     </SettingsCard>
   );
 };
@@ -326,6 +365,7 @@ export const SettingsPage = () => {
         <IdentitySection />
         <LanguageSection />
         <AppearanceSection />
+        <SessionSection />
       </div>
     </div>
   );

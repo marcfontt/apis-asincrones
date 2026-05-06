@@ -39,9 +39,11 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import React from 'react';
+import { useTranslation } from '../i18n';
 import { S } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
+import { TutorialButton } from '../components/TutorialOverlay';
 import { EDUCATION } from '../shared/content/education';
 import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
 import { aggregateScenarioHistory, getRunMeasureCount, getRunMessageCount, getRunSentCount, getScenarioMeasureCount } from '../shared/results/historyMetrics';
@@ -2408,10 +2410,11 @@ const LiveTab = () => {
  * The page title is set via document.title on mount for better browser tab UX.
  */
 export const ResultatsPage = () => {
+  const { t } = useTranslation();
   const [tab, setTab] = useState<'live' | 'historial'>('live');
 
   // Update browser tab title when the page mounts
-  useEffect(() => { document.title = 'Resultats | APIs Asíncrones'; }, []);
+  useEffect(() => { document.title = t('resultats.pageTitle'); }, [t]);
 
   /**
    * Generates tab button styles based on active state.
@@ -2434,11 +2437,14 @@ export const ResultatsPage = () => {
       <GlobalBenchmarkStyles />
 
       {/* Page header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Resultats</h1>
-        <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
-          Metriques en temps real i comparatives d'arquitectures asincrones
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Resultats</h1>
+          <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
+            Metriques en temps real i comparatives d'arquitectures asincrones
+          </p>
+        </div>
+        <TutorialButton page="resultats" />
       </div>
 
       <section style={{ ...S.card, marginBottom: 22, padding: '14px 18px', borderLeft: '3px solid var(--accent)' }}>

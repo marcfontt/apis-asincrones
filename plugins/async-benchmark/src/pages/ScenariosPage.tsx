@@ -27,9 +27,11 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
+import { useTranslation } from '../i18n';
 import { S } from '../theme';
 import { FilterPanel } from '../components/FilterPanel';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
+import { DEMO_SCENARIO_URL, TutorialButton } from '../components/TutorialOverlay';
 
 // Endpoints dels microserveis (proxied per Backstage via app-config.yaml)
 const API_BASE     = '/api/proxy/scenario-service';
@@ -121,6 +123,20 @@ const DATA_FORMAT_COLORS: Record<string, string> = {
   'video-8k':  '#9333ea',
   'financial': '#0891b2',
   'iot':       '#16a34a',
+};
+
+const FORMAT_RECOMMENDATIONS: Record<string, { payloadKB: number; rateMsgsPerSec: number }> = {
+  json:                 { payloadKB: 2,    rateMsgsPerSec: 5000 },
+  avro:                 { payloadKB: 1,    rateMsgsPerSec: 10000 },
+  protobuf:             { payloadKB: 1,    rateMsgsPerSec: 12000 },
+  msgpack:              { payloadKB: 1.5,  rateMsgsPerSec: 8000 },
+  'base-controlada':    { payloadKB: 0.5,  rateMsgsPerSec: 20000 },
+  iot:                  { payloadKB: 0.2,  rateMsgsPerSec: 50000 },
+  transaccional:        { payloadKB: 4,    rateMsgsPerSec: 2000 },
+  default:              { payloadKB: 0.5,  rateMsgsPerSec: 20000 },
+  financial:            { payloadKB: 4,    rateMsgsPerSec: 2000 },
+  'video-4k':           { payloadKB: 500,  rateMsgsPerSec: 10 },
+  'video-8k':           { payloadKB: 2000, rateMsgsPerSec: 4 },
 };
 
 // ── Valors per defecte que aplica el load-generator quan rate/payload son null ──
@@ -336,7 +352,8 @@ const PREDEFINED_PRESETS = [
     architecture: 'QBA',
     protocol:     'AMQP',
     dataFormat:   'financial',
-    duration:     '120',
+    duration:     '360',
+    warmup:       '120',
     rate:         '200',
     payloadSize:  '512',
     desc:         'Cues AMQP per transaccions curtes. És el preset més defensable per veure latència i errors sense carregar payloads gegants.',
@@ -348,7 +365,8 @@ const PREDEFINED_PRESETS = [
     architecture: 'EDA',
     protocol:     'NATS',
     dataFormat:   'iot',
-    duration:     '90',
+    duration:     '360',
+    warmup:       '120',
     rate:         '500',
     payloadSize:  '64',
     desc:         'Pub/sub lleuger amb payload mínim. És el cas recomanat per NATS abans de provar càrregues pesades.',
@@ -360,7 +378,8 @@ const PREDEFINED_PRESETS = [
     architecture: 'SEA',
     protocol:     'Kafka',
     dataFormat:   'video-4k',
-    duration:     '120',
+    duration:     '360',
+    warmup:       '120',
     rate:         '10',
     payloadSize:  '500000',
     desc:         'Log de streaming amb payload de 500 KB. Serveix per mesurar volum sostingut sense arribar al límit de 8K.',
@@ -372,7 +391,8 @@ const PREDEFINED_PRESETS = [
     architecture: 'EDA',
     protocol:     'AMQP',
     dataFormat:   'financial',
-    duration:     '90',
+    duration:     '360',
+    warmup:       '120',
     rate:         '300',
     payloadSize:  '256',
     desc:         'AMQP sobre RabbitMQ amb format financer JSON compacte. Permet comparar latència i errors en transaccions curtes.',
@@ -384,7 +404,8 @@ const PREDEFINED_PRESETS = [
     architecture: 'SEA',
     protocol:     'Kafka',
     dataFormat:   'video-8k',
-    duration:     '120',
+    duration:     '360',
+    warmup:       '120',
     rate:         '4',
     payloadSize:  '2000000',
     desc:         'Escenari pesat per validar límits de payload i throughput. Només és recomanable si el broker accepta missatges de 2 MB.',
@@ -396,7 +417,8 @@ const PREDEFINED_PRESETS = [
     architecture: 'EDA',
     protocol:     'Kafka',
     dataFormat:   'default',
-    duration:     '60',
+    duration:     '360',
+    warmup:       '120',
     rate:         '100',
     payloadSize:  '256',
     desc:         'Preset curt per comprovar que la ruta productor-broker-consumidor funciona abans de fer proves fortes.',
@@ -467,7 +489,7 @@ const makeSelStyle = (active: boolean, accentColor?: string): React.CSSPropertie
   borderRadius: 8,
   border: `1px solid ${active ? (accentColor || 'var(--accent)') : 'var(--border)'}`,
   background: active ? (accentColor ? accentColor + '10' : 'var(--accent-soft)') : 'var(--bg-card)',
-  color: active ? (accentColor || 'var(--accent)') : 'var(--text-secondary)',
+  color: 'var(--text-primary)',
   fontSize: 13,
   fontWeight: active ? 700 : 500,
   cursor: 'pointer',
@@ -544,6 +566,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   onClose: () => void;
   onSaved: (scenario: Scenario, mode: 'create' | 'edit') => void;
 }) => {
+  const { t } = useTranslation();
   const [form,       setForm]       = useState({ ...EMPTY_FORM, ...initial });
   const [saving,     setSaving]     = useState(false);
   const [error,      setError]      = useState('');
@@ -566,6 +589,20 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
       // Manté l'arquitectura/protocol actual si son compatibles; sino els buida
       setForm(f => ({ ...f, platform: v, architecture: ca.includes(f.architecture) ? f.architecture : '', protocol: cp.includes(f.protocol) ? f.protocol : '' }));
     } else setForm(f => ({ ...f, [k]: v }));
+  };
+
+  const handleFormatChange = (newFormat: string) => {
+    const recommendation = FORMAT_RECOMMENDATIONS[newFormat];
+    setForm(f => ({
+      ...f,
+      dataFormat: newFormat,
+      ...(recommendation
+        ? {
+            payloadSize: String(Math.round(recommendation.payloadKB * 1000)),
+            rate: String(recommendation.rateMsgsPerSec),
+          }
+        : {}),
+    }));
   };
 
   const ca = getCompatibleArchitectures(form.platform);
@@ -778,11 +815,16 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
 
           <div>
             <label style={lbl}>Format de dades</label>
-            <select style={{ ...S.input }} value={form.dataFormat} onChange={e => set('dataFormat', e.target.value)}>
+            <select style={{ ...S.input }} value={form.dataFormat} onChange={e => handleFormatChange(e.target.value)}>
               {DATA_FORMATS.map(f => (
                 <option key={f.value} value={f.value}>{f.label}</option>
               ))}
             </select>
+            {form.dataFormat && (
+              <p style={{ margin: '6px 0 0', fontSize: 11, color: 'var(--accent)', fontWeight: 700 }}>
+                {t('scenarios.format.appliedRecommendations')}
+              </p>
+            )}
             <div style={{ marginTop: 8, padding: '10px 12px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
               <strong style={{ color: 'var(--text-primary)' }}>{sustainedPlan.formatLabel}</strong>{' '}
               aplica una base de <strong style={{ color: 'var(--text-primary)' }}>{selectedFormat.ratio} msg/s</strong> i{' '}
@@ -1344,6 +1386,7 @@ const ScenarioGuide = () => {
  *   searchQuery:      text de cerca sobre nom/arquitectura/protocol/plataforma
  */
 export const ScenariosPage = () => {
+  const { t } = useTranslation();
   const [scenarios,        setScenarios]        = useState<Scenario[]>([]);
   const [loading,          setLoading]          = useState(true);
   const [error,            setError]            = useState('');
@@ -1375,7 +1418,7 @@ export const ScenariosPage = () => {
     setSortKey(null); setSortDir(null);
   };
 
-  useEffect(() => { document.title = 'Escenaris | APIs Asíncrones'; }, []);
+  useEffect(() => { document.title = t('scenarios.pageTitle'); }, [t]);
 
   /**
    * Carrega el mapa d'execucións actives des de l'orquestrador.
@@ -1705,9 +1748,12 @@ export const ScenariosPage = () => {
             Configuracions de carrega per provar combinacions d'APIs asincrones
           </p>
         </div>
-        <button onClick={() => { setEditScenario(null); setShowModal(true); }} style={{ ...S.btnPrimary, whiteSpace: 'nowrap' }}>
-          <PlusIcon /> Nou Escenari
-        </button>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+          <TutorialButton page="scenarios" createExampleHref={DEMO_SCENARIO_URL} />
+          <button onClick={() => { setEditScenario(null); setShowModal(true); }} style={{ ...S.btnPrimary, whiteSpace: 'nowrap' }}>
+            <PlusIcon /> Nou Escenari
+          </button>
+        </div>
       </div>
 
       {/* ── Stats strip ────────────────────────────────────────────────────────
@@ -1744,6 +1790,8 @@ export const ScenariosPage = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(255px, 1fr))', gap: 12 }}>
           {PREDEFINED_PRESETS.map((preset, i) => {
             const dfColor = DATA_FORMAT_COLORS[preset.dataFormat] || '#6b7280';
+            const warmupSec = Number(preset.warmup || 120);
+            const measureSec = Math.max(0, Number(preset.duration) - warmupSec);
             return (
               <button
                 key={i}
@@ -1782,6 +1830,12 @@ export const ScenariosPage = () => {
                 <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                   {preset.desc}
                 </p>
+                <div
+                  title={t('scenarios.warmup.tooltip')}
+                  style={{ fontSize: 11, color: 'var(--text-secondary)', fontWeight: 700 }}
+                >
+                  {t('scenarios.warmup.label')}: {formatDurationFriendly(warmupSec)} · {t('scenarios.warmup.measure')}: {formatDurationFriendly(measureSec)}
+                </div>
                 <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                   <span style={{ ...S.badge(PLATFORM_COLORS[preset.platform] || '#666'), fontSize: 10 }}>{preset.platform}</span>
                   <span style={{ ...S.badge(ARCHITECTURE_COLORS[preset.architecture] || '#666'), fontSize: 10 }}>{preset.architecture}</span>

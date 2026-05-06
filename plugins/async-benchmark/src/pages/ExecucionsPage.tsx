@@ -29,9 +29,11 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import React from 'react';
+import { useTranslation } from '../i18n';
 import { S } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
+import { TutorialButton } from '../components/TutorialOverlay';
 import { getRunMeasureCount, getRunMessageCount, getRunSentCount } from '../shared/results/historyMetrics';
 
 /* ---------------------------------------------------------------------------
@@ -77,6 +79,32 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }
 const isFailedRun = (r: { status?: string } | null | undefined): boolean => {
   if (!r || !r.status) return false;
   return r.status === 'failed' || r.status === 'error';
+};
+
+const buildRunsSignature = (items: any[]): string =>
+  items
+    .map(item => [
+      item.id || item.runId || '',
+      item.status || '',
+      item.updatedAt || item.updated_at || item.completedAt || item.completed_at || item.endedAt || item.ended_at || '',
+      item.pointCount ?? item.measureCount ?? '',
+    ].join(':'))
+    .sort()
+    .join('|');
+
+const sameMetricPoints = (prev: any[], next: any[]): boolean => {
+  if (prev.length !== next.length) return false;
+  for (let i = 0; i < prev.length; i += 1) {
+    const a = prev[i];
+    const b = next[i];
+    if (
+      String(a.id || a.timestamp || a.ts || i) !== String(b.id || b.timestamp || b.ts || i) ||
+      String(a.updatedAt || a.updated_at || '') !== String(b.updatedAt || b.updated_at || '')
+    ) {
+      return false;
+    }
+  }
+  return true;
 };
 
 /* ---------------------------------------------------------------------------
@@ -360,35 +388,41 @@ const enrichRunWithMetricPoints = (run: any, metrics: any[]): any => {
   };
 };
 
-const FilterChip = ({
+const FilterSelect = ({
   label,
-  active,
-  color,
-  onClick,
+  value,
+  options,
+  onChange,
 }: {
   label: string;
-  active: boolean;
-  color: string;
-  onClick: () => void;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
 }) => (
-  <button
-    onClick={onClick}
-    style={{
-      borderRadius: 999,
-      border: `1px solid ${active ? `${color}55` : 'var(--border)'}`,
-      background: active ? `${color}16` : 'var(--bg-card)',
-      color: active ? color : 'var(--text-secondary)',
-      padding: '5px 10px',
-      fontSize: 11,
-      fontWeight: 700,
-      cursor: 'pointer',
-      fontFamily: 'var(--font)',
-      transition: 'all 0.15s ease',
-      whiteSpace: 'nowrap',
-    }}
-  >
-    {label}
-  </button>
+  <label style={{ display: 'grid', gap: 6, minWidth: 170 }}>
+    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      {label}
+    </span>
+    <select
+      value={value}
+      onChange={event => onChange(event.target.value)}
+      style={{
+        ...S.input,
+        appearance: 'none',
+        paddingRight: 34,
+        backgroundImage: `url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'right 10px center',
+        cursor: 'pointer',
+      }}
+    >
+      {options.map(option => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </select>
+  </label>
 );
 
 const ChevronIcon = ({ open }: { open: boolean }) => (
@@ -624,6 +658,7 @@ const RunTable = ({
   selectedRunId?: string | null;
   onSelectRun?: (run: any) => void;
 }) => {
+  const { t } = useTranslation();
   // Track which row the mouse is over to highlight it without global state
   const [hoveredRow, setHoveredRow] = useState<number | null>(null);
 
@@ -653,7 +688,7 @@ const RunTable = ({
           </span>
           {/* Row count badge - shows filtered/total when a search is active */}
           <span style={{ fontSize: 11, color: 'var(--text-disabled)', background: 'var(--bg-hover)', padding: '2px 8px', borderRadius: 10, fontWeight: 600 }}>
-            {data.length}{totalCount !== undefined && totalCount !== data.length ? ` / ${totalCount}` : ''} registre{data.length !== 1 ? 's' : ''}
+            {data.length}{totalCount !== undefined && totalCount !== data.length ? ` / ${totalCount}` : ''} {data.length === 1 ? t('execucions.table.record') : t('execucions.table.records')}
           </span>
           {/* Search input - only rendered for the history table (when onSearchChange is provided) */}
           {onSearchChange && (
@@ -686,7 +721,7 @@ const RunTable = ({
                 onClick={() => onBulkDelete(selectedHere)}
                 style={{ ...S.btn, fontSize: 12, padding: '3px 10px', color: 'var(--error)', borderColor: 'rgba(239,68,68,0.30)', gap: 4 }}
               >
-                <TrashIcon /> Eliminar seleccionats
+                <TrashIcon /> {t('execucions.table.btnDeleteSelected')}
               </button>
             </div>
           )}
@@ -697,7 +732,7 @@ const RunTable = ({
               onClick={onDeleteAll}
               style={{ ...S.btn, fontSize: 12, padding: '4px 10px', color: 'var(--error)', borderColor: 'rgba(239,68,68,0.25)', gap: 4 }}
             >
-              <TrashAllIcon /> Eliminar tot
+              <TrashAllIcon /> {t('execucions.table.btnDeleteAll')}
             </button>
           )}
 
@@ -708,7 +743,7 @@ const RunTable = ({
       {data.length === 0 ? (
         <div style={{ padding: '40px 16px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
           <EmptyIcon />
-          <p style={{ color: 'var(--text-disabled)', margin: 0, fontSize: 14 }}>Cap execució en aquest grup.</p>
+          <p style={{ color: 'var(--text-disabled)', margin: 0, fontSize: 14 }}>{t('execucions.table.empty')}</p>
         </div>
       ) : (
         <div style={{ overflowX: 'auto' }}>
@@ -722,28 +757,29 @@ const RunTable = ({
                       onClick={() => onToggleAll(selectableIds, allSelected)}
                       style={{ background: 'none', border: 'none', cursor: selectableIds.length > 0 ? 'pointer' : 'default', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: selectableIds.length > 0 ? 1 : 0.3 }}
                       disabled={selectableIds.length === 0}
-                      title={allSelected ? 'Deseleccionar tot' : 'Seleccionar tot'}
+                      title={allSelected ? t('execucions.table.deselectAll') : t('execucions.table.selectAll')}
                     >
                       {/* Show indeterminate icon if some but not all rows are selected */}
                       {someSelected ? <IndetermIcon /> : CheckboxIcon(allSelected)}
                     </button>
                   </th>
                 )}
-                <th style={S.th}>Nom Escenari</th>
-                <th style={{ ...S.th, textAlign: 'center' }}>Arquitectura</th>
-                <th style={{ ...S.th, textAlign: 'center' }}>Protocol</th>
-                <th style={{ ...S.th, textAlign: 'center' }}>Plataforma</th>
-                <th style={{ ...S.th, textAlign: 'center' }}>Format</th>
-                <th style={{ ...S.th, textAlign: 'center' }}>Estat</th>
-                <th style={{ ...S.th, textAlign: 'right' }}>Durada</th>
-                <th style={{ ...S.th, textAlign: 'right' }}>Iniciat</th>
-                <th style={{ ...S.th, textAlign: 'center', width: 90 }}>Accions</th>
+                <th style={S.th}>{t('execucions.table.colScenario')}</th>
+                <th style={{ ...S.th, textAlign: 'center' }}>{t('execucions.table.colArchitecture')}</th>
+                <th style={{ ...S.th, textAlign: 'center' }}>{t('execucions.table.colProtocol')}</th>
+                <th style={{ ...S.th, textAlign: 'center' }}>{t('execucions.table.colPlatform')}</th>
+                <th style={{ ...S.th, textAlign: 'center' }}>{t('execucions.table.colFormat')}</th>
+                <th style={{ ...S.th, textAlign: 'center' }}>{t('execucions.table.colStatus')}</th>
+                <th style={{ ...S.th, textAlign: 'right' }}>{t('execucions.table.colDuration')}</th>
+                <th style={{ ...S.th, textAlign: 'right' }}>{t('execucions.table.colStarted')}</th>
+                <th style={{ ...S.th, textAlign: 'center', width: 90 }}>{t('execucions.table.colActions')}</th>
               </tr>
             </thead>
             <tbody>
               {data.map((r, i) => {
                 // Resolve the status config - fall back to a neutral style for unknown statuses
-                const st        = STATUS_CONFIG[r.status] || { color: '#94a3b8', bg: 'transparent', label: r.status };
+                const baseStatus = STATUS_CONFIG[r.status] || { color: '#94a3b8', bg: 'transparent', label: r.status };
+                const st        = { ...baseStatus, label: t(`execucions.status.${r.status}`) !== `execucions.status.${r.status}` ? t(`execucions.status.${r.status}`) : baseStatus.label };
                 // Active runs get the live pulsing dot in their status badge
                 const isActive  = r.status === 'running' || r.status === 'pending';
                 // Normalize the platform name so PLATFORM_COLORS lookup works reliably
@@ -800,7 +836,7 @@ const RunTable = ({
                           <button
                             onClick={event => { event.stopPropagation(); onToggleSelect(r.id); }}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                            title={isSelected ? 'Deseleccionar' : 'Seleccionar'}
+                            title={isSelected ? t('execucions.table.deselect') : t('execucions.table.select')}
                           >
                             {CheckboxIcon(isSelected)}
                           </button>
@@ -871,7 +907,7 @@ const RunTable = ({
                           <button
                             onClick={event => { event.stopPropagation(); onCancel(r); }}
                             disabled={cancellingId === r.id}
-                            title="Aturar execució"
+                            title={t('execucions.table.btnStop')}
                             style={{
                               display: 'flex', alignItems: 'center', gap: 4,
                               padding: '4px 9px', borderRadius: 6, border: '1px solid rgba(245,158,11,0.32)',
@@ -883,7 +919,7 @@ const RunTable = ({
                             }}
                           >
                             {/* Show "..." while the cancel request is in-flight */}
-                            <StopIcon /> {cancellingId === r.id ? '...' : 'Atura'}
+                            <StopIcon /> {cancellingId === r.id ? '...' : t('execucions.table.btnStop')}
                           </button>
                         )}
                         {/* Delete button - only for finished rows (not active) */}
@@ -891,7 +927,7 @@ const RunTable = ({
                           <button
                             onClick={event => { event.stopPropagation(); onRequestDelete(r); }}
                             disabled={isDeleting}
-                            title="Eliminar registre"
+                            title={t('execucions.table.btnDelete')}
                             style={{
                               background: 'none', border: '1px solid var(--border)', borderRadius: 6,
                               padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center',
@@ -922,6 +958,7 @@ const RunTable = ({
  * Owns all data-fetching and mutation logic; passes callbacks down to RunTable.
  * ---------------------------------------------------------------------------*/
 export const ExecucionsPage = () => {
+  const { t } = useTranslation();
   // All benchmark run records from the orchestrator
   const [runs,          setRuns]          = useState<any[]>([]);
   // Scenario definitions fetched from the scenario service (for metadata fallback)
@@ -943,11 +980,13 @@ export const ExecucionsPage = () => {
   const [refreshing,    setRefreshing]    = useState(false);
   const [refreshError,  setRefreshError]  = useState('');
   const hasLoadedRunsRef = useRef(false);
+  const runsSignatureRef = useRef('');
   const [filterPlatform, setFilterPlatform] = useState<string[]>([]);
   const [filterProtocol, setFilterProtocol] = useState<string[]>([]);
   const [filterArchitecture, setFilterArchitecture] = useState<string[]>([]);
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
   const [filterStatus, setFilterStatus] = useState<string[]>([]);
+  const [filterScenario, setFilterScenario] = useState<string[]>([]);
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRunMetrics, setSelectedRunMetrics] = useState<any[]>([]);
   const [selectedRunMetricsLoading, setSelectedRunMetricsLoading] = useState(false);
@@ -976,7 +1015,7 @@ export const ExecucionsPage = () => {
   }>({ open: false, title: '', message: '', onConfirm: () => {} });
 
   // Set the browser tab title once on mount
-  useEffect(() => { document.title = 'Execucions | APIs Asíncrones'; }, []);
+  useEffect(() => { document.title = t('execucions.pageTitle'); }, [t]);
 
   /*
    * Fetch scenario definitions once on mount (no polling needed - scenarios
@@ -1003,11 +1042,13 @@ export const ExecucionsPage = () => {
    * stable function reference, and so the effect below does not re-register
    * the interval on every render.
    */
-  const fetchRuns = useCallback(() => {
+  const fetchRuns = useCallback((showRefreshing = false) => {
     if (!hasLoadedRunsRef.current) {
       setLoading(true);
     }
-    setRefreshing(true);
+    if (showRefreshing) {
+      setRefreshing(true);
+    }
     setRefreshError('');
     // Fetch BOTH sources in parallel:
     //   1. Orchestrator /runs   -> source of truth for live/pending/just-finished runs,
@@ -1085,20 +1126,28 @@ export const ExecucionsPage = () => {
           return bt - at;
         });
 
-        setRuns(merged);
+        const nextSignature = buildRunsSignature(merged);
+        if (runsSignatureRef.current !== nextSignature) {
+          runsSignatureRef.current = nextSignature;
+          setRuns(merged);
+          setLastRefreshed(new Date());
+        }
         hasLoadedRunsRef.current = true;
         setLoading(false);
-        setRefreshing(false);
-        setLastRefreshed(new Date()); // record when this fresh data arrived
+        if (showRefreshing) {
+          setRefreshing(false);
+        }
       })
       .catch(() => {
-        setRefreshError("No s'han pogut actualitzar les execucions. Es manté l'última informació carregada.");
+        setRefreshError(t('execucions.toasts.errorRefresh'));
         if (!hasLoadedRunsRef.current) {
           setLoading(false);
         }
-        setRefreshing(false);
+        if (showRefreshing) {
+          setRefreshing(false);
+        }
       });
-  }, []);
+  }, [t]);
 
   // Track whether any runs are active so the polling interval can be skipped
   // when all runs are finished (avoids unnecessary network traffic when idle).
@@ -1147,7 +1196,8 @@ export const ExecucionsPage = () => {
         const response = await fetch(`${METRICS_BASE}/metrics?runId=${encodeURIComponent(selectedRunId)}`);
         const data = response.ok ? await response.json() : [];
         if (!cancelled) {
-          setSelectedRunMetrics(Array.isArray(data) ? data : []);
+          const nextMetrics = Array.isArray(data) ? data : [];
+          setSelectedRunMetrics(prev => (sameMetricPoints(prev, nextMetrics) ? prev : nextMetrics));
         }
       } catch {
         if (!cancelled) {
@@ -1375,14 +1425,6 @@ export const ExecucionsPage = () => {
     });
   };
 
-  const toggleFilter = (
-    _current: string[],
-    setState: React.Dispatch<React.SetStateAction<string[]>>,
-    value: string,
-  ) => {
-    setState(prev => prev.includes(value) ? prev.filter(item => item !== value) : [...prev, value]);
-  };
-
   /* ---------------------------------------------------------------------------
    * Derived data
    * ---------------------------------------------------------------------------*/
@@ -1412,6 +1454,7 @@ export const ExecucionsPage = () => {
     ];
 
     if (query && !values.some(value => value.includes(query))) return false;
+    if (filterScenario.length && !filterScenario.includes(String(run.scenarioId || run.scenarioName || ''))) return false;
     if (filterPlatform.length && !filterPlatform.includes(platformName)) return false;
     if (filterProtocol.length && !filterProtocol.includes(run.protocol || '')) return false;
     if (filterArchitecture.length && !filterArchitecture.includes(run.architecture || '')) return false;
@@ -1465,7 +1508,18 @@ export const ExecucionsPage = () => {
       : lastRefreshedTime
         ? `Última actualització: ${lastRefreshedTime}${hasActiveRuns ? ' · auto cada 8s' : ''}`
         : 'Pendent de la primera actualització';
-  const activeFilterCount = filterPlatform.length + filterProtocol.length + filterArchitecture.length + filterDataFormat.length + filterStatus.length + (runSearch.trim() ? 1 : 0);
+  const activeFilterCount = filterScenario.length + filterPlatform.length + filterProtocol.length + filterArchitecture.length + filterDataFormat.length + filterStatus.length + (runSearch.trim() ? 1 : 0);
+  const availableScenarioFilters = Array.from(new Map(
+    runs
+      .map(run => {
+        const value = String(run.scenarioId || run.scenarioName || '');
+        const label = scenarioMap[run.scenarioId]?.name || run.scenarioName || value;
+        return value ? [value, label] : null;
+      })
+      .filter((entry): entry is [string, string] => Boolean(entry)),
+  ).entries())
+    .map(([value, label]) => ({ value, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, 'ca', { sensitivity: 'base' }));
   const availablePlatforms = Array.from(new Set(runs.map(run => normalizePlatform(run.platform || run.broker || '')).filter(Boolean))).sort();
   const availableProtocols = Array.from(new Set(
     runs.map(run => run.protocol).filter((value): value is string => Boolean(value) && VISIBLE_PROTOCOLS.includes(value)),
@@ -1473,11 +1527,11 @@ export const ExecucionsPage = () => {
   const availableArchitectures = Array.from(new Set(runs.map(run => run.architecture).filter(Boolean))).sort();
   const availableDataFormats = Array.from(new Set(runs.map(run => getRunDataFormat(run, scenarioMap)).filter(Boolean))).sort();
   const availableStatusFilters = [
-    { key: 'running', label: 'En execució', color: '#3b82f6', count: runs.filter(r => r.status === 'running').length },
-    { key: 'pending', label: 'Pendents', color: '#f59e0b', count: runs.filter(r => r.status === 'pending').length },
-    { key: 'completed', label: 'Completades', color: '#22c55e', count: runs.filter(r => r.status === 'completed').length },
-    { key: 'cancelled', label: 'Aturades', color: '#f59e0b', count: runs.filter(r => r.status === 'cancelled').length },
-    { key: 'errors', label: 'Errors', color: '#ef4444', count: runs.filter(isFailedRun).length },
+    { key: 'running', label: t('execucions.status.running'), color: '#3b82f6', count: runs.filter(r => r.status === 'running').length },
+    { key: 'pending', label: t('execucions.status.pending'), color: '#f59e0b', count: runs.filter(r => r.status === 'pending').length },
+    { key: 'completed', label: t('execucions.status.completed'), color: '#22c55e', count: runs.filter(r => r.status === 'completed').length },
+    { key: 'cancelled', label: t('execucions.status.cancelled'), color: '#f59e0b', count: runs.filter(r => r.status === 'cancelled').length },
+    { key: 'errors', label: t('execucions.status.failed'), color: '#ef4444', count: runs.filter(isFailedRun).length },
   ].filter(item => item.count > 0);
 
   /*
@@ -1624,6 +1678,7 @@ export const ExecucionsPage = () => {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+            <TutorialButton page="execucions" />
             <a
               href="/resultats"
               style={{ ...S.btn, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: 'rgba(37,99,235,0.28)', color: 'var(--accent)', background: 'var(--accent-soft)', fontWeight: 700 }}
@@ -1632,7 +1687,7 @@ export const ExecucionsPage = () => {
               <ListIcon /> Veure resultats
             </a>
             <button
-              onClick={fetchRuns}
+              onClick={() => fetchRuns(true)}
               disabled={refreshing && !loading}
               title="Actualitza execucions i mètriques sense buidar la pantalla"
               style={{ ...S.btn, fontSize: 13 }}
@@ -1717,6 +1772,7 @@ export const ExecucionsPage = () => {
                 <button
                   onClick={() => {
                     setRunSearch('');
+                    setFilterScenario([]);
                     setFilterPlatform([]);
                     setFilterProtocol([]);
                     setFilterArchitecture([]);
@@ -1750,101 +1806,61 @@ export const ExecucionsPage = () => {
             )}
           </div>
 
-          {availableStatusFilters.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Estat
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {availableStatusFilters.map(value => (
-                  <FilterChip
-                    key={value.key}
-                    label={`${value.label} (${value.count})`}
-                    active={filterStatus.includes(value.key)}
-                    color={value.color}
-                    onClick={() => toggleFilter(filterStatus, setFilterStatus, value.key)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {availablePlatforms.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                Plataforma
-              </div>
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {availablePlatforms.map(value => (
-                  <FilterChip
-                    key={value}
-                    label={value}
-                    active={filterPlatform.includes(value)}
-                    color={PLATFORM_COLORS[value] || '#64748b'}
-                    onClick={() => toggleFilter(filterPlatform, setFilterPlatform, value)}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-            {availableProtocols.length > 0 && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  Protocol
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {availableProtocols.map(value => (
-                    <FilterChip
-                      key={value}
-                      label={value}
-                      active={filterProtocol.includes(value)}
-                      color={PROTOCOL_COLORS[value] || '#64748b'}
-                      onClick={() => toggleFilter(filterProtocol, setFilterProtocol, value)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {availableArchitectures.length > 0 && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  Arquitectura
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {availableArchitectures.map(value => (
-                    <FilterChip
-                      key={value}
-                      label={value}
-                      active={filterArchitecture.includes(value)}
-                      color={ARCHITECTURE_COLORS[value] || '#64748b'}
-                      onClick={() => toggleFilter(filterArchitecture, setFilterArchitecture, value)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {availableDataFormats.length > 0 && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 6 }}>
-                  Format
-                </div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {availableDataFormats.map(value => (
-                    <FilterChip
-                      key={value}
-                      label={DATA_FORMAT_LABELS[value] || value}
-                      active={filterDataFormat.includes(value)}
-                      color={DATA_FORMAT_COLORS[value] || '#64748b'}
-                      onClick={() => toggleFilter(filterDataFormat, setFilterDataFormat, value)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
+            <FilterSelect
+              label={t('execucions.filters.status')}
+              value={filterStatus[0] || 'all'}
+              onChange={value => setFilterStatus(value === 'all' ? [] : [value])}
+              options={[
+                { value: 'all', label: t('execucions.filters.all') },
+                ...availableStatusFilters.map(item => ({ value: item.key, label: `${item.label} (${item.count})` })),
+              ]}
+            />
+            <FilterSelect
+              label={t('execucions.filters.scenario')}
+              value={filterScenario[0] || 'all'}
+              onChange={value => setFilterScenario(value === 'all' ? [] : [value])}
+              options={[
+                { value: 'all', label: t('execucions.filters.all') },
+                ...availableScenarioFilters,
+              ]}
+            />
+            <FilterSelect
+              label={t('execucions.filters.broker')}
+              value={filterPlatform[0] || 'all'}
+              onChange={value => setFilterPlatform(value === 'all' ? [] : [value])}
+              options={[
+                { value: 'all', label: t('execucions.filters.all') },
+                ...availablePlatforms.map(value => ({ value, label: value })),
+              ]}
+            />
+            <FilterSelect
+              label={t('execucions.filters.protocol')}
+              value={filterProtocol[0] || 'all'}
+              onChange={value => setFilterProtocol(value === 'all' ? [] : [value])}
+              options={[
+                { value: 'all', label: t('execucions.filters.all') },
+                ...availableProtocols.map(value => ({ value, label: value })),
+              ]}
+            />
+            <FilterSelect
+              label={t('execucions.filters.architecture')}
+              value={filterArchitecture[0] || 'all'}
+              onChange={value => setFilterArchitecture(value === 'all' ? [] : [value])}
+              options={[
+                { value: 'all', label: t('execucions.filters.all') },
+                ...availableArchitectures.map(value => ({ value, label: value })),
+              ]}
+            />
+            <FilterSelect
+              label={t('execucions.filters.format')}
+              value={filterDataFormat[0] || 'all'}
+              onChange={value => setFilterDataFormat(value === 'all' ? [] : [value])}
+              options={[
+                { value: 'all', label: t('execucions.filters.all') },
+                ...availableDataFormats.map(value => ({ value, label: DATA_FORMAT_LABELS[value] || value })),
+              ]}
+            />
           </div>
         </div>
       )}

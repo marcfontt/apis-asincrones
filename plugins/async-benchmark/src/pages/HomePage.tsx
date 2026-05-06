@@ -1,8 +1,9 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { useTranslation } from '../i18n';
 import { S } from '../theme';
-import { BrokerAnatomyDiagram, BrokerFlowDiagram, LatencyMapDiagram } from '../components/BrokerEducation';
+import { BrokerFlowDiagram, LatencyMapDiagram } from '../components/BrokerEducation';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
+import { DEMO_SCENARIO_URL, TutorialButton } from '../components/TutorialOverlay';
 
 const RUTA_API_CATALEG = '/api/proxy/catalog-service';
 const RUTA_API_ESCENARIS = '/api/proxy/scenario-service';
@@ -276,8 +277,6 @@ export const HomePage = () => {
     { title: t('home.concepts.3.title'), color: '#f59e0b', text: t('home.concepts.3.text') },
   ];
 
-  const producers = [t('home.producers.0'), t('home.producers.1'), t('home.producers.2')];
-  const consumers = [t('home.consumers.0'), t('home.consumers.1'), t('home.consumers.2')];
 
   const estadistiques = [
     { label: t('home.statsLabels.components'), value: estadistiquesPortal.components, color: '#f59e0b', desc: t('home.statsDesc.components') },
@@ -341,6 +340,7 @@ export const HomePage = () => {
               </a>
               <a href="/catalog" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>{t('home.btnViewCatalog')}</a>
               <a href="/resultats" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>{t('home.btnCompareResults')}</a>
+              <TutorialButton page="home" createExampleHref={DEMO_SCENARIO_URL} />
             </div>
           </div>
 
@@ -401,60 +401,6 @@ export const HomePage = () => {
         </div>
       </section>
 
-      <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
-        <SectionHeader
-          eyebrow={t('home.sections.brokerEyebrow')}
-          title={t('home.sections.brokerTitle')}
-          description={t('home.sections.brokerDesc')}
-        />
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 0, alignItems: 'center', background: 'var(--bg-subtle)', borderRadius: 12, padding: '20px 16px' }} className="async-responsive-grid">
-          {/* Producers */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {['Productor A', 'Productor B', 'Productor C'].map((label, i) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ flex: 1, border: '1px solid rgba(37,99,235,0.35)', borderRadius: 8, padding: '8px 12px', background: 'rgba(37,99,235,0.07)', fontSize: 12, fontWeight: 850, color: '#2563eb', textAlign: 'center' }}>
-                  {label}
-                  <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    {producers[i]}
-                  </div>
-                </div>
-                <span aria-hidden style={{ color: '#2563eb', fontSize: 14, fontWeight: 900 }}>→</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Broker (Topic) */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '0 12px' }}>
-            <div style={{ border: '2px solid rgba(245,158,11,0.5)', borderRadius: 12, padding: '14px 18px', background: 'rgba(245,158,11,0.08)', textAlign: 'center', width: '100%' }}>
-              <div style={{ fontSize: 11, fontWeight: 900, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('home.brokerLabel')}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                Kafka · RabbitMQ<br />NATS · compatible
-              </div>
-              <div style={{ marginTop: 8, fontSize: 10, color: '#f59e0b', fontWeight: 700 }}>Topic / Queue</div>
-            </div>
-            <p style={{ margin: 0, fontSize: 11, color: 'var(--text-secondary)', textAlign: 'center', lineHeight: 1.5 }}>
-              {t('home.brokerBody')}
-            </p>
-          </div>
-
-          {/* Consumers */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {['Consumidor X', 'Consumidor Y', 'Consumidor Z'].map((label, i) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span aria-hidden style={{ color: '#16a34a', fontSize: 14, fontWeight: 900 }}>→</span>
-                <div style={{ flex: 1, border: '1px solid rgba(22,163,74,0.35)', borderRadius: 8, padding: '8px 12px', background: 'rgba(22,163,74,0.07)', fontSize: 12, fontWeight: 850, color: '#16a34a', textAlign: 'center' }}>
-                  {label}
-                  <div style={{ fontSize: 10, fontWeight: 400, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    {consumers[i]}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.26fr) minmax(280px, 0.74fr)', gap: 18, marginBottom: 18, alignItems: 'start' }} className="async-responsive-grid">
         <BrokerFlowDiagram />
         <div style={{ ...S.card, padding: 20 }}>
@@ -498,7 +444,6 @@ export const HomePage = () => {
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 18, marginBottom: 18 }}>
-        <BrokerAnatomyDiagram />
         <LatencyMapDiagram />
       </div>
 

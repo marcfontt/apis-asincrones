@@ -27,6 +27,11 @@
       "description": "Change the visual theme of the application",
       "light": "Light",
       "dark": "Dark"
+    },
+    "session": {
+      "title": "Session",
+      "description": "Sign out of the current session and return to the start screen.",
+      "logout": "Sign out"
     }
   },
   "common": {
@@ -38,6 +43,61 @@
     "loading": "Loading...",
     "error": "Error",
     "success": "Success"
+  },
+  "tutorial": {
+    "show": "View tutorial",
+    "replay": "Replay tutorial",
+    "previous": "Previous",
+    "next": "Next",
+    "skip": "Skip tutorial",
+    "finish": "Finish",
+    "createExample": "Create example scenario",
+    "home": {
+      "step1": {
+        "title": "Welcome",
+        "body": "This platform compares asynchronous APIs under the same load. The comparison is useful when every run is reproducible."
+      },
+      "step2": {
+        "title": "Catalog",
+        "body": "Start in the Catalog to see which components you can test. Each detail sheet shows version, compatibility, and configuration."
+      },
+      "step3": {
+        "title": "Scenarios",
+        "body": "In Scenarios you define the broker, protocol, and load combination. The form helps avoid combinations the portal cannot execute yet."
+      },
+      "step4": {
+        "title": "Executions",
+        "body": "In Executions you launch the test on the cluster and see the run status. You can also review history and persisted details."
+      },
+      "step5": {
+        "title": "Results",
+        "body": "In Results you compare latency, throughput, and errors between runs. Conclusions should be defended with metrics, not a single score."
+      }
+    },
+    "catalog": {
+      "step1": {
+        "title": "Component details",
+        "body": "Each card is a component. Click it to see reproducibility, compatibility, and configuration snippets."
+      }
+    },
+    "scenarios": {
+      "step1": {
+        "title": "Scenario form",
+        "body": "Select a data format and recommended rate and payload values are filled in. Then adjust platform, architecture, and protocol."
+      }
+    },
+    "execucions": {
+      "step1": {
+        "title": "Run tracking",
+        "body": "Filter by status, scenario, or broker. Click a row to keep the live detail open while metrics arrive."
+      }
+    },
+    "resultats": {
+      "step1": {
+        "title": "Comparison",
+        "body": "Compare visible runs and review percentiles, throughput, and errors. Filters change the set used to calculate the score."
+      }
+    }
   },
   "home": {
     "title": "Async APIs",
@@ -240,6 +300,26 @@
       "closeAriaLabel": "Close component detail",
       "noName": "Unnamed component",
       "noDescriptionLong": "This component does not yet have a description in the catalog.",
+      "tabs": {
+        "overview": "Overview",
+        "repro": "Reproducibility",
+        "config": "Configuration"
+      },
+      "fields": {
+        "version": "Version",
+        "license": "License",
+        "language": "Language",
+        "maintainer": "Maintainer",
+        "useCases": "Use cases"
+      },
+      "copy": "Copy",
+      "copied": "Copied",
+      "overviewFallback": "Component used by the benchmark portal.",
+      "impactFallback": "Its impact depends on how it is combined inside the scenario.",
+      "reproDescription": "Version, configuration, and replication steps: only what is needed to reproduce the same conditions.",
+      "noReproRows": "This component does not yet have structured reproducibility data.",
+      "noConfigSnippet": "This component does not yet have a configuration snippet.",
+      "useDescription": "Open the scenario form with this value preselected when possible.",
       "sectionWhat": "What it represents within the benchmark",
       "sectionCard": "Quick card",
       "labelCategory": "Category",
@@ -273,10 +353,19 @@
     "statusLabels": {
       "complete": "Complete",
       "partial": "Partial"
-    }
+    },
+    "loadError": "Could not load the catalog:"
   },
   "scenarios": {
     "pageTitle": "Scenarios | Async APIs",
+    "format": {
+      "appliedRecommendations": "Recommended rate and payload will be applied"
+    },
+    "warmup": {
+      "label": "Warm-up",
+      "measure": "Measurement",
+      "tooltip": "Initial unmeasured period so the system can stabilize"
+    },
     "statusLabels": {
       "idle": "Ready",
       "pending": "Pending",
@@ -395,6 +484,24 @@
   },
   "execucions": {
     "pageTitle": "Executions | Async APIs",
+    "filters": {
+      "status": "Status",
+      "scenario": "Scenario",
+      "broker": "Broker",
+      "platform": "Platform",
+      "protocol": "Protocol",
+      "architecture": "Architecture",
+      "format": "Format",
+      "all": "All"
+    },
+    "status": {
+      "pending": "Pending",
+      "running": "Running",
+      "completed": "Completed",
+      "cancelled": "Stopped",
+      "failed": "Failed",
+      "error": "Failed"
+    },
     "statusLabels": {
       "pending": "Pending",
       "running": "Running",
@@ -459,7 +566,9 @@
       "btnStop": "Stop",
       "btnDelete": "Delete",
       "btnDeleteSelected": "Delete selected",
-      "btnDeleteAll": "Delete all"
+      "btnDeleteAll": "Delete all",
+      "select": "Select",
+      "deselect": "Deselect"
     },
     "confirm": {
       "titleStop": "Stop execution",

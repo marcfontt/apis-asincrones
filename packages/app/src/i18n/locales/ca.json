@@ -27,6 +27,11 @@
       "description": "Canvia el tema visual de l'aplicació",
       "light": "Clar",
       "dark": "Fosc"
+    },
+    "session": {
+      "title": "Sessió",
+      "description": "Tanca la sessió actual i torna a la pantalla d'inici.",
+      "logout": "Tancar sessió"
     }
   },
   "common": {
@@ -38,6 +43,61 @@
     "loading": "Carregant...",
     "error": "Error",
     "success": "Èxit"
+  },
+  "tutorial": {
+    "show": "Veure tutorial",
+    "replay": "Reveure tutorial",
+    "previous": "Anterior",
+    "next": "Següent",
+    "skip": "Saltar tutorial",
+    "finish": "Finalitzar",
+    "createExample": "Crear escenari d'exemple",
+    "home": {
+      "step1": {
+        "title": "Benvingut",
+        "body": "Aquesta plataforma compara APIs asíncrones sota la mateixa càrrega. La comparació és útil quan cada run és reproduïble."
+      },
+      "step2": {
+        "title": "Catàleg",
+        "body": "Comença al Catàleg per veure quins components pots provar. Cada fitxa mostra versió, compatibilitat i configuració."
+      },
+      "step3": {
+        "title": "Escenaris",
+        "body": "A Escenaris defineixes la combinació de bròker, protocol i càrrega. El formulari ajuda a evitar combinacions que el portal no sap executar."
+      },
+      "step4": {
+        "title": "Execucions",
+        "body": "A Execucions llances la prova al clúster i veus l'estat del run. També pots revisar historial i detalls persistits."
+      },
+      "step5": {
+        "title": "Resultats",
+        "body": "A Resultats compares latència, throughput i errors entre runs. Les conclusions s'han de defensar amb mètriques, no amb una sola puntuació."
+      }
+    },
+    "catalog": {
+      "step1": {
+        "title": "Fitxes de component",
+        "body": "Cada card és un component. Fes clic per veure detalls de reproduïbilitat, compatibilitat i snippets de configuració."
+      }
+    },
+    "scenarios": {
+      "step1": {
+        "title": "Formulari d'escenari",
+        "body": "Selecciona el format de dades i s'omplen valors recomanats de ràtio i payload. Després ajusta plataforma, arquitectura i protocol."
+      }
+    },
+    "execucions": {
+      "step1": {
+        "title": "Seguiment de runs",
+        "body": "Filtra per estat, escenari o bròker. Fes clic en una fila per mantenir obert el detall live mentre arriben mètriques."
+      }
+    },
+    "resultats": {
+      "step1": {
+        "title": "Comparació",
+        "body": "Compara fins a diversos runs visibles i revisa percentils, throughput i errors. Els filtres canvien el conjunt sobre el qual es calcula la puntuació."
+      }
+    }
   },
   "home": {
     "title": "APIs Asíncrones",
@@ -240,6 +300,26 @@
       "closeAriaLabel": "Tanca el detall del component",
       "noName": "Component sense nom",
       "noDescriptionLong": "Aquest component encara no té una descripció al catàleg.",
+      "tabs": {
+        "overview": "Visió general",
+        "repro": "Reproduïbilitat",
+        "config": "Configuració"
+      },
+      "fields": {
+        "version": "Versió",
+        "license": "Llicència",
+        "language": "Llenguatge",
+        "maintainer": "Mantenidor",
+        "useCases": "Casos d'ús"
+      },
+      "copy": "Copiar",
+      "copied": "Copiat",
+      "overviewFallback": "Component utilitzat pel portal de benchmark.",
+      "impactFallback": "El seu impacte depèn de com es combina dins de l'escenari.",
+      "reproDescription": "Versió, configuració i passos de replicació: només el que cal per reproduir les mateixes condicions.",
+      "noReproRows": "Aquest component encara no té dades de reproduïbilitat estructurades.",
+      "noConfigSnippet": "Aquest component encara no té cap snippet de configuració.",
+      "useDescription": "Obre el formulari d'escenaris amb aquest valor preseleccionat quan sigui possible.",
       "sectionWhat": "Que representa dins del benchmark",
       "sectionCard": "Fitxa ràpida",
       "labelCategory": "Categoria",
@@ -273,10 +353,19 @@
     "statusLabels": {
       "complete": "Completa",
       "partial": "Parcial"
-    }
+    },
+    "loadError": "No s'ha pogut carregar el catàleg:"
   },
   "scenarios": {
     "pageTitle": "Escenaris | APIs Asíncrones",
+    "format": {
+      "appliedRecommendations": "S'aplicarà ràtio i payload recomanats"
+    },
+    "warmup": {
+      "label": "Warm-up",
+      "measure": "Mesura",
+      "tooltip": "Període inicial sense mesurar perquè el sistema s'estabilitzi"
+    },
     "statusLabels": {
       "idle": "Llest",
       "pending": "Pendent",
@@ -395,6 +484,24 @@
   },
   "execucions": {
     "pageTitle": "Execucions | APIs Asíncrones",
+    "filters": {
+      "status": "Estat",
+      "scenario": "Escenari",
+      "broker": "Bròker",
+      "platform": "Plataforma",
+      "protocol": "Protocol",
+      "architecture": "Arquitectura",
+      "format": "Format",
+      "all": "Tots"
+    },
+    "status": {
+      "pending": "Pendent",
+      "running": "En curs",
+      "completed": "Completat",
+      "cancelled": "Aturat",
+      "failed": "Fallit",
+      "error": "Fallit"
+    },
     "statusLabels": {
       "pending": "Pendent",
       "running": "En execució",
@@ -459,7 +566,9 @@
       "btnStop": "Atura",
       "btnDelete": "Eliminar",
       "btnDeleteSelected": "Eliminar seleccionats",
-      "btnDeleteAll": "Eliminar tot"
+      "btnDeleteAll": "Eliminar tot",
+      "select": "Seleccionar",
+      "deselect": "Deseleccionar"
     },
     "confirm": {
       "titleStop": "Aturar execució",

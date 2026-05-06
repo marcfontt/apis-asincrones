@@ -27,6 +27,11 @@
       "description": "Cambia el tema visual de la aplicación",
       "light": "Claro",
       "dark": "Oscuro"
+    },
+    "session": {
+      "title": "Sesión",
+      "description": "Cierra la sesión actual y vuelve a la pantalla de inicio.",
+      "logout": "Cerrar sesión"
     }
   },
   "common": {
@@ -38,6 +43,61 @@
     "loading": "Cargando...",
     "error": "Error",
     "success": "Éxito"
+  },
+  "tutorial": {
+    "show": "Ver tutorial",
+    "replay": "Rever tutorial",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "skip": "Saltar tutorial",
+    "finish": "Finalizar",
+    "createExample": "Crear escenario de ejemplo",
+    "home": {
+      "step1": {
+        "title": "Bienvenido",
+        "body": "Esta plataforma compara APIs asíncronas bajo la misma carga. La comparación es útil cuando cada run es reproducible."
+      },
+      "step2": {
+        "title": "Catálogo",
+        "body": "Empieza en el Catálogo para ver qué componentes puedes probar. Cada ficha muestra versión, compatibilidad y configuración."
+      },
+      "step3": {
+        "title": "Escenarios",
+        "body": "En Escenarios defines la combinación de bróker, protocolo y carga. El formulario ayuda a evitar combinaciones que el portal no sabe ejecutar."
+      },
+      "step4": {
+        "title": "Ejecuciones",
+        "body": "En Ejecuciones lanzas la prueba al clúster y ves el estado del run. También puedes revisar historial y detalles persistidos."
+      },
+      "step5": {
+        "title": "Resultados",
+        "body": "En Resultados comparas latencia, throughput y errores entre runs. Las conclusiones deben defenderse con métricas, no con una sola puntuación."
+      }
+    },
+    "catalog": {
+      "step1": {
+        "title": "Fichas de componente",
+        "body": "Cada card es un componente. Haz clic para ver detalles de reproducibilidad, compatibilidad y snippets de configuración."
+      }
+    },
+    "scenarios": {
+      "step1": {
+        "title": "Formulario de escenario",
+        "body": "Selecciona el formato de datos y se rellenan valores recomendados de ratio y payload. Después ajusta plataforma, arquitectura y protocolo."
+      }
+    },
+    "execucions": {
+      "step1": {
+        "title": "Seguimiento de runs",
+        "body": "Filtra por estado, escenario o bróker. Haz clic en una fila para mantener abierto el detalle live mientras llegan métricas."
+      }
+    },
+    "resultats": {
+      "step1": {
+        "title": "Comparación",
+        "body": "Compara varios runs visibles y revisa percentiles, throughput y errores. Los filtros cambian el conjunto sobre el que se calcula la puntuación."
+      }
+    }
   },
   "home": {
     "title": "APIs Asíncronas",
@@ -240,6 +300,26 @@
       "closeAriaLabel": "Cerrar el detalle del componente",
       "noName": "Componente sin nombre",
       "noDescriptionLong": "Este componente todavía no tiene una descripción en el catálogo.",
+      "tabs": {
+        "overview": "Visión general",
+        "repro": "Reproducibilidad",
+        "config": "Configuración"
+      },
+      "fields": {
+        "version": "Versión",
+        "license": "Licencia",
+        "language": "Lenguaje",
+        "maintainer": "Mantenedor",
+        "useCases": "Casos de uso"
+      },
+      "copy": "Copiar",
+      "copied": "Copiado",
+      "overviewFallback": "Componente utilizado por el portal de benchmark.",
+      "impactFallback": "Su impacto depende de cómo se combina dentro del escenario.",
+      "reproDescription": "Versión, configuración y pasos de replicación: solo lo necesario para reproducir las mismas condiciones.",
+      "noReproRows": "Este componente todavía no tiene datos de reproducibilidad estructurados.",
+      "noConfigSnippet": "Este componente todavía no tiene ningún snippet de configuración.",
+      "useDescription": "Abre el formulario de escenarios con este valor preseleccionado cuando sea posible.",
       "sectionWhat": "Qué representa dentro del benchmark",
       "sectionCard": "Ficha rápida",
       "labelCategory": "Categoría",
@@ -273,10 +353,19 @@
     "statusLabels": {
       "complete": "Completa",
       "partial": "Parcial"
-    }
+    },
+    "loadError": "No se ha podido cargar el catálogo:"
   },
   "scenarios": {
     "pageTitle": "Escenarios | APIs Asíncronas",
+    "format": {
+      "appliedRecommendations": "Se aplicarán ratio y payload recomendados"
+    },
+    "warmup": {
+      "label": "Warm-up",
+      "measure": "Medición",
+      "tooltip": "Periodo inicial sin medir para que el sistema se estabilice"
+    },
     "statusLabels": {
       "idle": "Listo",
       "pending": "Pendiente",
@@ -395,6 +484,24 @@
   },
   "execucions": {
     "pageTitle": "Ejecuciones | APIs Asíncronas",
+    "filters": {
+      "status": "Estado",
+      "scenario": "Escenario",
+      "broker": "Bróker",
+      "platform": "Plataforma",
+      "protocol": "Protocolo",
+      "architecture": "Arquitectura",
+      "format": "Formato",
+      "all": "Todos"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "running": "En curso",
+      "completed": "Completado",
+      "cancelled": "Detenido",
+      "failed": "Fallido",
+      "error": "Fallido"
+    },
     "statusLabels": {
       "pending": "Pendiente",
       "running": "En ejecución",
@@ -459,7 +566,9 @@
       "btnStop": "Detener",
       "btnDelete": "Eliminar",
       "btnDeleteSelected": "Eliminar seleccionados",
-      "btnDeleteAll": "Eliminar todo"
+      "btnDeleteAll": "Eliminar todo",
+      "select": "Seleccionar",
+      "deselect": "Deseleccionar"
     },
     "confirm": {
       "titleStop": "Detener ejecución",

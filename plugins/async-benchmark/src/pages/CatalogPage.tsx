@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useTranslation, tRaw } from '../i18n';
 import { S, CATEGORY_COLORS } from '../theme';
 import { FilterPanel } from '../components/FilterPanel';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
+import { TutorialButton } from '../components/TutorialOverlay';
 import {
   ALL_PLATFORMS,
   COMPATIBILITY,
@@ -137,8 +139,11 @@ const normalizeText = (value: unknown): string =>
 const componentColor = (component: CatalogComponent): string =>
   CATEGORY_COLORS[component.category || ''] || 'var(--accent)';
 
-const componentCategoryLabel = (component: CatalogComponent): string =>
-  CATEGORY_LABELS[component.category || ''] || component.category || 'Sense categoria';
+const componentCategoryLabel = (
+  component: CatalogComponent,
+  labels: Record<string, string> = CATEGORY_LABELS,
+): string =>
+  labels[component.category || ''] || component.category || 'Sense categoria';
 
 const isLegacyComponent = (component: CatalogComponent): boolean => {
   const searchableValues = [
@@ -290,12 +295,14 @@ const SortHeader = ({
 const CategoryCard = ({
   category,
   title,
+  description,
   count,
   active,
   onClick,
 }: {
   category: 'architecture' | 'protocol' | 'platform';
   title: string;
+  description: string;
   count: number;
   active: boolean;
   onClick: () => void;
@@ -338,7 +345,7 @@ const CategoryCard = ({
       </div>
       <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 6 }}>{title}</div>
       <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-        {CATEGORY_DESCRIPTIONS[category]}
+        {description}
       </p>
     </button>
   );
@@ -479,13 +486,37 @@ const ComponentDetailModal = ({
   component: CatalogComponent;
   onClose: () => void;
 }) => {
+  const { t } = useTranslation();
+  const categoryLabels = (tRaw('catalog.categoryLabels') as Record<string, string> | undefined) ?? CATEGORY_LABELS;
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<'overview' | 'repro' | 'config'>('overview');
   const color = componentColor(component);
-  const label = componentCategoryLabel(component);
+  const label = componentCategoryLabel(component, categoryLabels);
   const version = getKnownComponentVersion(component);
   const reproducibilityRows = getReproducibilityRows(component);
   const snippet = getReproducibilitySnippet(component);
   const scenarioUrl = buildScenarioUrl(component);
+  const typedComponent = component as CatalogComponent & {
+    license?: string;
+    language?: string;
+    maintainer?: string;
+    useCases?: string[] | string;
+  };
+  const useCases = Array.isArray(typedComponent.useCases)
+    ? typedComponent.useCases.join(', ')
+    : typedComponent.useCases || (Array.isArray(component.tags) ? component.tags.join(', ') : '-');
+  const overviewFields = [
+    { label: t('catalog.modal.fields.version'), value: version || '-' },
+    { label: t('catalog.modal.fields.license'), value: typedComponent.license || '-' },
+    { label: t('catalog.modal.fields.language'), value: typedComponent.language || '-' },
+    { label: t('catalog.modal.fields.maintainer'), value: typedComponent.maintainer || '-' },
+    { label: t('catalog.modal.fields.useCases'), value: useCases },
+  ];
+  const tabs: { key: 'overview' | 'repro' | 'config'; label: string }[] = [
+    { key: 'overview', label: t('catalog.modal.tabs.overview') },
+    { key: 'repro', label: t('catalog.modal.tabs.repro') },
+    { key: 'config', label: t('catalog.modal.tabs.config') },
+  ];
 
   const copySnippet = () => {
     if (!snippet || !navigator?.clipboard) {
@@ -494,7 +525,7 @@ const ComponentDetailModal = ({
 
     navigator.clipboard.writeText(snippet.codi).then(() => {
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      window.setTimeout(() => setCopied(false), 2000);
     }).catch(() => {});
   };
 
@@ -520,19 +551,22 @@ const ComponentDetailModal = ({
       <aside
         style={{
           width: '100%',
-          maxWidth: 860,
+          maxWidth: 720,
+          maxHeight: 'calc(100vh - 120px)',
           margin: '0 auto',
           background: 'var(--bg-card)',
           border: `1px solid ${color}40`,
-          borderRadius: 14,
+          borderRadius: 12,
           boxShadow: 'var(--shadow-lg)',
-          padding: 26,
+          padding: 0,
           animation: 'fadeUp 0.18s ease',
           color: 'var(--text-primary)',
           fontFamily: 'var(--font)',
+          overflowY: 'auto',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18, marginBottom: 18 }}>
+        <div style={{ position: 'sticky', top: 0, zIndex: 2, background: 'var(--bg-card)', padding: '32px 32px 18px', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18 }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 9, marginBottom: 8 }}>
               <span style={{ ...S.badge(color), fontSize: 11 }}>{label}</span>
@@ -554,16 +588,16 @@ const ComponentDetailModal = ({
               )}
             </div>
             <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.15, fontWeight: 900, letterSpacing: '-0.02em' }}>
-              {component.name || 'Component sense nom'}
+              {component.name || t('catalog.modal.noName')}
             </h2>
             <p style={{ margin: '10px 0 0', maxWidth: 680, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-              {component.description || 'Aquest component encara no té una descripció al catàleg.'}
+              {component.description || t('catalog.modal.noDescriptionLong')}
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
-            aria-label="Tanca el detall del component"
+            aria-label={t('catalog.modal.closeAriaLabel')}
             style={{
               width: 36,
               height: 36,
@@ -581,60 +615,100 @@ const ComponentDetailModal = ({
             <CloseIcon />
           </button>
         </div>
+        </div>
 
+        <div style={{ position: 'sticky', top: 105, zIndex: 1, display: 'flex', gap: 18, padding: '0 32px', background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
+          {tabs.map(tab => {
+            const active = activeTab === tab.key;
+            return (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setActiveTab(tab.key)}
+                style={{
+                  border: 'none',
+                  borderBottom: `2px solid ${active ? color : 'transparent'}`,
+                  background: 'transparent',
+                  color: active ? color : 'var(--text-secondary)',
+                  padding: '12px 0 10px',
+                  cursor: 'pointer',
+                  fontFamily: 'var(--font)',
+                  fontSize: 13,
+                  fontWeight: active ? 800 : 650,
+                }}
+              >
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ padding: 32 }}>
+        {activeTab === 'overview' && (
+        <>
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(260px, 0.9fr)', gap: 16 }} className="async-responsive-grid">
           <section style={{ ...S.card, boxShadow: 'none' }}>
             <div style={{ fontSize: 11, color, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-              Què representa dins del benchmark
+              {t('catalog.modal.sectionWhat')}
             </div>
             <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.65 }}>
-              {CATEGORY_DESCRIPTIONS[component.category || ''] || 'Component utilitzat pel portal de benchmark.'}
+              {CATEGORY_DESCRIPTIONS[component.category || ''] || t('catalog.modal.overviewFallback')}
             </p>
             <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              {CATEGORY_IMPACTS[component.category || ''] || 'El seu impacte depèn de com es combina dins de l’escenari.'}
+              {CATEGORY_IMPACTS[component.category || ''] || t('catalog.modal.impactFallback')}
             </p>
           </section>
 
           <section style={{ ...S.card, boxShadow: 'none' }}>
             <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-              Fitxa ràpida
+              {t('catalog.modal.sectionCard')}
             </div>
-            <DetailRow label="Categoria" value={label} />
-            <DetailRow label="Nom curt" value={component.shortName || '-'} />
-            <DetailRow label="Versió" value={version || '-'} />
-            <DetailRow label="Reproductibilitat" value={getReproducibilityStatus(component)} />
+            <DetailRow label={t('catalog.modal.labelCategory')} value={label} />
+            <DetailRow label={t('catalog.modal.labelShortName')} value={component.shortName || '-'} />
+            {overviewFields.map(field => (
+              <DetailRow key={field.label} label={field.label} value={field.value} />
+            ))}
+            <DetailRow label={t('catalog.modal.labelRepro')} value={getReproducibilityStatus(component)} />
             {component.createdAt && (
-              <DetailRow label="Afegit el" value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
+              <DetailRow label={t('catalog.modal.labelCreatedAt')} value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
             )}
           </section>
         </div>
 
         <ComponentCompatibilityDetails component={component} />
+        </>
+        )}
 
-        {(reproducibilityRows || snippet) && (
+        {activeTab === 'repro' && (
           <section style={{ ...S.card, boxShadow: 'none', marginTop: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 12 }}>
               <div>
                 <div style={{ fontSize: 11, color, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-                  Reproductibilitat
+                  {t('catalog.modal.tabs.repro')}
                 </div>
                 <p style={{ margin: '5px 0 0', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                  Versió, configuració i passos de replicació: tot el que cal per reproduir les mateixes condicions en un altre entorn.
+                  {t('catalog.modal.reproDescription')}
                 </p>
               </div>
               <StatusBadge status={getReproducibilityStatus(component)} />
             </div>
 
-            {reproducibilityRows && (
+            {reproducibilityRows ? (
               <div style={{ borderTop: '1px solid var(--border)' }}>
                 {reproducibilityRows.map(row => (
                   <DetailRow key={row.label} label={row.label} value={row.value} />
                 ))}
               </div>
+            ) : (
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 13 }}>{t('catalog.modal.noReproRows')}</p>
             )}
+          </section>
+        )}
 
-            {snippet && (
-              <div style={{ marginTop: 14 }}>
+        {activeTab === 'config' && (
+          <section style={{ ...S.card, boxShadow: 'none', marginTop: 16 }}>
+            {snippet ? (
+              <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
                   <div style={{ fontSize: 13, fontWeight: 850, color: 'var(--text-primary)' }}>{snippet.titol}</div>
                   <button
@@ -642,7 +716,7 @@ const ComponentDetailModal = ({
                     onClick={copySnippet}
                     style={{ ...S.btn, fontSize: 12, padding: '5px 11px' }}
                   >
-                    {copied ? 'Copiat' : 'Copiar'}
+                    {copied ? t('catalog.modal.copied') : t('catalog.modal.copy')}
                   </button>
                 </div>
                 <pre
@@ -663,6 +737,8 @@ const ComponentDetailModal = ({
                   {snippet.codi}
                 </pre>
               </div>
+            ) : (
+              <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 13 }}>{t('catalog.modal.noConfigSnippet')}</p>
             )}
           </section>
         )}
@@ -683,9 +759,9 @@ const ComponentDetailModal = ({
           }}
         >
           <div style={{ minWidth: 220 }}>
-            <div style={{ fontSize: 14, fontWeight: 850, color: 'var(--text-primary)' }}>Utilitzar aquest component</div>
+            <div style={{ fontSize: 14, fontWeight: 850, color: 'var(--text-primary)' }}>{t('catalog.modal.btnUse')}</div>
             <div style={{ marginTop: 4, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-              Obre el formulari d’escenaris amb aquest valor preseleccionat quan sigui possible.
+              {t('catalog.modal.useDescription')}
             </div>
           </div>
           <a
@@ -699,8 +775,9 @@ const ComponentDetailModal = ({
               fontWeight: 850,
             }}
           >
-            Crear escenari
+            {t('catalog.modal.btnCreateScenario')}
           </a>
+        </div>
         </div>
       </aside>
     </div>
@@ -708,6 +785,10 @@ const ComponentDetailModal = ({
 };
 
 export const CatalogPage = () => {
+  const { t } = useTranslation();
+  const categoryLabels = (tRaw('catalog.categoryLabels') as Record<string, string> | undefined) ?? CATEGORY_LABELS;
+  const categoryTitles = (tRaw('catalog.categoryTitles') as Record<string, string> | undefined) ?? {};
+  const categoryDescriptions = (tRaw('catalog.categoryDescriptions') as Record<string, string> | undefined) ?? CATEGORY_DESCRIPTIONS;
   const [components, setComponents] = useState<CatalogComponent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -720,8 +801,8 @@ const [searchQuery, setSearchQuery] = useState('');
   const [selectedComponent, setSelectedComponent] = useState<CatalogComponent | null>(null);
 
   useEffect(() => {
-    document.title = 'Catàleg | APIs Asíncrones';
-  }, []);
+    document.title = t('catalog.pageTitle');
+  }, [t]);
 
   const fetchComponents = async () => {
     const firstLoad = components.length === 0;
@@ -804,14 +885,14 @@ const [searchQuery, setSearchQuery] = useState('');
         component.name,
         component.shortName,
         component.description,
-        componentCategoryLabel(component),
+        componentCategoryLabel(component, categoryLabels),
         getKnownComponentVersion(component),
         ...(Array.isArray(component.tags) ? component.tags : []),
       ].map(normalizeText);
 
       return searchHaystack.some(value => value.includes(normalizedQuery));
     });
-  }, [activeCategory, searchQuery, visibleComponents]);
+  }, [activeCategory, categoryLabels, searchQuery, visibleComponents]);
 
   const sortedComponents = useMemo(() => {
     if (!sortKey || !sortDir) {
@@ -820,7 +901,7 @@ const [searchQuery, setSearchQuery] = useState('');
 
     const getSortValue = (component: CatalogComponent): string => {
       if (sortKey === 'category') {
-        return componentCategoryLabel(component);
+        return componentCategoryLabel(component, categoryLabels);
       }
       if (sortKey === 'version') {
         return getKnownComponentVersion(component);
@@ -835,7 +916,7 @@ const [searchQuery, setSearchQuery] = useState('');
       const result = getSortValue(a).localeCompare(getSortValue(b), 'ca', { sensitivity: 'base' });
       return sortDir === 'asc' ? result : -result;
     });
-  }, [filteredComponents, sortDir, sortKey]);
+  }, [categoryLabels, filteredComponents, sortDir, sortKey]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey !== key) {
@@ -896,32 +977,36 @@ const tableCardStyle: CSSProperties = {
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 20, marginBottom: 22, flexWrap: 'wrap' }}>
         <div>
           <h1 style={{ margin: 0, fontSize: 28, fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.025em' }}>
-            Catàleg de components
+            {t('catalog.heading')}
           </h1>
           <p style={{ margin: '8px 0 0', maxWidth: 780, color: 'var(--text-secondary)', fontSize: 14.5, lineHeight: 1.65 }}>
-            Inventari de plataformes, protocols i arquitectures que poden formar un escenari. La prioritat d’aquesta pàgina és la reproductibilitat: versió, configuració i límits visibles abans de comparar resultats.
+            {t('catalog.subheading')}
           </p>
         </div>
+        <TutorialButton page="catalog" />
       </header>
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 12, marginBottom: 18 }}>
         <CategoryCard
           category="platform"
-          title="Plataformes"
+          title={categoryTitles.platform || t('catalog.categoryTitles.platform')}
+          description={categoryDescriptions.platform || CATEGORY_DESCRIPTIONS.platform}
           count={platformCount}
           active={activeCategory === 'platform'}
           onClick={() => setActiveCategory(activeCategory === 'platform' ? 'all' : 'platform')}
         />
         <CategoryCard
           category="protocol"
-          title="Protocols"
+          title={categoryTitles.protocol || t('catalog.categoryTitles.protocol')}
+          description={categoryDescriptions.protocol || CATEGORY_DESCRIPTIONS.protocol}
           count={protocolCount}
           active={activeCategory === 'protocol'}
           onClick={() => setActiveCategory(activeCategory === 'protocol' ? 'all' : 'protocol')}
         />
         <CategoryCard
           category="architecture"
-          title="Arquitectures"
+          title={categoryTitles.architecture || t('catalog.categoryTitles.architecture')}
+          description={categoryDescriptions.architecture || CATEGORY_DESCRIPTIONS.architecture}
           count={architectureCount}
           active={activeCategory === 'architecture'}
           onClick={() => setActiveCategory(activeCategory === 'architecture' ? 'all' : 'architecture')}
@@ -931,19 +1016,19 @@ const tableCardStyle: CSSProperties = {
       <CompatibilitySummary />
 
       <FilterPanel
-        title="Filtres del catàleg"
+        title={t('catalog.filterTitle')}
         activeFilterCount={activeFilterCount}
         visibleCount={loading ? 0 : filteredComponents.length}
         totalCount={visibleComponents.length}
         searchValue={searchQuery}
-        searchPlaceholder="Cerca per nom, versió, tag, categoria o reproductibilitat"
+        searchPlaceholder={t('catalog.searchPlaceholder')}
         onSearchChange={setSearchQuery}
         onClearFilters={resetFilters}
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           {CATEGORY_ORDER.map(category => {
             const isActive = activeCategory === category;
-            const label = category === 'all' ? 'Tots' : CATEGORY_LABELS[category];
+            const label = category === 'all' ? t('catalog.filterAll') : categoryLabels[category];
             const color = category === 'all' ? 'var(--accent)' : CATEGORY_COLORS[category];
             return (
               <button
@@ -981,22 +1066,19 @@ const tableCardStyle: CSSProperties = {
           <strong style={{ color: CATEGORY_COLORS.platform, fontFamily: 'var(--font-mono)' }}>
             {loading ? '-' : compatibleCombinationCount}
           </strong>{' '}
-          combinacions compatibles
+          {t('catalog.stats.compatibleCombinations')}
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
           <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
             {loading ? '-' : theoreticalCombinationCount}
           </strong>{' '}
-          combinacions possibles sense aplicar la matriu
+          {t('catalog.stats.possibleCombinations')}
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 0' }}>
           <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
             {loading ? '-' : filteredComponents.length}
           </strong>{' '}
-          components visibles de {visibleComponents.length}
-        </span>
-        <span style={{ flexBasis: '100%', paddingTop: 2 }}>
-          SEA està inclosa com a arquitectura i es manté disponible per als escenaris compatibles.
+          {t('catalog.stats.visibleOf')} {visibleComponents.length}
         </span>
       </div>
 
@@ -1008,7 +1090,7 @@ const tableCardStyle: CSSProperties = {
 
       {error && (
         <div style={{ ...S.card, borderColor: 'rgba(220,38,38,0.35)', color: 'var(--error)', marginBottom: 16 }}>
-          No s’ha pogut carregar el catàleg: {error}
+          {t('catalog.loadError')} {error}
         </div>
       )}
 
@@ -1016,10 +1098,10 @@ const tableCardStyle: CSSProperties = {
         <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 850, color: 'var(--text-primary)' }}>
-              Components del benchmark
+              {t('catalog.tableHeading')}
             </div>
             <div style={{ marginTop: 3, fontSize: 12, color: 'var(--text-secondary)' }}>
-              Obre una fila per veure la configuració, la versió i les ordres de verificació.
+              {t('catalog.tableSubheading')}
             </div>
           </div>
           {searchQuery && (
@@ -1034,10 +1116,10 @@ const tableCardStyle: CSSProperties = {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
             <thead>
               <tr style={S.tableHeader}>
-                <SortHeader label="Component" sortKey="name" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
-                <SortHeader label="Categoria" sortKey="category" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
-                <SortHeader label="Versió" sortKey="version" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
-                <SortHeader label="Descripció" sortKey="description" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label={t('catalog.colComponent')} sortKey="name" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label={t('catalog.colCategory')} sortKey="category" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label={t('catalog.colVersion')} sortKey="version" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
+                <SortHeader label={t('catalog.colDescription')} sortKey="description" currentKey={sortKey} direction={sortDir} onSort={handleSort} />
               </tr>
             </thead>
             <tbody>
@@ -1064,7 +1146,7 @@ const tableCardStyle: CSSProperties = {
               ) : sortedComponents.length === 0 ? (
                 <tr>
                   <td colSpan={4} style={{ padding: 42, textAlign: 'center', color: 'var(--text-secondary)' }}>
-                    No s’ha trobat cap component amb els filtres actuals.
+                    {t('catalog.noComponents')}
                   </td>
                 </tr>
               ) : (
@@ -1113,14 +1195,14 @@ const tableCardStyle: CSSProperties = {
                         </div>
                       </td>
                       <td style={S.td}>
-                        <span style={{ ...S.badge(color), fontSize: 11 }}>{componentCategoryLabel(component)}</span>
+                        <span style={{ ...S.badge(color), fontSize: 11 }}>{componentCategoryLabel(component, categoryLabels)}</span>
                       </td>
                       <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: version ? 'var(--text-primary)' : 'var(--text-disabled)' }}>
                         {version || '-'}
                       </td>
                       <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 470 }}>
                         <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {component.description || 'Sense descripció'}
+                          {component.description || t('catalog.noDescription')}
                         </div>
                       </td>
                     </tr>

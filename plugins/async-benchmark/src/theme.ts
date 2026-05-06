@@ -45,6 +45,9 @@ export const GLOBAL_CSS = `
     --error: #dc2626;
     --warning: #d97706;
     --neutral: #64748b;
+    --danger: #b91c1c;
+    --danger-soft: #fee2e2;
+    --danger-border: #fca5a5;
 
     --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
     --shadow-md: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
@@ -88,6 +91,9 @@ export const GLOBAL_CSS = `
     --error: #f85149;
     --warning: #d29922;
     --neutral: #64748b;
+    --danger: #f87171;
+    --danger-soft: rgba(248,81,73,0.12);
+    --danger-border: rgba(248,113,113,0.38);
 
     --shadow-sm: 0 1px 3px rgba(0,0,0,0.50);
     --shadow-md: 0 2px 8px rgba(0,0,0,0.60);
@@ -341,7 +347,7 @@ export const S = {
   card: {
     background: 'var(--bg-card)',
     border: '1px solid var(--border)',
-    borderRadius: 10,
+    borderRadius: 8,
     padding: 20,
     boxShadow: 'var(--shadow-sm)',
   } as React.CSSProperties,
