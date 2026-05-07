@@ -222,7 +222,28 @@ const normalizePlatform = (p?: string): string => {
  * Weights per format: { lat, p50, p99, tput, err }
  * All weights within a format sum to 1.0.
  */
-const FORMAT_WEIGHTS: Record<string, { lat: number; p50: number; p99: number; tput: number; err: number }> = {
+type ScoreMetricKey = 'lat' | 'p50' | 'p99' | 'tput' | 'err';
+type ScoreWeights = Record<ScoreMetricKey, number>;
+type ScoreMetricRecord = Record<ScoreMetricKey, number>;
+type ScoreMetricValues = Record<ScoreMetricKey, number | null>;
+type ScoreMetricBounds = Record<ScoreMetricKey, { min: number; max: number }>;
+
+type ScoreBreakdown = {
+  score: number;
+  compositePercent: number;
+  penalty: number;
+  weights: ScoreWeights;
+  normalized: ScoreMetricRecord;
+  contributions: ScoreMetricRecord;
+  finalContributions: ScoreMetricRecord;
+  values: ScoreMetricValues;
+  bounds: ScoreMetricBounds;
+  dataFormat: string;
+};
+
+const SCORE_METRIC_KEYS: ScoreMetricKey[] = ['lat', 'p50', 'p99', 'tput', 'err'];
+
+const FORMAT_WEIGHTS: Record<string, ScoreWeights> = {
   'default': { lat: 0.20, p50: 0.15, p99: 0.25, tput: 0.20, err: 0.20 },
   'financial': { lat: 0.15, p50: 0.10, p99: 0.20, tput: 0.15, err: 0.40 }, // error critical
   'video-4k': { lat: 0.10, p50: 0.10, p99: 0.15, tput: 0.40, err: 0.25 }, // throughput critical
@@ -285,20 +306,9 @@ const computeScores = (
   items: any[],
   percentileMap: Record<string, { p50: number | null; p99: number | null }>,
   dataFormatOf: (s: any) => string,
-): Map<string, number> => {
+): Map<string, ScoreBreakdown> => {
   const n = items.length;
   if (n === 0) return new Map();
-
-  // Special case: single item has no group to normalize against.
-  // Score is based solely on the error penalty (100 * penalty).
-  if (n === 1) {
-    const s = items[0];
-    const fmt = dataFormatOf(s);
-    const err = s.avgErrorRate ?? 0;
-    const penalty = getErrorPenalty(fmt, err);
-    // Key uses runId first (new grouping), falling back to scenarioId (legacy)
-    return new Map([[s.runId || s.scenarioId, Math.round(100 * penalty)]]);
-  }
 
   // Accessors - prefer server-side P50/P99 (p50Latency/p99Latency), fall back
   // to client-computed percentileMap keyed by runId (or scenarioId for legacy)
@@ -334,29 +344,86 @@ const computeScores = (
   const minP50 = Math.min(...p50Vals, 0), maxP50 = Math.max(...p50Vals, 0.01);
   const minP99 = Math.min(...p99Vals, 0), maxP99 = Math.max(...p99Vals, 0.01);
 
-  const map = new Map<string, number>();
-  items.forEach(s => {
+  const bounds: ScoreMetricBounds = {
+    lat: { min: minLat, max: maxLat },
+    p50: { min: minP50, max: maxP50 },
+    p99: { min: minP99, max: maxP99 },
+    tput: { min: minTp, max: maxTp },
+    err: { min: minErr, max: maxErr },
+  };
+
+  const buildBreakdown = (
+    s: any,
+    normalized: ScoreMetricRecord,
+    values: ScoreMetricValues,
+  ): ScoreBreakdown => {
     const fmt = dataFormatOf(s);
-    // Use format-specific weights, fall back to 'default' if format is unknown
-    const w = FORMAT_WEIGHTS[fmt] ?? FORMAT_WEIGHTS['default'];
-
-    // Normalize each metric: lower latency/errors = higher normalized score
-    const normLat = safeDivide(getLat(s), minLat, maxLat, false);
-    const normTput = safeDivide(getTput(s), minTp, maxTp, true);
-    const normErr = safeDivide(getErr(s), minErr, maxErr, false);
-    const normP50 = safeDivide(getP50(s), minP50, maxP50, false);
-    const normP99 = safeDivide(getP99(s), minP99, maxP99, false);
-
-    // Weighted composite score (0.0-1.0), then scale to 0-100
-    const composite = normLat * w.lat + normP50 * w.p50 + normP99 * w.p99 + normTput * w.tput + normErr * w.err;
+    const weights = FORMAT_WEIGHTS[fmt] ?? FORMAT_WEIGHTS['default'];
     const penalty = getErrorPenalty(fmt, s.avgErrorRate ?? 0);
-    const score = Math.round(composite * 100 * penalty);
+    const contributions = SCORE_METRIC_KEYS.reduce((acc, key) => {
+      acc[key] = normalized[key] * weights[key] * 100;
+      return acc;
+    }, {} as ScoreMetricRecord);
+    const finalContributions = SCORE_METRIC_KEYS.reduce((acc, key) => {
+      acc[key] = contributions[key] * penalty;
+      return acc;
+    }, {} as ScoreMetricRecord);
+    const compositePercent = SCORE_METRIC_KEYS.reduce((sum, key) => sum + contributions[key], 0);
+    const score = Math.round(SCORE_METRIC_KEYS.reduce((sum, key) => sum + finalContributions[key], 0));
+    return {
+      score: Math.max(0, Math.min(100, score)),
+      compositePercent,
+      penalty,
+      weights,
+      normalized,
+      contributions,
+      finalContributions,
+      values,
+      bounds,
+      dataFormat: fmt,
+    };
+  };
+
+  // Special case: a single visible scenario has no peer group to normalize
+  // against, so each metric receives the full value of its configured weight.
+  if (n === 1) {
+    const s = items[0];
+    const normalized: ScoreMetricRecord = { lat: 1, p50: 1, p99: 1, tput: 1, err: 1 };
+    const values: ScoreMetricValues = {
+      lat: getLat(s),
+      p50: getP50(s),
+      p99: getP99(s),
+      tput: getTput(s),
+      err: getErr(s),
+    };
+    return new Map([[s.runId || s.scenarioId, buildBreakdown(s, normalized, values)]]);
+  }
+
+  const map = new Map<string, ScoreBreakdown>();
+  items.forEach(s => {
+    // Normalize each metric: lower latency/errors = higher normalized score
+    const values: ScoreMetricValues = {
+      lat: getLat(s),
+      p50: getP50(s),
+      p99: getP99(s),
+      tput: getTput(s),
+      err: getErr(s),
+    };
+    const normalized: ScoreMetricRecord = {
+      lat: safeDivide(values.lat, minLat, maxLat, false),
+      p50: safeDivide(values.p50, minP50, maxP50, false),
+      p99: safeDivide(values.p99, minP99, maxP99, false),
+      tput: safeDivide(values.tput, minTp, maxTp, true),
+      err: safeDivide(values.err, minErr, maxErr, false),
+    };
 
     // Key by runId when available (per-run scoring), fallback to scenarioId for legacy data
-    map.set(s.runId || s.scenarioId, Math.max(0, Math.min(100, score)));
+    map.set(s.runId || s.scenarioId, buildBreakdown(s, normalized, values));
   });
   return map;
 };
+
+const getScoreValue = (breakdown?: ScoreBreakdown): number => breakdown?.score ?? 0;
 
 /**
  * Maps a 0-100 score to a semantic color for visual feedback.
@@ -817,6 +884,138 @@ const ScoreRing = ({ score, size = 36 }: { score: number; size?: number }) => {
   );
 };
 
+const SCORE_METRIC_COLORS: Record<ScoreMetricKey, string> = {
+  lat: '#f59e0b',
+  p50: '#3b82f6',
+  p99: '#8b5cf6',
+  tput: '#22c55e',
+  err: '#ef4444',
+};
+
+const SCORE_METRIC_LABEL_KEYS: Record<ScoreMetricKey, string> = {
+  lat: 'resultats.score.metrics.lat',
+  p50: 'resultats.score.metrics.p50',
+  p99: 'resultats.score.metrics.p99',
+  tput: 'resultats.score.metrics.tput',
+  err: 'resultats.score.metrics.err',
+};
+
+const formatScorePercent = (value: number, decimals = 0): string =>
+  `${value.toFixed(decimals)}%`;
+
+const formatMetricValue = (key: ScoreMetricKey, value: number | null): string => {
+  if (value == null) return '-';
+  if (key === 'tput') return `${value.toFixed(1)} msg/s`;
+  if (key === 'err') return `${value.toFixed(3)}%`;
+  return `${value.toFixed(2)} ms`;
+};
+
+const ScoreBreakdownPanel = ({
+  breakdown,
+  t,
+}: {
+  breakdown: ScoreBreakdown | null;
+  t: (key: string) => string;
+}) => {
+  if (!breakdown) return null;
+  const penaltyPercent = breakdown.penalty * 100;
+
+  return (
+    <div style={{ ...S.card, marginTop: 14, background: 'var(--bg-surface)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+        <ScoreRing score={breakdown.score} size={46} />
+        <div>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)' }}>
+            {t('resultats.score.title')}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+            {t('resultats.score.formula')}
+          </div>
+        </div>
+      </div>
+
+      <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1.2fr 0.7fr 0.7fr 0.8fr',
+            gap: 10,
+            padding: '8px 10px',
+            background: 'var(--bg-card)',
+            color: 'var(--text-disabled)',
+            fontSize: 10,
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+          }}
+        >
+          <span>{t('resultats.score.metric')}</span>
+          <span style={{ textAlign: 'right' }}>{t('resultats.score.weight')}</span>
+          <span style={{ textAlign: 'right' }}>{t('resultats.score.normalized')}</span>
+          <span style={{ textAlign: 'right' }}>{t('resultats.score.contribution')}</span>
+        </div>
+        {SCORE_METRIC_KEYS.map((key, index) => {
+          const color = SCORE_METRIC_COLORS[key];
+          const contribution = breakdown.finalContributions[key];
+          return (
+            <div
+              key={key}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.2fr 0.7fr 0.7fr 0.8fr',
+                gap: 10,
+                alignItems: 'center',
+                padding: '10px',
+                borderTop: '1px solid var(--border)',
+                background: index % 2 === 0 ? 'var(--bg-surface)' : 'var(--bg-card)',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 800, color: 'var(--text-primary)' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0 }} />
+                  {t(SCORE_METRIC_LABEL_KEYS[key])}
+                </div>
+                <div style={{ marginTop: 4, fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
+                  {formatMetricValue(key, breakdown.values[key])}
+                </div>
+              </div>
+              <div style={{ textAlign: 'right', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                {formatScorePercent(breakdown.weights[key] * 100)}
+              </div>
+              <div style={{ textAlign: 'right', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
+                {formatScorePercent(breakdown.normalized[key] * 100, 1)}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 800, color }}>
+                  {formatScorePercent(contribution, 1)}
+                </div>
+                <div style={{ marginTop: 4, height: 5, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
+                  <div style={{ width: `${Math.min(100, Math.max(0, contribution))}%`, height: '100%', background: color }} />
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginTop: 12 }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10, background: 'var(--bg-card)' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 }}>{t('resultats.score.base')}</div>
+          <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 900 }}>{formatScorePercent(breakdown.compositePercent, 1)}</div>
+        </div>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10, background: 'var(--bg-card)' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 }}>{t('resultats.score.penalty')}</div>
+          <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 900 }}>{formatScorePercent(penaltyPercent, 0)}</div>
+        </div>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: 10, background: 'var(--bg-card)' }}>
+          <div style={{ fontSize: 10, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 }}>{t('resultats.score.final')}</div>
+          <div style={{ marginTop: 6, fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 900 }}>{breakdown.score}/100</div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ---------------------------------------------------------------------------
 // HistorialTab - historical comparison view
 // ---------------------------------------------------------------------------
@@ -857,6 +1056,7 @@ const ScoreRing = ({ score, size = 36 }: { score: number; size?: number }) => {
  *     used when building the map in computeScores().
  */
 const HistorialTab = () => {
+  const { t } = useTranslation();
   // Raw summary data from /metrics/summary (Elasticsearch aggregations)
   const [summary, setSummary] = useState<any[]>([]);
   // Scenario definitions from /scenarios (for display names and metadata)
@@ -1022,7 +1222,7 @@ const HistorialTab = () => {
       const scenarioName = String(nameMap[s.scenarioId] || s.scenarioId || '').toLowerCase();
       const protocol = String(s.protocol || '').toLowerCase();
       const architecture = String(s.architecture || '').toLowerCase();
-      const dataFormat = String(DATA_FORMAT_LABELS[dataFormatOf(s)] || dataFormatOf(s) || '').toLowerCase();
+      const dataFormat = String(dataFormatLabel(dataFormatOf(s))).toLowerCase();
       if (![scenarioName, platform.toLowerCase(), protocol, architecture, dataFormat].some(value => value.includes(query))) {
         return false;
       }
@@ -1050,7 +1250,7 @@ const HistorialTab = () => {
 
   // Sort filtered scenarios by score descending - best first.
   const sorted = [...scenarioHistory].sort((a, b) =>
-    (scoreMap.get(b.runId || b.scenarioId) ?? 0) - (scoreMap.get(a.runId || a.scenarioId) ?? 0)
+    getScoreValue(scoreMap.get(b.runId || b.scenarioId)) - getScoreValue(scoreMap.get(a.runId || a.scenarioId))
   );
   const best = sorted[0];
   const selectedScenarioSummary = sorted.find(item => item.scenarioId === selectedScenarioId) || null;
@@ -1064,9 +1264,22 @@ const HistorialTab = () => {
         nameMap[selectedScenarioSummary.scenarioId] || selectedScenarioSummary.scenarioId || '-',
       )
     : null;
-  const selectedScenarioScore = selectedScenarioSummary
-    ? scoreMap.get(selectedScenarioSummary.runId || selectedScenarioSummary.scenarioId) ?? 0
-    : 0;
+  const selectedScenarioScoreBreakdown = selectedScenarioSummary
+    ? scoreMap.get(selectedScenarioSummary.runId || selectedScenarioSummary.scenarioId) ?? null
+    : null;
+  const selectedScenarioScore = getScoreValue(selectedScenarioScoreBreakdown ?? undefined);
+  const statusLabel = (status?: string): string => {
+    if (!status) return '-';
+    const key = `execucions.status.${status}`;
+    const translated = t(key);
+    return translated === key ? status : translated;
+  };
+  const dataFormatLabel = (format?: string): string => {
+    const normalized = format || 'default';
+    const key = `resultats.dataFormatLabels.${normalized}`;
+    const translated = t(key);
+    return translated === key ? DATA_FORMAT_LABELS[normalized] || normalized : translated;
+  };
 
   // Prepare chart data - each chart is independently sorted by its own metric
   // so that the best performer for THAT metric always appears at the top.
@@ -1103,12 +1316,12 @@ const HistorialTab = () => {
         {/* Data format filter - always visible (primary filter, most commonly used) */}
         {availDataFormats.length > 0 && (
           <div style={{ marginBottom: filtersOpen || availDataFormats.length > 0 ? 14 : 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Format de Dades</div>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{t('resultats.history.filterFormat')}</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {availDataFormats.map(f => (
                 <Chip
                   key={f}
-                  label={DATA_FORMAT_LABELS[f] || f}
+                  label={dataFormatLabel(f)}
                   active={filterDataFormat.includes(f)}
                   color={DATA_FORMAT_COLORS[f] || '#7c3aed'}
                   onClick={() => toggle(filterDataFormat, setFilterDataFormat, f)}
@@ -1125,21 +1338,21 @@ const HistorialTab = () => {
               type="text"
               value={historySearch}
               onChange={e => setHistorySearch(e.target.value)}
-              placeholder="Cerca per escenari, plataforma, protocol o format"
+              placeholder={t('resultats.history.searchPlaceholder')}
               style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--text-primary)' }}
             />
             {historySearch && (
               <button
                 onClick={() => setHistorySearch('')}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, fontSize: 14, lineHeight: 1 }}
-                aria-label="Netejar cerca"
+                aria-label={t('resultats.history.clearSearch')}
               >
                 ×
               </button>
             )}
           </div>
           <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-            {filteredSummary.length} execucións visibles
+            {filteredSummary.length} {t('resultats.history.visibleRuns')}
           </span>
         </div>
 
@@ -1150,7 +1363,7 @@ const HistorialTab = () => {
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}
           >
             <IconFilter />
-            Més filtres (Protocol, Plataforma, Arquitectura)
+            {t('resultats.history.filterMore')}
             {/* Show active secondary filter count as a badge */}
             {(filterPlatform.length + filterProtocol.length + filterArch.length) > 0 && (
               <span style={{ background: 'var(--accent)', color: 'white', borderRadius: '50%', width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
@@ -1165,12 +1378,12 @@ const HistorialTab = () => {
             {/* Show filtered count when a filter is active */}
             {scenarioHistory.length !== totalScenarioHistory.length && (
               <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                Mostrant <strong>{scenarioHistory.length}</strong> de {totalScenarioHistory.length} escenaris
+                {t('resultats.history.showing')} <strong>{scenarioHistory.length}</strong> {t('resultats.history.of')} {totalScenarioHistory.length} {t('resultats.history.scenarios')}
               </span>
             )}
             {activeFilters > 0 && (
               <button onClick={clearFilters} style={{ ...S.btn, fontSize: 12, padding: '4px 12px', color: 'var(--error)', borderColor: 'var(--error)' }}>
-                Esborra tots
+                {t('resultats.history.clearAll')}
               </button>
             )}
           </div>
@@ -1181,7 +1394,7 @@ const HistorialTab = () => {
           <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
             {availProtocols.length > 0 && (
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Protocol</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('resultats.history.filterProtocol')}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {availProtocols.map(p => <Chip key={p} label={p} active={filterProtocol.includes(p)} color="#16a34a" onClick={() => toggle(filterProtocol, setFilterProtocol, p)} />)}
                 </div>
@@ -1189,7 +1402,7 @@ const HistorialTab = () => {
             )}
             {availPlatforms.length > 0 && (
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Plataforma</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('resultats.history.filterPlatform')}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {availPlatforms.map(p => <Chip key={p} label={p} active={filterPlatform.includes(p)} color={PLATFORM_COLORS[p] || '#d97706'} onClick={() => toggle(filterPlatform, setFilterPlatform, p)} />)}
                 </div>
@@ -1197,7 +1410,7 @@ const HistorialTab = () => {
             )}
             {availArchs.length > 0 && (
               <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Arquitectura</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('resultats.history.filterArchitecture')}</div>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {availArchs.map(a => <Chip key={a} label={a} active={filterArch.includes(a)} color={ARCHITECTURE_COLORS[a] || '#2563eb'} onClick={() => toggle(filterArch, setFilterArch, a)} />)}
                 </div>
@@ -1211,10 +1424,10 @@ const HistorialTab = () => {
       {syncedSummary.length === 0 && (
         <div style={{ ...S.card, textAlign: 'center', padding: 64 }}>
           <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><IconBarChart /></div>
-          <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600 }}>Encara no hi ha resultats</div>
+          <div style={{ fontSize: 15, color: 'var(--text-primary)', fontWeight: 600 }}>{t('resultats.history.emptyTitle')}</div>
           <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>
-            Executa escenaris per veure les comparatives aqui.{' '}
-            <a href="/escenaris" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>Anar a Escenaris</a>
+            {t('resultats.history.emptyMessage')}{' '}
+            <a href="/escenaris" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>{t('resultats.history.emptyLink')}</a>
           </div>
         </div>
       )}
@@ -1222,7 +1435,7 @@ const HistorialTab = () => {
       {/* Empty state: runs exist but all are filtered out by the active filters */}
       {scenarioHistory.length === 0 && syncedSummary.length > 0 && (
         <div style={{ ...S.card, textAlign: 'center', padding: 40 }}>
-          <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Cap resultat coincideix amb els filtres actuals.</div>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{t('resultats.history.emptyFilter')}</div>
         </div>
       )}
 
@@ -1235,8 +1448,8 @@ const HistorialTab = () => {
                 {scenarioHistory.length}
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Escenaris executats</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{scenarioHistory.length} escenari{scenarioHistory.length !== 1 ? 's' : ''}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('resultats.history.statsExecuted')}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{scenarioHistory.length} {t('resultats.history.scenarios')}</div>
               </div>
             </div>
 
@@ -1245,8 +1458,8 @@ const HistorialTab = () => {
                 {totalRuns}
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Execucions registrades</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{totalRuns} run{totalRuns !== 1 ? 's' : ''}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('resultats.history.statsRuns')}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{totalRuns} {totalRuns !== 1 ? t('resultats.history.runs') : t('resultats.history.run')}</div>
               </div>
             </div>
 
@@ -1255,8 +1468,8 @@ const HistorialTab = () => {
                 {totalMeasures}
               </div>
               <div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Mesures registrades</div>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>Punts de telemetria acumulats a les execucións visibles</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{t('resultats.history.statsMeasures')}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>{t('resultats.history.statsTelemetryVisible')}</div>
               </div>
             </div>
 
@@ -1264,11 +1477,11 @@ const HistorialTab = () => {
             {best && (
               <div style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 16, background: 'linear-gradient(135deg, var(--bg-card) 0%, rgba(34,197,94,0.04) 100%)', borderColor: 'rgba(34,197,94,0.25)' }}>
                 {/* Score ring uses runId || scenarioId to match the scoreMap key */}
-                <ScoreRing score={scoreMap.get(best.runId || best.scenarioId) ?? 0} size={52} />
+                <ScoreRing score={getScoreValue(scoreMap.get(best.runId || best.scenarioId))} size={52} />
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                     <span style={{ color: 'var(--accent)' }}><IconAward /></span>
-                    <span style={{ fontSize: 11, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>Millor escenari (multi-factor)</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>{t('resultats.history.statsBest')}</span>
                   </div>
                   <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', letterSpacing: '-0.01em' }}>
                     {nameMap[best.scenarioId] || best.scenarioId?.slice(0, 16) || '-'}
@@ -1278,7 +1491,7 @@ const HistorialTab = () => {
                     {best.protocol && <span style={{ ...S.badge(PROTOCOL_COLORS[best.protocol] || '#16a34a'), fontSize: 10 }}>{best.protocol}</span>}
                     {best.architecture && <span style={{ ...S.badge(ARCHITECTURE_COLORS[best.architecture] || '#2563eb'), fontSize: 10 }}>{best.architecture}</span>}
                     {(() => { const p = normalizePlatform(best.platform || best.broker); return p ? <span style={{ ...S.badge(PLATFORM_COLORS[p] || '#d97706'), fontSize: 10 }}>{p}</span> : null; })()}
-                    {(() => { const df = dataFormatOf(best); return <span style={{ ...S.badge(DATA_FORMAT_COLORS[df] || '#64748b'), fontSize: 10 }}>{DATA_FORMAT_LABELS[df] || df}</span>; })()}
+                    {(() => { const df = dataFormatOf(best); return <span style={{ ...S.badge(DATA_FORMAT_COLORS[df] || '#64748b'), fontSize: 10 }}>{dataFormatLabel(df)}</span>; })()}
                   </div>
                 </div>
               </div>
@@ -1296,7 +1509,7 @@ const HistorialTab = () => {
             forci el remount.
           */}
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>Rendiment Mètric</div>
+            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 12 }}>{t('resultats.history.sectionMetrics')}</div>
             {(() => {
               const claveGrafiques =
                 `${filterPlatform.join(',')}|${filterProtocol.join(',')}|` +
@@ -1306,14 +1519,14 @@ const HistorialTab = () => {
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
                     <div style={{ ...S.card }}>
-                      <HBarChart key={`lat-${claveGrafiques}`} data={latData} title="Latència mitjana (ms)" unit="ms" color="#f59e0b" lowerIsBetter />
+                      <HBarChart key={`lat-${claveGrafiques}`} data={latData} title={t('resultats.history.chartLatency')} unit="ms" color="#f59e0b" lowerIsBetter />
                     </div>
                     <div style={{ ...S.card }}>
-                      <HBarChart key={`tput-${claveGrafiques}`} data={tputData} title="Throughput mitja (msg/s)" unit="" color="#22c55e" lowerIsBetter={false} />
+                      <HBarChart key={`tput-${claveGrafiques}`} data={tputData} title={t('resultats.history.chartThroughput')} unit="" color="#22c55e" lowerIsBetter={false} />
                     </div>
                   </div>
                   <div style={{ ...S.card, marginBottom: 20 }}>
-                    <HBarChart key={`err-${claveGrafiques}`} data={errData} title="Taxa d'error mitjana (%)" unit="%" color="#ef4444" lowerIsBetter />
+                    <HBarChart key={`err-${claveGrafiques}`} data={errData} title={t('resultats.history.chartError')} unit="%" color="#ef4444" lowerIsBetter />
                   </div>
                 </>
               );
@@ -1461,10 +1674,10 @@ const HistorialTab = () => {
           <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
             <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>Taula comparativa completa</span>
-                <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 4 }}>Clica una fila per veure el detall ampliat de l'escenari.</div>
+                <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{t('resultats.history.tableTitle')}</span>
+                <div style={{ fontSize: 11, color: 'var(--text-disabled)', marginTop: 4 }}>{t('resultats.history.tableHint')}</div>
               </div>
-              <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} escenaris executats</span>
+              <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{sorted.length} {t('resultats.history.scenariosExecuted')}</span>
             </div>
             <div style={{ overflowX: 'auto' }}>
               {/*
@@ -1476,18 +1689,18 @@ const HistorialTab = () => {
               <table className="cmp-tbl" style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={S.tableHeader}>
-                    <th style={S.th}>Escenari</th>
-                    <th style={{ ...S.th, textAlign: 'center' }}>Puntuació</th>
-                    <th style={{ ...S.th, textAlign: 'right' }}>Lat. avg</th>
+                    <th style={S.th}>{t('resultats.history.tableScenario')}</th>
+                    <th style={{ ...S.th, textAlign: 'center' }}>{t('resultats.history.tableScore')}</th>
+                    <th style={{ ...S.th, textAlign: 'right' }}>{t('resultats.history.tableAvgLatency')}</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P50</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P95</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>P99</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Throughput</th>
                     <th style={{ ...S.th, textAlign: 'right' }}>Error %</th>
-                    <th style={{ ...S.th, textAlign: 'right' }}>Mesures</th>
-                    <th style={{ ...S.th, textAlign: 'center' }}>Arq.</th>
-                    <th style={{ ...S.th, textAlign: 'center' }}>Protocol</th>
-                    <th style={{ ...S.th, textAlign: 'center' }}>Plataforma</th>
+                    <th style={{ ...S.th, textAlign: 'right' }}>{t('resultats.history.tableMeasures')}</th>
+                    <th style={{ ...S.th, textAlign: 'center' }}>{t('resultats.history.tableArchitectureShort')}</th>
+                    <th style={{ ...S.th, textAlign: 'center' }}>{t('resultats.history.tableProtocol')}</th>
+                    <th style={{ ...S.th, textAlign: 'center' }}>{t('resultats.history.tablePlatform')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1518,7 +1731,7 @@ const HistorialTab = () => {
                       s.p50Latency == null && s.p95Latency == null && s.p99Latency == null && !pm && !!s.runId;
 
                     // Use runId || scenarioId as scoreMap key (matches computeScores)
-                    const score = scoreMap.get(s.runId || s.scenarioId) ?? 0;
+                    const score = getScoreValue(scoreMap.get(s.runId || s.scenarioId));
                     const errRate = s.avgErrorRate ?? 0;
                     const isSelected = selectedScenarioId === s.scenarioId;
 
@@ -1544,8 +1757,8 @@ const HistorialTab = () => {
                             </div>
                           </div>
                           {/* Data format shown as a colored sub-label below the scenario name */}
-                          <div style={{ fontSize: 10, color: dfColor, fontWeight: 600, marginTop: 2 }}>{DATA_FORMAT_LABELS[df] || df}</div>
-                          <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 2 }}>{s.runCount} execució{s.runCount !== 1 ? 'ns' : ''}</div>
+                          <div style={{ fontSize: 10, color: dfColor, fontWeight: 600, marginTop: 2 }}>{dataFormatLabel(df)}</div>
+                          <div style={{ fontSize: 10, color: 'var(--text-disabled)', marginTop: 2 }}>{s.runCount} {s.runCount !== 1 ? t('resultats.history.runs') : t('resultats.history.run')}</div>
                         </td>
 
                         {/* Score column - circular ring visualization */}
@@ -1629,70 +1842,70 @@ const HistorialTab = () => {
             <MetricsDetailDrawer
               open={!!selectedScenarioDetail}
               onClose={() => setSelectedScenarioId('')}
-              eyebrow="Detall d'historial"
+              eyebrow={t('resultats.drawer.title')}
               title={selectedScenarioDetail.scenarioName}
               monoId={selectedScenarioDetail.scenarioId || undefined}
-              subtitle="Aquest resum agrega les execucións visibles del mateix escenari. Les mesures son punts de telemetria; els missatges indiquen el volum processat."
+              subtitle={t('resultats.drawer.subtitle')}
               accent={PLATFORM_COLORS[normalizePlatform(selectedScenarioDetail.platform)] || 'var(--accent)'}
               badges={[
-                { label: `${selectedScenarioDetail.runCount} execucións`, color: '#3b82f6' },
+                { label: `${selectedScenarioDetail.runCount} ${t('resultats.history.runs')}`, color: '#3b82f6' },
                 ...(selectedScenarioDetail.architecture ? [{ label: selectedScenarioDetail.architecture, color: ARCHITECTURE_COLORS[selectedScenarioDetail.architecture] || '#2563eb' }] : []),
                 ...(selectedScenarioDetail.protocol ? [{ label: selectedScenarioDetail.protocol, color: PROTOCOL_COLORS[selectedScenarioDetail.protocol] || '#16a34a' }] : []),
                 ...(selectedScenarioDetail.platform ? [{ label: normalizePlatform(selectedScenarioDetail.platform), color: PLATFORM_COLORS[normalizePlatform(selectedScenarioDetail.platform)] || '#64748b' }] : []),
-                { label: DATA_FORMAT_LABELS[selectedScenarioDetail.dataFormat] || selectedScenarioDetail.dataFormat, color: DATA_FORMAT_COLORS[selectedScenarioDetail.dataFormat] || '#64748b' },
+                { label: dataFormatLabel(selectedScenarioDetail.dataFormat), color: DATA_FORMAT_COLORS[selectedScenarioDetail.dataFormat] || '#64748b' },
               ]}
               stats={[
                 {
-                  label: 'Mesures',
+                  label: t('resultats.drawer.statMeasures'),
                   value: selectedScenarioDetail.totalMeasures,
-                  helper: 'Punts persistits de totes les execucións visibles.',
+                  helper: t('resultats.drawer.statMeasuresHelper'),
                   color: '#22c55e',
                 },
                 {
-                  label: 'Missatges rebuts',
+                  label: t('resultats.drawer.statReceived'),
                   value: selectedScenarioDetail.totalMessagesReceived,
-                  helper: 'Volum total rebut pels consumidors.',
+                  helper: t('resultats.drawer.statReceivedHelper'),
                   color: '#3b82f6',
                 },
                 {
-                  label: 'Missatges enviats',
+                  label: t('resultats.drawer.statSent'),
                   value: selectedScenarioDetail.totalMessagesSent,
-                  helper: 'Volum total enviat pel load-generator.',
+                  helper: t('resultats.drawer.statSentHelper'),
                   color: '#f59e0b',
                 },
                 {
-                  label: 'Puntuacio',
+                  label: t('resultats.drawer.statScore'),
                   value: selectedScenarioScore,
-                  helper: 'Score relatiu als escenaris visibles amb els filtres actuals.',
+                  helper: t('resultats.drawer.statScoreHelper'),
                   color: 'var(--text-primary)',
                 },
               ]}
               sections={[
                 {
-                  title: 'Rendiment agregat',
+                  title: t('resultats.drawer.sectionAggregate'),
                   items: [
-                    { label: 'Latència mitjana', value: selectedScenarioDetail.avgLatency != null ? `${Number(selectedScenarioDetail.avgLatency).toFixed(2)} ms` : '-' },
-                    { label: 'Throughput avg', value: selectedScenarioDetail.avgThroughput != null ? `${Number(selectedScenarioDetail.avgThroughput).toFixed(2)} msg/s` : '-' },
-                    { label: 'Error rate', value: selectedScenarioDetail.avgErrorRate != null ? `${Number(selectedScenarioDetail.avgErrorRate).toFixed(3)} %` : '-' },
-                    { label: 'Ultim run', value: selectedScenarioDetail.latestRunId ? <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedScenarioDetail.latestRunId}</code> : '-' },
+                    { label: t('resultats.drawer.avgLatency'), value: selectedScenarioDetail.avgLatency != null ? `${Number(selectedScenarioDetail.avgLatency).toFixed(2)} ms` : '-' },
+                    { label: t('resultats.drawer.avgThroughput'), value: selectedScenarioDetail.avgThroughput != null ? `${Number(selectedScenarioDetail.avgThroughput).toFixed(2)} msg/s` : '-' },
+                    { label: t('resultats.drawer.errorRate'), value: selectedScenarioDetail.avgErrorRate != null ? `${Number(selectedScenarioDetail.avgErrorRate).toFixed(3)} %` : '-' },
+                    { label: t('resultats.drawer.latestRun'), value: selectedScenarioDetail.latestRunId ? <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedScenarioDetail.latestRunId}</code> : '-' },
                   ],
                 },
                 {
-                  title: 'Finestra temporal',
+                  title: t('resultats.drawer.sectionWindow'),
                   items: [
-                    { label: 'Primer inici', value: formatDateTime(selectedScenarioDetail.firstStartedAt) },
-                    { label: 'Ultim inici', value: formatDateTime(selectedScenarioDetail.latestStartedAt) },
-                    { label: 'Ultim final', value: formatDateTime(selectedScenarioDetail.latestEndedAt) },
-                    { label: 'Escenari ID', value: <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedScenarioDetail.scenarioId}</code> },
+                    { label: t('resultats.drawer.firstStart'), value: formatDateTime(selectedScenarioDetail.firstStartedAt) },
+                    { label: t('resultats.drawer.latestStart'), value: formatDateTime(selectedScenarioDetail.latestStartedAt) },
+                    { label: t('resultats.drawer.latestEnd'), value: formatDateTime(selectedScenarioDetail.latestEndedAt) },
+                    { label: t('resultats.drawer.scenarioId'), value: <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedScenarioDetail.scenarioId}</code> },
                   ],
                 },
                 {
-                  title: 'Darrera execució visible',
+                  title: t('resultats.drawer.sectionLatestRun'),
                   items: [
                     { label: 'P50', value: selectedScenarioDetail.latestRun?.p50Latency != null ? `${Number(selectedScenarioDetail.latestRun.p50Latency).toFixed(2)} ms` : '-' },
                     { label: 'P95', value: selectedScenarioDetail.latestRun?.p95Latency != null ? `${Number(selectedScenarioDetail.latestRun.p95Latency).toFixed(2)} ms` : '-' },
                     { label: 'P99', value: selectedScenarioDetail.latestRun?.p99Latency != null ? `${Number(selectedScenarioDetail.latestRun.p99Latency).toFixed(2)} ms` : '-' },
-                    { label: 'Mesures', value: selectedScenarioDetail.latestRun ? getScenarioMeasureCount(selectedScenarioDetail.latestRun) : '-' },
+                    { label: t('resultats.drawer.colMeasures'), value: selectedScenarioDetail.latestRun ? getScenarioMeasureCount(selectedScenarioDetail.latestRun) : '-' },
                   ],
                 },
               ]}
@@ -1701,13 +1914,15 @@ const HistorialTab = () => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <ScoreRing score={selectedScenarioScore} size={44} />
                   <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Com llegir aquest historial</div>
+                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t('resultats.drawer.howToReadTitle')}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                      Cada nova execució d'aquest escenari recomença en directe a zero, però en acabar afegeix les seves mesures a l'historial visible d'aquest escenari.
+                      {t('resultats.drawer.howToReadBody')}
                     </div>
                   </div>
                 </div>
               </div>
+
+              <ScoreBreakdownPanel breakdown={selectedScenarioScoreBreakdown} t={t} />
 
               {/*
                 Detall per execució individual.
@@ -1719,29 +1934,26 @@ const HistorialTab = () => {
               {selectedScenarioDetail.runs && selectedScenarioDetail.runs.length > 0 && (
                 <div style={{ marginTop: 14, ...S.card }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
-                    Cada execució que ha contribuit ({selectedScenarioDetail.runs.length})
+                    {t('resultats.drawer.runsTitle')} ({selectedScenarioDetail.runs.length})
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginBottom: 10, lineHeight: 1.55 }}>
-                    Aquí veus cada run individual del mateix escenari. Els valors
-                    de la fila superior són la mitjana ponderada per nombre de
-                    missatges, no la mitjana simple — un run amb 10.000 missatges
-                    pesa més que un altre amb 500.
+                    {t('resultats.drawer.runsDescription')}
                   </div>
                   <div style={{ overflowX: 'auto' }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11.5 }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-disabled)', fontWeight: 700 }}>
-                          <th style={{ padding: '6px 8px', textAlign: 'left' }}>Run ID</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Estat</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Inici</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Durada</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Mesures</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Missatges</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'left' }}>{t('resultats.drawer.colRunId')}</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('resultats.drawer.colStatus')}</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('resultats.drawer.colStart')}</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('resultats.drawer.colDuration')}</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('resultats.drawer.colMeasures')}</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('resultats.drawer.colMessages')}</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right' }}>P50</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right' }}>P95</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right' }}>P99</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Latencia</th>
-                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>Throughput</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('resultats.drawer.avgLatency')}</th>
+                          <th style={{ padding: '6px 8px', textAlign: 'right' }}>{t('resultats.drawer.avgThroughput')}</th>
                           <th style={{ padding: '6px 8px', textAlign: 'right' }}>Error %</th>
                         </tr>
                       </thead>
@@ -1759,7 +1971,7 @@ const HistorialTab = () => {
                                 {String(run.runId || run.id || '').slice(0, 12)}
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', color: failed ? 'var(--error)' : 'var(--text-secondary)', fontWeight: 700 }}>
-                                {run.status || '-'}
+                                {statusLabel(run.status)}
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', color: 'var(--text-secondary)' }}>
                                 {run.startedAt ? new Date(run.startedAt).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
@@ -1828,9 +2040,13 @@ const HistorialTab = () => {
  * @param onClick  - Called when the card is clicked to select this run
  */
 const RunCard = ({
-  run, selected, onClick,
+  run, selected, onClick, dataFormatLabel, statusLabel,
 }: {
-  run: any; selected: boolean; onClick: () => void;
+  run: any;
+  selected: boolean;
+  onClick: () => void;
+  dataFormatLabel: (format?: string) => string;
+  statusLabel: (status?: string) => string;
 }) => {
   const isRunning = run.status === 'running';
   const isCompleted = run.status === 'completed';
@@ -1887,13 +2103,13 @@ const RunCard = ({
           see what data format is being benchmarked.
         */}
         {run.dataFormat && (
-          <span style={{ ...S.badge(DATA_FORMAT_COLORS[run.dataFormat] || '#64748b'), fontSize: 10 }}>{DATA_FORMAT_LABELS[run.dataFormat] || run.dataFormat}</span>
+          <span style={{ ...S.badge(DATA_FORMAT_COLORS[run.dataFormat] || '#64748b'), fontSize: 10 }}>{dataFormatLabel(run.dataFormat)}</span>
         )}
       </div>
 
       {/* Status text label below badges */}
       <div style={{ marginTop: 8, fontSize: 11, color: isRunning ? '#22c55e' : isCompleted ? '#94a3b8' : '#f59e0b', fontWeight: 600 }}>
-        {isRunning ? 'En execució' : isCompleted ? 'Finalitzat' : 'Pendent'}
+        {statusLabel(run.status)}
       </div>
     </button>
   );
@@ -1928,6 +2144,7 @@ const RunCard = ({
  * consistent color associations across page reloads.
  */
 const LiveTab = () => {
+  const { t } = useTranslation();
   // List of active/pending runs from the orchestrator
   const [activeRuns, setActiveRuns] = useState<any[]>([]);
   // ID of the currently selected run (drives metrics polling)
@@ -1958,6 +2175,18 @@ const LiveTab = () => {
   // metrics table at the bottom still shows all samples.
   // -------------------------------------------------------------------------
   const [chartWindow, setChartWindow] = useState<number | 'all'>(100);
+  const liveDataFormatLabel = (format?: string): string => {
+    const normalized = format || 'default';
+    const key = `resultats.dataFormatLabels.${normalized}`;
+    const translated = t(key);
+    return translated === key ? DATA_FORMAT_LABELS[normalized] || normalized : translated;
+  };
+  const liveStatusLabel = (status?: string): string => {
+    if (!status) return '-';
+    const key = `execucions.status.${status}`;
+    const translated = t(key);
+    return translated === key ? status : translated;
+  };
 
   /**
    * Fetches active and pending runs from the orchestrator.
@@ -1998,7 +2227,7 @@ const LiveTab = () => {
       normalizePlatform(run.platform || run.broker),
       run.protocol,
       run.architecture,
-      DATA_FORMAT_LABELS[run.dataFormat || 'default'] || run.dataFormat || 'default',
+      liveDataFormatLabel(run.dataFormat || 'default'),
     ]
       .map(value => String(value || '').toLowerCase())
       .join(' ');
@@ -2117,7 +2346,7 @@ const LiveTab = () => {
       <div style={{ ...S.card, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (visibleActiveRuns.length > 0 || selectedRunFinished) ? 14 : 0 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-            Escenari en execució
+            {t('resultats.live.runningScenario')}
           </div>
           {/* Status indicator:
               - Green pulsing: actively polling an active run → "En directe"
@@ -2128,7 +2357,7 @@ const LiveTab = () => {
               const live = polling && activeRuns.length > 0 && !selectedRunFinished;
               const finished = selectedRunFinished;
               const color = live ? '#22c55e' : finished ? '#f59e0b' : '#94a3b8';
-              const label = live ? 'En directe' : finished ? 'Finalitzat' : 'Inactiu';
+              const label = live ? t('resultats.tabLive') : finished ? t('resultats.live.finishedBanner') : t('resultats.live.inactive');
               return (
                 <>
                   <span style={{
@@ -2144,7 +2373,7 @@ const LiveTab = () => {
             })()}
             {lastUpdate && (
               <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>
-                - actualitzat {lastUpdate.toLocaleTimeString('ca-ES')}
+                {t('resultats.live.lastUpdated')} {lastUpdate.toLocaleTimeString('ca-ES')}
               </span>
             )}
           </div>
@@ -2158,21 +2387,21 @@ const LiveTab = () => {
                 type="text"
                 value={liveSearch}
                 onChange={e => setLiveSearch(e.target.value)}
-                placeholder="Troba un escenari en directe per nom, plataforma, protocol o format"
+                placeholder={t('resultats.live.searchPlaceholder')}
                 style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--text-primary)' }}
               />
               {liveSearch && (
                 <button
                   onClick={() => setLiveSearch('')}
                   style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, fontSize: 14, lineHeight: 1 }}
-                  aria-label="Netejar cerca"
+                  aria-label={t('resultats.history.clearSearch')}
                 >
                   ×
                 </button>
               )}
             </div>
             <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-              {visibleActiveRuns.length} de {activeRuns.length} visibles
+              {visibleActiveRuns.length} {t('resultats.history.of')} {activeRuns.length} {t('resultats.live.visible')}
             </span>
           </div>
         )}
@@ -2184,9 +2413,9 @@ const LiveTab = () => {
             non-selectable once removed from activeRuns — clicking it is a
             no-op; clicking another (real) active card switches away. */}
         {activeRuns.length === 0 && !selectedRunFinished ? (
-          <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>Cap escenari actiu.</div>
+          <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>{t('resultats.live.empty')}</div>
         ) : activeRuns.length > 0 && visibleActiveRuns.length === 0 ? (
-          <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>Cap execució coincideix amb la cerca actual.</div>
+          <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>{t('resultats.live.emptySearch')}</div>
         ) : (
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
             {visibleActiveRuns.map(r => (
@@ -2195,6 +2424,8 @@ const LiveTab = () => {
                 run={r}
                 selected={r.id === selectedRunId}
                 onClick={() => setSelectedRunId(r.id)}
+                dataFormatLabel={liveDataFormatLabel}
+                statusLabel={liveStatusLabel}
               />
             ))}
             {selectedRunFinished && (() => {
@@ -2213,7 +2444,7 @@ const LiveTab = () => {
                 dataFormat: last.dataFormat,
                 deliveryModel: last.deliveryModel,
               };
-              return <RunCard key={`ghost-${selectedRunId}`} run={ghost} selected onClick={() => { }} />;
+              return <RunCard key={`ghost-${selectedRunId}`} run={ghost} selected onClick={() => { }} dataFormatLabel={liveDataFormatLabel} statusLabel={liveStatusLabel} />;
             })()}
           </div>
         )}

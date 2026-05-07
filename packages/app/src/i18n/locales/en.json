@@ -67,6 +67,16 @@
     "skip": "Skip tutorial",
     "finish": "Finish",
     "createExample": "Create example scenario",
+    "visual": {
+      "homeStart": "Start here",
+      "catalogCard": "Open a card",
+      "newScenario": "New Scenario",
+      "executionRow": "Open details",
+      "historyRow": "Select a row",
+      "scoreDetail": "Review score",
+      "openCatalog": "Catalog",
+      "filters": "Filters"
+    },
     "home": {
       "step1": {
         "title": "Welcome",
@@ -719,7 +729,11 @@
       "empty": "No active executions at this moment.",
       "searchPlaceholder": "Search active executions...",
       "lastUpdated": "Last updated:",
-      "finishedBanner": "Finished"
+      "finishedBanner": "Finished",
+      "runningScenario": "Running scenario",
+      "inactive": "Inactive",
+      "visible": "visible",
+      "emptySearch": "No execution matches the current search."
     },
     "history": {
       "filterFormat": "Data Format",
@@ -728,6 +742,7 @@
       "filterPlatform": "Platform",
       "filterArchitecture": "Architecture",
       "searchPlaceholder": "Search by scenario, platform, protocol or format",
+      "clearSearch": "Clear search",
       "visibleRuns": "visible executions",
       "showing": "Showing",
       "of": "of",
@@ -741,6 +756,7 @@
       "statsRuns": "Executions recorded",
       "statsMeasures": "Measurements recorded",
       "statsTelemetry": "Accumulated telemetry points",
+      "statsTelemetryVisible": "Telemetry points accumulated across visible executions",
       "statsBest": "Best scenario (multi-factor)",
       "sectionMetrics": "Metric Performance",
       "chartLatency": "Average latency (ms)",
@@ -753,6 +769,14 @@
       "favorOf": "in favour of",
       "tableTitle": "Full comparison table",
       "tableSubtitle": "All executed scenarios with key metrics.",
+      "tableHint": "Click a row to open the expanded scenario detail.",
+      "tableScenario": "Scenario",
+      "tableScore": "Score",
+      "tableAvgLatency": "Avg. latency",
+      "tableMeasures": "Measurements",
+      "tableArchitectureShort": "Arch.",
+      "tableProtocol": "Protocol",
+      "tablePlatform": "Platform",
       "scenariosExecuted": "scenarios executed",
       "run": "execution",
       "runs": "executions"
@@ -764,13 +788,54 @@
     },
     "drawer": {
       "title": "History detail",
-      "subtitle": "Each execution that has contributed to the aggregated metrics.",
+      "subtitle": "This summary aggregates the visible executions of the same scenario. Measurements are telemetry points; messages show the processed volume.",
+      "statMeasures": "Measurements",
+      "statMeasuresHelper": "Persisted points from all visible executions.",
+      "statReceived": "Messages received",
+      "statReceivedHelper": "Total volume received by consumers.",
+      "statSent": "Messages sent",
+      "statSentHelper": "Total volume sent by the load generator.",
+      "statScore": "Score",
+      "statScoreHelper": "Score relative to the visible scenarios under the current filters.",
+      "sectionAggregate": "Aggregated performance",
+      "avgLatency": "Average latency",
+      "avgThroughput": "Average throughput",
+      "errorRate": "Error rate",
+      "latestRun": "Latest run",
+      "sectionWindow": "Time window",
+      "firstStart": "First start",
+      "latestStart": "Latest start",
+      "latestEnd": "Latest end",
+      "scenarioId": "Scenario ID",
+      "sectionLatestRun": "Latest visible execution",
+      "howToReadTitle": "How to read this history",
+      "howToReadBody": "Each new execution of this scenario restarts live from zero, but when it finishes it adds its measurements to this scenario's visible history.",
+      "runsTitle": "Executions that contributed",
+      "runsDescription": "Here you see each individual run for the same scenario. The top-row values are weighted by message count, not a simple average: a run with 10,000 messages carries more weight than one with 500.",
       "colRunId": "Run ID",
       "colStatus": "Status",
       "colStart": "Start",
       "colDuration": "Duration",
       "colMeasures": "Measures",
       "colMessages": "Messages"
+    },
+    "score": {
+      "title": "Where the score comes from",
+      "formula": "The score adds each normalized metric by its weight, then applies a penalty if the error rate is too high.",
+      "metric": "Metric",
+      "weight": "Weight",
+      "normalized": "Normalized",
+      "contribution": "Contribution",
+      "base": "Weighted base",
+      "penalty": "Penalty",
+      "final": "Final",
+      "metrics": {
+        "lat": "Average latency",
+        "p50": "P50",
+        "p99": "P99",
+        "tput": "Throughput",
+        "err": "Errors"
+      }
     }
   }
 }

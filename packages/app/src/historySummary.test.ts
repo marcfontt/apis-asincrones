@@ -1,4 +1,4 @@
-import { isTerminalRunStatus, shouldIncludeRunInHistory } from '../../metrics-api/src/historySummary';
+import { isTerminalRunStatus, shouldIncludeRunInHistory } from 'metrics-api/src/historySummary';
 
 describe('history summary filtering', () => {
   it('treats completed runs as historical and excludes live snapshots', () => {

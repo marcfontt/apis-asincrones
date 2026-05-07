@@ -13,7 +13,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from '../../i18n/useTranslation';
 import { changeLanguage } from '../../i18n';
 import { useApi, identityApiRef, storageApiRef } from '@backstage/core-plugin-api';
-import { S, GLOBAL_CSS } from '../../../../../plugins/async-benchmark/src/theme';
+import { S, GLOBAL_CSS } from '@internal/plugin-async-benchmark/src/theme';
 
 const LANGUAGE_KEY = 'apis-asincrones.language';
 const THEME_KEY = '@backstage/core-app-api:themeId';

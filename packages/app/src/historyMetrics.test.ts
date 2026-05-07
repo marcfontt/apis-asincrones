@@ -2,7 +2,7 @@ import {
   aggregateScenarioHistory,
   getRunMeasureCount,
   getScenarioMeasureCount,
-} from '../../../plugins/async-benchmark/src/shared/results/historyMetrics';
+} from '@internal/plugin-async-benchmark/src/shared/results/historyMetrics';
 
 describe('historyMetrics helpers', () => {
   it('reads telemetry point counts without falling back to message counters', () => {

@@ -61,12 +61,22 @@
   },
   "tutorial": {
     "show": "Ver tutorial",
-    "replay": "Rever tutorial",
+    "replay": "Repetir tutorial",
     "previous": "Anterior",
     "next": "Siguiente",
     "skip": "Saltar tutorial",
     "finish": "Finalizar",
     "createExample": "Crear escenario de ejemplo",
+    "visual": {
+      "homeStart": "Empieza aquí",
+      "catalogCard": "Abre una ficha",
+      "newScenario": "Nuevo escenario",
+      "executionRow": "Abre el detalle",
+      "historyRow": "Selecciona una fila",
+      "scoreDetail": "Revisa la puntuación",
+      "openCatalog": "Catálogo",
+      "filters": "Filtros"
+    },
     "home": {
       "step1": {
         "title": "Bienvenido",
@@ -719,7 +729,11 @@
       "empty": "No hay ejecuciones activas en este momento.",
       "searchPlaceholder": "Buscar ejecuciones activas...",
       "lastUpdated": "Última actualización:",
-      "finishedBanner": "Finalizado"
+      "finishedBanner": "Finalizado",
+      "runningScenario": "Escenario en ejecución",
+      "inactive": "Inactivo",
+      "visible": "visibles",
+      "emptySearch": "Ninguna ejecución coincide con la búsqueda actual."
     },
     "history": {
       "filterFormat": "Formato de Datos",
@@ -728,6 +742,7 @@
       "filterPlatform": "Plataforma",
       "filterArchitecture": "Arquitectura",
       "searchPlaceholder": "Buscar por escenario, plataforma, protocolo o formato",
+      "clearSearch": "Limpiar búsqueda",
       "visibleRuns": "ejecuciones visibles",
       "showing": "Mostrando",
       "of": "de",
@@ -741,6 +756,7 @@
       "statsRuns": "Ejecuciones registradas",
       "statsMeasures": "Medidas registradas",
       "statsTelemetry": "Puntos de telemetría acumulados",
+      "statsTelemetryVisible": "Puntos de telemetría acumulados en las ejecuciones visibles",
       "statsBest": "Mejor escenario (multi-factor)",
       "sectionMetrics": "Rendimiento Métrico",
       "chartLatency": "Latencia media (ms)",
@@ -753,6 +769,14 @@
       "favorOf": "a favor de",
       "tableTitle": "Tabla comparativa completa",
       "tableSubtitle": "Todos los escenarios ejecutados con las métricas principales.",
+      "tableHint": "Haz clic en una fila para ver el detalle ampliado del escenario.",
+      "tableScenario": "Escenario",
+      "tableScore": "Puntuación",
+      "tableAvgLatency": "Lat. media",
+      "tableMeasures": "Medidas",
+      "tableArchitectureShort": "Arq.",
+      "tableProtocol": "Protocolo",
+      "tablePlatform": "Plataforma",
       "scenariosExecuted": "escenarios ejecutados",
       "run": "ejecución",
       "runs": "ejecuciones"
@@ -764,13 +788,54 @@
     },
     "drawer": {
       "title": "Detalle de historial",
-      "subtitle": "Cada ejecución que ha contribuido a las métricas agregadas.",
+      "subtitle": "Este resumen agrega las ejecuciones visibles del mismo escenario. Las medidas son puntos de telemetría; los mensajes indican el volumen procesado.",
+      "statMeasures": "Medidas",
+      "statMeasuresHelper": "Puntos persistidos de todas las ejecuciones visibles.",
+      "statReceived": "Mensajes recibidos",
+      "statReceivedHelper": "Volumen total recibido por los consumidores.",
+      "statSent": "Mensajes enviados",
+      "statSentHelper": "Volumen total enviado por el load-generator.",
+      "statScore": "Puntuación",
+      "statScoreHelper": "Score relativo a los escenarios visibles con los filtros actuales.",
+      "sectionAggregate": "Rendimiento agregado",
+      "avgLatency": "Latencia media",
+      "avgThroughput": "Throughput medio",
+      "errorRate": "Tasa de error",
+      "latestRun": "Último run",
+      "sectionWindow": "Ventana temporal",
+      "firstStart": "Primer inicio",
+      "latestStart": "Último inicio",
+      "latestEnd": "Último final",
+      "scenarioId": "Escenario ID",
+      "sectionLatestRun": "Última ejecución visible",
+      "howToReadTitle": "Cómo leer este historial",
+      "howToReadBody": "Cada nueva ejecución de este escenario vuelve a empezar en directo desde cero, pero al terminar añade sus medidas al historial visible de este escenario.",
+      "runsTitle": "Ejecuciones que han contribuido",
+      "runsDescription": "Aquí ves cada run individual del mismo escenario. Los valores de la fila superior son la media ponderada por número de mensajes, no la media simple: un run con 10.000 mensajes pesa más que otro con 500.",
       "colRunId": "Run ID",
       "colStatus": "Estado",
       "colStart": "Inicio",
       "colDuration": "Duración",
       "colMeasures": "Medidas",
       "colMessages": "Mensajes"
+    },
+    "score": {
+      "title": "De dónde sale la puntuación",
+      "formula": "La puntuación suma cada métrica normalizada por su peso y después aplica una penalización si hay demasiados errores.",
+      "metric": "Métrica",
+      "weight": "Peso",
+      "normalized": "Normalizado",
+      "contribution": "Aportación",
+      "base": "Base ponderada",
+      "penalty": "Penalización",
+      "final": "Final",
+      "metrics": {
+        "lat": "Latencia media",
+        "p50": "P50",
+        "p99": "P99",
+        "tput": "Throughput",
+        "err": "Errores"
+      }
     }
   }
 }

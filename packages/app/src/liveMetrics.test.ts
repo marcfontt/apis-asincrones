@@ -1,4 +1,4 @@
-import { getLiveMessageCount } from '../../../plugins/async-benchmark/src/shared/metrics/liveMetrics';
+import { getLiveMessageCount } from '@internal/plugin-async-benchmark/src/shared/metrics/liveMetrics';
 
 describe('getLiveMessageCount', () => {
   it('uses the latest cumulative messages_recv value instead of the number of metric snapshots', () => {

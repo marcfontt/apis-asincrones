@@ -61,12 +61,22 @@
   },
   "tutorial": {
     "show": "Veure tutorial",
-    "replay": "Reveure tutorial",
+    "replay": "Repetir tutorial",
     "previous": "Anterior",
     "next": "Següent",
     "skip": "Saltar tutorial",
     "finish": "Finalitzar",
     "createExample": "Crear escenari d'exemple",
+    "visual": {
+      "homeStart": "Comença aquí",
+      "catalogCard": "Obre una fitxa",
+      "newScenario": "Nou escenari",
+      "executionRow": "Obre el detall",
+      "historyRow": "Selecciona una fila",
+      "scoreDetail": "Revisa la puntuació",
+      "openCatalog": "Catàleg",
+      "filters": "Filtres"
+    },
     "home": {
       "step1": {
         "title": "Benvingut",
@@ -719,7 +729,11 @@
       "empty": "Cap execució activa en aquest moment.",
       "searchPlaceholder": "Cerca execucions actives...",
       "lastUpdated": "Darrera actualització:",
-      "finishedBanner": "Finalitzat"
+      "finishedBanner": "Finalitzat",
+      "runningScenario": "Escenari en execució",
+      "inactive": "Inactiu",
+      "visible": "visibles",
+      "emptySearch": "Cap execució coincideix amb la cerca actual."
     },
     "history": {
       "filterFormat": "Format de Dades",
@@ -728,6 +742,7 @@
       "filterPlatform": "Plataforma",
       "filterArchitecture": "Arquitectura",
       "searchPlaceholder": "Cerca per escenari, plataforma, protocol o format",
+      "clearSearch": "Netejar cerca",
       "visibleRuns": "execucions visibles",
       "showing": "Mostrant",
       "of": "de",
@@ -741,6 +756,7 @@
       "statsRuns": "Execucions registrades",
       "statsMeasures": "Mesures registrades",
       "statsTelemetry": "Punts de telemetria acumulats",
+      "statsTelemetryVisible": "Punts de telemetria acumulats a les execucions visibles",
       "statsBest": "Millor escenari (multi-factor)",
       "sectionMetrics": "Rendiment Mètric",
       "chartLatency": "Latència mitjana (ms)",
@@ -753,6 +769,14 @@
       "favorOf": "a favor de",
       "tableTitle": "Taula comparativa completa",
       "tableSubtitle": "Tots els escenaris executats amb les mètriques principals.",
+      "tableHint": "Clica una fila per veure el detall ampliat de l'escenari.",
+      "tableScenario": "Escenari",
+      "tableScore": "Puntuació",
+      "tableAvgLatency": "Lat. mitjana",
+      "tableMeasures": "Mesures",
+      "tableArchitectureShort": "Arq.",
+      "tableProtocol": "Protocol",
+      "tablePlatform": "Plataforma",
       "scenariosExecuted": "escenaris executats",
       "run": "execució",
       "runs": "execucions"
@@ -764,13 +788,54 @@
     },
     "drawer": {
       "title": "Detall d'historial",
-      "subtitle": "Cada execució que ha contribuït a les mètriques agregades.",
+      "subtitle": "Aquest resum agrega les execucions visibles del mateix escenari. Les mesures són punts de telemetria; els missatges indiquen el volum processat.",
+      "statMeasures": "Mesures",
+      "statMeasuresHelper": "Punts persistits de totes les execucions visibles.",
+      "statReceived": "Missatges rebuts",
+      "statReceivedHelper": "Volum total rebut pels consumidors.",
+      "statSent": "Missatges enviats",
+      "statSentHelper": "Volum total enviat pel load-generator.",
+      "statScore": "Puntuació",
+      "statScoreHelper": "Score relatiu als escenaris visibles amb els filtres actuals.",
+      "sectionAggregate": "Rendiment agregat",
+      "avgLatency": "Latència mitjana",
+      "avgThroughput": "Throughput mitjà",
+      "errorRate": "Taxa d'error",
+      "latestRun": "Últim run",
+      "sectionWindow": "Finestra temporal",
+      "firstStart": "Primer inici",
+      "latestStart": "Últim inici",
+      "latestEnd": "Últim final",
+      "scenarioId": "Escenari ID",
+      "sectionLatestRun": "Darrera execució visible",
+      "howToReadTitle": "Com llegir aquest historial",
+      "howToReadBody": "Cada nova execució d'aquest escenari recomença en directe a zero, però en acabar afegeix les seves mesures a l'historial visible d'aquest escenari.",
+      "runsTitle": "Execucions que han contribuït",
+      "runsDescription": "Aquí veus cada run individual del mateix escenari. Els valors de la fila superior són la mitjana ponderada per nombre de missatges, no la mitjana simple: un run amb 10.000 missatges pesa més que un altre amb 500.",
       "colRunId": "Run ID",
       "colStatus": "Estat",
       "colStart": "Inici",
       "colDuration": "Durada",
       "colMeasures": "Mesures",
       "colMessages": "Missatges"
+    },
+    "score": {
+      "title": "D'on surt la puntuació",
+      "formula": "La puntuació suma cada mètrica normalitzada pel seu pes i després aplica una penalització si hi ha massa errors.",
+      "metric": "Mètrica",
+      "weight": "Pes",
+      "normalized": "Normalitzat",
+      "contribution": "Aportació",
+      "base": "Base ponderada",
+      "penalty": "Penalització",
+      "final": "Final",
+      "metrics": {
+        "lat": "Latència mitjana",
+        "p50": "P50",
+        "p99": "P99",
+        "tput": "Throughput",
+        "err": "Errors"
+      }
     }
   }
 }

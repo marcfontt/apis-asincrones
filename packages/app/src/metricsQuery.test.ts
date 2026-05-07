@@ -1,4 +1,4 @@
-import { buildExactMetricQuery } from '../../metrics-api/src/elasticQueries';
+import { buildExactMetricQuery } from 'metrics-api/src/elasticQueries';
 
 describe('metrics Elasticsearch query helpers', () => {
   it('uses exact keyword filters for runId so live metrics do not mix repeated executions', () => {
