@@ -20,6 +20,14 @@ import {
 
 const API_BASE = '/api/proxy/catalog-service';
 
+const LOCALE_BY_LANGUAGE: Record<string, string> = {
+  ca: 'ca-ES',
+  es: 'es-ES',
+  en: 'en-US',
+};
+
+const getLocale = (language: string) => LOCALE_BY_LANGUAGE[language] || 'ca-ES';
+
 type CatalogComponent = {
   id?: string;
   shortName?: string;
@@ -486,7 +494,8 @@ const ComponentDetailModal = ({
   component: CatalogComponent;
   onClose: () => void;
 }) => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const locale = getLocale(language);
   const categoryLabels = (tRaw('catalog.categoryLabels') as Record<string, string> | undefined) ?? CATEGORY_LABELS;
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<'overview' | 'repro' | 'config'>('overview');
@@ -670,7 +679,7 @@ const ComponentDetailModal = ({
             ))}
             <DetailRow label={t('catalog.modal.labelRepro')} value={getReproducibilityStatus(component)} />
             {component.createdAt && (
-              <DetailRow label={t('catalog.modal.labelCreatedAt')} value={new Date(component.createdAt).toLocaleDateString('ca-ES')} />
+              <DetailRow label={t('catalog.modal.labelCreatedAt')} value={new Date(component.createdAt).toLocaleDateString(locale)} />
             )}
           </section>
         </div>

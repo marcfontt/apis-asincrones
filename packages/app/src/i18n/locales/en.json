@@ -62,7 +62,7 @@
     "skip": "Skip tutorial",
     "finish": "Finish",
     "createExample": "Create example scenario",
-    "keyPoints": "Key points",
+    "keyPoints": "Quick guide",
     "visual": {
       "homeStart": "Start here",
       "catalogCard": "Open a card",
@@ -91,234 +91,229 @@
     },
     "home": {
       "step1": {
-        "title": "Portal map",
-        "body": "This screen explains the full flow: define a scenario, the backend prepares it, AKS runs the test, and results are compared with metrics.",
+        "title": "Start on Home",
+        "body": "This screen is the app map. Read it like this: define a test, run it, then read the results.",
         "details": [
-          "Start here when you want to understand what each page does before changing parameters.",
-          "The portal measures combinations, not brand names: broker, architecture, protocol and format form one unit.",
-          "The tutorial button can always be replayed when a new user needs the platform."
+          "Backstage is the web app.",
+          "AKS is the Azure cluster where tests run.",
+          "Results is where you check if the test went well."
         ]
       },
       "step2": {
-        "title": "Catalog before configuration",
-        "body": "The Catalog explains which components exist, which versions were considered and which combinations make sense before creating a scenario.",
+        "title": "Check the catalog",
+        "body": "The catalog shows which brokers, protocols, and formats you can test.",
         "details": [
-          "Open component cards when you are unsure whether a platform fits a protocol.",
-          "Compatibility notes prevent tests that are hard to defend later."
+          "Open a card if you are not sure what a component does.",
+          "Compatibility helps avoid combinations that do not make sense."
         ]
       },
       "step3": {
-        "title": "Scenarios as test contracts",
-        "body": "In Scenarios you decide the real benchmark composition. Platform, architecture, protocol and format determine the load and how the score should be read.",
+        "title": "Create the scenario",
+        "body": "In Scenarios you choose what to test. This is where guessing hurts most.",
         "details": [
-          "The composition must answer a concrete question: what do you want to compare and under which load?",
-          "Data format is not decorative: it changes payload, recommended rate and score context."
+          "Choose broker, architecture, protocol, and format.",
+          "The format changes message size and recommended load."
         ]
       },
       "step4": {
-        "title": "Executions and cluster state",
-        "body": "Executions shows every run launched on the cluster. It tells you whether a test is pending, running, completed, failed or stopped.",
+        "title": "Follow the run",
+        "body": "Executions shows whether a test is pending, running, completed, or failed.",
         "details": [
-          "Filter so active tests do not get mixed with historical tests.",
-          "Open details when you want live metrics without losing the row context."
+          "Filter to find the run quickly.",
+          "Open the detail if you want live data."
         ]
       },
       "step5": {
-        "title": "Results with score explanation",
-        "body": "Results turns runs into comparisons. Do not stop at the final number: review contributions, errors, throughput and latency.",
+        "title": "Read Results",
+        "body": "Results compares tests and explains the score.",
         "details": [
-          "Filters change which scenarios enter the visible calculation.",
-          "The score summarizes metrics, but the technical decision comes from the breakdown."
+          "Do not look only at the final number.",
+          "Open the detail to see the calculation and errors."
         ]
       }
     },
     "catalog": {
       "step1": {
         "title": "Filter the catalog",
-        "body": "Filters help you quickly find platforms, protocols and architectures. Before creating a test, check that the component exists and is documented.",
+        "body": "Use filters to quickly find brokers, protocols, or formats.",
         "details": [
-          "Filter by category when you only need brokers, protocols or architecture patterns.",
-          "Search also helps find versions, tags and reproducibility notes."
+          "Filter before creating a test.",
+          "Search helps when you do not remember the exact name."
         ]
       },
       "step2": {
-        "title": "Open a component card",
-        "body": "Each card summarizes one benchmark component. Opening it shows what it represents, when it makes sense and how it may affect the test.",
+        "title": "Open a card",
+        "body": "Each card explains what the component is and when it makes sense.",
         "details": [
-          "Cards prevent blind component choices.",
-          "The short description explains the component role in the message path."
+          "Read the short description.",
+          "Check if it fits the test you want to run."
         ]
       },
       "step3": {
-        "title": "Read compatibility",
-        "body": "The compatibility matrix shows which platforms can work with each architecture and protocol. It is the conceptual filter before the form.",
+        "title": "Check compatibility",
+        "body": "Not every combination makes sense. This area helps you avoid mistakes.",
         "details": [
-          "A compatible combination is easier to defend in the thesis.",
-          "If a combination needs a gateway or adapter, that must be clear before running it."
+          "Check broker, protocol, and architecture.",
+          "If an adapter is needed, it should be clear."
         ]
       },
       "step4": {
-        "title": "Reproducibility and configuration",
-        "body": "The detail view separates overview, reproducibility and configuration into tabs. The important part is being able to repeat the test under the same conditions.",
+        "title": "Check configuration",
+        "body": "The detail separates overview, configuration, and reproducibility.",
         "details": [
-          "Review versions, ports, limits and snippets before comparing results.",
-          "Copying configuration keeps the benchmark traceable."
+          "Review versions and ports.",
+          "Copy snippets only when you need them."
         ]
       },
       "step5": {
-        "title": "Send the component to Scenarios",
-        "body": "When a component fits the test, use it as a starting point to create or adjust a scenario.",
+        "title": "Go to Scenarios",
+        "body": "When the component fits, use it as a base for the test.",
         "details": [
-          "You do not need to remember the exact component name: the UI can preselect it when possible.",
-          "This step connects the catalog with the real benchmark flow."
+          "You do not need to memorize everything.",
+          "The catalog is the starting point."
         ]
       }
     },
     "scenarios": {
       "step1": {
-        "title": "Create a new scenario",
-        "body": "The New scenario button opens the configuration form. Here you define the test that will later be launched as a cluster run.",
+        "title": "Create a scenario",
+        "body": "Click New scenario to open the form.",
         "details": [
-          "Give it a name that explains broker, format and test purpose.",
-          "A well-named scenario makes Executions and Results readable."
+          "Use a clear name.",
+          "The name should say broker, format, and goal."
         ]
       },
       "step2": {
-        "title": "Choose the composition carefully",
-        "body": "Composition is the most important part: platform or broker, architecture and protocol. This combination defines what system you are measuring.",
+        "title": "Choose the composition",
+        "body": "This is the important choice: broker, architecture, and protocol.",
         "details": [
-          "Choose the platform first because it filters compatible options.",
-          "Architecture and protocol must make sense together: queues, streaming and pub/sub answer different questions.",
-          "If the composition is weak, the final score cannot fix the interpretation."
+          "Choose the platform first.",
+          "Then check that protocol and architecture fit together."
         ]
       },
       "step3": {
-        "title": "Data format and load",
-        "body": "Data format directly affects payload, recommended rate and result interpretation. IoT, financial, 4K video and 8K video are not equivalent.",
+        "title": "Choose the format",
+        "body": "The data format changes payload, rate, and how the score should be read.",
         "details": [
-          "When you select a format, the UI proposes coherent payload and messages per second.",
-          "Format also frames the score: acceptable video latency may not be acceptable for IoT.",
-          "If you change payload manually, verify that the broker accepts that size."
+          "IoT is not the same load as video.",
+          "If you change payload by hand, check that the broker supports it."
         ]
       },
       "step4": {
-        "title": "Predefined scenarios",
-        "body": "Presets are prepared starting points for common cases. They help you test quickly and understand recommended combinations.",
+        "title": "Use presets",
+        "body": "Presets are prepared examples. They are good for starting quickly.",
         "details": [
-          "Use a preset when you want a reasonable test without building it from scratch.",
-          "Then duplicate or edit it to adapt it to a concrete hypothesis."
+          "Use one when you want a safe test.",
+          "You can adjust it afterwards."
         ]
       },
       "step5": {
-        "title": "Scenario actions",
-        "body": "From the list you can execute, duplicate, edit or delete scenarios. Execute creates a run; duplicate is useful when changing only one variable.",
+        "title": "Run or duplicate",
+        "body": "In the list you can run, duplicate, edit, or delete.",
         "details": [
-          "Duplicate when comparing Kafka against RabbitMQ under the same load.",
-          "Edit if the configuration has not been launched yet or if payload, rate or protocol need correction.",
-          "Execute only when composition and format already make sense."
+          "Duplicate to change only one variable.",
+          "Run when the setup is clear."
         ]
       },
       "step6": {
-        "title": "Sustained mode and warm-up",
-        "body": "Sustained mode acts like a controlled indefinite mode: stable load, but with limits. Warm-up lets the system settle before measuring.",
+        "title": "Set duration and warm-up",
+        "body": "Warm-up lets the system settle before measuring.",
         "details": [
-          "Do not compare cold starts with stable results.",
-          "Duration and warm-up must be long enough for defensible numbers.",
-          "If a run is too short, the score may reflect start-up noise."
+          "Avoid runs that are too short.",
+          "A stable test gives more useful results."
         ]
       }
     },
     "execucions": {
       "step1": {
         "title": "Filter executions",
-        "body": "Dropdowns separate runs by status, scenario, broker, platform, architecture, protocol and format. This avoids comparing unrelated groups.",
+        "body": "Filters help you find the run you want to inspect.",
         "details": [
-          "Filter by running when you only want live tests.",
-          "Filter by format or broker when validating a concrete hypothesis."
+          "Filter by status when there are many tests.",
+          "Filter by broker or format when comparing one thing."
         ]
       },
       "step2": {
-        "title": "Open run details",
-        "body": "Each row is one concrete execution. Clicking it opens expanded information without losing the full list.",
+        "title": "Open the detail",
+        "body": "Click a row to see the run setup and status.",
         "details": [
-          "The detail view keeps context even when backend updates arrive.",
-          "Review status, duration, format and parameters before interpreting metrics."
+          "The detail should not close by itself.",
+          "Check duration, format, and status before reading metrics."
         ]
       },
       "step3": {
-        "title": "Live metrics",
-        "body": "When a run is active, the detail panel shows live metrics. They help spot errors, saturation or impossible values early.",
+        "title": "Watch live data",
+        "body": "When a run is active, this is where incoming data appears.",
         "details": [
-          "Stable throughput and low errors indicate the test is progressing well.",
-          "High latency or errors may indicate oversized payloads or broker misconfiguration."
+          "High errors mean trouble.",
+          "Stable throughput is a good sign."
         ]
       },
       "step4": {
-        "title": "Stop or delete",
-        "body": "Row actions let you stop running tests or remove executions you do not want to keep. Stopping preserves partial data when available.",
+        "title": "Stop if needed",
+        "body": "You can stop a test if it is wrong or too heavy for the cluster.",
         "details": [
-          "Stop a test if it saturates the cluster or the configuration was wrong.",
-          "Deleting is destructive for the historical reading of that run."
+          "Stopping keeps partial data when available.",
+          "Deleting removes the run from the view."
         ]
       },
       "step5": {
-        "title": "From run to history",
-        "body": "When a test finishes, persisted measurements feed Results. Executions is operational control; Results is analysis.",
+        "title": "Go to Results",
+        "body": "When the run ends, saved data appears in Results.",
         "details": [
-          "Do not judge a scenario only while it is running: wait until the run closes and persists data.",
-          "History aggregates visible executions of the same scenario."
+          "Do not decide from live data only.",
+          "Wait for persisted data."
         ]
       }
     },
     "resultats": {
       "step1": {
         "title": "Filter before comparing",
-        "body": "Results filters decide which scenarios enter the comparison. If you change the visible set, the score context changes too.",
+        "body": "Filters decide which tests enter the comparison.",
         "details": [
-          "Compare scenarios with the same format when you want a fair read.",
-          "Filter by platform or protocol when you want to isolate one variable."
+          "Compare similar things.",
+          "Changing filters can change the visible score."
         ]
       },
       "step2": {
-        "title": "Read key metrics",
-        "body": "Latency, throughput, errors and measurement volume explain the real behavior. The score only summarizes those data points.",
+        "title": "Read the metrics",
+        "body": "Latency, throughput, and errors explain what happened.",
         "details": [
-          "Lower latency does not always win if throughput drops or errors appear.",
-          "Read percentiles and averages with the data format in mind."
+          "A high score with errors is not reliable.",
+          "Check the format before judging."
         ]
       },
       "step3": {
-        "title": "Open history detail",
-        "body": "Clicking a row opens the aggregated scenario detail. It shows which executions contributed and the persisted totals.",
+        "title": "Open a row",
+        "body": "Click a row to see the scenario detail.",
         "details": [
-          "This detail tells you whether a score comes from one run or several.",
-          "Measurements are telemetry points; messages show processed volume."
+          "You see which runs contributed.",
+          "You also see total messages and measures."
         ]
       },
       "step4": {
         "title": "Understand the score",
-        "body": "The breakdown shows each metric weight, normalized value, contribution and error penalty. That makes the final number auditable.",
+        "body": "The score adds weighted metrics. The detail shows the calculation.",
         "details": [
-          "Latency, P50, P99, throughput and errors do not have the same weight.",
-          "The penalty prevents a scenario from looking good if it loses or fails messages.",
-          "The final score is a guide, not a replacement for metric reading."
+          "You see normalized value times weight.",
+          "You also see the error penalty."
         ]
       },
       "step5": {
-        "title": "Compare scenarios side by side",
-        "body": "The comparison view shows direct differences between two scenarios. It is useful when you changed one variable and want to see the impact.",
+        "title": "Compare two scenarios",
+        "body": "Comparison is most useful when you change only one thing.",
         "details": [
-          "The best comparison changes one variable: broker, protocol, architecture or format.",
-          "If you change many things at once, the UI shows numbers but the conclusion is weaker."
+          "Change a broker or a format, not everything at once.",
+          "That makes the conclusion clearer."
         ]
       }
     }
   },
   "home": {
     "title": "Async APIs",
-    "subtitle": "Real benchmarks under the same load",
-    "description": "This portal compares combinations of broker, protocol, architecture and data format. The idea is simple: run equivalent tests and see with data which design performs best.",
-    "heroSubtitle": "Backstage to create tests, AKS to run them, and metrics to compare results.",
+    "subtitle": "Comparable tests, clear results",
+    "description": "Create a test, run it on the cluster, and see what happened. We always measure the same path: message sent, broker, message received.",
+    "heroSubtitle": "Backstage is the screen. AKS is the Azure cluster where the tests run.",
     "btnCreateScenario": "Create scenario",
     "btnViewCatalog": "View catalog",
     "btnCompareResults": "Compare results",
@@ -350,90 +345,90 @@
     "sections": {
       "systemEyebrow": "System structure",
       "systemTitle": "From scenario to results",
-      "systemDesc": "The portal is not the system being measured. Backstage is the interface; the backend prepares the test; AKS runs the components; and metrics enable comparison.",
+      "systemDesc": "Think of it as a chain: you define the test, the backend prepares it, AKS runs it, and Results shows the data. AKS means Azure Kubernetes Service: a group of cloud machines for running containers.",
       "conceptsEyebrow": "Before looking at results",
       "conceptsTitle": "What are you actually comparing?",
-      "conceptsDesc": "A test does not compare brand names: it compares a complete message path under a specific load.",
+      "conceptsDesc": "Before comparing, check what you are changing: broker, protocol, architecture, format, and load.",
       "brokerEyebrow": "Key concept",
       "brokerTitle": "How does a broker work?",
       "brokerDesc": "A message broker decouples producers from consumers: each side works at its own pace without depending on the other.",
       "executionEyebrow": "Execution",
       "executionTitle": "What happens when you launch a benchmark?",
-      "executionDesc": "Every run must go through the same steps so the comparison is defensible afterwards.",
+      "executionDesc": "A run is one concrete execution. Every run follows the same path so the comparison makes sense.",
       "pagesEyebrow": "Inner pages",
       "pagesTitle": "Where each task continues",
-      "metricsLabel": "Key metrics"
+      "metricsLabel": "Metrics you will read in Results"
     },
     "systemParts": [
       {
         "title": "Backstage",
-        "subtitle": "Work portal",
-        "text": "The screen where the user creates scenarios, launches executions and reviews results."
+        "subtitle": "Screen",
+        "text": "The web app you use. Here you create scenarios, launch tests, and open results."
       },
       {
         "title": "Backend",
-        "subtitle": "Composer",
-        "text": "Applies the thesis rules and converts the scenario into an executable test."
+        "subtitle": "Preparation",
+        "text": "Takes the scenario and turns it into a test that can run."
       },
       {
         "title": "AKS",
-        "subtitle": "Cluster",
-        "text": "Runs brokers, load generators and metric services in Kubernetes."
+        "subtitle": "Azure cluster",
+        "text": "Where the containers run. It starts the broker, load generator, and metrics services."
       },
       {
         "title": "Broker",
-        "subtitle": "Measured system",
-        "text": "Kafka, RabbitMQ, NATS or compatible receive the same payloads under load."
+        "subtitle": "Measured part",
+        "text": "Kafka, RabbitMQ, NATS, or similar receive the test messages."
       },
       {
         "title": "Metrics",
-        "subtitle": "Run data",
-        "text": "Each execution publishes periodic measurements with counters and percentiles."
+        "subtitle": "Data",
+        "text": "The system stores latency, messages per second, errors, and counters."
       },
       {
-        "title": "Comparison",
-        "subtitle": "Final result",
-        "text": "The UI shows differences between combinations and helps defend conclusions."
+        "title": "Results",
+        "subtitle": "Final read",
+        "text": "Here you compare tests and see which combination worked better."
       }
     ],
     "concepts": [
       {
         "title": "Architecture",
-        "text": "The way of organising producer, broker and consumer. Affects how the message flows."
+        "text": "How the parts are arranged. It changes the path the message follows."
       },
       {
         "title": "Protocol",
-        "text": "The communication rules. Decides how the message is sent, acknowledged or delivered."
+        "text": "How the system communicates: Kafka, AMQP, MQTT, SSE, or others."
       },
       {
         "title": "Data format",
-        "text": "The payload type. Sending IoT telemetry is not the same as video or transactions."
+        "text": "The size and type of message. IoT, finance, and video do not load the broker the same way."
       },
       {
         "title": "Broker",
-        "text": "The platform that receives and distributes messages. It is the main piece we compare."
+        "text": "The platform that receives and distributes messages. It is the center of the comparison."
       }
     ],
     "executionSteps": [
       {
         "label": "Create scenario",
-        "sub": "choose broker, architecture, protocol and format"
+        "sub": "choose broker, protocol, format, and load"
       },
       {
-        "label": "Prepare execution",
-        "sub": "the backend applies duration, rate and payload"
+        "label": "Prepare run",
+        "sub": "the backend checks and prepares the test"
       },
       {
         "label": "Run on AKS",
-        "sub": "the generator sends payloads to the broker"
+        "sub": "AKS starts the containers and sends load"
       },
       {
-        "label": "Save measurements",
-        "sub": "each run records latency, throughput and errors"
+        "label": "Save data",
+        "sub": "latency, throughput, and errors are recorded"
       },
       {
-        "label": "Compare results",
-        "sub": "the history lets you see what worked best"
+        "label": "Compare",
+        "sub": "Results shows what worked better"
       }
     ],
     "pages": [
@@ -456,18 +451,42 @@
     ],
     "metrics": [
       {
-        "title": "P99 Latency",
-        "text": "Measures the time a message takes from leaving the producer to reaching the consumer. The 99th percentile reveals the real worst case: 99% of messages arrive below this value. Low P99 latency is key for real-time systems."
+        "title": "P99 latency",
+        "text": "Shows the slowest messages. It helps you spot spikes that users would notice."
       },
       {
         "title": "Throughput",
-        "text": "Calculates the number of messages processed per second during the test. Indicates the maximum capacity of the broker under the configured load. High throughput with stable latency is the sign of a well-sized system."
+        "text": "Shows how many messages per second the test handles. High is good only if latency and errors stay healthy."
       },
       {
         "title": "Error rate",
-        "text": "Shows the percentage of messages that fail, are lost or do not reach the consumer correctly. Includes network errors, timeouts and messages discarded by the broker. A value above 0.1% is usually a warning indicator."
+        "text": "Shows the share of messages that fail or do not arrive correctly. If it rises, the result is less trustworthy."
       }
-    ]
+    ],
+    "brokerFlow": {
+      "eyebrow": "Simple view",
+      "title": "What a broker does",
+      "description": "A broker receives messages and sends them to consumers. The test changes the broker, protocol, or format to see what happens.",
+      "producer": "Producer",
+      "producerAction": "1. Sends messages",
+      "producerText": "The generator creates messages with the scenario format, size, and rate.",
+      "tagVideo": "video",
+      "tagFinance": "finance",
+      "send": "sends",
+      "broker": "Broker",
+      "brokerStep1Title": "Input",
+      "brokerStep1Detail": "receives the message",
+      "brokerStep2Title": "Route",
+      "brokerStep2Detail": "chooses topic, queue, or subject",
+      "brokerStep3Title": "Ack",
+      "brokerStep3Detail": "orders and confirms",
+      "deliver": "delivers",
+      "consumer": "Consumer",
+      "consumerAction": "3. Receives messages",
+      "consumerText": "The consumer confirms what arrived. That later lets you calculate errors and performance.",
+      "received": "Messages received",
+      "finalCounter": "final counter"
+    }
   },
   "catalog": {
     "pageTitle": "Catalog | Async APIs",
@@ -977,8 +996,8 @@
       "pending": "Pending"
     },
     "drawer": {
-      "title": "History detail",
-      "subtitle": "This summary aggregates the visible executions of the same scenario. Measurements are telemetry points; messages show the processed volume.",
+      "title": "Score and history",
+      "subtitle": "Summary of the visible executions for the same scenario.",
       "statMeasures": "Measurements",
       "statMeasuresHelper": "Persisted points from all visible executions.",
       "statReceived": "Messages received",
@@ -986,7 +1005,7 @@
       "statSent": "Messages sent",
       "statSentHelper": "Total volume sent by the load generator.",
       "statScore": "Score",
-      "statScoreHelper": "Score relative to the visible scenarios under the current filters.",
+      "statScoreHelper": "Relative to the visible scenarios under the current filters.",
       "sectionAggregate": "Aggregated performance",
       "avgLatency": "Average latency",
       "avgThroughput": "Average throughput",
@@ -998,10 +1017,8 @@
       "latestEnd": "Latest end",
       "scenarioId": "Scenario ID",
       "sectionLatestRun": "Latest visible execution",
-      "howToReadTitle": "How to read this history",
-      "howToReadBody": "Each new execution of this scenario restarts live from zero, but when it finishes it adds its measurements to this scenario's visible history.",
       "runsTitle": "Executions that contributed",
-      "runsDescription": "Here you see each individual run for the same scenario. The top-row values are weighted by message count, not a simple average: a run with 10,000 messages carries more weight than one with 500.",
+      "runsDescription": "Each row is a run of the same scenario. The top row uses a weighted average: a run with more messages counts more.",
       "colRunId": "Run ID",
       "colStatus": "Status",
       "colStart": "Start",
@@ -1010,8 +1027,8 @@
       "colMessages": "Messages"
     },
     "score": {
-      "title": "Where the score comes from",
-      "formula": "The score adds each normalized metric by its weight, then applies a penalty if the error rate is too high.",
+      "title": "Score",
+      "formula": "Each metric gives points. Example: normalized value x weight = contribution. If there are errors, a final penalty is applied.",
       "metric": "Metric",
       "weight": "Weight",
       "normalized": "Normalized",
@@ -1025,7 +1042,8 @@
         "p99": "P99",
         "tput": "Throughput",
         "err": "Errors"
-      }
+      },
+      "calculation": "Calculation"
     }
   }
 }

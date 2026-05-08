@@ -62,7 +62,7 @@
     "skip": "Saltar tutorial",
     "finish": "Finalitzar",
     "createExample": "Crear escenari d'exemple",
-    "keyPoints": "Punts clau",
+    "keyPoints": "Guia ràpida",
     "visual": {
       "homeStart": "Comença aquí",
       "catalogCard": "Obre una fitxa",
@@ -91,234 +91,229 @@
     },
     "home": {
       "step1": {
-        "title": "Mapa general del portal",
-        "body": "Aquesta pantalla situa el flux complet: defineixes un escenari, el backend el prepara, AKS executa la prova i els resultats es comparen amb mètriques.",
+        "title": "Comença per Home",
+        "body": "Aquesta pantalla és el mapa de l’app. Mira-la així: defineixes una prova, la llances i després llegeixes resultats.",
         "details": [
-          "Comença aquí quan vulguis entendre què fa cada pàgina abans de tocar paràmetres.",
-          "El portal mesura combinacions, no noms comercials: broker, arquitectura, protocol i format formen una unitat.",
-          "El botó de tutorial sempre es pot repetir si algú nou ha de fer servir la plataforma."
+          "Backstage és la web.",
+          "AKS és el clúster d'Azure on corren les proves.",
+          "Resultats és on mires si la prova ha anat bé."
         ]
       },
       "step2": {
-        "title": "Catàleg abans de configurar",
-        "body": "El Catàleg explica quins components existeixen, quines versions s’han considerat i quines combinacions tenen sentit abans de crear un escenari.",
+        "title": "Mira el catàleg",
+        "body": "El catàleg t’ajuda a saber quins brokers, protocols i formats pots provar.",
         "details": [
-          "Consulta fitxes quan no tinguis clar si una plataforma encaixa amb un protocol.",
-          "Les notes de compatibilitat eviten crear proves que després no són defensables."
+          "Obre una fitxa si no tens clar què fa un component.",
+          "La compatibilitat evita combinacions sense sentit."
         ]
       },
       "step3": {
-        "title": "Escenaris com a contracte de prova",
-        "body": "A Escenaris decideixes la composició real del benchmark. La selecció de plataforma, arquitectura, protocol i format condiciona la càrrega i la lectura de la puntuació.",
+        "title": "Crea l’escenari",
+        "body": "A Escenaris tries què vols provar. Aquí és on més importa no anar a cegues.",
         "details": [
-          "La composició ha de respondre una pregunta concreta: què vols comparar i sota quina càrrega?",
-          "El format de dades no és decoratiu: canvia payload, ràtio recomanada i context de puntuació."
+          "Tria broker, arquitectura, protocol i format.",
+          "El format canvia mida del missatge i càrrega recomanada."
         ]
       },
       "step4": {
-        "title": "Execucions i estat del clúster",
-        "body": "Execucions mostra cada run llançat al clúster. Aquí es veu si una prova està pendent, corrent, completada, fallida o aturada.",
+        "title": "Segueix el run",
+        "body": "Execucions mostra si la prova està pendent, en curs, completada o fallida.",
         "details": [
-          "Filtra per no barrejar proves actives amb proves històriques.",
-          "Obre el detall quan vulguis veure mètriques live sense perdre el context de la fila."
+          "Filtra per trobar el run ràpid.",
+          "Obre el detall si vols veure dades en directe."
         ]
       },
       "step5": {
-        "title": "Resultats amb explicació de la puntuació",
-        "body": "Resultats transforma els runs en comparatives. No et quedis només amb el número final: revisa contribucions, errors, throughput i latència.",
+        "title": "Llegeix Resultats",
+        "body": "Resultats compara les proves i explica la puntuació.",
         "details": [
-          "Els filtres canvien quins escenaris entren al càlcul visible.",
-          "La puntuació resumeix mètriques, però la decisió tècnica surt del desglossament."
+          "No miris només el número final.",
+          "Obre el detall per veure el càlcul i els errors."
         ]
       }
     },
     "catalog": {
       "step1": {
         "title": "Filtra el catàleg",
-        "body": "Els filtres serveixen per trobar ràpidament plataformes, protocols i arquitectures. Abans de crear una prova, comprova que el component existeix i està documentat.",
+        "body": "Fes servir els filtres per trobar ràpidament brokers, protocols o formats.",
         "details": [
-          "Filtra per categoria quan busquis només brokers, protocols o patrons arquitectònics.",
-          "La cerca també ajuda a trobar versions, tags i notes de reproductibilitat."
+          "Filtra abans de crear una prova.",
+          "La cerca ajuda quan no recordes el nom exacte."
         ]
       },
       "step2": {
-        "title": "Obre una fitxa de component",
-        "body": "Cada card resumeix un component del benchmark. En obrir-la veus què representa, en quins casos té sentit i quin impacte pot tenir sobre la prova.",
+        "title": "Obre una fitxa",
+        "body": "Cada fitxa explica què és el component i quan té sentit usar-lo.",
         "details": [
-          "Les fitxes eviten triar components a cegues.",
-          "La descripció curta explica el paper del component dins del recorregut del missatge."
+          "Llegeix la descripció curta.",
+          "Mira si encaixa amb la prova que vols fer."
         ]
       },
       "step3": {
-        "title": "Llegeix la compatibilitat",
-        "body": "La matriu de compatibilitat indica quines plataformes poden treballar amb cada arquitectura i protocol. És el filtre conceptual abans del formulari.",
+        "title": "Revisa compatibilitat",
+        "body": "No totes les combinacions tenen sentit. Aquesta zona t’ajuda a evitar errors.",
         "details": [
-          "Una combinació compatible és més fàcil de defensar a la memòria.",
-          "Si una combinació necessita gateway o adaptador, ha de quedar clar abans d’executar."
+          "Comprova broker, protocol i arquitectura.",
+          "Si cal un adaptador, ha de quedar clar."
         ]
       },
       "step4": {
-        "title": "Reproductibilitat i configuració",
-        "body": "El detall té pestanyes per separar visió general, reproductibilitat i configuració. La part important és poder repetir la prova amb les mateixes condicions.",
+        "title": "Mira la configuració",
+        "body": "El detall separa informació general, configuració i reproductibilitat.",
         "details": [
-          "Revisa versions, ports, límits i snippets abans de comparar resultats.",
-          "Copiar configuració ajuda a mantenir el benchmark traçable."
+          "Revisa versions i ports.",
+          "Copia snippets només si els necessites."
         ]
       },
       "step5": {
-        "title": "Porta el component a Escenaris",
-        "body": "Quan un component encaixa amb la prova, el pots utilitzar com a punt de partida per crear o ajustar un escenari.",
+        "title": "Passa a Escenaris",
+        "body": "Quan el component encaixa, fes-lo servir com a base per configurar la prova.",
         "details": [
-          "No cal recordar el nom exacte del component: la UI el pot preseleccionar quan és possible.",
-          "Aquest pas connecta el catàleg amb el flux real de benchmark."
+          "No cal memoritzar-ho tot.",
+          "El catàleg és el punt de partida."
         ]
       }
     },
     "scenarios": {
       "step1": {
-        "title": "Crear un escenari nou",
-        "body": "El botó Nou escenari obre el formulari de configuració. Aquí defineixes la prova que després es llançarà com a run al clúster.",
+        "title": "Crea un escenari",
+        "body": "Clica Nou escenari per obrir el formulari.",
         "details": [
-          "Dona-li un nom que expliqui broker, format i propòsit de la prova.",
-          "Un escenari ben anomenat fa que Execucions i Resultats siguin llegibles."
+          "Posa un nom clar.",
+          "El nom hauria de dir broker, format i objectiu."
         ]
       },
       "step2": {
-        "title": "Escull bé la composició",
-        "body": "La composició és la part més important: plataforma o broker, arquitectura i protocol. Aquesta combinació defineix quin sistema estàs mesurant.",
+        "title": "Tria la composició",
+        "body": "Aquesta és la decisió important: broker, arquitectura i protocol.",
         "details": [
-          "Tria primer la plataforma perquè filtra opcions compatibles.",
-          "Arquitectura i protocol han de tenir sentit junts: cues, streaming o pub/sub no responen la mateixa pregunta.",
-          "Si la composició és feble, la puntuació final no arregla la interpretació."
+          "Primer tria la plataforma.",
+          "Després comprova que protocol i arquitectura encaixin."
         ]
       },
       "step3": {
-        "title": "Format de dades i càrrega",
-        "body": "El format de dades influeix directament en payload, ràtio recomanada i lectura dels resultats. No és igual IoT, financer, vídeo 4K o vídeo 8K.",
+        "title": "Tria el format",
+        "body": "El format de dades canvia el payload, la ràtio i la lectura de la puntuació.",
         "details": [
-          "En seleccionar format, la UI proposa payload i missatges per segon coherents.",
-          "El format també contextualitza la puntuació: una latència acceptable en vídeo pot no ser acceptable en IoT.",
-          "Si canvies payload manualment, revisa que el broker accepti aquella mida."
+          "IoT no pesa igual que vídeo.",
+          "Si canvies el payload a mà, revisa que el broker el suporti."
         ]
       },
       "step4": {
-        "title": "Escenaris predefinits",
-        "body": "Els predefinits són punts de partida preparats per casos habituals. Serveixen per provar ràpid i per entendre quines combinacions són recomanades.",
+        "title": "Usa predefinits",
+        "body": "Els predefinits són exemples preparats. Van bé per començar ràpid.",
         "details": [
-          "Usa un predefinit quan vulguis una prova raonable sense muntar-la des de zero.",
-          "Després pots duplicar-lo o editar-lo per adaptar-lo a una hipòtesi concreta."
+          "Usa’n un si vols una prova segura.",
+          "Després el pots ajustar."
         ]
       },
       "step5": {
-        "title": "Accions sobre escenaris",
-        "body": "A la llista pots executar, duplicar, editar o eliminar escenaris. Executar crea un run; duplicar és útil per canviar només una variable.",
+        "title": "Executa o duplica",
+        "body": "A la llista pots executar, duplicar, editar o eliminar.",
         "details": [
-          "Duplica quan vulguis comparar Kafka contra RabbitMQ mantenint la mateixa càrrega.",
-          "Edita si la configuració encara no s’ha llançat o si vols corregir payload, ràtio o protocol.",
-          "Executa només quan la composició i el format ja tenen sentit."
+          "Duplica per canviar una sola variable.",
+          "Executa quan la configuració ja estigui clara."
         ]
       },
       "step6": {
-        "title": "Mode sostingut i warm-up",
-        "body": "El mode sostingut fa el paper d’un mode indefinit controlat: manté la prova estable però amb límits. El warm-up deixa que el sistema s’estabilitzi abans de mesurar.",
+        "title": "Ajusta durada i warm-up",
+        "body": "El warm-up deixa que el sistema s’estabilitzi abans de mesurar.",
         "details": [
-          "No comparis arrencades en fred amb resultats estables.",
-          "La durada i el warm-up han de ser prou llargs perquè els números siguin defensables.",
-          "Si un run és massa curt, la puntuació pot reflectir soroll de start-up."
+          "Evita runs massa curts.",
+          "Una prova estable dona resultats més útils."
         ]
       }
     },
     "execucions": {
       "step1": {
-        "title": "Filtra les execucions",
-        "body": "Els dropdowns separen runs per estat, escenari, broker, plataforma, arquitectura, protocol i format. Això evita comparar coses que no pertanyen al mateix grup.",
+        "title": "Filtra execucions",
+        "body": "Els filtres t’ajuden a trobar el run que vols mirar.",
         "details": [
-          "Filtra per running quan vulguis veure només proves vives.",
-          "Filtra per format o broker quan estiguis validant una hipòtesi concreta."
+          "Filtra per estat si hi ha moltes proves.",
+          "Filtra per broker o format si estàs comparant una cosa concreta."
         ]
       },
       "step2": {
-        "title": "Obre el detall d’un run",
-        "body": "Cada fila representa una execució concreta. En clicar-la pots veure la informació ampliada sense perdre la llista general.",
+        "title": "Obre el detall",
+        "body": "Clica una fila per veure la configuració i l’estat del run.",
         "details": [
-          "El detall manté el context encara que arribin actualitzacions del backend.",
-          "Revisa estat, durada, format i paràmetres abans d’interpretar mètriques."
+          "El detall no hauria de tancar-se sol.",
+          "Comprova durada, format i estat abans de llegir mètriques."
         ]
       },
       "step3": {
-        "title": "Mètriques en directe",
-        "body": "Quan un run està en curs, el detall mostra mètriques live. Serveixen per detectar ràpidament errors, saturació o valors absurds.",
+        "title": "Mira el directe",
+        "body": "Quan el run està en curs, aquí veus les dades que arriben.",
         "details": [
-          "Throughput estable i errors baixos indiquen que la prova avança bé.",
-          "Latència o errors disparats poden indicar payload massa gran o broker mal configurat."
+          "Errors alts indiquen problemes.",
+          "Throughput estable és bona senyal."
         ]
       },
       "step4": {
-        "title": "Aturar o eliminar",
-        "body": "Les accions de la fila permeten aturar proves en curs o eliminar execucions que no vols conservar. Aturar conserva dades parcials quan n’hi ha.",
+        "title": "Atura si cal",
+        "body": "Pots aturar una prova si està mal configurada o carrega massa el clúster.",
         "details": [
-          "Atura una prova si està saturant el clúster o si la configuració era incorrecta.",
-          "Eliminar és destructiu per a la lectura històrica d’aquell run."
+          "Aturar conserva dades parcials si n’hi ha.",
+          "Eliminar treu el run de la lectura."
         ]
       },
       "step5": {
-        "title": "Del run a l’historial",
-        "body": "Quan la prova acaba, les mesures persistides alimenten Resultats. Execucions és el control operacional; Resultats és l’anàlisi.",
+        "title": "Passa a Resultats",
+        "body": "Quan el run acaba, les dades guardades apareixen a Resultats.",
         "details": [
-          "No valoris un escenari només mentre corre: espera que el run tanqui i persisteixi dades.",
-          "L’historial agrega execucions visibles del mateix escenari."
+          "No decideixis només amb el directe.",
+          "Espera a tenir dades persistides."
         ]
       }
     },
     "resultats": {
       "step1": {
         "title": "Filtra abans de comparar",
-        "body": "Els filtres de Resultats decideixen quins escenaris entren a la comparativa. Si canvies el conjunt visible, també canvia el context de la puntuació.",
+        "body": "Els filtres decideixen quines proves entren a la comparació.",
         "details": [
-          "Compara escenaris del mateix format quan vulguis una lectura justa.",
-          "Filtra per plataforma o protocol si vols aïllar una variable."
+          "Compara coses semblants.",
+          "Canviar filtres pot canviar la puntuació visible."
         ]
       },
       "step2": {
-        "title": "Llegeix les mètriques principals",
-        "body": "Latència, throughput, errors i volum de mesures expliquen el comportament real. La puntuació només resumeix aquestes dades.",
+        "title": "Mira les mètriques",
+        "body": "Latència, throughput i errors expliquen què ha passat.",
         "details": [
-          "Menor latència no sempre guanya si el throughput cau o hi ha errors.",
-          "Mira percentils i mitjanes amb el format de dades al cap."
+          "Una puntuació alta amb errors no és fiable.",
+          "Mira el format abans de jutjar."
         ]
       },
       "step3": {
-        "title": "Obre el detall d’historial",
-        "body": "Clicant una fila obres el detall agregat de l’escenari. Allà veus les execucions que han contribuït i els totals persistits.",
+        "title": "Obre una fila",
+        "body": "Clica una fila per veure el detall de l’escenari.",
         "details": [
-          "Aquest detall és clau per saber si una puntuació surt d’un run o de diversos.",
-          "Les mesures són punts de telemetria; els missatges indiquen volum processat."
+          "Veus quins runs han contribuït.",
+          "També veus missatges i mesures totals."
         ]
       },
       "step4": {
-        "title": "Entén d’on surt la puntuació",
-        "body": "El desglossament mostra el pes de cada mètrica, el valor normalitzat, l’aportació i la penalització per errors. Això fa auditable el número final.",
+        "title": "Entén la puntuació",
+        "body": "La puntuació suma mètriques amb pesos. El detall mostra el càlcul.",
         "details": [
-          "Latència, P50, P99, throughput i errors no pesen igual.",
-          "La penalització evita que un escenari sembli bo si perd o falla missatges.",
-          "La puntuació final és una ajuda, no substitueix la lectura de mètriques."
+          "Veus normalitzat per pes.",
+          "També veus la penalització per errors."
         ]
       },
       "step5": {
-        "title": "Compara escenaris cara a cara",
-        "body": "La comparativa serveix per veure diferències directes entre dos escenaris. És útil quan només has canviat una variable i vols veure l’impacte.",
+        "title": "Compara dos escenaris",
+        "body": "La comparativa és més útil quan només canvies una cosa.",
         "details": [
-          "La millor comparació canvia una sola variable: broker, protocol, arquitectura o format.",
-          "Si canvies moltes coses alhora, la UI mostra números però la conclusió és més feble."
+          "Canvia un broker o un format, no tot alhora.",
+          "Així la conclusió és més clara."
         ]
       }
     }
   },
   "home": {
     "title": "APIs Asíncrones",
-    "subtitle": "Benchmarks reals sota la mateixa càrrega",
-    "description": "Aquest portal compara combinacions de broker, protocol, arquitectura i format de dades. La idea és simple: executar proves equivalents i veure amb dades quin disseny respon millor.",
-    "heroSubtitle": "Backstage per crear proves, AKS per executar-les i mètriques per comparar resultats.",
+    "subtitle": "Proves comparables, resultats clars",
+    "description": "Crea una prova, executa-la al clúster i mira què ha passat. Sempre mesurem el mateix recorregut: missatge enviat, broker, missatge rebut.",
+    "heroSubtitle": "Backstage és la pantalla. AKS és el clúster d'Azure on corren les proves.",
     "btnCreateScenario": "Crear escenari",
     "btnViewCatalog": "Veure catàleg",
     "btnCompareResults": "Comparar resultats",
@@ -350,90 +345,90 @@
     "sections": {
       "systemEyebrow": "Estructura del sistema",
       "systemTitle": "De l'escenari als resultats",
-      "systemDesc": "El portal no és el sistema que es mesura. Backstage és la interfície; el backend prepara la prova; AKS executa els components; i les mètriques permeten comparar.",
+      "systemDesc": "Pensa-ho com una cadena: tu defines la prova, el backend la prepara, AKS la fa córrer i Resultats mostra les dades. AKS vol dir Azure Kubernetes Service: un grup de màquines al núvol per executar contenidors.",
       "conceptsEyebrow": "Abans de mirar resultats",
       "conceptsTitle": "Què estàs comparant realment?",
-      "conceptsDesc": "Una prova no compara noms comercials: compara un recorregut complet del missatge sota una càrrega concreta.",
+      "conceptsDesc": "Abans de comparar, mira què estàs canviant: broker, protocol, arquitectura, format i càrrega.",
       "brokerEyebrow": "Concepte clau",
       "brokerTitle": "Com funciona un bròker?",
       "brokerDesc": "Un bròker de missatgeria desacobla els productors dels consumidors: cada part treballa al seu ritme sense dependre de l'altra.",
       "executionEyebrow": "Execució",
       "executionTitle": "Què passa quan llances un benchmark?",
-      "executionDesc": "Cada run ha de passar pels mateixos passos perquè després la comparació sigui defensable.",
+      "executionDesc": "Un run és una execució concreta. Tots els runs segueixen el mateix camí perquè la comparació tingui sentit.",
       "pagesEyebrow": "Pàgines interiors",
       "pagesTitle": "On continua cada tasca",
-      "metricsLabel": "Mètriques principals"
+      "metricsLabel": "Mètriques que llegiràs a Resultats"
     },
     "systemParts": [
       {
         "title": "Backstage",
-        "subtitle": "Portal de treball",
-        "text": "Pantalla on l'usuari crea escenaris, llança execucions i consulta resultats."
+        "subtitle": "Pantalla",
+        "text": "És la web que fas servir. Aquí crees escenaris, llances proves i obres resultats."
       },
       {
         "title": "Backend",
-        "subtitle": "Compositor",
-        "text": "Aplica les regles del TFG i converteix l'escenari en una prova executable."
+        "subtitle": "Preparació",
+        "text": "Agafa l'escenari i el converteix en una prova que es pot executar."
       },
       {
         "title": "AKS",
-        "subtitle": "Clúster",
-        "text": "Executa brokers, generadors de càrrega i serveis de mètriques en Kubernetes."
+        "subtitle": "Clúster Azure",
+        "text": "És on corren els contenidors. Aquí s'aixequen el broker, el generador de càrrega i els serveis de mètriques."
       },
       {
         "title": "Broker",
-        "subtitle": "Sistema mesurat",
-        "text": "Kafka, RabbitMQ, NATS o compatible reben els mateixos payloads sota càrrega."
+        "subtitle": "Peça mesurada",
+        "text": "Kafka, RabbitMQ, NATS o similar reben els missatges de la prova."
       },
       {
         "title": "Mètriques",
-        "subtitle": "Dades del run",
-        "text": "Cada execució publica mesures periòdiques amb comptadors i percentils."
+        "subtitle": "Dades",
+        "text": "El sistema guarda latència, missatges per segon, errors i comptadors."
       },
       {
-        "title": "Comparació",
-        "subtitle": "Resultat final",
-        "text": "La UI mostra diferències entre combinacions i ajuda a defensar conclusions."
+        "title": "Resultats",
+        "subtitle": "Lectura final",
+        "text": "Aquí compares proves i veus quina combinació ha anat millor."
       }
     ],
     "concepts": [
       {
         "title": "Arquitectura",
-        "text": "La forma d'organitzar productor, broker i consumidor. Afecta com circula el missatge."
+        "text": "Com estan organitzades les peces. Canvia el camí que fa el missatge."
       },
       {
         "title": "Protocol",
-        "text": "Les regles de comunicació. Decideix com s'envia, confirma o lliura el missatge."
+        "text": "La manera com es comunica el sistema: Kafka, AMQP, MQTT, SSE o altres."
       },
       {
         "title": "Format de dades",
-        "text": "El tipus de payload. No és igual enviar telemetria IoT que vídeo o transaccions."
+        "text": "La mida i el tipus de missatge. IoT, financer o vídeo no carreguen igual el broker."
       },
       {
         "title": "Broker",
-        "text": "La plataforma que rep i distribueix missatges. És la peça principal que comparem."
+        "text": "La plataforma que rep i reparteix missatges. És el centre de la comparació."
       }
     ],
     "executionSteps": [
       {
         "label": "Crear escenari",
-        "sub": "tries broker, arquitectura, protocol i format"
+        "sub": "tries broker, protocol, format i càrrega"
       },
       {
-        "label": "Preparar execució",
-        "sub": "el backend aplica durada, ràtio i payload"
+        "label": "Preparar run",
+        "sub": "el backend valida i prepara la prova"
       },
       {
         "label": "Executar a AKS",
-        "sub": "el generador envia payloads al broker"
+        "sub": "AKS aixeca els contenidors i envia càrrega"
       },
       {
-        "label": "Guardar mesures",
-        "sub": "cada run registra latència, throughput i errors"
+        "label": "Guardar dades",
+        "sub": "es registren latència, throughput i errors"
       },
       {
-        "label": "Comparar resultats",
-        "sub": "l'historial permet veure què ha funcionat millor"
+        "label": "Comparar",
+        "sub": "Resultats mostra què ha anat millor"
       }
     ],
     "pages": [
@@ -457,17 +452,41 @@
     "metrics": [
       {
         "title": "Latència P99",
-        "text": "Mesura el temps que tarda un missatge des que surt del productor fins que arriba al consumidor. El percentil 99 revela el pitjor cas real: el 99% dels missatges arriben per sota d'aquest valor. Una latència P99 baixa és clau per a sistemes de temps real."
+        "text": "Mostra el temps dels missatges més lents. És útil per veure si hi ha pics que molesten l'usuari."
       },
       {
         "title": "Throughput",
-        "text": "Calcula la quantitat de missatges processats per segon durant la prova. Indica la capacitat màxima del broker sota la càrrega configurada. Un throughput alt amb latència estable és el signe d'un sistema ben dimensionat."
+        "text": "Mostra quants missatges per segon aguanta la prova. Alt és bo si la latència i els errors no empitjoren."
       },
       {
         "title": "Taxa d'error",
-        "text": "Mostra el percentatge de missatges que fallen, es perden o no arriben correctament al consumidor. Inclou errors de xarxa, timeouts i missatges descartats pel broker. Un valor superior al 0,1% acostuma a ser un indicador d'alerta."
+        "text": "Mostra quin percentatge de missatges fallen o no arriben bé. Si puja, el resultat deixa de ser fiable."
       }
-    ]
+    ],
+    "brokerFlow": {
+      "eyebrow": "Esquema simple",
+      "title": "Què fa un broker",
+      "description": "Un broker rep missatges i els reparteix als consumidors. La prova canvia el broker, el protocol o el format per veure què passa.",
+      "producer": "Productor",
+      "producerAction": "1. Envia missatges",
+      "producerText": "El generador crea missatges amb el format, la mida i la ràtio de l'escenari.",
+      "tagVideo": "vídeo",
+      "tagFinance": "financer",
+      "send": "envia",
+      "broker": "Broker",
+      "brokerStep1Title": "Entrada",
+      "brokerStep1Detail": "rep el missatge",
+      "brokerStep2Title": "Ruta",
+      "brokerStep2Detail": "tria topic, cua o subject",
+      "brokerStep3Title": "Confirmació",
+      "brokerStep3Detail": "ordena i confirma",
+      "deliver": "entrega",
+      "consumer": "Consumidor",
+      "consumerAction": "3. Rep missatges",
+      "consumerText": "El consumidor confirma què ha arribat. Amb això després pots calcular errors i rendiment.",
+      "received": "Missatges rebuts",
+      "finalCounter": "comptador final"
+    }
   },
   "catalog": {
     "pageTitle": "Catàleg | APIs Asíncrones",
@@ -977,8 +996,8 @@
       "pending": "Pendent"
     },
     "drawer": {
-      "title": "Detall d'historial",
-      "subtitle": "Aquest resum agrega les execucions visibles del mateix escenari. Les mesures són punts de telemetria; els missatges indiquen el volum processat.",
+      "title": "Puntuació i historial",
+      "subtitle": "Resum de les execucions visibles del mateix escenari.",
       "statMeasures": "Mesures",
       "statMeasuresHelper": "Punts persistits de totes les execucions visibles.",
       "statReceived": "Missatges rebuts",
@@ -986,7 +1005,7 @@
       "statSent": "Missatges enviats",
       "statSentHelper": "Volum total enviat pel load-generator.",
       "statScore": "Puntuació",
-      "statScoreHelper": "Score relatiu als escenaris visibles amb els filtres actuals.",
+      "statScoreHelper": "Relativa als escenaris visibles amb els filtres actuals.",
       "sectionAggregate": "Rendiment agregat",
       "avgLatency": "Latència mitjana",
       "avgThroughput": "Throughput mitjà",
@@ -998,10 +1017,8 @@
       "latestEnd": "Últim final",
       "scenarioId": "Escenari ID",
       "sectionLatestRun": "Darrera execució visible",
-      "howToReadTitle": "Com llegir aquest historial",
-      "howToReadBody": "Cada nova execució d'aquest escenari recomença en directe a zero, però en acabar afegeix les seves mesures a l'historial visible d'aquest escenari.",
       "runsTitle": "Execucions que han contribuït",
-      "runsDescription": "Aquí veus cada run individual del mateix escenari. Els valors de la fila superior són la mitjana ponderada per nombre de missatges, no la mitjana simple: un run amb 10.000 missatges pesa més que un altre amb 500.",
+      "runsDescription": "Cada fila és un run del mateix escenari. La fila superior usa mitjana ponderada: un run amb més missatges pesa més.",
       "colRunId": "Run ID",
       "colStatus": "Estat",
       "colStart": "Inici",
@@ -1010,8 +1027,8 @@
       "colMessages": "Missatges"
     },
     "score": {
-      "title": "D'on surt la puntuació",
-      "formula": "La puntuació suma cada mètrica normalitzada pel seu pes i després aplica una penalització si hi ha massa errors.",
+      "title": "Puntuació",
+      "formula": "Cada mètrica dona punts. Exemple: valor normalitzat x pes = aportació. Si hi ha errors, s’aplica una penalització final.",
       "metric": "Mètrica",
       "weight": "Pes",
       "normalized": "Normalitzat",
@@ -1025,7 +1042,8 @@
         "p99": "P99",
         "tput": "Throughput",
         "err": "Errors"
-      }
+      },
+      "calculation": "Càlcul"
     }
   }
 }

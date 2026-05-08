@@ -29,7 +29,7 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
       bodyKey: 'tutorial.home.step1.body',
       detailKey: 'tutorial.home.step1.details',
       visual: 'home',
-      target: { labelKey: 'tutorial.visual.homeStart', x: 10, y: 16, width: 39, height: 22, cursorX: 45, cursorY: 35 },
+      target: { labelKey: 'tutorial.visual.homeStart', x: 22, y: 36, width: 18, height: 10, cursorX: 38, cursorY: 43 },
     },
     {
       titleKey: 'tutorial.home.step2.title',
@@ -230,9 +230,9 @@ const TUTORIAL_CSS = `
   50% { box-shadow: 0 0 0 10px rgba(37,99,235,0); }
 }
 @keyframes asyncbench-tutorial-cursor {
-  0%, 100% { transform: translate(-6px, -4px) scale(1); }
+  0%, 100% { transform: translate(-16px, -12px) scale(1); }
   46% { transform: translate(0, 0) scale(1); }
-  55% { transform: translate(0, 0) scale(0.9); }
+  55% { transform: translate(0, 0) scale(0.92); }
   66% { transform: translate(0, 0) scale(1); }
 }
 .asyncbench-tutorial-shell {
@@ -255,7 +255,8 @@ const TUTORIAL_CSS = `
   border-radius: 12px;
   pointer-events: none;
   animation: asyncbench-tutorial-pulse 1.9s ease-in-out infinite;
-  background: rgba(37,99,235,0.05);
+  background: rgba(37,99,235,0.08);
+  box-shadow: 0 0 0 999px rgba(15,23,42,0.05);
 }
 .asyncbench-tutorial-cursor {
   position: absolute;
@@ -307,6 +308,21 @@ const TUTORIAL_CSS = `
   display: block;
   border-radius: 999px;
   background: var(--border);
+}
+.asyncbench-tutorial-nav-item {
+  display: flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  background: transparent;
+}
+.asyncbench-tutorial-nav-item[data-active="true"] {
+  color: var(--accent);
+  background: rgba(37,99,235,0.12);
 }
 .asyncbench-tutorial-content {
   position: relative;
@@ -445,6 +461,14 @@ const MiniTabs = ({ activeIndex = 0 }: { activeIndex?: number }) => (
     ))}
   </div>
 );
+
+const NAV_LABEL_KEYS: Record<TutorialPage, string> = {
+  home: 'nav.home',
+  catalog: 'nav.catalog',
+  scenarios: 'nav.escenaris',
+  execucions: 'nav.execucions',
+  resultats: 'nav.resultats',
+};
 
 const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => string }) => {
   if (page === 'home') {
@@ -654,16 +678,17 @@ const TutorialPreview = ({
       <nav className="asyncbench-tutorial-nav">
         <div style={{ display: 'grid', gap: 12 }}>
           <PreviewLine width="72%" height={10} color="var(--text-primary)" />
-          {['home', 'catalog', 'scenarios', 'execucions', 'resultats'].map(item => (
+          {(['home', 'catalog', 'scenarios', 'execucions', 'resultats'] as TutorialPage[]).map(item => (
             <span
               key={item}
+              className="asyncbench-tutorial-nav-item"
+              data-active={item === page}
               style={{
-                height: 9,
-                width: item === page ? '84%' : '58%',
-                background: item === page ? 'var(--accent)' : 'var(--border)',
-                opacity: item === page ? 0.95 : 1,
+                width: item === page ? '92%' : '78%',
               }}
-            />
+            >
+              {t(NAV_LABEL_KEYS[item])}
+            </span>
           ))}
         </div>
       </nav>
@@ -689,8 +714,9 @@ const TutorialPreview = ({
         top: `${target.cursorY ?? target.y + target.height - 1}%`,
       }}
     >
-      <svg width="28" height="28" viewBox="0 0 28 28" fill="none" style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.28))' }}>
-        <path d="M5 3L23 15L15 17L12 25L5 3Z" fill="var(--bg-card)" stroke="var(--text-primary)" strokeWidth="1.7" strokeLinejoin="round" />
+      <svg width="30" height="30" viewBox="0 0 30 30" fill="none" style={{ filter: 'drop-shadow(0 5px 9px rgba(0,0,0,0.32))' }}>
+        <path d="M6 3.5L24 17.2L15.6 18.4L12.3 26.5L6 3.5Z" fill="#fff" stroke="#0f172a" strokeWidth="1.8" strokeLinejoin="round" />
+        <path d="M15.8 18.8L20.4 25.4" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" />
       </svg>
       <span className="asyncbench-tutorial-cursor-label">{t(target.labelKey)}</span>
     </div>

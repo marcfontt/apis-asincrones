@@ -62,7 +62,7 @@
     "skip": "Saltar tutorial",
     "finish": "Finalizar",
     "createExample": "Crear escenario de ejemplo",
-    "keyPoints": "Puntos clave",
+    "keyPoints": "Guía rápida",
     "visual": {
       "homeStart": "Empieza aquí",
       "catalogCard": "Abre una ficha",
@@ -91,234 +91,229 @@
     },
     "home": {
       "step1": {
-        "title": "Mapa general del portal",
-        "body": "Esta pantalla sitúa el flujo completo: defines un escenario, el backend lo prepara, AKS ejecuta la prueba y los resultados se comparan con métricas.",
+        "title": "Empieza por Home",
+        "body": "Esta pantalla es el mapa de la app. Léela así: defines una prueba, la lanzas y después miras resultados.",
         "details": [
-          "Empieza aquí cuando quieras entender qué hace cada página antes de tocar parámetros.",
-          "El portal mide combinaciones, no nombres comerciales: broker, arquitectura, protocolo y formato forman una unidad.",
-          "El botón del tutorial siempre se puede repetir si alguien nuevo debe usar la plataforma."
+          "Backstage es la web.",
+          "AKS es el clúster de Azure donde corren las pruebas.",
+          "Resultados es donde miras si la prueba ha ido bien."
         ]
       },
       "step2": {
-        "title": "Catálogo antes de configurar",
-        "body": "El Catálogo explica qué componentes existen, qué versiones se han considerado y qué combinaciones tienen sentido antes de crear un escenario.",
+        "title": "Mira el catálogo",
+        "body": "El catálogo te ayuda a saber qué brokers, protocolos y formatos puedes probar.",
         "details": [
-          "Consulta fichas cuando no tengas claro si una plataforma encaja con un protocolo.",
-          "Las notas de compatibilidad evitan crear pruebas que luego no son defendibles."
+          "Abre una ficha si no tienes claro qué hace un componente.",
+          "La compatibilidad evita combinaciones sin sentido."
         ]
       },
       "step3": {
-        "title": "Escenarios como contrato de prueba",
-        "body": "En Escenarios decides la composición real del benchmark. La selección de plataforma, arquitectura, protocolo y formato condiciona la carga y la lectura de la puntuación.",
+        "title": "Crea el escenario",
+        "body": "En Escenarios eliges qué quieres probar. Aquí conviene no ir a ciegas.",
         "details": [
-          "La composición debe responder una pregunta concreta: qué quieres comparar y bajo qué carga.",
-          "El formato de datos no es decorativo: cambia payload, ratio recomendado y contexto de puntuación."
+          "Elige broker, arquitectura, protocolo y formato.",
+          "El formato cambia el tamaño del mensaje y la carga recomendada."
         ]
       },
       "step4": {
-        "title": "Ejecuciones y estado del clúster",
-        "body": "Ejecuciones muestra cada run lanzado al clúster. Aquí se ve si una prueba está pendiente, corriendo, completada, fallida o detenida.",
+        "title": "Sigue el run",
+        "body": "Ejecuciones muestra si la prueba está pendiente, en curso, completada o fallida.",
         "details": [
-          "Filtra para no mezclar pruebas activas con pruebas históricas.",
-          "Abre el detalle cuando quieras ver métricas live sin perder el contexto de la fila."
+          "Filtra para encontrar el run rápido.",
+          "Abre el detalle si quieres ver datos en directo."
         ]
       },
       "step5": {
-        "title": "Resultados con explicación de la puntuación",
-        "body": "Resultados transforma los runs en comparativas. No te quedes solo con el número final: revisa contribuciones, errores, throughput y latencia.",
+        "title": "Lee Resultados",
+        "body": "Resultados compara las pruebas y explica la puntuación.",
         "details": [
-          "Los filtros cambian qué escenarios entran en el cálculo visible.",
-          "La puntuación resume métricas, pero la decisión técnica sale del desglose."
+          "No mires solo el número final.",
+          "Abre el detalle para ver el cálculo y los errores."
         ]
       }
     },
     "catalog": {
       "step1": {
         "title": "Filtra el catálogo",
-        "body": "Los filtros sirven para encontrar rápidamente plataformas, protocolos y arquitecturas. Antes de crear una prueba, comprueba que el componente existe y está documentado.",
+        "body": "Usa los filtros para encontrar rápido brokers, protocolos o formatos.",
         "details": [
-          "Filtra por categoría cuando busques solo brokers, protocolos o patrones arquitectónicos.",
-          "La búsqueda también ayuda a encontrar versiones, tags y notas de reproducibilidad."
+          "Filtra antes de crear una prueba.",
+          "La búsqueda ayuda si no recuerdas el nombre exacto."
         ]
       },
       "step2": {
-        "title": "Abre una ficha de componente",
-        "body": "Cada card resume un componente del benchmark. Al abrirla ves qué representa, en qué casos tiene sentido y qué impacto puede tener sobre la prueba.",
+        "title": "Abre una ficha",
+        "body": "Cada ficha explica qué es el componente y cuándo tiene sentido usarlo.",
         "details": [
-          "Las fichas evitan elegir componentes a ciegas.",
-          "La descripción corta explica el papel del componente dentro del recorrido del mensaje."
+          "Lee la descripción corta.",
+          "Mira si encaja con la prueba que quieres hacer."
         ]
       },
       "step3": {
-        "title": "Lee la compatibilidad",
-        "body": "La matriz de compatibilidad indica qué plataformas pueden trabajar con cada arquitectura y protocolo. Es el filtro conceptual antes del formulario.",
+        "title": "Revisa compatibilidad",
+        "body": "No todas las combinaciones tienen sentido. Esta zona ayuda a evitar errores.",
         "details": [
-          "Una combinación compatible es más fácil de defender en la memoria.",
-          "Si una combinación necesita gateway o adaptador, debe quedar claro antes de ejecutar."
+          "Comprueba broker, protocolo y arquitectura.",
+          "Si hace falta un adaptador, debe quedar claro."
         ]
       },
       "step4": {
-        "title": "Reproducibilidad y configuración",
-        "body": "El detalle tiene pestañas para separar visión general, reproducibilidad y configuración. Lo importante es poder repetir la prueba con las mismas condiciones.",
+        "title": "Mira la configuración",
+        "body": "El detalle separa información general, configuración y reproducibilidad.",
         "details": [
-          "Revisa versiones, puertos, límites y snippets antes de comparar resultados.",
-          "Copiar configuración ayuda a mantener el benchmark trazable."
+          "Revisa versiones y puertos.",
+          "Copia snippets solo si los necesitas."
         ]
       },
       "step5": {
-        "title": "Lleva el componente a Escenarios",
-        "body": "Cuando un componente encaja con la prueba, puedes usarlo como punto de partida para crear o ajustar un escenario.",
+        "title": "Pasa a Escenarios",
+        "body": "Cuando el componente encaja, úsalo como base para configurar la prueba.",
         "details": [
-          "No hace falta recordar el nombre exacto del componente: la UI puede preseleccionarlo cuando es posible.",
-          "Este paso conecta el catálogo con el flujo real de benchmark."
+          "No hace falta memorizarlo todo.",
+          "El catálogo es el punto de partida."
         ]
       }
     },
     "scenarios": {
       "step1": {
-        "title": "Crear un escenario nuevo",
-        "body": "El botón Nuevo escenario abre el formulario de configuración. Aquí defines la prueba que después se lanzará como run en el clúster.",
+        "title": "Crea un escenario",
+        "body": "Haz clic en Nuevo escenario para abrir el formulario.",
         "details": [
-          "Ponle un nombre que explique broker, formato y propósito de la prueba.",
-          "Un escenario bien nombrado hace que Ejecuciones y Resultados sean legibles."
+          "Pon un nombre claro.",
+          "El nombre debería decir broker, formato y objetivo."
         ]
       },
       "step2": {
-        "title": "Elige bien la composición",
-        "body": "La composición es la parte más importante: plataforma o broker, arquitectura y protocolo. Esta combinación define qué sistema estás midiendo.",
+        "title": "Elige la composición",
+        "body": "Esta es la decisión importante: broker, arquitectura y protocolo.",
         "details": [
-          "Elige primero la plataforma porque filtra opciones compatibles.",
-          "Arquitectura y protocolo deben tener sentido juntos: colas, streaming o pub/sub no responden la misma pregunta.",
-          "Si la composición es débil, la puntuación final no arregla la interpretación."
+          "Primero elige la plataforma.",
+          "Después comprueba que protocolo y arquitectura encajen."
         ]
       },
       "step3": {
-        "title": "Formato de datos y carga",
-        "body": "El formato de datos influye directamente en payload, ratio recomendado y lectura de resultados. No es lo mismo IoT, financiero, vídeo 4K o vídeo 8K.",
+        "title": "Elige el formato",
+        "body": "El formato de datos cambia el payload, la ratio y la lectura de la puntuación.",
         "details": [
-          "Al seleccionar formato, la UI propone payload y mensajes por segundo coherentes.",
-          "El formato también contextualiza la puntuación: una latencia aceptable en vídeo puede no ser aceptable en IoT.",
-          "Si cambias payload manualmente, revisa que el broker acepte ese tamaño."
+          "IoT no pesa igual que vídeo.",
+          "Si cambias el payload a mano, revisa que el broker lo soporte."
         ]
       },
       "step4": {
-        "title": "Escenarios predefinidos",
-        "body": "Los predefinidos son puntos de partida preparados para casos habituales. Sirven para probar rápido y entender qué combinaciones son recomendadas.",
+        "title": "Usa predefinidos",
+        "body": "Los predefinidos son ejemplos preparados. Van bien para empezar rápido.",
         "details": [
-          "Usa un predefinido cuando quieras una prueba razonable sin montarla desde cero.",
-          "Después puedes duplicarlo o editarlo para adaptarlo a una hipótesis concreta."
+          "Usa uno si quieres una prueba segura.",
+          "Después lo puedes ajustar."
         ]
       },
       "step5": {
-        "title": "Acciones sobre escenarios",
-        "body": "En la lista puedes ejecutar, duplicar, editar o eliminar escenarios. Ejecutar crea un run; duplicar es útil para cambiar solo una variable.",
+        "title": "Ejecuta o duplica",
+        "body": "En la lista puedes ejecutar, duplicar, editar o eliminar.",
         "details": [
-          "Duplica cuando quieras comparar Kafka contra RabbitMQ manteniendo la misma carga.",
-          "Edita si la configuración aún no se ha lanzado o si quieres corregir payload, ratio o protocolo.",
-          "Ejecuta solo cuando la composición y el formato ya tengan sentido."
+          "Duplica para cambiar una sola variable.",
+          "Ejecuta cuando la configuración esté clara."
         ]
       },
       "step6": {
-        "title": "Modo sostenido y warm-up",
-        "body": "El modo sostenido hace el papel de un modo indefinido controlado: mantiene la prueba estable pero con límites. El warm-up deja que el sistema se estabilice antes de medir.",
+        "title": "Ajusta duración y warm-up",
+        "body": "El warm-up deja que el sistema se estabilice antes de medir.",
         "details": [
-          "No compares arranques en frío con resultados estables.",
-          "La duración y el warm-up deben ser suficientemente largos para que los números sean defendibles.",
-          "Si un run es demasiado corto, la puntuación puede reflejar ruido de arranque."
+          "Evita runs demasiado cortos.",
+          "Una prueba estable da resultados más útiles."
         ]
       }
     },
     "execucions": {
       "step1": {
-        "title": "Filtra las ejecuciones",
-        "body": "Los dropdowns separan runs por estado, escenario, broker, plataforma, arquitectura, protocolo y formato. Así evitas comparar cosas que no pertenecen al mismo grupo.",
+        "title": "Filtra ejecuciones",
+        "body": "Los filtros te ayudan a encontrar el run que quieres mirar.",
         "details": [
-          "Filtra por running cuando quieras ver solo pruebas vivas.",
-          "Filtra por formato o broker cuando estés validando una hipótesis concreta."
+          "Filtra por estado si hay muchas pruebas.",
+          "Filtra por broker o formato si estás comparando algo concreto."
         ]
       },
       "step2": {
-        "title": "Abre el detalle de un run",
-        "body": "Cada fila representa una ejecución concreta. Al hacer clic puedes ver información ampliada sin perder la lista general.",
+        "title": "Abre el detalle",
+        "body": "Haz clic en una fila para ver la configuración y el estado del run.",
         "details": [
-          "El detalle mantiene el contexto aunque lleguen actualizaciones del backend.",
-          "Revisa estado, duración, formato y parámetros antes de interpretar métricas."
+          "El detalle no debería cerrarse solo.",
+          "Comprueba duración, formato y estado antes de leer métricas."
         ]
       },
       "step3": {
-        "title": "Métricas en directo",
-        "body": "Cuando un run está en curso, el detalle muestra métricas live. Sirven para detectar rápidamente errores, saturación o valores absurdos.",
+        "title": "Mira el directo",
+        "body": "Cuando el run está en curso, aquí ves los datos que llegan.",
         "details": [
-          "Throughput estable y errores bajos indican que la prueba avanza bien.",
-          "Latencia o errores disparados pueden indicar payload demasiado grande o broker mal configurado."
+          "Errores altos indican problemas.",
+          "Throughput estable es buena señal."
         ]
       },
       "step4": {
-        "title": "Detener o eliminar",
-        "body": "Las acciones de la fila permiten detener pruebas en curso o eliminar ejecuciones que no quieres conservar. Detener conserva datos parciales cuando los hay.",
+        "title": "Para si hace falta",
+        "body": "Puedes parar una prueba si está mal configurada o carga demasiado el clúster.",
         "details": [
-          "Detén una prueba si está saturando el clúster o si la configuración era incorrecta.",
-          "Eliminar es destructivo para la lectura histórica de ese run."
+          "Parar conserva datos parciales si los hay.",
+          "Eliminar quita el run de la lectura."
         ]
       },
       "step5": {
-        "title": "Del run al historial",
-        "body": "Cuando la prueba acaba, las medidas persistidas alimentan Resultados. Ejecuciones es el control operacional; Resultados es el análisis.",
+        "title": "Pasa a Resultados",
+        "body": "Cuando el run termina, los datos guardados aparecen en Resultados.",
         "details": [
-          "No valores un escenario solo mientras corre: espera a que el run cierre y persista datos.",
-          "El historial agrega ejecuciones visibles del mismo escenario."
+          "No decidas solo con el directo.",
+          "Espera a tener datos persistidos."
         ]
       }
     },
     "resultats": {
       "step1": {
         "title": "Filtra antes de comparar",
-        "body": "Los filtros de Resultados deciden qué escenarios entran en la comparativa. Si cambias el conjunto visible, también cambia el contexto de la puntuación.",
+        "body": "Los filtros deciden qué pruebas entran en la comparación.",
         "details": [
-          "Compara escenarios del mismo formato cuando quieras una lectura justa.",
-          "Filtra por plataforma o protocolo si quieres aislar una variable."
+          "Compara cosas parecidas.",
+          "Cambiar filtros puede cambiar la puntuación visible."
         ]
       },
       "step2": {
-        "title": "Lee las métricas principales",
-        "body": "Latencia, throughput, errores y volumen de medidas explican el comportamiento real. La puntuación solo resume esos datos.",
+        "title": "Mira las métricas",
+        "body": "Latencia, throughput y errores explican qué ha pasado.",
         "details": [
-          "Menor latencia no siempre gana si el throughput cae o hay errores.",
-          "Mira percentiles y medias con el formato de datos en mente."
+          "Una puntuación alta con errores no es fiable.",
+          "Mira el formato antes de juzgar."
         ]
       },
       "step3": {
-        "title": "Abre el detalle de historial",
-        "body": "Al clicar una fila abres el detalle agregado del escenario. Allí ves las ejecuciones que han contribuido y los totales persistidos.",
+        "title": "Abre una fila",
+        "body": "Haz clic en una fila para ver el detalle del escenario.",
         "details": [
-          "Este detalle es clave para saber si una puntuación sale de un run o de varios.",
-          "Las medidas son puntos de telemetría; los mensajes indican volumen procesado."
+          "Ves qué runs han contribuido.",
+          "También ves mensajes y medidas totales."
         ]
       },
       "step4": {
-        "title": "Entiende de dónde sale la puntuación",
-        "body": "El desglose muestra el peso de cada métrica, el valor normalizado, la aportación y la penalización por errores. Esto hace auditable el número final.",
+        "title": "Entiende la puntuación",
+        "body": "La puntuación suma métricas con pesos. El detalle muestra el cálculo.",
         "details": [
-          "Latencia, P50, P99, throughput y errores no pesan igual.",
-          "La penalización evita que un escenario parezca bueno si pierde o falla mensajes.",
-          "La puntuación final es una ayuda, no sustituye la lectura de métricas."
+          "Ves normalizado por peso.",
+          "También ves la penalización por errores."
         ]
       },
       "step5": {
-        "title": "Compara escenarios cara a cara",
-        "body": "La comparativa sirve para ver diferencias directas entre dos escenarios. Es útil cuando solo has cambiado una variable y quieres ver el impacto.",
+        "title": "Compara dos escenarios",
+        "body": "La comparativa es más útil cuando solo cambias una cosa.",
         "details": [
-          "La mejor comparación cambia una sola variable: broker, protocolo, arquitectura o formato.",
-          "Si cambias muchas cosas a la vez, la UI muestra números pero la conclusión es más débil."
+          "Cambia un broker o un formato, no todo a la vez.",
+          "Así la conclusión es más clara."
         ]
       }
     }
   },
   "home": {
     "title": "APIs Asíncronas",
-    "subtitle": "Benchmarks reales bajo la misma carga",
-    "description": "Este portal compara combinaciones de broker, protocolo, arquitectura y formato de datos. La idea es simple: ejecutar pruebas equivalentes y ver con datos qué diseño responde mejor.",
-    "heroSubtitle": "Backstage para crear pruebas, AKS para ejecutarlas y métricas para comparar resultados.",
+    "subtitle": "Pruebas comparables, resultados claros",
+    "description": "Crea una prueba, ejecútala en el clúster y mira qué ha pasado. Siempre medimos el mismo recorrido: mensaje enviado, broker, mensaje recibido.",
+    "heroSubtitle": "Backstage es la pantalla. AKS es el clúster de Azure donde se ejecutan las pruebas.",
     "btnCreateScenario": "Crear escenario",
     "btnViewCatalog": "Ver catálogo",
     "btnCompareResults": "Comparar resultados",
@@ -350,90 +345,90 @@
     "sections": {
       "systemEyebrow": "Estructura del sistema",
       "systemTitle": "Del escenario a los resultados",
-      "systemDesc": "El portal no es el sistema que se mide. Backstage es la interfaz; el backend prepara la prueba; AKS ejecuta los componentes; y las métricas permiten comparar.",
+      "systemDesc": "Piénsalo como una cadena: tú defines la prueba, el backend la prepara, AKS la ejecuta y Resultados muestra los datos. AKS significa Azure Kubernetes Service: un grupo de máquinas en la nube para ejecutar contenedores.",
       "conceptsEyebrow": "Antes de mirar resultados",
       "conceptsTitle": "¿Qué estás comparando realmente?",
-      "conceptsDesc": "Una prueba no compara nombres comerciales: compara un recorrido completo del mensaje bajo una carga concreta.",
+      "conceptsDesc": "Antes de comparar, mira qué estás cambiando: broker, protocolo, arquitectura, formato y carga.",
       "brokerEyebrow": "Concepto clave",
       "brokerTitle": "¿Cómo funciona un bróker?",
       "brokerDesc": "Un bróker de mensajería desacopla los productores de los consumidores: cada parte trabaja a su ritmo sin depender de la otra.",
       "executionEyebrow": "Ejecución",
       "executionTitle": "¿Qué ocurre cuando lanzas un benchmark?",
-      "executionDesc": "Cada run debe pasar por los mismos pasos para que después la comparación sea defendible.",
+      "executionDesc": "Un run es una ejecución concreta. Todos los runs siguen el mismo camino para que la comparación tenga sentido.",
       "pagesEyebrow": "Páginas interiores",
       "pagesTitle": "Dónde continúa cada tarea",
-      "metricsLabel": "Métricas principales"
+      "metricsLabel": "Métricas que leerás en Resultados"
     },
     "systemParts": [
       {
         "title": "Backstage",
-        "subtitle": "Portal de trabajo",
-        "text": "Pantalla donde el usuario crea escenarios, lanza ejecuciones y consulta resultados."
+        "subtitle": "Pantalla",
+        "text": "Es la web que usas. Aquí creas escenarios, lanzas pruebas y abres resultados."
       },
       {
         "title": "Backend",
-        "subtitle": "Compositor",
-        "text": "Aplica las reglas del TFG y convierte el escenario en una prueba ejecutable."
+        "subtitle": "Preparación",
+        "text": "Toma el escenario y lo convierte en una prueba que se puede ejecutar."
       },
       {
         "title": "AKS",
-        "subtitle": "Clúster",
-        "text": "Ejecuta brokers, generadores de carga y servicios de métricas en Kubernetes."
+        "subtitle": "Clúster Azure",
+        "text": "Es donde corren los contenedores. Aquí se levantan el broker, el generador de carga y los servicios de métricas."
       },
       {
         "title": "Broker",
-        "subtitle": "Sistema medido",
-        "text": "Kafka, RabbitMQ, NATS o compatible reciben los mismos payloads bajo carga."
+        "subtitle": "Pieza medida",
+        "text": "Kafka, RabbitMQ, NATS o similar reciben los mensajes de la prueba."
       },
       {
         "title": "Métricas",
-        "subtitle": "Datos del run",
-        "text": "Cada ejecución publica medidas periódicas con contadores y percentiles."
+        "subtitle": "Datos",
+        "text": "El sistema guarda latencia, mensajes por segundo, errores y contadores."
       },
       {
-        "title": "Comparación",
-        "subtitle": "Resultado final",
-        "text": "La UI muestra diferencias entre combinaciones y ayuda a defender conclusiones."
+        "title": "Resultados",
+        "subtitle": "Lectura final",
+        "text": "Aquí comparas pruebas y ves qué combinación ha ido mejor."
       }
     ],
     "concepts": [
       {
         "title": "Arquitectura",
-        "text": "La forma de organizar productor, broker y consumidor. Afecta cómo circula el mensaje."
+        "text": "Cómo están organizadas las piezas. Cambia el camino que sigue el mensaje."
       },
       {
         "title": "Protocolo",
-        "text": "Las reglas de comunicación. Decide cómo se envía, confirma o entrega el mensaje."
+        "text": "La forma en que se comunica el sistema: Kafka, AMQP, MQTT, SSE u otros."
       },
       {
         "title": "Formato de datos",
-        "text": "El tipo de payload. No es lo mismo enviar telemetría IoT que vídeo o transacciones."
+        "text": "El tamaño y el tipo de mensaje. IoT, financiero o vídeo no cargan igual el broker."
       },
       {
         "title": "Broker",
-        "text": "La plataforma que recibe y distribuye mensajes. Es la pieza principal que comparamos."
+        "text": "La plataforma que recibe y reparte mensajes. Es el centro de la comparación."
       }
     ],
     "executionSteps": [
       {
         "label": "Crear escenario",
-        "sub": "eliges broker, arquitectura, protocolo y formato"
+        "sub": "eliges broker, protocolo, formato y carga"
       },
       {
-        "label": "Preparar ejecución",
-        "sub": "el backend aplica duración, ratio y payload"
+        "label": "Preparar run",
+        "sub": "el backend valida y prepara la prueba"
       },
       {
         "label": "Ejecutar en AKS",
-        "sub": "el generador envía payloads al broker"
+        "sub": "AKS levanta los contenedores y envía carga"
       },
       {
-        "label": "Guardar medidas",
-        "sub": "cada run registra latencia, throughput y errores"
+        "label": "Guardar datos",
+        "sub": "se registran latencia, throughput y errores"
       },
       {
-        "label": "Comparar resultados",
-        "sub": "el historial muestra qué ha funcionado mejor"
+        "label": "Comparar",
+        "sub": "Resultados muestra qué ha ido mejor"
       }
     ],
     "pages": [
@@ -457,17 +452,41 @@
     "metrics": [
       {
         "title": "Latencia P99",
-        "text": "Mide el tiempo que tarda un mensaje desde que sale del productor hasta que llega al consumidor. El percentil 99 revela el peor caso real: el 99% de los mensajes llegan por debajo de este valor. Una latencia P99 baja es clave para sistemas de tiempo real."
+        "text": "Muestra el tiempo de los mensajes más lentos. Sirve para ver si hay picos que molestan al usuario."
       },
       {
         "title": "Throughput",
-        "text": "Calcula la cantidad de mensajes procesados por segundo durante la prueba. Indica la capacidad máxima del broker bajo la carga configurada. Un throughput alto con latencia estable es la señal de un sistema bien dimensionado."
+        "text": "Muestra cuántos mensajes por segundo aguanta la prueba. Alto es bueno si la latencia y los errores no empeoran."
       },
       {
         "title": "Tasa de error",
-        "text": "Muestra el porcentaje de mensajes que fallan, se pierden o no llegan correctamente al consumidor. Incluye errores de red, timeouts y mensajes descartados por el broker. Un valor superior al 0,1% suele ser un indicador de alerta."
+        "text": "Muestra qué porcentaje de mensajes fallan o no llegan bien. Si sube, el resultado deja de ser fiable."
       }
-    ]
+    ],
+    "brokerFlow": {
+      "eyebrow": "Esquema simple",
+      "title": "Qué hace un broker",
+      "description": "Un broker recibe mensajes y los reparte a los consumidores. La prueba cambia el broker, el protocolo o el formato para ver qué pasa.",
+      "producer": "Productor",
+      "producerAction": "1. Envía mensajes",
+      "producerText": "El generador crea mensajes con el formato, el tamaño y la ratio del escenario.",
+      "tagVideo": "vídeo",
+      "tagFinance": "financiero",
+      "send": "envía",
+      "broker": "Broker",
+      "brokerStep1Title": "Entrada",
+      "brokerStep1Detail": "recibe el mensaje",
+      "brokerStep2Title": "Ruta",
+      "brokerStep2Detail": "elige topic, cola o subject",
+      "brokerStep3Title": "Confirmación",
+      "brokerStep3Detail": "ordena y confirma",
+      "deliver": "entrega",
+      "consumer": "Consumidor",
+      "consumerAction": "3. Recibe mensajes",
+      "consumerText": "El consumidor confirma qué ha llegado. Con eso luego puedes calcular errores y rendimiento.",
+      "received": "Mensajes recibidos",
+      "finalCounter": "contador final"
+    }
   },
   "catalog": {
     "pageTitle": "Catálogo | APIs Asíncronas",
@@ -977,8 +996,8 @@
       "pending": "Pendiente"
     },
     "drawer": {
-      "title": "Detalle de historial",
-      "subtitle": "Este resumen agrega las ejecuciones visibles del mismo escenario. Las medidas son puntos de telemetría; los mensajes indican el volumen procesado.",
+      "title": "Puntuación e historial",
+      "subtitle": "Resumen de las ejecuciones visibles del mismo escenario.",
       "statMeasures": "Medidas",
       "statMeasuresHelper": "Puntos persistidos de todas las ejecuciones visibles.",
       "statReceived": "Mensajes recibidos",
@@ -986,7 +1005,7 @@
       "statSent": "Mensajes enviados",
       "statSentHelper": "Volumen total enviado por el load-generator.",
       "statScore": "Puntuación",
-      "statScoreHelper": "Score relativo a los escenarios visibles con los filtros actuales.",
+      "statScoreHelper": "Relativa a los escenarios visibles con los filtros actuales.",
       "sectionAggregate": "Rendimiento agregado",
       "avgLatency": "Latencia media",
       "avgThroughput": "Throughput medio",
@@ -998,10 +1017,8 @@
       "latestEnd": "Último final",
       "scenarioId": "Escenario ID",
       "sectionLatestRun": "Última ejecución visible",
-      "howToReadTitle": "Cómo leer este historial",
-      "howToReadBody": "Cada nueva ejecución de este escenario vuelve a empezar en directo desde cero, pero al terminar añade sus medidas al historial visible de este escenario.",
       "runsTitle": "Ejecuciones que han contribuido",
-      "runsDescription": "Aquí ves cada run individual del mismo escenario. Los valores de la fila superior son la media ponderada por número de mensajes, no la media simple: un run con 10.000 mensajes pesa más que otro con 500.",
+      "runsDescription": "Cada fila es un run del mismo escenario. La fila superior usa media ponderada: un run con más mensajes pesa más.",
       "colRunId": "Run ID",
       "colStatus": "Estado",
       "colStart": "Inicio",
@@ -1010,8 +1027,8 @@
       "colMessages": "Mensajes"
     },
     "score": {
-      "title": "De dónde sale la puntuación",
-      "formula": "La puntuación suma cada métrica normalizada por su peso y después aplica una penalización si hay demasiados errores.",
+      "title": "Puntuación",
+      "formula": "Cada métrica da puntos. Ejemplo: valor normalizado x peso = aportación. Si hay errores, se aplica una penalización final.",
       "metric": "Métrica",
       "weight": "Peso",
       "normalized": "Normalizado",
@@ -1025,7 +1042,8 @@
         "p99": "P99",
         "tput": "Throughput",
         "err": "Errores"
-      }
+      },
+      "calculation": "Cálculo"
     }
   }
 }

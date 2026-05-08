@@ -301,27 +301,6 @@ export const GLOBAL_CSS = `
     }
   }
 
-  @media (max-width: 640px) {
-    .async-latency-segments {
-      display: grid !important;
-      grid-template-columns: 1fr !important;
-      overflow: visible !important;
-      min-height: 0 !important;
-    }
-
-    .async-latency-segment {
-      width: auto !important;
-      min-width: 0 !important;
-      min-height: 76px;
-      border-right: none !important;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .async-latency-segment:last-child {
-      border-bottom: none !important;
-    }
-  }
-
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: 1ms !important;

@@ -70,6 +70,14 @@ const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
 // Helper utilities
 // ---------------------------------------------------------------------------
 
+const LOCALE_BY_LANGUAGE: Record<string, string> = {
+  ca: 'ca-ES',
+  es: 'es-ES',
+  en: 'en-US',
+};
+
+const getLocale = (language: string) => LOCALE_BY_LANGUAGE[language] || 'ca-ES';
+
 /**
  * Computes the p-th percentile of a numeric array using the nearest-rank method.
  * Used in the Live tab to compute P50/P99 from real-time metric samples
@@ -91,8 +99,8 @@ const computePercentile = (arr: number[], p: number): number | null => {
   return sorted[idx];
 };
 
-const formatDateTime = (iso?: string) =>
-  !iso ? '-' : new Date(iso).toLocaleString('ca-ES', {
+const formatDateTime = (iso: string | undefined, locale: string) =>
+  !iso ? '-' : new Date(iso).toLocaleString(locale, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -903,11 +911,35 @@ const SCORE_METRIC_LABEL_KEYS: Record<ScoreMetricKey, string> = {
 const formatScorePercent = (value: number, decimals = 0): string =>
   `${value.toFixed(decimals)}%`;
 
+const formatScoreFactor = (value: number): string =>
+  value.toFixed(2);
+
 const formatMetricValue = (key: ScoreMetricKey, value: number | null): string => {
   if (value == null) return '-';
   if (key === 'tput') return `${value.toFixed(1)} msg/s`;
   if (key === 'err') return `${value.toFixed(3)}%`;
   return `${value.toFixed(2)} ms`;
+};
+
+const sameCollectionSignature = (prev: any[], next: any[]) => {
+  if (prev.length !== next.length) return false;
+  const signature = (item: any) => [
+    item.id,
+    item.name,
+    item.runId,
+    item.scenarioId,
+    item.status,
+    item.updatedAt,
+    item.endedAt,
+    item.count,
+    item.avgLatency,
+    item.avgThroughput,
+    item.avgErrorRate,
+  ].join('|');
+  for (let index = 0; index < prev.length; index += 1) {
+    if (signature(prev[index]) !== signature(next[index])) return false;
+  }
+  return true;
 };
 
 const ScoreBreakdownPanel = ({
@@ -938,7 +970,7 @@ const ScoreBreakdownPanel = ({
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: '1.2fr 0.7fr 0.7fr 0.8fr',
+            gridTemplateColumns: '1.1fr 0.55fr 0.7fr 1.15fr',
             gap: 10,
             padding: '8px 10px',
             background: 'var(--bg-card)',
@@ -952,17 +984,19 @@ const ScoreBreakdownPanel = ({
           <span>{t('resultats.score.metric')}</span>
           <span style={{ textAlign: 'right' }}>{t('resultats.score.weight')}</span>
           <span style={{ textAlign: 'right' }}>{t('resultats.score.normalized')}</span>
-          <span style={{ textAlign: 'right' }}>{t('resultats.score.contribution')}</span>
+          <span style={{ textAlign: 'right' }}>{t('resultats.score.calculation')}</span>
         </div>
         {SCORE_METRIC_KEYS.map((key, index) => {
           const color = SCORE_METRIC_COLORS[key];
+          const weightedContribution = breakdown.contributions[key];
           const contribution = breakdown.finalContributions[key];
+          const weightPercent = breakdown.weights[key] * 100;
           return (
             <div
               key={key}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '1.2fr 0.7fr 0.7fr 0.8fr',
+                gridTemplateColumns: '1.1fr 0.55fr 0.7fr 1.15fr',
                 gap: 10,
                 alignItems: 'center',
                 padding: '10px',
@@ -980,15 +1014,20 @@ const ScoreBreakdownPanel = ({
                 </div>
               </div>
               <div style={{ textAlign: 'right', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
-                {formatScorePercent(breakdown.weights[key] * 100)}
+                {formatScorePercent(weightPercent)}
               </div>
               <div style={{ textAlign: 'right', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>
                 {formatScorePercent(breakdown.normalized[key] * 100, 1)}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 800, color }}>
-                  {formatScorePercent(contribution, 1)}
+                  {formatScoreFactor(breakdown.normalized[key])} x {formatScorePercent(weightPercent)} = {formatScorePercent(weightedContribution, 1)}
                 </div>
+                {breakdown.penalty < 1 && (
+                  <div style={{ marginTop: 3, fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--text-disabled)' }}>
+                    x {formatScorePercent(penaltyPercent, 0)} = {formatScorePercent(contribution, 1)}
+                  </div>
+                )}
                 <div style={{ marginTop: 4, height: 5, borderRadius: 999, background: 'var(--border)', overflow: 'hidden' }}>
                   <div style={{ width: `${Math.min(100, Math.max(0, contribution))}%`, height: '100%', background: color }} />
                 </div>
@@ -1056,7 +1095,8 @@ const ScoreBreakdownPanel = ({
  *     used when building the map in computeScores().
  */
 const HistorialTab = () => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const locale = getLocale(language);
   // Raw summary data from /metrics/summary (Elasticsearch aggregations)
   const [summary, setSummary] = useState<any[]>([]);
   // Scenario definitions from /scenarios (for display names and metadata)
@@ -1080,6 +1120,7 @@ const HistorialTab = () => {
   const [filterDataFormat, setFilterDataFormat] = useState<string[]>([]);
   const [historySearch, setHistorySearch] = useState('');
   const [selectedScenarioId, setSelectedScenarioId] = useState('');
+  const hasLoadedHistoryRef = useRef(false);
 
   // Controls visibility of the secondary filters (protocol/platform/arch)
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -1090,16 +1131,20 @@ const HistorialTab = () => {
    * so a broken scenarios endpoint doesn't prevent history from loading.
    */
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    const firstLoad = !hasLoadedHistoryRef.current;
+    if (firstLoad) setLoading(true);
     try {
       const [sumRes, scRes] = await Promise.all([
         fetch(`${METRICS_BASE}/metrics/summary`).then(r => r.json()).catch(() => []),
         fetch(`${SCENARIOS_BASE}/scenarios`).then(r => r.json()).catch(() => []),
       ]);
-      setSummary(Array.isArray(sumRes) ? sumRes : []);
-      setScenarios(Array.isArray(scRes) ? scRes : []);
+      const nextSummary = Array.isArray(sumRes) ? sumRes : [];
+      const nextScenarios = Array.isArray(scRes) ? scRes : [];
+      setSummary(prev => (sameCollectionSignature(prev, nextSummary) ? prev : nextSummary));
+      setScenarios(prev => (sameCollectionSignature(prev, nextScenarios) ? prev : nextScenarios));
     } catch (_) { }
-    setLoading(false);
+    hasLoadedHistoryRef.current = true;
+    if (firstLoad) setLoading(false);
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -1893,9 +1938,9 @@ const HistorialTab = () => {
                 {
                   title: t('resultats.drawer.sectionWindow'),
                   items: [
-                    { label: t('resultats.drawer.firstStart'), value: formatDateTime(selectedScenarioDetail.firstStartedAt) },
-                    { label: t('resultats.drawer.latestStart'), value: formatDateTime(selectedScenarioDetail.latestStartedAt) },
-                    { label: t('resultats.drawer.latestEnd'), value: formatDateTime(selectedScenarioDetail.latestEndedAt) },
+                    { label: t('resultats.drawer.firstStart'), value: formatDateTime(selectedScenarioDetail.firstStartedAt, locale) },
+                    { label: t('resultats.drawer.latestStart'), value: formatDateTime(selectedScenarioDetail.latestStartedAt, locale) },
+                    { label: t('resultats.drawer.latestEnd'), value: formatDateTime(selectedScenarioDetail.latestEndedAt, locale) },
                     { label: t('resultats.drawer.scenarioId'), value: <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedScenarioDetail.scenarioId}</code> },
                   ],
                 },
@@ -1910,18 +1955,6 @@ const HistorialTab = () => {
                 },
               ]}
             >
-              <div style={{ ...S.card, background: 'var(--bg-surface)', borderStyle: 'dashed' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                  <ScoreRing score={selectedScenarioScore} size={44} />
-                  <div>
-                    <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{t('resultats.drawer.howToReadTitle')}</div>
-                    <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-                      {t('resultats.drawer.howToReadBody')}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
               <ScoreBreakdownPanel breakdown={selectedScenarioScoreBreakdown} t={t} />
 
               {/*
@@ -1974,16 +2007,16 @@ const HistorialTab = () => {
                                 {statusLabel(run.status)}
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', color: 'var(--text-secondary)' }}>
-                                {run.startedAt ? new Date(run.startedAt).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                {run.startedAt ? new Date(run.startedAt).toLocaleString(locale, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '-'}
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                                 {duration}
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                                {getRunMeasureCount(run).toLocaleString('ca-ES')}
+                                {getRunMeasureCount(run).toLocaleString(locale)}
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
-                                {recv.toLocaleString('ca-ES')} / {sent.toLocaleString('ca-ES')}
+                                {recv.toLocaleString(locale)} / {sent.toLocaleString(locale)}
                               </td>
                               <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'var(--font-mono)' }}>
                                 {run.p50Latency != null ? `${Number(run.p50Latency).toFixed(2)} ms` : '-'}
@@ -2144,7 +2177,8 @@ const RunCard = ({
  * consistent color associations across page reloads.
  */
 const LiveTab = () => {
-  const { t } = useTranslation();
+  const { t, language } = useTranslation();
+  const locale = getLocale(language);
   // List of active/pending runs from the orchestrator
   const [activeRuns, setActiveRuns] = useState<any[]>([]);
   // ID of the currently selected run (drives metrics polling)
@@ -2373,7 +2407,7 @@ const LiveTab = () => {
             })()}
             {lastUpdate && (
               <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>
-                {t('resultats.live.lastUpdated')} {lastUpdate.toLocaleTimeString('ca-ES')}
+                {t('resultats.live.lastUpdated')} {lastUpdate.toLocaleTimeString(locale)}
               </span>
             )}
           </div>
@@ -2595,7 +2629,7 @@ const LiveTab = () => {
                     {[...filteredMetrics].reverse().map((m, i) => (
                       <tr key={i} style={S.tableRow}>
                         <td style={{ ...S.td, fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--text-disabled)' }}>
-                          {m.timestamp ? new Date(m.timestamp).toLocaleTimeString('ca-ES') : '-'}
+                          {m.timestamp ? new Date(m.timestamp).toLocaleTimeString(locale) : '-'}
                         </td>
                         <td style={{ ...S.td, textAlign: 'right', fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: '#f59e0b' }}>
                           {(m.latency ?? m.avgLatency)?.toFixed(2) ?? '-'}
@@ -2680,10 +2714,10 @@ export const ResultatsPage = () => {
 
       <section style={{ ...S.card, marginBottom: 22, padding: '14px 18px', borderLeft: '3px solid var(--accent)' }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 5 }}>
-          Com s'han de llegir aquests resultats
+          Abans de comparar
         </div>
         <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-          Aquesta pagina compara execucions persistides. La puntuacio es relativa al conjunt visible i pot canviar si canvies filtres; no es una nota absoluta. P50 indica la mediana, P95/P99 indiquen cua llarga, i les conclusions s'han de defensar amb latencia, throughput, errors i volum de missatges, no amb una sola metrica.
+          La puntuació només ordena els resultats visibles. Si canvies filtres, pot canviar. Mira també latència, throughput i errors.
         </p>
       </section>
 

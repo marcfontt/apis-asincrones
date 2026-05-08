@@ -27,7 +27,7 @@
  */
 
 import { useEffect, useState, useCallback } from 'react';
-import { useTranslation } from '../i18n';
+import { getLanguage, useTranslation } from '../i18n';
 import { S } from '../theme';
 import { FilterPanel } from '../components/FilterPanel';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
@@ -36,6 +36,14 @@ import { DEMO_SCENARIO_URL, TutorialButton } from '../components/TutorialOverlay
 // Endpoints dels microserveis (proxied per Backstage via app-config.yaml)
 const API_BASE     = '/api/proxy/scenario-service';
 const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
+
+const LOCALE_BY_LANGUAGE: Record<string, string> = {
+  ca: 'ca-ES',
+  es: 'es-ES',
+  en: 'en-US',
+};
+
+const getCurrentLocale = () => LOCALE_BY_LANGUAGE[getLanguage()] || 'ca-ES';
 
 // -- Types ----------------------------------------------------------------------
 // Estructura d'un escenari tal com la retorna i espera el scenario-service.
@@ -1192,7 +1200,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
                 : undefined}
               value={!runPlan.usesRecommendedPayload ? formatBytesFriendly(runPlan.payloadSize) : undefined}
             />
-            <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleDateString('ca-ES') : '-'} />
+            <Row label="Creat" value={scenario.createdAt ? new Date(scenario.createdAt).toLocaleDateString(getCurrentLocale()) : '-'} />
           </div>
         </div>
 
@@ -1738,7 +1746,7 @@ export const ScenariosPage = () => {
       });
 
   const formatTime = (iso: string) =>
-    !iso ? '-' : new Date(iso).toLocaleString('ca-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
+    !iso ? '-' : new Date(iso).toLocaleString(getCurrentLocale(), { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' });
 
   const modalInitial = editScenario?._prefill
     ? { ...EMPTY_FORM, ...editScenario }

@@ -29,7 +29,7 @@
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import React from 'react';
-import { useTranslation } from '../i18n';
+import { getLanguage, useTranslation } from '../i18n';
 import { S } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
@@ -48,6 +48,14 @@ const SCENARIOS_BASE = '/api/proxy/scenario-service';
 // fallback the Execucions page shows 0 rows while the Historial/Resultats tab
 // shows 163, a jarring inconsistency for the user.
 const METRICS_BASE   = '/api/proxy/metrics-api';
+
+const LOCALE_BY_LANGUAGE: Record<string, string> = {
+  ca: 'ca-ES',
+  es: 'es-ES',
+  en: 'en-US',
+};
+
+const getCurrentLocale = () => LOCALE_BY_LANGUAGE[getLanguage()] || 'ca-ES';
 
 /* ---------------------------------------------------------------------------
  * STATUS_CONFIG
@@ -292,7 +300,7 @@ const formatDuration = (start: string, end?: string) => {
  * (DD/MM/YY HH:MM). Returns '-' for empty/null values so the cell is never blank.
  */
 const formatTime = (iso: string) =>
-  !iso ? '-' : new Date(iso).toLocaleString('ca-ES', {
+  !iso ? '-' : new Date(iso).toLocaleString(getCurrentLocale(), {
     day: '2-digit', month: '2-digit', year: '2-digit',
     hour: '2-digit', minute: '2-digit',
   });
@@ -309,7 +317,7 @@ const getStartTime = (r: any): string =>
   r.startedAt || r.started_at || r.createdAt || r.created_at || r.timestamp || '';
 
 const formatDateTime = (iso?: string) =>
-  !iso ? '-' : new Date(iso).toLocaleString('ca-ES', {
+  !iso ? '-' : new Date(iso).toLocaleString(getCurrentLocale(), {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -323,7 +331,7 @@ const formatMetricNumber = (value: unknown, decimals = 2): string => {
     return '-';
   }
 
-  return numericValue.toLocaleString('ca-ES', {
+  return numericValue.toLocaleString(getCurrentLocale(), {
     maximumFractionDigits: decimals,
   });
 };
@@ -1499,7 +1507,7 @@ export const ExecucionsPage = () => {
   const selectedRunBase = selectedRunId ? runs.find(run => run.id === selectedRunId) || null : null;
   const selectedRun = selectedRunBase ? enrichRunWithMetricPoints(selectedRunBase, selectedRunMetrics) : null;
   const lastRefreshedTime = lastRefreshed
-    ? lastRefreshed.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    ? lastRefreshed.toLocaleTimeString(getCurrentLocale(), { hour: '2-digit', minute: '2-digit', second: '2-digit' })
     : null;
   const refreshLabel = refreshError
     ? <span style={{ color: 'var(--error)' }}>{refreshError}</span>
@@ -2049,7 +2057,7 @@ export const ExecucionsPage = () => {
                   label: `${cfg.label} (pes ${Math.round(cfg.weight * 100)}%)`,
                   value: <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                     {(selectedRun as any)[key] != null
-                      ? `${Number((selectedRun as any)[key]).toLocaleString('ca-ES', { maximumFractionDigits: 2 })} ${cfg.unit} · ${cfg.direction === 'lower' ? 'menys és millor' : 'més és millor'}`
+                      ? `${Number((selectedRun as any)[key]).toLocaleString(getCurrentLocale(), { maximumFractionDigits: 2 })} ${cfg.unit} · ${cfg.direction === 'lower' ? 'menys és millor' : 'més és millor'}`
                       : 'Encara no disponible'}
                   </span>,
                 })),

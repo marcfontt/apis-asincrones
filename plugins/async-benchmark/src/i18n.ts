@@ -5,4 +5,4 @@
  * import from here instead of reaching directly into packages/app.
  */
 export { useTranslation } from '../../../packages/app/src/i18n/useTranslation';
-export { t, tRaw } from '../../../packages/app/src/i18n/index';
+export { getLanguage, t, tRaw } from '../../../packages/app/src/i18n/index';
