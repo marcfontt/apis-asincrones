@@ -17,6 +17,7 @@ type TutorialTarget = {
 type TutorialStepConfig = {
   titleKey: string;
   bodyKey: string;
+  detailKey: string;
   visual: TutorialPage;
   target: TutorialTarget;
 };
@@ -26,30 +27,35 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
     {
       titleKey: 'tutorial.home.step1.title',
       bodyKey: 'tutorial.home.step1.body',
+      detailKey: 'tutorial.home.step1.details',
       visual: 'home',
       target: { labelKey: 'tutorial.visual.homeStart', x: 10, y: 16, width: 39, height: 22, cursorX: 45, cursorY: 35 },
     },
     {
       titleKey: 'tutorial.home.step2.title',
       bodyKey: 'tutorial.home.step2.body',
+      detailKey: 'tutorial.home.step2.details',
       visual: 'catalog',
       target: { labelKey: 'tutorial.visual.catalogCard', x: 11, y: 36, width: 24, height: 24, cursorX: 32, cursorY: 56 },
     },
     {
       titleKey: 'tutorial.home.step3.title',
       bodyKey: 'tutorial.home.step3.body',
+      detailKey: 'tutorial.home.step3.details',
       visual: 'scenarios',
-      target: { labelKey: 'tutorial.visual.newScenario', x: 67, y: 13, width: 23, height: 10, cursorX: 87, cursorY: 21 },
+      target: { labelKey: 'tutorial.visual.composition', x: 28, y: 38, width: 25, height: 23, cursorX: 51, cursorY: 58 },
     },
     {
       titleKey: 'tutorial.home.step4.title',
       bodyKey: 'tutorial.home.step4.body',
+      detailKey: 'tutorial.home.step4.details',
       visual: 'execucions',
       target: { labelKey: 'tutorial.visual.executionRow', x: 11, y: 45, width: 78, height: 12, cursorX: 85, cursorY: 55 },
     },
     {
       titleKey: 'tutorial.home.step5.title',
       bodyKey: 'tutorial.home.step5.body',
+      detailKey: 'tutorial.home.step5.details',
       visual: 'resultats',
       target: { labelKey: 'tutorial.visual.scoreDetail', x: 69, y: 26, width: 20, height: 26, cursorX: 88, cursorY: 48 },
     },
@@ -58,32 +64,155 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
     {
       titleKey: 'tutorial.catalog.step1.title',
       bodyKey: 'tutorial.catalog.step1.body',
+      detailKey: 'tutorial.catalog.step1.details',
       visual: 'catalog',
-      target: { labelKey: 'tutorial.visual.catalogCard', x: 11, y: 36, width: 24, height: 24, cursorX: 32, cursorY: 56 },
+      target: { labelKey: 'tutorial.visual.filters', x: 71, y: 16, width: 17, height: 10, cursorX: 86, cursorY: 24 },
+    },
+    {
+      titleKey: 'tutorial.catalog.step2.title',
+      bodyKey: 'tutorial.catalog.step2.body',
+      detailKey: 'tutorial.catalog.step2.details',
+      visual: 'catalog',
+      target: { labelKey: 'tutorial.visual.catalogCard', x: 29, y: 34, width: 19, height: 23, cursorX: 46, cursorY: 54 },
+    },
+    {
+      titleKey: 'tutorial.catalog.step3.title',
+      bodyKey: 'tutorial.catalog.step3.body',
+      detailKey: 'tutorial.catalog.step3.details',
+      visual: 'catalog',
+      target: { labelKey: 'tutorial.visual.compatibility', x: 29, y: 62, width: 47, height: 17, cursorX: 73, cursorY: 74 },
+    },
+    {
+      titleKey: 'tutorial.catalog.step4.title',
+      bodyKey: 'tutorial.catalog.step4.body',
+      detailKey: 'tutorial.catalog.step4.details',
+      visual: 'catalog',
+      target: { labelKey: 'tutorial.visual.modalTabs', x: 57, y: 36, width: 30, height: 18, cursorX: 84, cursorY: 49 },
+    },
+    {
+      titleKey: 'tutorial.catalog.step5.title',
+      bodyKey: 'tutorial.catalog.step5.body',
+      detailKey: 'tutorial.catalog.step5.details',
+      visual: 'catalog',
+      target: { labelKey: 'tutorial.visual.useComponent', x: 59, y: 65, width: 27, height: 10, cursorX: 84, cursorY: 73 },
     },
   ],
   scenarios: [
     {
       titleKey: 'tutorial.scenarios.step1.title',
       bodyKey: 'tutorial.scenarios.step1.body',
+      detailKey: 'tutorial.scenarios.step1.details',
       visual: 'scenarios',
       target: { labelKey: 'tutorial.visual.newScenario', x: 67, y: 13, width: 23, height: 10, cursorX: 87, cursorY: 21 },
+    },
+    {
+      titleKey: 'tutorial.scenarios.step2.title',
+      bodyKey: 'tutorial.scenarios.step2.body',
+      detailKey: 'tutorial.scenarios.step2.details',
+      visual: 'scenarios',
+      target: { labelKey: 'tutorial.visual.composition', x: 27, y: 38, width: 26, height: 24, cursorX: 51, cursorY: 57 },
+    },
+    {
+      titleKey: 'tutorial.scenarios.step3.title',
+      bodyKey: 'tutorial.scenarios.step3.body',
+      detailKey: 'tutorial.scenarios.step3.details',
+      visual: 'scenarios',
+      target: { labelKey: 'tutorial.visual.dataFormat', x: 27, y: 63, width: 26, height: 10, cursorX: 51, cursorY: 71 },
+    },
+    {
+      titleKey: 'tutorial.scenarios.step4.title',
+      bodyKey: 'tutorial.scenarios.step4.body',
+      detailKey: 'tutorial.scenarios.step4.details',
+      visual: 'scenarios',
+      target: { labelKey: 'tutorial.visual.presetCard', x: 56, y: 36, width: 31, height: 28, cursorX: 84, cursorY: 58 },
+    },
+    {
+      titleKey: 'tutorial.scenarios.step5.title',
+      bodyKey: 'tutorial.scenarios.step5.body',
+      detailKey: 'tutorial.scenarios.step5.details',
+      visual: 'scenarios',
+      target: { labelKey: 'tutorial.visual.scenarioActions', x: 56, y: 69, width: 32, height: 12, cursorX: 85, cursorY: 78 },
+    },
+    {
+      titleKey: 'tutorial.scenarios.step6.title',
+      bodyKey: 'tutorial.scenarios.step6.body',
+      detailKey: 'tutorial.scenarios.step6.details',
+      visual: 'scenarios',
+      target: { labelKey: 'tutorial.visual.sustainedMode', x: 28, y: 74, width: 25, height: 9, cursorX: 51, cursorY: 81 },
     },
   ],
   execucions: [
     {
       titleKey: 'tutorial.execucions.step1.title',
       bodyKey: 'tutorial.execucions.step1.body',
+      detailKey: 'tutorial.execucions.step1.details',
       visual: 'execucions',
-      target: { labelKey: 'tutorial.visual.executionRow', x: 11, y: 45, width: 78, height: 12, cursorX: 85, cursorY: 55 },
+      target: { labelKey: 'tutorial.visual.runFilters', x: 25, y: 20, width: 63, height: 13, cursorX: 86, cursorY: 30 },
+    },
+    {
+      titleKey: 'tutorial.execucions.step2.title',
+      bodyKey: 'tutorial.execucions.step2.body',
+      detailKey: 'tutorial.execucions.step2.details',
+      visual: 'execucions',
+      target: { labelKey: 'tutorial.visual.executionRow', x: 27, y: 45, width: 59, height: 12, cursorX: 83, cursorY: 55 },
+    },
+    {
+      titleKey: 'tutorial.execucions.step3.title',
+      bodyKey: 'tutorial.execucions.step3.body',
+      detailKey: 'tutorial.execucions.step3.details',
+      visual: 'execucions',
+      target: { labelKey: 'tutorial.visual.liveMetrics', x: 62, y: 60, width: 24, height: 20, cursorX: 84, cursorY: 76 },
+    },
+    {
+      titleKey: 'tutorial.execucions.step4.title',
+      bodyKey: 'tutorial.execucions.step4.body',
+      detailKey: 'tutorial.execucions.step4.details',
+      visual: 'execucions',
+      target: { labelKey: 'tutorial.visual.runActions', x: 69, y: 45, width: 17, height: 12, cursorX: 84, cursorY: 55 },
+    },
+    {
+      titleKey: 'tutorial.execucions.step5.title',
+      bodyKey: 'tutorial.execucions.step5.body',
+      detailKey: 'tutorial.execucions.step5.details',
+      visual: 'execucions',
+      target: { labelKey: 'tutorial.visual.persistedHistory', x: 34, y: 77, width: 43, height: 9, cursorX: 75, cursorY: 84 },
     },
   ],
   resultats: [
     {
       titleKey: 'tutorial.resultats.step1.title',
       bodyKey: 'tutorial.resultats.step1.body',
+      detailKey: 'tutorial.resultats.step1.details',
       visual: 'resultats',
-      target: { labelKey: 'tutorial.visual.historyRow', x: 10, y: 57, width: 58, height: 11, cursorX: 66, cursorY: 66 },
+      target: { labelKey: 'tutorial.visual.resultFilters', x: 26, y: 20, width: 61, height: 13, cursorX: 85, cursorY: 30 },
+    },
+    {
+      titleKey: 'tutorial.resultats.step2.title',
+      bodyKey: 'tutorial.resultats.step2.body',
+      detailKey: 'tutorial.resultats.step2.details',
+      visual: 'resultats',
+      target: { labelKey: 'tutorial.visual.metricsPanel', x: 25, y: 34, width: 53, height: 18, cursorX: 76, cursorY: 49 },
+    },
+    {
+      titleKey: 'tutorial.resultats.step3.title',
+      bodyKey: 'tutorial.resultats.step3.body',
+      detailKey: 'tutorial.resultats.step3.details',
+      visual: 'resultats',
+      target: { labelKey: 'tutorial.visual.historyRow', x: 25, y: 57, width: 50, height: 12, cursorX: 73, cursorY: 66 },
+    },
+    {
+      titleKey: 'tutorial.resultats.step4.title',
+      bodyKey: 'tutorial.resultats.step4.body',
+      detailKey: 'tutorial.resultats.step4.details',
+      visual: 'resultats',
+      target: { labelKey: 'tutorial.visual.scoreBreakdown', x: 73, y: 52, width: 18, height: 27, cursorX: 90, cursorY: 74 },
+    },
+    {
+      titleKey: 'tutorial.resultats.step5.title',
+      bodyKey: 'tutorial.resultats.step5.body',
+      detailKey: 'tutorial.resultats.step5.details',
+      visual: 'resultats',
+      target: { labelKey: 'tutorial.visual.comparison', x: 30, y: 74, width: 45, height: 12, cursorX: 73, cursorY: 83 },
     },
   ],
 };
@@ -267,6 +396,56 @@ const PreviewButton = ({ label, tone = 'primary' }: { label: string; tone?: 'pri
   </div>
 );
 
+const MiniField = ({
+  color = 'var(--accent)',
+  wide = false,
+}: {
+  color?: string;
+  wide?: boolean;
+}) => (
+  <div style={{ display: 'grid', gap: 5 }}>
+    <PreviewLine width={wide ? '62%' : '44%'} height={6} color={color} />
+    <div
+      style={{
+        height: 24,
+        borderRadius: 8,
+        border: '1px solid var(--border)',
+        background: 'var(--bg-surface)',
+        display: 'flex',
+        alignItems: 'center',
+        padding: '0 8px',
+      }}
+    >
+      <PreviewLine width={wide ? '76%' : '58%'} height={6} color="var(--bg-hover)" />
+    </div>
+  </div>
+);
+
+const MiniActionDots = () => (
+  <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+    {['#22c55e', '#3b82f6', '#f59e0b', '#ef4444'].map(color => (
+      <span key={color} style={{ width: 18, height: 18, borderRadius: 6, background: color, opacity: 0.86 }} />
+    ))}
+  </div>
+);
+
+const MiniTabs = ({ activeIndex = 0 }: { activeIndex?: number }) => (
+  <div style={{ display: 'flex', gap: 8 }}>
+    {[0, 1, 2].map(index => (
+      <span
+        key={index}
+        style={{
+          width: index === activeIndex ? 54 : 40,
+          height: 18,
+          borderRadius: 999,
+          border: '1px solid var(--border)',
+          background: index === activeIndex ? 'rgba(37,99,235,0.12)' : 'var(--bg-card)',
+        }}
+      />
+    ))}
+  </div>
+);
+
 const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => string }) => {
   if (page === 'home') {
     return (
@@ -310,14 +489,27 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
           </div>
           <PreviewButton label={t('tutorial.visual.filters')} tone="soft" />
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }}>
-          {['#ef4444', '#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6', '#14b8a6'].map((color, i) => (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 10 }}>
+          {['#ef4444', '#f59e0b', '#22c55e'].map((color, i) => (
             <div key={color} className="asyncbench-tutorial-card" style={{ padding: 14, minHeight: 86, display: 'grid', gap: 10, borderColor: i === 0 ? 'rgba(37,99,235,0.36)' : 'var(--border)' }}>
               <PreviewLine width="42%" height={8} color={color} />
               <PreviewLine width="76%" />
               <PreviewLine width="52%" />
             </div>
           ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.78fr', gap: 10 }}>
+          <div className="asyncbench-tutorial-card" style={{ padding: 12, display: 'grid', gap: 8 }}>
+            <PreviewLine width="46%" height={9} color="var(--text-primary)" />
+            <MiniRow accent="#22c55e" />
+            <MiniRow accent="#3b82f6" />
+          </div>
+          <div className="asyncbench-tutorial-card" style={{ padding: 12, display: 'grid', gap: 10, borderColor: 'rgba(37,99,235,0.34)' }}>
+            <MiniTabs activeIndex={1} />
+            <PreviewLine width="82%" height={7} />
+            <PreviewLine width="66%" height={7} />
+            <PreviewButton label={t('tutorial.visual.useComponent')} tone="soft" />
+          </div>
         </div>
       </div>
     );
@@ -336,18 +528,24 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div className="asyncbench-tutorial-card" style={{ padding: 14, display: 'grid', gap: 10 }}>
             <PreviewLine width="40%" height={9} color="var(--accent)" />
-            {[0, 1, 2, 3].map(i => (
-              <div key={i} style={{ display: 'grid', gridTemplateColumns: '1fr 0.6fr', gap: 8 }}>
-                <PreviewLine width="100%" />
-                <PreviewLine width="100%" color="var(--bg-hover)" />
-              </div>
-            ))}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <MiniField color="#3b82f6" />
+              <MiniField color="#22c55e" />
+              <MiniField color="#f59e0b" />
+              <MiniField color="#8b5cf6" />
+            </div>
+            <MiniField color="#ef4444" wide />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <span style={{ width: 34, height: 18, borderRadius: 999, background: 'var(--accent)' }} />
+              <PreviewLine width="46%" height={7} />
+            </div>
           </div>
           <div className="asyncbench-tutorial-card" style={{ padding: 14, display: 'grid', gap: 10 }}>
             <PreviewLine width="52%" height={9} color="#22c55e" />
             <MiniRow accent="#ef4444" active />
             <MiniRow accent="#f59e0b" />
             <MiniRow accent="#3b82f6" />
+            <MiniActionDots />
           </div>
         </div>
       </div>
@@ -370,9 +568,23 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
             <PreviewLine width="28%" height={10} color="var(--text-primary)" />
             <PreviewButton label={t('tutorial.visual.filters')} tone="soft" />
           </div>
-          <MiniRow accent="#22c55e" active />
-          <MiniRow accent="#f59e0b" />
-          <MiniRow accent="#ef4444" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.42fr', gap: 10 }}>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <MiniRow accent="#22c55e" active />
+              <MiniRow accent="#f59e0b" />
+              <MiniRow accent="#ef4444" />
+            </div>
+            <div className="asyncbench-tutorial-card" style={{ padding: 10, display: 'grid', gap: 8, borderColor: 'rgba(34,197,94,0.34)' }}>
+              <PreviewLine width="52%" height={8} color="#22c55e" />
+              <PreviewLine width="70%" height={7} />
+              <PreviewLine width="56%" height={7} />
+              <PreviewLine width="82%" height={7} color="#3b82f6" />
+              <MiniActionDots />
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <PreviewButton label={t('tutorial.visual.persistedHistory')} tone="soft" />
+          </div>
         </div>
       </div>
     );
@@ -380,6 +592,10 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
+        <MiniTabs activeIndex={1} />
+        <PreviewButton label={t('tutorial.visual.resultFilters')} tone="soft" />
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr)) 1.25fr', gap: 10 }}>
         {[0, 1, 2].map(i => (
           <div key={i} className="asyncbench-tutorial-card" style={{ padding: 10, display: 'grid', gap: 7 }}>
@@ -398,12 +614,18 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
           <MiniRow accent="#22c55e" active />
           <MiniRow accent="#3b82f6" />
           <MiniRow accent="#ef4444" />
+          <PreviewButton label={t('tutorial.visual.comparison')} tone="soft" />
         </div>
         <div className="asyncbench-tutorial-card" style={{ padding: 14, display: 'grid', placeItems: 'center', gap: 10 }}>
           <div style={{ width: 86, height: 86, borderRadius: '50%', border: '10px solid rgba(34,197,94,0.28)', borderTopColor: '#22c55e', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>
             84
           </div>
           <PreviewLine width="58%" height={8} color="var(--text-primary)" />
+          <div style={{ display: 'grid', gap: 5, width: '100%' }}>
+            <PreviewLine width="82%" height={6} color="#3b82f6" />
+            <PreviewLine width="64%" height={6} color="#22c55e" />
+            <PreviewLine width="48%" height={6} color="#ef4444" />
+          </div>
         </div>
       </div>
     </div>
@@ -482,7 +704,7 @@ export const TutorialButton = ({
   page: TutorialPage;
   createExampleHref?: string;
 }) => {
-  const { t } = useTranslation();
+  const { t, tRaw } = useTranslation();
   const storageKey = `apis-asincrones.tutorial.seen.${page}`;
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
@@ -496,12 +718,19 @@ export const TutorialButton = ({
 
   const steps = useMemo(
     () =>
-      TUTORIAL_STEPS[page].map(step => ({
-        ...step,
-        title: t(step.titleKey),
-        body: t(step.bodyKey),
-      })),
-    [page, t],
+      TUTORIAL_STEPS[page].map(step => {
+        const rawDetails = tRaw(step.detailKey);
+        const details: string[] = Array.isArray(rawDetails)
+          ? rawDetails.flatMap(item => (typeof item === 'string' ? [item] : []))
+          : [];
+        return {
+          ...step,
+          title: t(step.titleKey),
+          body: t(step.bodyKey),
+          details,
+        };
+      }),
+    [page, t, tRaw],
   );
 
   useEffect(() => {
@@ -576,6 +805,41 @@ export const TutorialButton = ({
               <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.7 }}>
                 {step.body}
               </p>
+
+              {step.details.length > 0 && (
+                <div
+                  style={{
+                    marginTop: 18,
+                    padding: 14,
+                    border: '1px solid var(--border)',
+                    borderRadius: 12,
+                    background: 'var(--bg-subtle)',
+                    display: 'grid',
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 850, color: 'var(--text-primary)' }}>
+                    {t('tutorial.keyPoints')}
+                  </div>
+                  {step.details.map(detail => (
+                    <div
+                      key={detail}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '8px 1fr',
+                        gap: 9,
+                        alignItems: 'start',
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                        color: 'var(--text-secondary)',
+                      }}
+                    >
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--accent)', marginTop: 6 }} />
+                      <span>{detail}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <div style={{ display: 'flex', gap: 6, marginTop: 18 }}>
                 {steps.map((_, index) => (

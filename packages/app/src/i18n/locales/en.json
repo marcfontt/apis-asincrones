@@ -67,60 +67,255 @@
     "skip": "Skip tutorial",
     "finish": "Finish",
     "createExample": "Create example scenario",
+    "keyPoints": "Key points",
     "visual": {
       "homeStart": "Start here",
       "catalogCard": "Open a card",
-      "newScenario": "New Scenario",
+      "newScenario": "New scenario",
       "executionRow": "Open details",
       "historyRow": "Select a row",
       "scoreDetail": "Review score",
       "openCatalog": "Catalog",
-      "filters": "Filters"
+      "filters": "Filters",
+      "compatibility": "Compatibility",
+      "modalTabs": "Detail tabs",
+      "useComponent": "Use component",
+      "composition": "Composition",
+      "dataFormat": "Data format",
+      "presetCard": "Preset",
+      "scenarioActions": "Actions",
+      "sustainedMode": "Sustained mode",
+      "runFilters": "Run filters",
+      "liveMetrics": "Live metrics",
+      "runActions": "Stop or delete",
+      "persistedHistory": "Persisted history",
+      "resultFilters": "Result filters",
+      "metricsPanel": "Key metrics",
+      "scoreBreakdown": "Breakdown",
+      "comparison": "Comparison"
     },
     "home": {
       "step1": {
-        "title": "Welcome",
-        "body": "This platform compares asynchronous APIs under the same load. The comparison is useful when every run is reproducible."
+        "title": "Portal map",
+        "body": "This screen explains the full flow: define a scenario, the backend prepares it, AKS runs the test, and results are compared with metrics.",
+        "details": [
+          "Start here when you want to understand what each page does before changing parameters.",
+          "The portal measures combinations, not brand names: broker, architecture, protocol and format form one unit.",
+          "The tutorial button can always be replayed when a new user needs the platform."
+        ]
       },
       "step2": {
-        "title": "Catalog",
-        "body": "Start in the Catalog to see which components you can test. Each detail sheet shows version, compatibility, and configuration."
+        "title": "Catalog before configuration",
+        "body": "The Catalog explains which components exist, which versions were considered and which combinations make sense before creating a scenario.",
+        "details": [
+          "Open component cards when you are unsure whether a platform fits a protocol.",
+          "Compatibility notes prevent tests that are hard to defend later."
+        ]
       },
       "step3": {
-        "title": "Scenarios",
-        "body": "In Scenarios you define the broker, protocol, and load combination. The form helps avoid combinations the portal cannot execute yet."
+        "title": "Scenarios as test contracts",
+        "body": "In Scenarios you decide the real benchmark composition. Platform, architecture, protocol and format determine the load and how the score should be read.",
+        "details": [
+          "The composition must answer a concrete question: what do you want to compare and under which load?",
+          "Data format is not decorative: it changes payload, recommended rate and score context."
+        ]
       },
       "step4": {
-        "title": "Executions",
-        "body": "In Executions you launch the test on the cluster and see the run status. You can also review history and persisted details."
+        "title": "Executions and cluster state",
+        "body": "Executions shows every run launched on the cluster. It tells you whether a test is pending, running, completed, failed or stopped.",
+        "details": [
+          "Filter so active tests do not get mixed with historical tests.",
+          "Open details when you want live metrics without losing the row context."
+        ]
       },
       "step5": {
-        "title": "Results",
-        "body": "In Results you compare latency, throughput, and errors between runs. Conclusions should be defended with metrics, not a single score."
+        "title": "Results with score explanation",
+        "body": "Results turns runs into comparisons. Do not stop at the final number: review contributions, errors, throughput and latency.",
+        "details": [
+          "Filters change which scenarios enter the visible calculation.",
+          "The score summarizes metrics, but the technical decision comes from the breakdown."
+        ]
       }
     },
     "catalog": {
       "step1": {
-        "title": "Component details",
-        "body": "Each card is a component. Click it to see reproducibility, compatibility, and configuration snippets."
+        "title": "Filter the catalog",
+        "body": "Filters help you quickly find platforms, protocols and architectures. Before creating a test, check that the component exists and is documented.",
+        "details": [
+          "Filter by category when you only need brokers, protocols or architecture patterns.",
+          "Search also helps find versions, tags and reproducibility notes."
+        ]
+      },
+      "step2": {
+        "title": "Open a component card",
+        "body": "Each card summarizes one benchmark component. Opening it shows what it represents, when it makes sense and how it may affect the test.",
+        "details": [
+          "Cards prevent blind component choices.",
+          "The short description explains the component role in the message path."
+        ]
+      },
+      "step3": {
+        "title": "Read compatibility",
+        "body": "The compatibility matrix shows which platforms can work with each architecture and protocol. It is the conceptual filter before the form.",
+        "details": [
+          "A compatible combination is easier to defend in the thesis.",
+          "If a combination needs a gateway or adapter, that must be clear before running it."
+        ]
+      },
+      "step4": {
+        "title": "Reproducibility and configuration",
+        "body": "The detail view separates overview, reproducibility and configuration into tabs. The important part is being able to repeat the test under the same conditions.",
+        "details": [
+          "Review versions, ports, limits and snippets before comparing results.",
+          "Copying configuration keeps the benchmark traceable."
+        ]
+      },
+      "step5": {
+        "title": "Send the component to Scenarios",
+        "body": "When a component fits the test, use it as a starting point to create or adjust a scenario.",
+        "details": [
+          "You do not need to remember the exact component name: the UI can preselect it when possible.",
+          "This step connects the catalog with the real benchmark flow."
+        ]
       }
     },
     "scenarios": {
       "step1": {
-        "title": "Scenario form",
-        "body": "Select a data format and recommended rate and payload values are filled in. Then adjust platform, architecture, and protocol."
+        "title": "Create a new scenario",
+        "body": "The New scenario button opens the configuration form. Here you define the test that will later be launched as a cluster run.",
+        "details": [
+          "Give it a name that explains broker, format and test purpose.",
+          "A well-named scenario makes Executions and Results readable."
+        ]
+      },
+      "step2": {
+        "title": "Choose the composition carefully",
+        "body": "Composition is the most important part: platform or broker, architecture and protocol. This combination defines what system you are measuring.",
+        "details": [
+          "Choose the platform first because it filters compatible options.",
+          "Architecture and protocol must make sense together: queues, streaming and pub/sub answer different questions.",
+          "If the composition is weak, the final score cannot fix the interpretation."
+        ]
+      },
+      "step3": {
+        "title": "Data format and load",
+        "body": "Data format directly affects payload, recommended rate and result interpretation. IoT, financial, 4K video and 8K video are not equivalent.",
+        "details": [
+          "When you select a format, the UI proposes coherent payload and messages per second.",
+          "Format also frames the score: acceptable video latency may not be acceptable for IoT.",
+          "If you change payload manually, verify that the broker accepts that size."
+        ]
+      },
+      "step4": {
+        "title": "Predefined scenarios",
+        "body": "Presets are prepared starting points for common cases. They help you test quickly and understand recommended combinations.",
+        "details": [
+          "Use a preset when you want a reasonable test without building it from scratch.",
+          "Then duplicate or edit it to adapt it to a concrete hypothesis."
+        ]
+      },
+      "step5": {
+        "title": "Scenario actions",
+        "body": "From the list you can execute, duplicate, edit or delete scenarios. Execute creates a run; duplicate is useful when changing only one variable.",
+        "details": [
+          "Duplicate when comparing Kafka against RabbitMQ under the same load.",
+          "Edit if the configuration has not been launched yet or if payload, rate or protocol need correction.",
+          "Execute only when composition and format already make sense."
+        ]
+      },
+      "step6": {
+        "title": "Sustained mode and warm-up",
+        "body": "Sustained mode acts like a controlled indefinite mode: stable load, but with limits. Warm-up lets the system settle before measuring.",
+        "details": [
+          "Do not compare cold starts with stable results.",
+          "Duration and warm-up must be long enough for defensible numbers.",
+          "If a run is too short, the score may reflect start-up noise."
+        ]
       }
     },
     "execucions": {
       "step1": {
-        "title": "Run tracking",
-        "body": "Filter by status, scenario, or broker. Click a row to keep the live detail open while metrics arrive."
+        "title": "Filter executions",
+        "body": "Dropdowns separate runs by status, scenario, broker, platform, architecture, protocol and format. This avoids comparing unrelated groups.",
+        "details": [
+          "Filter by running when you only want live tests.",
+          "Filter by format or broker when validating a concrete hypothesis."
+        ]
+      },
+      "step2": {
+        "title": "Open run details",
+        "body": "Each row is one concrete execution. Clicking it opens expanded information without losing the full list.",
+        "details": [
+          "The detail view keeps context even when backend updates arrive.",
+          "Review status, duration, format and parameters before interpreting metrics."
+        ]
+      },
+      "step3": {
+        "title": "Live metrics",
+        "body": "When a run is active, the detail panel shows live metrics. They help spot errors, saturation or impossible values early.",
+        "details": [
+          "Stable throughput and low errors indicate the test is progressing well.",
+          "High latency or errors may indicate oversized payloads or broker misconfiguration."
+        ]
+      },
+      "step4": {
+        "title": "Stop or delete",
+        "body": "Row actions let you stop running tests or remove executions you do not want to keep. Stopping preserves partial data when available.",
+        "details": [
+          "Stop a test if it saturates the cluster or the configuration was wrong.",
+          "Deleting is destructive for the historical reading of that run."
+        ]
+      },
+      "step5": {
+        "title": "From run to history",
+        "body": "When a test finishes, persisted measurements feed Results. Executions is operational control; Results is analysis.",
+        "details": [
+          "Do not judge a scenario only while it is running: wait until the run closes and persists data.",
+          "History aggregates visible executions of the same scenario."
+        ]
       }
     },
     "resultats": {
       "step1": {
-        "title": "Comparison",
-        "body": "Compare visible runs and review percentiles, throughput, and errors. Filters change the set used to calculate the score."
+        "title": "Filter before comparing",
+        "body": "Results filters decide which scenarios enter the comparison. If you change the visible set, the score context changes too.",
+        "details": [
+          "Compare scenarios with the same format when you want a fair read.",
+          "Filter by platform or protocol when you want to isolate one variable."
+        ]
+      },
+      "step2": {
+        "title": "Read key metrics",
+        "body": "Latency, throughput, errors and measurement volume explain the real behavior. The score only summarizes those data points.",
+        "details": [
+          "Lower latency does not always win if throughput drops or errors appear.",
+          "Read percentiles and averages with the data format in mind."
+        ]
+      },
+      "step3": {
+        "title": "Open history detail",
+        "body": "Clicking a row opens the aggregated scenario detail. It shows which executions contributed and the persisted totals.",
+        "details": [
+          "This detail tells you whether a score comes from one run or several.",
+          "Measurements are telemetry points; messages show processed volume."
+        ]
+      },
+      "step4": {
+        "title": "Understand the score",
+        "body": "The breakdown shows each metric weight, normalized value, contribution and error penalty. That makes the final number auditable.",
+        "details": [
+          "Latency, P50, P99, throughput and errors do not have the same weight.",
+          "The penalty prevents a scenario from looking good if it loses or fails messages.",
+          "The final score is a guide, not a replacement for metric reading."
+        ]
+      },
+      "step5": {
+        "title": "Compare scenarios side by side",
+        "body": "The comparison view shows direct differences between two scenarios. It is useful when you changed one variable and want to see the impact.",
+        "details": [
+          "The best comparison changes one variable: broker, protocol, architecture or format.",
+          "If you change many things at once, the UI shows numbers but the conclusion is weaker."
+        ]
       }
     }
   },
