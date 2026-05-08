@@ -34,6 +34,7 @@ import { S } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { TutorialButton } from '../components/TutorialOverlay';
+import { GuideItemCard, GuidePanel } from '../components/GuidePanel';
 import { getRunMeasureCount, getRunMessageCount, getRunSentCount } from '../shared/results/historyMetrics';
 
 /* ---------------------------------------------------------------------------
@@ -433,110 +434,36 @@ const FilterSelect = ({
   </label>
 );
 
-const ChevronIcon = ({ open }: { open: boolean }) => (
-  <svg
-    width="14"
-    height="14"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    style={{ transform: open ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.16s ease' }}
-  >
-    <polyline points="6 9 12 15 18 9" />
-  </svg>
-);
-
+// Guia curta de la pàgina. Els textos venen del diccionari per canviar d'idioma.
 const ExecucionsGuide = ({
   open,
   onToggle,
 }: {
   open: boolean;
   onToggle: () => void;
-}) => (
-  <section style={{ ...S.card, marginBottom: 20, padding: 0, overflow: 'hidden' }}>
-    <button
-      type="button"
-      onClick={onToggle}
-      aria-expanded={open}
-      style={{
-        width: '100%',
-        border: 'none',
-        background: 'var(--bg-card)',
-        color: 'var(--text-primary)',
-        cursor: 'pointer',
-        padding: '15px 18px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: 14,
-        fontFamily: 'var(--font)',
-        textAlign: 'left',
-      }}
-    >
-      <span>
-        <span style={{ display: 'block', fontSize: 14, fontWeight: 800 }}>
-          Guia ràpida d'execucions
-        </span>
-        <span style={{ display: 'block', marginTop: 3, fontSize: 12, color: 'var(--text-secondary)' }}>
-          Què significa cada estat, com s'esborren registres i com passen les dades a Resultats.
-        </span>
-      </span>
-      <span style={{ color: 'var(--text-secondary)', display: 'inline-flex' }}>
-        <ChevronIcon open={open} />
-      </span>
-    </button>
+}) => {
+  const { t, tRaw } = useTranslation();
+  const items = (tRaw('execucions.guide.items') as { title: string; text: string }[] | undefined) ?? [];
+  const colors = ['#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6'];
 
-    {open && (
-      <div style={{ borderTop: '1px solid var(--border)', padding: 18 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
-          {[
-            {
-              title: 'Estats',
-              color: '#3b82f6',
-              text: 'Pendent encara no ha començat, en execució està generant càrrega, completada ha arribat al final, aturada s’ha cancel·lat manualment i error indica que el run ha fallat.',
-            },
-            {
-              title: 'Detall d’un run',
-              color: '#22c55e',
-              text: 'Clica una fila per veure configuració, timeline, mesures registrades, missatges enviats i missatges rebuts. Si el run ja no és a l’orquestrador, es recupera des d’Elasticsearch.',
-            },
-            {
-              title: 'Accions',
-              color: '#f59e0b',
-              text: 'Aturar conserva les mesures que hagin arribat. Esborrar elimina aquella execució i les seves mostres. Reinicia tot buida execucions i mesures; per això sempre demana confirmació.',
-            },
-            {
-              title: 'Relació amb Resultats',
-              color: '#8b5cf6',
-              text: 'Execucions mostra runs individuals. Resultats llegeix les mesures persistides i les compara; cada execució manté el seu runId perquè no es barregin repeticions del mateix escenari.',
-            },
-          ].map(item => (
-            <div
-              key={item.title}
-              style={{
-                border: `1px solid ${item.color}30`,
-                borderLeft: `3px solid ${item.color}`,
-                background: `${item.color}0d`,
-                borderRadius: 10,
-                padding: 13,
-              }}
-            >
-              <div style={{ fontSize: 12, fontWeight: 800, color: item.color, marginBottom: 6 }}>
-                {item.title}
-              </div>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                {item.text}
-              </p>
-            </div>
-          ))}
-        </div>
+  return (
+    <GuidePanel
+      title={t('execucions.guide.title')}
+      subtitle={t('execucions.guide.subtitle')}
+      open={open}
+      onToggle={onToggle}
+      showLabel={t('scenarios.guide.show')}
+      hideLabel={t('scenarios.guide.hide')}
+      marginBottom={20}
+    >
+      <div style={{ marginTop: 16, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+        {items.map((item, index) => (
+          <GuideItemCard key={item.title} title={item.title} text={item.text} color={colors[index % colors.length]} />
+        ))}
       </div>
-    )}
-  </section>
-);
+    </GuidePanel>
+  );
+};
 
 /* ---------------------------------------------------------------------------
  * ConfirmModal

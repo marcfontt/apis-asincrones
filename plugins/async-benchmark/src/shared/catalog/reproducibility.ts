@@ -28,19 +28,23 @@ export const KNOWN_COMPONENT_VERSIONS: Record<string, string> = {
   grpc: '1.64',
 };
 
+// Text visible al modal del Catàleg.
+// Explica que cal repetir per comparar brokers sense canviar les condicions.
 const COMMON_BROKER_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Criteri igualador', value: '1 broker actiu per prova, 1 productor i 1 consumidor per run' },
-  { label: 'Generador de càrrega', value: 'mateix load-generator per a totes les plataformes comparades' },
-  { label: 'Warmup i durada', value: "mateixos valors definits a l'escenari abans de l'execució" },
-  { label: 'Payload', value: "definit pel format de dades i visible abans de llançar el run" },
-  { label: 'Persistència', value: 'retenció curta o emmagatzematge efímer per evitar contaminació entre runs' },
-  { label: 'Recursos objectiu', value: 'requests i limits iguals quan el manifest és nostre' },
+  { label: 'Forma de prova', value: '1 broker, 1 productor i 1 consumidor per run, excepte si l’escenari indica una altra cosa.' },
+  { label: 'Generador de càrrega', value: 'El mateix load-generator envia la càrrega a totes les plataformes comparades.' },
+  { label: 'Warm-up i durada', value: "Els dos valors surten de l'escenari i s'han de repetir igual en totes les execucions comparades." },
+  { label: 'Payload i ràtio', value: "El format de dades fixa la mida del missatge i la ràtio recomanada abans d'executar." },
+  { label: 'Aïllament del run', value: 'Cada execució ha de crear recursos propis o efímers per no arrossegar missatges, offsets o estat antic.' },
+  { label: 'Recursos objectiu', value: 'Quan el manifest és nostre, requests i limits han de coincidir perquè la prova sigui defensable.' },
 ];
 
+// Text comu per arquitectures i protocols.
+// Marca els paràmetres que l'usuari ha de deixar igual abans de comparar.
 const COMMON_DECISION_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Font de veritat', value: 'queda fixat dins del document Scenario, no com a text lliure de la UI' },
-  { label: 'Càrrega comparable', value: 'mateix format de dades, rate, payload, warmup i durada quan es compara amb altres opcions' },
-  { label: 'Execució neta', value: 'cada run ha de crear identificadors propis per no heretar estat de proves anteriors' },
+  { label: 'Configuració oficial', value: 'La combinació que es prova ha d’estar al document Scenario: broker, arquitectura, protocol, format, rate, payload, warm-up i durada.' },
+  { label: 'Comparació justa', value: 'Compara només runs amb la mateixa càrrega. Si canvies format, ràtio, payload, warm-up o durada, estàs mesurant una altra cosa.' },
+  { label: 'Run aïllat', value: 'Cada execució ha de tenir topic, cua, subject, group-id o client-id propis perquè no hereti dades de proves anteriors.' },
 ];
 
 export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> = {
@@ -66,7 +70,7 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
     { label: 'Port client', value: '9092 dins del clúster' },
     { label: 'Topologia', value: 'single-node' },
     { label: 'Compatibilitat forta', value: 'protocol Kafka i escenaris de log/streaming' },
-    { label: 'Nota de reproductibilitat', value: 'cal documentar si el desplegament real és Confluent o una API Kafka compatible' },
+    { label: 'Nota de reproduïbilitat', value: 'cal documentar si el desplegament real és Confluent o una API Kafka compatible' },
   ],
   RabbitMQ: [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
@@ -113,90 +117,90 @@ const COMPONENT_SNIPPET_ALIASES: Record<string, string> = {
 
 const EDA_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
-  { label: 'Què representa', value: 'productors i consumidors desacoblats que intercanvien esdeveniments mitjançant un broker' },
-  { label: 'Com es replica', value: 'mateix broker, mateix protocol, mateix subject/topic/queue per run i mateixa configuració de càrrega' },
-  { label: 'Variables que cal fixar', value: 'nombre de productors, nombre de consumidors, payload, rate, durada i política de confirmació' },
-  { label: 'Lectura dels resultats', value: 'la latència mesurada és la del missatge complet entre productor i consumidor' },
+  { label: 'Què comprova', value: 'Un productor publica esdeveniments i un consumidor els rep sense dependre directament del productor.' },
+  { label: 'Com es reprodueix', value: 'Usa el mateix broker, protocol i canal del run (topic, cua o subject) amb la mateixa càrrega.' },
+  { label: 'Paràmetres a fixar', value: 'Productors, consumidors, payload, ràtio, durada, warm-up i política de confirmació.' },
+  { label: 'Com llegir el resultat', value: 'La latència és el temps del missatge complet: productor, broker i consumidor.' },
 ];
 
 const QBA_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
-  { label: 'Què representa', value: 'missatges posats en una cua i consumits amb confirmació quan el protocol ho permet' },
-  { label: 'Com es replica', value: 'cua efímera per run, 1 consumidor actiu i ACK del consumidor si la plataforma ho suporta' },
-  { label: 'Variables que cal fixar', value: "prefetch, ACK, durada, rate, payload i nom de cua per execució" },
-  { label: 'Lectura dels resultats', value: 'és bona per comparar absorció de càrrega i estabilitat del consum' },
+  { label: 'Què comprova', value: 'Missatges en una cua, consumits per un consumidor que confirma la recepció quan el protocol ho permet.' },
+  { label: 'Com es reprodueix', value: 'Crea una cua efímera per run, mantén 1 consumidor actiu i declara si hi ha ACK.' },
+  { label: 'Paràmetres a fixar', value: 'Prefetch, ACK, nom de cua, payload, ràtio, warm-up i durada.' },
+  { label: 'Com llegir el resultat', value: 'Serveix per veure si la cua absorbeix càrrega sense acumular errors o retard.' },
 ];
 
 const LCA_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
-  { label: 'Què representa', value: 'missatges escrits en un log ordenat, normalment amb offsets o grups de consum' },
-  { label: 'Com es replica', value: 'topic nou per run o group-id efímer per evitar offsets antics' },
-  { label: 'Variables que cal fixar', value: 'particions, replicació, acks, group-id, retenció i payload' },
-  { label: 'Lectura dels resultats', value: 'és la referència natural per Kafka i plataformes Kafka-compatibles' },
+  { label: 'Què comprova', value: 'Missatges escrits en un log ordenat, llegits amb offsets o grups de consum.' },
+  { label: 'Com es reprodueix', value: 'Crea un topic nou per run o un group-id efímer per evitar offsets antics.' },
+  { label: 'Paràmetres a fixar', value: 'Particions, replicació, acks, group-id, retenció, payload, ràtio i durada.' },
+  { label: 'Com llegir el resultat', value: 'És la lectura més natural per Kafka: mira throughput, P99 i errors junts.' },
 ];
 
 const EMA_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
-  { label: 'Què representa', value: "encaminament d'esdeveniments entre productors, brokers/gateways i consumidors" },
-  { label: 'Com es replica', value: "declarant sempre plataforma, protocol, gateway si existeix i regla d'encaminament usada" },
-  { label: 'Variables que cal fixar', value: 'ruta, format de dades, rate, payload i política de reintent' },
-  { label: 'Lectura dels resultats', value: "només és defensable si queda clar quin component fa d'encaminador" },
+  { label: 'Què comprova', value: "Esdeveniments encaminats entre productor, broker o gateway i consumidor." },
+  { label: 'Com es reprodueix', value: "Declara plataforma, protocol, gateway si existeix i regla d'encaminament usada." },
+  { label: 'Paràmetres a fixar', value: 'Ruta, format de dades, payload, ràtio, política de reintent, warm-up i durada.' },
+  { label: 'Com llegir el resultat', value: "Només és comparable si queda clar quin component fa d'encaminador." },
 ];
 
 const SEA_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
-  { label: 'Què representa', value: "flux continu d'esdeveniments, pensat per consum sostingut i lectura incremental" },
-  { label: 'Com es replica', value: 'stream, topic o subject per run amb consumidor iniciat abans de la mesura' },
-  { label: 'Variables que cal fixar', value: 'payload, rate, durada, mida de batch si aplica i política de retenció' },
-  { label: 'Lectura dels resultats', value: 'serveix per comparar throughput i latència en fluxos continus' },
+  { label: 'Què comprova', value: "Un flux continu d'esdeveniments amb consum sostingut i lectura incremental." },
+  { label: 'Com es reprodueix', value: 'Crea stream, topic o subject per run i inicia el consumidor abans de començar la mesura.' },
+  { label: 'Paràmetres a fixar', value: 'Payload, ràtio, durada, warm-up, mida de batch si aplica i retenció.' },
+  { label: 'Com llegir el resultat', value: 'És útil per comparar throughput i estabilitat en fluxos llargs.' },
 ];
 
 const KAFKA_PROTOCOL_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
   { label: 'Transport', value: 'protocol Kafka sobre el port 9092 del broker compatible' },
-  { label: 'Com es replica', value: 'topic per run, producer amb acks declarats i group-id efímer al consumidor' },
-  { label: 'Plataformes compatibles', value: 'Apache Kafka i Confluent/Kafka-compatible' },
-  { label: 'Variable crítica', value: 'particions, acks i offsets, perquè canvien latència i throughput' },
+  { label: 'Com es reprodueix', value: 'Topic per run, producer amb acks declarats i group-id efímer al consumidor.' },
+  { label: 'Compatible amb', value: 'Apache Kafka i Confluent/Kafka-compatible.' },
+  { label: 'Paràmetre crític', value: 'Particions, acks i offsets, perquè canvien latència i throughput.' },
 ];
 
 const AMQP_PROTOCOL_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
   { label: 'Transport', value: 'AMQP 0.9.1 sobre el port 5672' },
-  { label: 'Com es replica', value: 'exchange/queue efímers per run i ACK del consumidor quan aplica' },
-  { label: 'Plataformes compatibles', value: 'RabbitMQ com a referencia principal del portal' },
-  { label: 'Variable crítica', value: 'ACK, prefetch i tipus de cua, perquè afecten estabilitat i pèrdua' },
+  { label: 'Com es reprodueix', value: 'Exchange i cua efímers per run, amb ACK del consumidor quan aplica.' },
+  { label: 'Compatible amb', value: 'RabbitMQ com a referència principal del portal.' },
+  { label: 'Paràmetre crític', value: 'ACK, prefetch i tipus de cua, perquè afecten estabilitat i pèrdua.' },
 ];
 
 const MQTT_PROTOCOL_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
   { label: 'Transport', value: 'MQTT 5.0, orientat a publish/subscribe lleuger' },
-  { label: 'Com es replica', value: 'topic per run, QoS declarat i client-id efímer per execució' },
-  { label: 'Plataformes compatibles', value: 'brokers MQTT quan estiguin activats al portal' },
-  { label: 'Variable crítica', value: 'QoS i mida de payload, especialment en telemetria IoT' },
+  { label: 'Com es reprodueix', value: 'Topic per run, QoS declarat i client-id efímer per execució.' },
+  { label: 'Compatible amb', value: 'Brokers MQTT quan estiguin activats al portal.' },
+  { label: 'Paràmetre crític', value: 'QoS i mida de payload, especialment en telemetria IoT.' },
 ];
 
 const GRPC_PROTOCOL_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
   { label: 'Transport', value: 'gRPC streaming entre gateway i consumidor quan hi ha gateway compatible' },
-  { label: 'Com es replica', value: 'mateix servei, mateix mètode streaming i mateix esquema de missatge' },
-  { label: 'Plataformes compatibles', value: 'necessita gateway o adaptador; no tots els brokers el parlen directament' },
-  { label: 'Variable crítica', value: 'serialització, connexió persistent i mida del missatge' },
+  { label: 'Com es reprodueix', value: 'Mateix servei, mateix mètode streaming i mateix esquema de missatge.' },
+  { label: 'Compatible amb', value: 'Necessita gateway o adaptador; no tots els brokers el parlen directament.' },
+  { label: 'Paràmetre crític', value: 'Serialització, connexió persistent i mida del missatge.' },
 ];
 
 const WS_PROTOCOL_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
   { label: 'Transport', value: "WebSocket cap al consumidor final, normalment a través d'un gateway" },
-  { label: 'Com es replica', value: "mateix endpoint, mateix protocol d'autenticació si existeix i mateix payload" },
-  { label: 'Plataformes compatibles', value: 'brokers amb gateway WebSocket o adaptador propi' },
-  { label: 'Variable crítica', value: 'connexió persistent, backpressure i mida dels missatges enviats al client' },
+  { label: 'Com es reprodueix', value: "Mateix endpoint, mateix protocol d'autenticació si existeix i mateix payload." },
+  { label: 'Compatible amb', value: 'Brokers amb gateway WebSocket o adaptador propi.' },
+  { label: 'Paràmetre crític', value: 'Connexió persistent, backpressure i mida dels missatges enviats al client.' },
 ];
 
 const NATS_PROTOCOL_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
   { label: 'Transport', value: 'protocol NATS sobre el port 4222' },
-  { label: 'Com es replica', value: "subject per run i preflight de max_payload abans d'enviar payloads grans" },
-  { label: 'Plataformes compatibles', value: 'NATS Server' },
-  { label: 'Variable crítica', value: 'max_payload, JetStream si aplica i política de subscripció' },
+  { label: 'Com es reprodueix', value: "Subject per run i comprovació de max_payload abans d'enviar payloads grans." },
+  { label: 'Compatible amb', value: 'NATS Server.' },
+  { label: 'Paràmetre crític', value: 'max_payload, JetStream si aplica i política de subscripció.' },
 ];
 
 export const REPRODUCIBILITY_BY_COMPONENT_NAME: Record<string, ReproducibilityRow[]> = {
@@ -455,7 +459,7 @@ export function getReproducibilityRows(component: any): ReproducibilityRow[] | n
     return [
       ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
       { label: 'Definició', value: "s'aplica dins d'un escenari amb plataforma, format, rate i durada concrets" },
-      { label: 'Reproductibilitat', value: 'no és un producte desplegat; és una decisió del contracte Scenario' },
+      { label: 'Reproduïbilitat', value: 'No és un producte desplegat: és una decisió del document Scenario i s’ha de repetir igual quan es compara.' },
     ];
   }
 

@@ -4,6 +4,7 @@ import { S, CATEGORY_COLORS } from '../theme';
 import { FilterPanel } from '../components/FilterPanel';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { TutorialButton } from '../components/TutorialOverlay';
+import { GuidePanel } from '../components/GuidePanel';
 import {
   ALL_PLATFORMS,
   COMPATIBILITY,
@@ -359,7 +360,12 @@ const CategoryCard = ({
   );
 };
 
+// Guia del catàleg: mostra quines combinacions pot executar el portal.
+// Usa el mateix format que la resta de guies.
 const CompatibilitySummary = () => {
+  const { t, tRaw } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const compatibilityNotes = (tRaw('catalog.compatibilityNotes') as Record<string, string> | undefined) ?? COMPATIBILITY_NOTES;
   const chip = (value: string, color: string) => (
     <span key={value} style={{ ...S.badge(color), fontSize: 10, padding: '2px 7px' }}>
       {value}
@@ -367,29 +373,23 @@ const CompatibilitySummary = () => {
   );
 
   return (
-    <details style={{ ...S.card, marginBottom: 20, padding: 0, overflow: 'hidden' }}>
-      <summary
-        style={{
-          cursor: 'pointer',
-          padding: '14px 18px',
-          fontWeight: 800,
-          color: 'var(--text-primary)',
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        Combinacions compatibles del portal
-        <span style={{ marginLeft: 8, fontSize: 12, fontWeight: 500, color: 'var(--text-secondary)' }}>
-          Taula compacta per entendre quina plataforma accepta cada arquitectura i protocol
-        </span>
-      </summary>
-      <div style={{ padding: 16, overflowX: 'auto' }}>
+    <GuidePanel
+      title={t('catalog.compatTable.heading')}
+      subtitle={t('catalog.compatTable.subtitle')}
+      open={open}
+      onToggle={() => setOpen(value => !value)}
+      showLabel={t('scenarios.guide.show')}
+      hideLabel={t('scenarios.guide.hide')}
+      marginBottom={20}
+    >
+      <div style={{ marginTop: 16, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
           <thead>
             <tr style={S.tableHeader}>
-              <th style={{ ...S.th, width: 170 }}>Plataforma</th>
-              <th style={S.th}>Arquitectures admeses</th>
-              <th style={S.th}>Protocols admesos</th>
-              <th style={S.th}>Lectura ràpida</th>
+              <th style={{ ...S.th, width: 170 }}>{t('catalog.compatTable.colPlatform')}</th>
+              <th style={S.th}>{t('catalog.compatTable.colArchitectures')}</th>
+              <th style={S.th}>{t('catalog.compatTable.colProtocols')}</th>
+              <th style={S.th}>{t('catalog.compatTable.colQuickRead')}</th>
             </tr>
           </thead>
           <tbody>
@@ -421,7 +421,7 @@ const CompatibilitySummary = () => {
                     </div>
                   </td>
                   <td style={{ ...S.td, color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.5 }}>
-                    {COMPATIBILITY_NOTES[platform] || 'Combinació declarada a la matriu de compatibilitat del portal.'}
+                    {compatibilityNotes[platform] || 'Combinació declarada a la matriu de compatibilitat del portal.'}
                   </td>
                 </tr>
               );
@@ -429,7 +429,7 @@ const CompatibilitySummary = () => {
           </tbody>
         </table>
       </div>
-    </details>
+    </GuidePanel>
   );
 };
 
@@ -503,6 +503,7 @@ const ComponentDetailModal = ({
   const label = componentCategoryLabel(component, categoryLabels);
   const version = getKnownComponentVersion(component);
   const reproducibilityRows = getReproducibilityRows(component);
+  const reproducibilityChecklist = (tRaw('catalog.modal.reproChecklist') as string[] | undefined) ?? [];
   const snippet = getReproducibilitySnippet(component);
   const scenarioUrl = buildScenarioUrl(component);
   const typedComponent = component as CatalogComponent & {
@@ -701,6 +702,23 @@ const ComponentDetailModal = ({
               </div>
               <StatusBadge status={getReproducibilityStatus(component)} />
             </div>
+
+            {/* Checklist curt per saber què cal repetir abans de comparar resultats. */}
+            {reproducibilityChecklist.length > 0 && (
+              <div style={{ margin: '0 0 14px', padding: 12, border: `1px solid ${color}26`, borderRadius: 8, background: `${color}0d` }}>
+                <div style={{ fontSize: 12, fontWeight: 850, color: 'var(--text-primary)', marginBottom: 8 }}>
+                  {t('catalog.modal.reproChecklistTitle')}
+                </div>
+                <div style={{ display: 'grid', gap: 6 }}>
+                  {reproducibilityChecklist.map(item => (
+                    <div key={item} style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, marginTop: 6, flexShrink: 0 }} />
+                      <span style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {reproducibilityRows ? (
               <div style={{ borderTop: '1px solid var(--border)' }}>

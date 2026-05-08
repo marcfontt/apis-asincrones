@@ -503,7 +503,7 @@
     "colCategory": "Categoría",
     "colVersion": "Versión",
     "colDescription": "Descripción",
-    "tableHeading": "Componentes del benchmark",
+    "tableHeading": "Componentes",
     "tableSubheading": "Selecciona un componente para ver la ficha completa.",
     "categoryLabels": {
       "architecture": "Arquitectura",
@@ -551,11 +551,11 @@
       "copied": "Copiado",
       "overviewFallback": "Componente utilizado por el portal de benchmark.",
       "impactFallback": "Su impacto depende de cómo se combina dentro del escenario.",
-      "reproDescription": "Versión, configuración y pasos de replicación: solo lo necesario para reproducir las mismas condiciones.",
+      "reproDescription": "Reproducibilidad significa poder repetir la prueba con las mismas condiciones y comparar el resultado sin trampas. Fija versión, escenario, carga y aislamiento del run antes de ejecutar.",
       "noReproRows": "Este componente todavía no tiene datos de reproducibilidad estructurados.",
       "noConfigSnippet": "Este componente todavía no tiene ningún snippet de configuración.",
       "useDescription": "Abre el formulario de escenarios con este valor preseleccionado cuando sea posible.",
-      "sectionWhat": "Qué representa dentro del benchmark",
+      "sectionWhat": "Papel dentro de la prueba",
       "sectionCard": "Ficha rápida",
       "labelCategory": "Categoría",
       "labelShortName": "Nombre corto",
@@ -565,14 +565,22 @@
       "btnCopied": "Copiado",
       "btnCopy": "Copiar",
       "btnUse": "Utilizar este componente",
-      "btnCreateScenario": "Crear escenario"
+      "btnCreateScenario": "Crear escenario",
+      "reproChecklistTitle": "Antes de replicar",
+      "reproChecklist": [
+        "Usa la misma versión del componente y el mismo despliegue.",
+        "Repite el mismo escenario: broker, arquitectura, protocolo y formato.",
+        "Mantén iguales payload, ratio, warm-up y duración.",
+        "Crea un run aislado con topic, cola, subject o group-id propio."
+      ]
     },
     "compatTable": {
-      "heading": "Compatibilidad de plataformas",
+      "heading": "Combinaciones compatibles",
       "colPlatform": "Plataforma",
       "colArchitectures": "Arquitecturas admitidas",
       "colProtocols": "Protocolos admitidos",
-      "colQuickRead": "Lectura rápida"
+      "colQuickRead": "Lectura rápida",
+      "subtitle": "Qué opciones puedes combinar sin salir de lo que el portal sabe ejecutar."
     },
     "compatDetails": {
       "compatibleArchitectures": "Arquitecturas compatibles",
@@ -847,24 +855,24 @@
     "notAvailable": "Aún no disponible",
     "lastRefreshed": "Actualizado:",
     "guide": {
-      "title": "Ejecuciones",
-      "subtitle": "Cada run es una ejecución de un escenario en el clúster AKS.",
+      "title": "Guía de ejecuciones",
+      "subtitle": "Qué significa cada estado, qué puedes hacer con un run y cuándo pasar a Resultados.",
       "items": [
         {
-          "title": "Lanza un run",
-          "text": "Ve a Escenarios y pulsa Ejecutar. El sistema crea un run y lo añade aquí."
+          "title": "Estados",
+          "text": "Pendiente aún no ha empezado. En ejecución está enviando carga. Completado ha llegado al final. Parado se ha cancelado manualmente. Error significa que el run ha fallado."
         },
         {
-          "title": "Sigue el progreso",
-          "text": "Los runs muestran estado en tiempo real: pendiente, en ejecución, completado o error."
+          "title": "Detalle de un run",
+          "text": "Haz clic en una fila para ver configuración, tiempos, mensajes enviados, mensajes recibidos y medidas registradas."
         },
         {
-          "title": "Detén si es necesario",
-          "text": "Puedes detener un run en ejecución. El run queda marcado como detenido y los datos parciales se conservan."
+          "title": "Acciones",
+          "text": "Parar conserva los datos que ya hayan llegado. Borrar elimina el run y sus muestras. Reiniciar todo vacía ejecuciones y medidas."
         },
         {
-          "title": "Revisa resultados",
-          "text": "Una vez completado, ve a Resultados para comparar métricas entre runs y escenarios."
+          "title": "Paso a Resultados",
+          "text": "Cuando el run termina, Resultados lee las medidas guardadas y las compara sin mezclar repeticiones."
         }
       ]
     },
@@ -923,6 +931,7 @@
     },
     "glossary": {
       "title": "Cómo interpretar esta página",
+      "shortSubtitle": "Qué son mensajes, medidas y puntuación.",
       "heading": "Glosario rápido",
       "sectionMetrics": "Métricas que ves en la tabla",
       "sectionScore": "Cómo funciona la puntuación",

@@ -503,7 +503,7 @@
     "colCategory": "Category",
     "colVersion": "Version",
     "colDescription": "Description",
-    "tableHeading": "Benchmark components",
+    "tableHeading": "Components",
     "tableSubheading": "Select a component to see the full card.",
     "categoryLabels": {
       "architecture": "Architecture",
@@ -551,11 +551,11 @@
       "copied": "Copied",
       "overviewFallback": "Component used by the benchmark portal.",
       "impactFallback": "Its impact depends on how it is combined inside the scenario.",
-      "reproDescription": "Version, configuration, and replication steps: only what is needed to reproduce the same conditions.",
+      "reproDescription": "Reproducibility means repeating the test with the same conditions and comparing the result fairly. Fix the version, scenario, load and run isolation before launching.",
       "noReproRows": "This component does not yet have structured reproducibility data.",
       "noConfigSnippet": "This component does not yet have a configuration snippet.",
       "useDescription": "Open the scenario form with this value preselected when possible.",
-      "sectionWhat": "What it represents within the benchmark",
+      "sectionWhat": "Role in the test",
       "sectionCard": "Quick card",
       "labelCategory": "Category",
       "labelShortName": "Short name",
@@ -565,14 +565,22 @@
       "btnCopied": "Copied",
       "btnCopy": "Copy",
       "btnUse": "Use this component",
-      "btnCreateScenario": "Create scenario"
+      "btnCreateScenario": "Create scenario",
+      "reproChecklistTitle": "Before replicating",
+      "reproChecklist": [
+        "Use the same component version and deployment.",
+        "Repeat the same scenario: broker, architecture, protocol and format.",
+        "Keep payload, rate, warm-up and duration unchanged.",
+        "Create an isolated run with its own topic, queue, subject or group-id."
+      ]
     },
     "compatTable": {
-      "heading": "Platform compatibility",
+      "heading": "Compatible combinations",
       "colPlatform": "Platform",
       "colArchitectures": "Supported architectures",
       "colProtocols": "Supported protocols",
-      "colQuickRead": "Quick read"
+      "colQuickRead": "Quick read",
+      "subtitle": "Which options you can combine while staying within what the portal can run."
     },
     "compatDetails": {
       "compatibleArchitectures": "Compatible architectures",
@@ -847,24 +855,24 @@
     "notAvailable": "Not yet available",
     "lastRefreshed": "Updated:",
     "guide": {
-      "title": "Executions",
-      "subtitle": "Each run is an execution of a scenario on the AKS cluster.",
+      "title": "Execution guide",
+      "subtitle": "What each status means, what you can do with a run and when to move to Results.",
       "items": [
         {
-          "title": "Launch a run",
-          "text": "Go to Scenarios and press Execute. The system creates a run and adds it here."
+          "title": "Statuses",
+          "text": "Pending has not started yet. Running is sending load. Completed reached the end. Stopped was cancelled manually. Error means the run failed."
         },
         {
-          "title": "Follow the progress",
-          "text": "Runs show real-time status: pending, running, completed or error."
+          "title": "Run detail",
+          "text": "Click a row to see configuration, timing, sent messages, received messages and stored measurements."
         },
         {
-          "title": "Stop if needed",
-          "text": "You can stop a running run. The run is marked as stopped and partial data is preserved."
+          "title": "Actions",
+          "text": "Stop keeps data that has already arrived. Delete removes the run and its samples. Reset all clears executions and measurements."
         },
         {
-          "title": "Review results",
-          "text": "Once completed, go to Results to compare metrics between runs and scenarios."
+          "title": "Move to Results",
+          "text": "When the run finishes, Results reads the stored measurements and compares them without mixing repetitions."
         }
       ]
     },
@@ -923,6 +931,7 @@
     },
     "glossary": {
       "title": "How to interpret this page",
+      "shortSubtitle": "What messages, measurements and score mean.",
       "heading": "Quick glossary",
       "sectionMetrics": "Metrics shown in the table",
       "sectionScore": "How the score works",

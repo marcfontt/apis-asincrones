@@ -160,7 +160,7 @@
       },
       "step4": {
         "title": "Mira la configuració",
-        "body": "El detall separa informació general, configuració i reproductibilitat.",
+        "body": "El detall separa informació general, configuració i reproduïbilitat.",
         "details": [
           "Revisa versions i ports.",
           "Copia snippets només si els necessites."
@@ -494,7 +494,7 @@
     "heading": "Catàleg de components",
     "subheading": "Components, versions i configuració necessària per replicar les proves.",
     "filterTitle": "Filtres del catàleg",
-    "searchPlaceholder": "Cerca per nom, versió, tag, categoria o reproductibilitat",
+    "searchPlaceholder": "Cerca per nom, versió, tag, categoria o reproduïbilitat",
     "filterAll": "Tots",
     "noCategory": "Sense categoria",
     "noDescription": "Sense descripció",
@@ -503,7 +503,7 @@
     "colCategory": "Categoria",
     "colVersion": "Versió",
     "colDescription": "Descripció",
-    "tableHeading": "Components del benchmark",
+    "tableHeading": "Components",
     "tableSubheading": "Selecciona un component per veure la fitxa completa.",
     "categoryLabels": {
       "architecture": "Arquitectura",
@@ -551,28 +551,36 @@
       "copied": "Copiat",
       "overviewFallback": "Component utilitzat pel portal de benchmark.",
       "impactFallback": "El seu impacte depèn de com es combina dins de l'escenari.",
-      "reproDescription": "Versió, configuració i passos de replicació: només el que cal per reproduir les mateixes condicions.",
+      "reproDescription": "Reproduïbilitat vol dir poder repetir la prova amb les mateixes condicions i comparar el resultat sense trampes. Fixa versió, escenari, càrrega i aïllament del run abans d’executar.",
       "noReproRows": "Aquest component encara no té dades de reproduïbilitat estructurades.",
       "noConfigSnippet": "Aquest component encara no té cap snippet de configuració.",
       "useDescription": "Obre el formulari d'escenaris amb aquest valor preseleccionat quan sigui possible.",
-      "sectionWhat": "Que representa dins del benchmark",
+      "sectionWhat": "Paper dins de la prova",
       "sectionCard": "Fitxa ràpida",
       "labelCategory": "Categoria",
       "labelShortName": "Nom curt",
       "labelVersion": "Versió",
-      "labelRepro": "Reproductibilitat",
+      "labelRepro": "Reproduïbilitat",
       "labelCreatedAt": "Afegit el",
       "btnCopied": "Copiat",
       "btnCopy": "Copiar",
       "btnUse": "Utilitzar aquest component",
-      "btnCreateScenario": "Crear escenari"
+      "btnCreateScenario": "Crear escenari",
+      "reproChecklistTitle": "Abans de replicar",
+      "reproChecklist": [
+        "Usa la mateixa versió del component i el mateix desplegament.",
+        "Repeteix el mateix escenari: broker, arquitectura, protocol i format.",
+        "Mantén iguals payload, ràtio, warm-up i durada.",
+        "Crea un run aïllat amb topic, cua, subject o group-id propi."
+      ]
     },
     "compatTable": {
-      "heading": "Compatibilitat de plataformes",
+      "heading": "Combinacions compatibles",
       "colPlatform": "Plataforma",
-      "colArchitectures": "Arquitectures admèses",
-      "colProtocols": "Protocols admèsos",
-      "colQuickRead": "Lectura ràpida"
+      "colArchitectures": "Arquitectures admeses",
+      "colProtocols": "Protocols admesos",
+      "colQuickRead": "Lectura ràpida",
+      "subtitle": "Quines opcions pots combinar sense sortir del que el portal sap executar."
     },
     "compatDetails": {
       "compatibleArchitectures": "Arquitectures compatibles",
@@ -847,24 +855,24 @@
     "notAvailable": "Encara no disponible",
     "lastRefreshed": "Actualitzat:",
     "guide": {
-      "title": "Execucions",
-      "subtitle": "Cada run és una execució d'un escenari al clúster AKS.",
+      "title": "Guia d’execucions",
+      "subtitle": "Què significa cada estat, què pots fer amb un run i quan has de passar a Resultats.",
       "items": [
         {
-          "title": "Llança un run",
-          "text": "Ves a Escenaris i prem Executar. El sistema crea un run i l'afegeix aquí."
+          "title": "Estats",
+          "text": "Pendent encara no ha començat. En execució està enviant càrrega. Completat ha arribat al final. Aturat s’ha cancel·lat manualment. Error vol dir que el run ha fallat."
         },
         {
-          "title": "Segueix el progrés",
-          "text": "Els runs mostren estat en temps real: pendent, en execució, completat o error."
+          "title": "Detall d’un run",
+          "text": "Clica una fila per veure configuració, temps, missatges enviats, missatges rebuts i mesures registrades."
         },
         {
-          "title": "Atura si cal",
-          "text": "Pots aturar un run en execució. El run queda marcat com a aturat i les dades parcials es conserven."
+          "title": "Accions",
+          "text": "Aturar conserva les dades que ja hagin arribat. Esborrar elimina el run i les seves mostres. Reiniciar tot buida execucions i mesures."
         },
         {
-          "title": "Revisa resultats",
-          "text": "Un cop completat, ves a Resultats per comparar mètriques entre runs i escenaris."
+          "title": "Pas a Resultats",
+          "text": "Quan el run acaba, Resultats llegeix les mesures guardades i les compara sense barrejar repeticions."
         }
       ]
     },
@@ -923,6 +931,7 @@
     },
     "glossary": {
       "title": "Com interpretar aquesta pàgina",
+      "shortSubtitle": "Què són missatges, mesures i puntuació.",
       "heading": "Glossari ràpid",
       "sectionMetrics": "Mètriques que veus a la taula",
       "sectionScore": "Com funciona la puntuació",

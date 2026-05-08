@@ -44,6 +44,7 @@ import { S } from '../theme';
 import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { TutorialButton } from '../components/TutorialOverlay';
+import { GuideItemCard, GuidePanel } from '../components/GuidePanel';
 import { EDUCATION } from '../shared/content/education';
 import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
 import { aggregateScenarioHistory, getRunMeasureCount, getRunMessageCount, getRunSentCount, getScenarioMeasureCount } from '../shared/results/historyMetrics';
@@ -480,17 +481,14 @@ const IconFilter = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="n
 /** Small search icon used in live/history quick-search inputs. */
 const SearchIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
 
-/** Info icon used in MetricGlossary header. */
-const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
-
-/**
- * MetricGlossary - collapsible reference panel that explains each metric,
- * the composite scoring formula, and per-format weight tables.
- * Helps users interpret the comparative table without leaving the page.
+ /**
+  * Guia de resultats.
+ * Explica missatges, mesures i puntuació amb el mateix format que la resta de guies.
  */
 const METRIC_GLOSSARY_STORAGE_KEY = 'asyncbenchmark:metricGlossary:open';
 
 const MetricGlossary = () => {
+  const { t } = useTranslation();
   const [open, setOpen] = React.useState<boolean>(() => {
     try {
       return window.localStorage.getItem(METRIC_GLOSSARY_STORAGE_KEY) === 'true';
@@ -509,17 +507,15 @@ const MetricGlossary = () => {
   const metricColor: Record<string, string> = { lat: '#f59e0b', p50: '#3b82f6', p99: '#7c3aed', tput: '#22c55e', err: '#ef4444' };
 
   return (
-    <div style={{ ...S.card, marginBottom: 16, padding: 0, overflow: 'hidden' }}>
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-primary)' }}
-      >
-        <span style={{ color: '#3b82f6' }}><IconInfo /></span>
-        <span style={{ fontWeight: 700, fontSize: 13, flex: 1, textAlign: 'left' }}>{guide.title}</span>
-        <IconChevron open={open} />
-      </button>
-      {open && (
-        <div style={{ padding: '0 16px 16px', borderTop: '1px solid var(--border)' }}>
+    <GuidePanel
+      title={guide.title}
+      subtitle={t('resultats.glossary.shortSubtitle')}
+      open={open}
+      onToggle={() => setOpen(o => !o)}
+      showLabel={t('scenarios.guide.show')}
+      hideLabel={t('scenarios.guide.hide')}
+      marginBottom={16}
+    >
           <div style={{ marginTop: 14, padding: '12px 14px', background: 'rgba(59,130,246,0.06)', border: '1px solid rgba(59,130,246,0.18)', borderRadius: 10 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Com interpretar aquesta pàgina</div>
             <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
@@ -531,10 +527,7 @@ const MetricGlossary = () => {
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Glossari ràpid</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 8 }}>
               {guide.terminology.map(item => (
-                <div key={item.title} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 10px' }}>
-                  <div style={{ fontWeight: 700, fontSize: 12, color: item.accent, marginBottom: 4 }}>{item.title}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{item.description}</div>
-                </div>
+                <GuideItemCard key={item.title} title={item.title} text={item.description} color={item.accent} />
               ))}
             </div>
           </div>
@@ -544,10 +537,7 @@ const MetricGlossary = () => {
             <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Mètriques que veus a la taula</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
               {guide.metricDefinitions.map(item => (
-                <div key={item.title} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 10px' }}>
-                  <div style={{ fontWeight: 700, fontSize: 12, color: item.accent, marginBottom: 3 }}>{item.title}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.5 }}>{item.description}</div>
-                </div>
+                <GuideItemCard key={item.title} title={item.title} text={item.description} color={item.accent} />
               ))}
             </div>
           </div>
@@ -601,9 +591,7 @@ const MetricGlossary = () => {
               </table>
             </div>
           </div>
-        </div>
-      )}
-    </div>
+    </GuidePanel>
   );
 };
 
