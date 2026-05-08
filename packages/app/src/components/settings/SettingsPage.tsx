@@ -132,7 +132,9 @@ const IdentitySection = () => {
               }}
             >
               {value ?? (
-                <span style={{ color: 'var(--text-disabled)', fontFamily: 'var(--font)' }}>-</span>
+                <span style={{ color: 'var(--text-disabled)', fontFamily: 'var(--font)' }}>
+                  {t('settings.identity.empty')}
+                </span>
               )}
             </dd>
           </div>

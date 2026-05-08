@@ -28,7 +28,8 @@
       "title": "Identidad",
       "user": "Usuario",
       "email": "Correo",
-      "entity": "Entidad"
+      "entity": "Entidad",
+      "empty": "No disponible"
     },
     "language": {
       "title": "Idioma",

@@ -28,7 +28,8 @@
       "title": "Identitat",
       "user": "Usuari",
       "email": "Correu",
-      "entity": "Entitat"
+      "entity": "Entitat",
+      "empty": "No disponible"
     },
     "language": {
       "title": "Idioma",

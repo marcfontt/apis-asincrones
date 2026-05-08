@@ -28,7 +28,8 @@
       "title": "Identity",
       "user": "User",
       "email": "Email",
-      "entity": "Entity"
+      "entity": "Entity",
+      "empty": "Not available"
     },
     "language": {
       "title": "Language",
