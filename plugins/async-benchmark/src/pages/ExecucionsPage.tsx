@@ -43,10 +43,10 @@ import { getRunMeasureCount, getRunMessageCount, getRunSentCount } from '../shar
 const ORCHESTRATOR   = '/api/proxy/benchmark-orchestrator';
 const SCENARIOS_BASE = '/api/proxy/scenario-service';
 // Metrics API serves the persistent run history from Elasticsearch. We need it
-// here because the orchestrator keeps runs in memory only — after a pod restart
+// here because the orchestrator keeps runs in memory only; after a pod restart
 // its /runs list is empty, even though the runs are still in ES. Without this
 // fallback the Execucions page shows 0 rows while the Historial/Resultats tab
-// shows 163 — a jarring inconsistency for the user.
+// shows 163, a jarring inconsistency for the user.
 const METRICS_BASE   = '/api/proxy/metrics-api';
 
 /* ---------------------------------------------------------------------------
@@ -1103,7 +1103,7 @@ export const ExecucionsPage = () => {
 
         const orchIds = new Set(enrichedOrchRuns.map(r => String(r.id || r.runId)));
         // For each ES summary that is NOT already in the orchestrator list,
-        // synthesize a completed run object. Unknown fields stay undefined —
+        // synthesize a completed run object. Unknown fields stay undefined;
         // the table renderer already handles missing badges gracefully.
         const synthetic = summary
           .filter((s: any) => s.runId && !orchIds.has(String(s.runId)))
@@ -1157,7 +1157,7 @@ export const ExecucionsPage = () => {
   useEffect(() => {
     fetchRuns(); // initial fetch on mount
     if (!hasActiveRuns && hasLoadedRunsRef.current) {
-      // All runs are finished — no need to keep polling; user can refresh manually
+      // All runs are finished; no need to keep polling, user can refresh manually
       return undefined;
     }
     const i = setInterval(fetchRuns, 8000);
@@ -1583,7 +1583,7 @@ export const ExecucionsPage = () => {
    * Danger action: wipes the orchestrator's in-memory run list AND the full
    * async-metrics index in Elasticsearch. After this returns, both
    * Execucions and Historial read as if the cluster had just been installed.
-   * Confirmation is mandatory — the action is irreversible and destroys
+   * Confirmation is mandatory; the action is irreversible and destroys
    * benchmark history across ALL scenarios, not just the visible ones.
    */
   const handleResetAll = () => {

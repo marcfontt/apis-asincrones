@@ -1,10 +1,10 @@
 /**
- * SettingsPage.tsx — Pàgina de configuració personalitzada
+ * SettingsPage.tsx - Pàgina de configuració personalitzada
  *
  * Seccions:
- *   1. Identitat   — informació de l'usuari actual (via identityApiRef)
- *   2. Idioma      — selector ca/es/en, persistit a localStorage
- *   3. Aparença    — commutador de tema clar/fosc (via storageApiRef)
+ *   1. Identitat - informació de l'usuari actual (via identityApiRef)
+ *   2. Idioma - selector ca/es/en, persistit a localStorage
+ *   3. Aparença - commutador de tema clar/fosc (via storageApiRef)
  *
  * Utilitza el patró S de theme.ts per a tots els estils inline.
  */
@@ -20,7 +20,7 @@ const THEME_KEY = '@backstage/core-app-api:themeId';
 
 type Language = 'ca' | 'es' | 'en';
 
-// ── Injecció del CSS global (variables + animacions) ──────────────────────────
+// -- Injecció del CSS global (variables + animacions) --------------------------
 const useGlobalCss = () => {
   useEffect(() => {
     const id = 'async-benchmark-global-css';
@@ -33,7 +33,7 @@ const useGlobalCss = () => {
   }, []);
 };
 
-// ── Secció card genèrica ──────────────────────────────────────────────────────
+// -- Secció card genèrica ------------------------------------------------------
 const SettingsCard = ({
   title,
   children,
@@ -69,7 +69,7 @@ const SettingsCard = ({
   </div>
 );
 
-// ── 1. Secció Identitat ───────────────────────────────────────────────────────
+// -- 1. Secció Identitat -------------------------------------------------------
 const IdentitySection = () => {
   const { t } = useTranslation();
   const identityApi = useApi(identityApiRef);
@@ -132,7 +132,7 @@ const IdentitySection = () => {
               }}
             >
               {value ?? (
-                <span style={{ color: 'var(--text-disabled)', fontFamily: 'var(--font)' }}>—</span>
+                <span style={{ color: 'var(--text-disabled)', fontFamily: 'var(--font)' }}>-</span>
               )}
             </dd>
           </div>
@@ -142,7 +142,7 @@ const IdentitySection = () => {
   );
 };
 
-// ── 2. Secció Idioma ──────────────────────────────────────────────────────────
+// -- 2. Secció Idioma ----------------------------------------------------------
 const LanguageSection = () => {
   const { t } = useTranslation();
 
@@ -218,7 +218,7 @@ const LanguageSection = () => {
   );
 };
 
-// ── 3. Secció Aparença ────────────────────────────────────────────────────────
+// -- 3. Secció Aparença --------------------------------------------------------
 const AppearanceSection = () => {
   const { t } = useTranslation();
   const storageApi = useApi(storageApiRef);
@@ -243,7 +243,7 @@ const AppearanceSection = () => {
     try {
       localStorage.setItem(THEME_KEY, JSON.stringify(id));
       // Notify same-tab listeners (Root.tsx polls every 300ms, but storage
-      // event doesn't fire for the same tab — the poll covers it)
+      // event doesn't fire for the same tab, so the poll covers it)
       document.documentElement.setAttribute('data-theme', id);
     } catch {
       // ignore
@@ -301,47 +301,7 @@ const AppearanceSection = () => {
   );
 };
 
-const SessionSection = () => {
-  const { t } = useTranslation();
-
-  const handleLogout = () => {
-    localStorage.removeItem('apis-asincrones.language');
-    // Future: clear auth token here
-    window.location.href = '/';
-  };
-
-  return (
-    <SettingsCard title={t('settings.session.title')}>
-      <p
-        style={{
-          margin: '0 0 16px',
-          fontSize: 14,
-          fontWeight: 400,
-          color: 'var(--text-secondary)',
-          fontFamily: 'var(--font)',
-          lineHeight: 1.6,
-        }}
-      >
-        {t('settings.session.description')}
-      </p>
-      <button
-        type="button"
-        onClick={handleLogout}
-        style={{
-          ...S.btn,
-          background: 'var(--danger-soft)',
-          color: 'var(--danger)',
-          border: '1px solid var(--danger-border)',
-          fontWeight: 700,
-        }}
-      >
-        {t('settings.session.logout')}
-      </button>
-    </SettingsCard>
-  );
-};
-
-// ── Component principal ───────────────────────────────────────────────────────
+// -- Component principal -------------------------------------------------------
 export const SettingsPage = () => {
   const { t } = useTranslation();
   useGlobalCss();
@@ -365,7 +325,6 @@ export const SettingsPage = () => {
         <IdentitySection />
         <LanguageSection />
         <AppearanceSection />
-        <SessionSection />
       </div>
     </div>
   );

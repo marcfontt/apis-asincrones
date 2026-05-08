@@ -42,11 +42,6 @@
       "description": "Change the visual theme of the application",
       "light": "Light",
       "dark": "Dark"
-    },
-    "session": {
-      "title": "Session",
-      "description": "Sign out of the current session and return to the start screen.",
-      "logout": "Sign out"
     }
   },
   "common": {

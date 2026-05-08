@@ -42,11 +42,6 @@
       "description": "Canvia el tema visual de l'aplicació",
       "light": "Clar",
       "dark": "Fosc"
-    },
-    "session": {
-      "title": "Sessió",
-      "description": "Tanca la sessió actual i torna a la pantalla d'inici.",
-      "logout": "Tancar sessió"
     }
   },
   "common": {

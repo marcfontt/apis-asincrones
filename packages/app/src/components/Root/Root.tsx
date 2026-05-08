@@ -1,5 +1,5 @@
 /**
- * Root.tsx — Component arrel de l'aplicació Backstage
+ * Root.tsx - Component arrel de l'aplicació Backstage
  *
  * Responsabilitats:
  *  1. Sidebar de navegació amb icones i rutes
@@ -16,13 +16,13 @@
 
 import { PropsWithChildren, useEffect } from 'react';
 
-// ── CSS de dark mode per a la shell de Backstage ───────────────────────────────
+// -- CSS de dark mode per a la shell de Backstage -------------------------------
 // Tots els selectors usen [class*="..."] per ser resilients als hash de MUI v4.
 // IMPORTANT: No aplicar color a MuiTypography de forma global (trenca els badges).
 // En lloc d'això, aplicar-lo per context (dins MuiPaper, MuiCard, etc.).
 const DARK_MODE_CSS = `
 
-  /* ── 1. Fons principal de l'aplicació ──────────────────────────────── */
+  /* -- 1. Fons principal de l'aplicació -------------------------------- */
   [data-theme="dark"],
   [data-theme="dark"] body {
     background-color: #09090b !important;
@@ -42,7 +42,7 @@ const DARK_MODE_CSS = `
     background-color: #09090b !important;
   }
 
-  /* ── 2. Sidebar / Drawer lateral ───────────────────────────────────── */
+  /* -- 2. Sidebar / Drawer lateral ------------------------------------- */
   /* Backstage 0.18.x uses multiple possible class-name patterns depending on
      the MUI version and build mode. We cast a wide net here so the sidebar
      always renders in our dark navy regardless of the exact classname hash. */
@@ -123,7 +123,7 @@ const DARK_MODE_CSS = `
     border-bottom: 1px solid #21262d !important;
   }
 
-  /* ── 3. AppBar / Toolbar (barra superior quan existeix) ─────────────── */
+  /* -- 3. AppBar / Toolbar (barra superior quan existeix) --------------- */
   [data-theme="dark"] [class*="MuiAppBar-root"],
   [data-theme="dark"] [class*="MuiToolbar-root"] {
     background-color: #0d1117 !important;
@@ -132,7 +132,7 @@ const DARK_MODE_CSS = `
     box-shadow: none !important;
   }
 
-  /* ── 4. Superfícies MUI (Paper, Card) — CONTEXT: Settings / Modals ─── */
+  /* 4. Superfícies MUI (Paper, Card) - CONTEXT: Settings / Modals */
   /* Atenció: NO aplicar a MuiDrawer (ja cobert per regla sidebar) */
   [data-theme="dark"] [class*="MuiPaper-root"]:not([class*="MuiDrawer-paper"]) {
     background-color: #161b22 !important;
@@ -164,7 +164,7 @@ const DARK_MODE_CSS = `
     color: #8b949e !important;
   }
 
-  /* ── 5. Tabs (pestanyes de la pàgina Settings) ──────────────────────── */
+  /* -- 5. Tabs (pestanyes de la pàgina Settings) ------------------------ */
   [data-theme="dark"] [class*="MuiTab-root"] {
     color: #8b949e !important;
     opacity: 1 !important;
@@ -180,7 +180,7 @@ const DARK_MODE_CSS = `
     border-bottom: 1px solid #21262d !important;
   }
 
-  /* ── 6. Lists (llistes dins Settings) ──────────────────────────────── */
+  /* -- 6. Lists (llistes dins Settings) -------------------------------- */
   [data-theme="dark"] [class*="MuiList-root"] {
     background-color: #161b22 !important;
   }
@@ -200,13 +200,13 @@ const DARK_MODE_CSS = `
     color: #8b949e !important;
   }
 
-  /* ── 7. Dividers ────────────────────────────────────────────────────── */
+  /* -- 7. Dividers ------------------------------------------------------ */
   [data-theme="dark"] [class*="MuiDivider-root"] {
     background-color: #21262d !important;
     border-color: #21262d !important;
   }
 
-  /* ── 8. Inputs i formularis (Settings: nom, cognom, idioma...) ──────── */
+  /* -- 8. Inputs i formularis (Settings: nom, cognom, idioma...) -------- */
   [data-theme="dark"] [class*="MuiInputBase-root"],
   [data-theme="dark"] [class*="MuiOutlinedInput-root"],
   [data-theme="dark"] [class*="MuiFilledInput-root"] {
@@ -235,7 +235,7 @@ const DARK_MODE_CSS = `
     border-color: #58a6ff !important;
   }
 
-  /* ── 9. Buttons MUI (botons de Settings: Guardar, Cancel...) ────────── */
+  /* -- 9. Buttons MUI (botons de Settings: Guardar, Cancel...) ---------- */
   [data-theme="dark"] [class*="MuiButton-contained"] {
     background-color: #58a6ff !important;
     color: #0d1117 !important;
@@ -248,7 +248,7 @@ const DARK_MODE_CSS = `
     color: #58a6ff !important;
   }
 
-  /* ── 10. Switch (interruptor de tema a Settings) ────────────────────── */
+  /* -- 10. Switch (interruptor de tema a Settings) ---------------------- */
   [data-theme="dark"] [class*="MuiSwitch-track"] {
     background-color: #30363d !important;
   }
@@ -262,7 +262,7 @@ const DARK_MODE_CSS = `
     background-color: rgba(88, 166, 255, 0.30) !important;
   }
 
-  /* ── 11. Select i Dropdown (menú desplegable) ───────────────────────── */
+  /* -- 11. Select i Dropdown (menú desplegable) ------------------------- */
   [data-theme="dark"] [class*="MuiPopover-paper"],
   [data-theme="dark"] [class*="MuiMenu-paper"],
   [data-theme="dark"] [class*="MuiAutocomplete-paper"] {
@@ -282,7 +282,7 @@ const DARK_MODE_CSS = `
     background-color: rgba(88, 166, 255, 0.10) !important;
   }
 
-  /* ── 12. Avatar i Chip (perfil d'usuari a Settings) ────────────────── */
+  /* -- 12. Avatar i Chip (perfil d'usuari a Settings) ------------------ */
   [data-theme="dark"] [class*="MuiAvatar-root"] {
     background-color: #30363d !important;
     color: #8b949e !important;
@@ -293,7 +293,7 @@ const DARK_MODE_CSS = `
     color: #58a6ff !important;
   }
 
-  /* ── 13. Dialog / Modal (confirmació, etc.) ─────────────────────────── */
+  /* -- 13. Dialog / Modal (confirmació, etc.) --------------------------- */
   [data-theme="dark"] [class*="MuiDialog-paper"] {
     background-color: #161b22 !important;
     border: 1px solid #30363d !important;
@@ -313,7 +313,7 @@ const DARK_MODE_CSS = `
     border-top: 1px solid #21262d !important;
   }
 
-  /* ── 14. Tooltip ────────────────────────────────────────────────────── */
+  /* -- 14. Tooltip ------------------------------------------------------ */
   [data-theme="dark"] [class*="MuiTooltip-tooltip"] {
     background-color: #21262d !important;
     border: 1px solid #30363d !important;
@@ -321,13 +321,13 @@ const DARK_MODE_CSS = `
     font-size: 12px !important;
   }
 
-  /* ── 15. Snackbar / Alert (notificacions) ───────────────────────────── */
+  /* -- 15. Snackbar / Alert (notificacions) ----------------------------- */
   [data-theme="dark"] [class*="MuiSnackbar-root"] [class*="MuiPaper-root"] {
     background-color: #21262d !important;
     color: #e6edf3 !important;
   }
 
-  /* ── 16. Scrollbar global discreta ──────────────────────────────────── */
+  /* -- 16. Scrollbar global discreta ------------------------------------ */
   [data-theme="dark"] ::-webkit-scrollbar { width: 5px; height: 5px; }
   [data-theme="dark"] ::-webkit-scrollbar-track { background: transparent; }
   [data-theme="dark"] ::-webkit-scrollbar-thumb { background: #21262d; border-radius: 10px; }
@@ -336,7 +336,7 @@ const DARK_MODE_CSS = `
 
 import { TopNavigationShell } from './TopNavigationShell';
 
-// ── Detecció i aplicació del tema ──────────────────────────────────────────────
+// -- Detecció i aplicació del tema ----------------------------------------------
 // Backstage desa la preferència de tema en localStorage amb diverses claus
 // depenent de la versió. Provem totes per màxima compatibilitat.
 //
@@ -402,7 +402,7 @@ const useDarkModeCssInHead = () => {
   }, []);
 };
 
-// ── Component principal ────────────────────────────────────────────────────────
+// -- Component principal --------------------------------------------------------
 // Root envolta tota l'app. Aquí:
 //   1. Escolta canvis de tema (event 'storage' + polling cada 300ms)
 //   2. Injecta el CSS de dark mode per a MUI

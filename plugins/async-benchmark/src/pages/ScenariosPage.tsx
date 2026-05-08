@@ -37,7 +37,7 @@ import { DEMO_SCENARIO_URL, TutorialButton } from '../components/TutorialOverlay
 const API_BASE     = '/api/proxy/scenario-service';
 const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
 
-// ── Types ──────────────────────────────────────────────────────────────────────
+// -- Types ----------------------------------------------------------------------
 // Estructura d'un escenari tal com la retorna i espera el scenario-service.
 type Scenario = {
   id?: string;
@@ -67,7 +67,7 @@ type SustainedLoadPlan = {
   protocolHint: string;
 };
 
-// ── Constants ──────────────────────────────────────────────────────────────────
+// -- Constants ------------------------------------------------------------------
 // Llistes de valors valids per als camps del formulari d'escenari.
 // S'usen per als selects del modal i per als filtres de la taula.
 const ALL_ARCHITECTURES  = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
@@ -139,7 +139,7 @@ const FORMAT_RECOMMENDATIONS: Record<string, { payloadKB: number; rateMsgsPerSec
   'video-8k':           { payloadKB: 2000, rateMsgsPerSec: 4 },
 };
 
-// ── Valors per defecte que aplica el load-generator quan rate/payload son null ──
+// -- Valors per defecte que aplica el load-generator quan rate/payload son null --
 // Aquesta taula reflecteix EXACTAMENT el que fa el backend a
 // `packages/benchmark-orchestrator/src/index.ts` (DATA_FORMAT_CONFIG).
 // La duplicacio es deliberada: aixi la UI pot dir clarament a l'usuari
@@ -331,7 +331,7 @@ const SK_STYLE = {
   borderRadius: 4,
 };
 
-// ── Presets predefinits ────────────────────────────────────────────────────────
+// -- Presets predefinits --------------------------------------------------------
 // Configuracions de benchmark optimitzades per a casos d'us habituals.
 // No es creen directament com a escenaris -- son plantilles que pre-omplen
 // el formulari de creacio quan l'usuari fa clic a "Usar com a base".
@@ -438,7 +438,7 @@ const PREDEFINED_PRESETS = [
   },
 ];
 
-// ── Icons ──────────────────────────────────────────────────────────────────────
+// -- Icons ----------------------------------------------------------------------
 const PlayIcon      = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
 const StopIcon      = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>;
 const EditIcon      = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>;
@@ -495,7 +495,7 @@ const lbl: React.CSSProperties = {
   marginBottom: 5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
 };
 
-// ── Filter select style (custom) ───────────────────────────────────────────────
+// -- Filter select style (custom) -----------------------------------------------
 const makeSelStyle = (active: boolean, accentColor?: string): React.CSSProperties => ({
   padding: '7px 32px 7px 12px',
   borderRadius: 8,
@@ -551,7 +551,7 @@ const buildRunRequestBody = (scenario: Scenario) => {
   };
 };
 
-// ── Modal: Crear / Editar ──────────────────────────────────────────────────────
+// -- Modal: Crear / Editar ------------------------------------------------------
 /**
  * ScenarioModal -- Formulari per crear o editar un escenari.
  *
@@ -894,7 +894,7 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
   );
 };
 
-// ── Modal: Confirmar eliminació ────────────────────────────────────────────────
+// -- Modal: Confirmar eliminació ------------------------------------------------
 const DeleteModal = ({ name, onConfirm, onClose }: { name: string; onConfirm: () => void; onClose: () => void }) => (
   <div style={{ position: 'fixed', inset: 0, zIndex: 3200, background: 'rgba(0,0,0,0.65)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', backdropFilter: 'blur(4px)', padding: '88px 20px 28px' }}>
     <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 28, width: 420, boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.2s ease' }}>
@@ -910,7 +910,7 @@ const DeleteModal = ({ name, onConfirm, onClose }: { name: string; onConfirm: ()
   </div>
 );
 
-// ── Modal: Executar ────────────────────────────────────────────────────────────
+// -- Modal: Executar ------------------------------------------------------------
 const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; onClose: () => void; onStarted?: (scenarioId: string, runId: string) => void }) => {
   const [state, setState] = useState<'confirm' | 'running' | 'done' | 'error'>('confirm');
   const [runId, setRunId] = useState('');
@@ -1082,7 +1082,7 @@ const ExecuteModal = ({ scenario, onClose, onStarted }: { scenario: Scenario; on
   );
 };
 
-// ── Toast ──────────────────────────────────────────────────────────────────────
+// -- Toast ----------------------------------------------------------------------
 const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 'error' | 'info'; onClose: () => void }) => {
   useEffect(() => { const t = setTimeout(onClose, 4000); return () => clearTimeout(t); }, [onClose]);
   const c = {
@@ -1099,7 +1099,7 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
   );
 };
 
-// ── Detall d'escenari (modal overlay) ─────────────────────────────────────────
+// -- Detall d'escenari (modal overlay) -----------------------------------------
 const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete, onDuplicate, isRunning }: {
   scenario: Scenario; onClose: () => void; onExecute: () => void; onStop: () => void;
   onEdit: () => void; onDelete: () => void; onDuplicate: () => void; isRunning: boolean;
@@ -1256,7 +1256,7 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
   );
 };
 
-// ── Guia d'escenaris ──────────────────────────────────────────────────────────
+// -- Guia d'escenaris ----------------------------------------------------------
 const BookIcon   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
 const ChevronIcon = ({ open }: { open: boolean }) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}><polyline points="6 9 12 15 18 9"/></svg>;
 
@@ -1384,7 +1384,7 @@ const ScenarioGuide = () => {
   );
 };
 
-// ── ScenariosPage ──────────────────────────────────────────────────────────────
+// -- ScenariosPage --------------------------------------------------------------
 /**
  * ScenariosPage -- Pagina principal de gestio d'escenaris.
  *
@@ -1602,7 +1602,7 @@ export const ScenariosPage = () => {
     setTimeout(fetchRunningMap, 5000); // reconfirma quan el pod esta arrencat
   };
 
-  // ── Seleccio per a execució en lot ────────────────────────────────────────────
+  // -- Seleccio per a execució en lot --------------------------------------------
   /** Toggle de seleccio d'un escenari individual per a execució en lot. */
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
@@ -1711,7 +1711,7 @@ export const ScenariosPage = () => {
   });
   const isFiltered = filterArch !== 'all' || filterProto !== 'all' || filterPlatform !== 'all' || filterDataFormat !== 'all' || searchQuery.trim() !== '';
 
-  // ── Ordenacio de la taula ──────────────────────────────────────────────────
+  // -- Ordenacio de la taula --------------------------------------------------
   // Per defecte la taula s'ordena per data de creacio descendent (l'escenari
   // mes nou apareix a dalt de tot). L'usuari pot canviar l'ordre clicant
   // qualsevol capçalera; tornem a aplicar la mateixa logica:
@@ -1778,7 +1778,7 @@ export const ScenariosPage = () => {
         </div>
       </div>
 
-      {/* ── Stats strip ────────────────────────────────────────────────────────
+      {/* -- Stats strip --------------------------------------------------------
            CANVI: anteriorment hi havia 4 stats: Total, Predefinits, Propis,
            En execució. Els stats "Predefinits" i "Propis" s'han eliminat
            perque eren soroll visual sense valor actionable:
@@ -1786,7 +1786,7 @@ export const ScenariosPage = () => {
              - "Propis": ja esta implic en Total - En execució
            Ara nomes es mostren Total (context general) i
            "En execució" (informacio d'estat en temps real, actionable).
-      ── */}
+      -- */}
       {!loading && (
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
@@ -1801,10 +1801,10 @@ export const ScenariosPage = () => {
         </div>
       )}
 
-      {/* ── Guia ── */}
+      {/* -- Guia -- */}
       <ScenarioGuide />
 
-      {/* ── Escenaris Predefinits ── */}
+      {/* -- Escenaris Predefinits -- */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
           {t('scenarios.presets.heading')}
@@ -1886,7 +1886,7 @@ export const ScenariosPage = () => {
         </div>
       </div>
 
-      {/* ── Filtres millorats ── */}
+      {/* -- Filtres millorats -- */}
       <FilterPanel
         title="Filtres"
         activeFilterCount={activeFiltersCount}

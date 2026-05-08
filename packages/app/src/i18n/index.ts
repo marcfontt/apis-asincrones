@@ -14,8 +14,24 @@ const DICTIONARIES: Record<Locale, Dictionary> = {
   en: en as unknown as Dictionary,
 };
 const listeners = new Set<(lang: Locale) => void>();
-let currentLanguage: Locale =
-  (localStorage.getItem(STORAGE_KEY) as Locale | null) ?? 'ca';
+
+const isLocale = (value: string | null): value is Locale =>
+  value === 'ca' || value === 'es' || value === 'en';
+
+const readStoredLanguage = (): Locale => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return isLocale(stored) ? stored : 'ca';
+  } catch {
+    return 'ca';
+  }
+};
+
+const notifyLanguageChange = (lang: Locale) => {
+  listeners.forEach(fn => fn(lang));
+};
+
+let currentLanguage: Locale = readStoredLanguage();
 
 const normalizeRenderedText = (value: string) => value.replace(/\s+/g, ' ').trim();
 
@@ -91,8 +107,21 @@ export function getLanguage(): Locale {
 
 export function changeLanguage(lang: Locale): void {
   currentLanguage = lang;
-  localStorage.setItem(STORAGE_KEY, lang);
-  listeners.forEach(fn => fn(lang));
+  try {
+    localStorage.setItem(STORAGE_KEY, lang);
+  } catch {
+    // ignore
+  }
+  notifyLanguageChange(lang);
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', event => {
+    if (event.key !== STORAGE_KEY || !isLocale(event.newValue)) return;
+    if (event.newValue === currentLanguage) return;
+    currentLanguage = event.newValue;
+    notifyLanguageChange(event.newValue);
+  });
 }
 
 // Walks dot-separated key path through the dictionary tree.

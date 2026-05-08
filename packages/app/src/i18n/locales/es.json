@@ -42,11 +42,6 @@
       "description": "Cambia el tema visual de la aplicación",
       "light": "Claro",
       "dark": "Oscuro"
-    },
-    "session": {
-      "title": "Sesión",
-      "description": "Cierra la sesión actual y vuelve a la pantalla de inicio.",
-      "logout": "Cerrar sesión"
     }
   },
   "common": {

@@ -476,7 +476,7 @@ const SearchIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="n
 const IconInfo = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>;
 
 /**
- * MetricGlossary — collapsible reference panel that explains each metric,
+ * MetricGlossary - collapsible reference panel that explains each metric,
  * the composite scoring formula, and per-format weight tables.
  * Helps users interpret the comparative table without leaving the page.
  */
@@ -1065,7 +1065,7 @@ const HistorialTab = () => {
   // summary and hide orphans from Elasticsearch that no longer correspond
   // to a run the orchestrator remembers. When the list is empty (orchestrator
   // unreachable OR freshly restarted with no new runs) we fall back to
-  // showing raw ES data — better stale history than none.
+  // showing raw ES data; better stale history than none.
   const [loading, setLoading] = useState(false);
 
   // Client-side computed percentiles, keyed by runId. Populated lazily by
@@ -1668,7 +1668,7 @@ const HistorialTab = () => {
             );
           })()}
 
-          {/* Metric glossary — collapsible reference panel */}
+          {/* Metric glossary - collapsible reference panel */}
 
           {/* Full comparison table */}
           <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
@@ -2246,7 +2246,7 @@ const LiveTab = () => {
     }
   }, [activeRuns, visibleActiveRuns, selectedRunId]);
 
-  // True once the selected run has left activeRuns — drives the
+  // True once the selected run has left activeRuns; drives the
   // "Finalitzat" banner and the grace-window polling behaviour.
   const selectedRunFinished = !!selectedRunId && !activeRuns.find(r => r.id === selectedRunId);
 
@@ -2255,7 +2255,7 @@ const LiveTab = () => {
   // No defensive timestamp filter is needed because runId is unique per
   // execution (orchestrator generates a fresh randomUUID for every run,
   // see packages/benchmark-orchestrator/src/index.ts). That means
-  // /metrics?runId=X returns ONLY this run's docs — there is no stale
+  // /metrics?runId=X returns ONLY this run's docs; there is no stale
   // data to filter out. The previous "first-poll baseline trick" was
   // dropping the genuine first 5-10 seconds of every run; removed.
   useEffect(() => {
@@ -2410,7 +2410,7 @@ const LiveTab = () => {
             When the selected run has just finished we synthesize a virtual
             card at the end (status:'completed') so the user can still see
             which run their frozen metrics belong to. The card is
-            non-selectable once removed from activeRuns — clicking it is a
+            non-selectable once removed from activeRuns; clicking it is a
             no-op; clicking another (real) active card switches away. */}
         {activeRuns.length === 0 && !selectedRunFinished ? (
           <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>{t('resultats.live.empty')}</div>
