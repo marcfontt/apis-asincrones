@@ -27,7 +27,7 @@ enginyer pot:
 
 El sistema viu dins un cluster **AKS** organitzat en tres _namespaces_ que aïllen
 l'aplicació, el cluster Kafka gestionat per Strimzi, i la resta de brokers. El
-fitxer font del diagrama es troba a [`docs/architecture.mmd`](docs/architecture.mmd).
+fitxer font del diagrama es troba a [`docs/architecture.md`](docs/architecture.md).
 
 ```mermaid
 flowchart TB
@@ -261,9 +261,7 @@ hi trobaràs una secció "Base conceptual" que explica de zero:
 
 ## Documentació addicional
 
-- [`docs/INSTAL-CLUSTER.md`](docs/INSTAL-CLUSTER.md) — guia pas a pas per posar el sistema al cluster AKS (amb comandes)
-- [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — catàleg d'errors coneguts i com resoldre'ls
-- [`docs/architecture.mmd`](docs/architecture.mmd) — diagrama Mermaid de l'arquitectura completa
+- [`docs/architecture.md`](docs/architecture.md) — diagrama Mermaid de l'arquitectura i descripció de components
 - [`k8s/README.md`](k8s/README.md) — manifests Kubernetes
 - [`packages/README.md`](packages/README.md) — microserveis
 - [`plugins/README.md`](plugins/README.md) — plugin Backstage
