@@ -1,53 +1,87 @@
 # `docs/` — Índex de documentació operativa
 
-Aquesta carpeta recopila tota la documentació per instal·lar, configurar i mantenir
-l'infraestructura del benchmark d'APIs asíncrones a AKS.
+Aquesta carpeta conté tota la documentació tècnica per instal·lar,
+configurar i mantenir la infraestructura del benchmark d'APIs asíncrones
+sobre Azure Kubernetes Service (AKS).
 
-## Documents per temes
+---
 
-### Instal·lació inicial
-- [**INSTAL-CLUSTER.md**](INSTAL-CLUSTER.md) — Guia pas a pas per desplegar el cluster sencer
-  - Creació de namespace
-  - Desplegament de Kafka (Strimzi)
-  - Desplegament de serveis (Elasticsearch, Grafana, microserveis)
-  - Verificació final
+## Documents disponibles
 
-### Troubleshooting i debugging
-- [**TROUBLESHOOTING.md**](TROUBLESHOOTING.md) — Catàleg d'errors i solucions
-  - Problemes de imatge Docker
-  - Falles de connectivitat entre serveis
-  - Issues de Kafka i persistència
-  - Problemes de salut dels pods
+### 🚀 Instal·lació del cluster
+**[INSTAL-CLUSTER.md](INSTAL-CLUSTER.md)**
 
-### Arquitectura
-- [**architecture.mmd**](architecture.mmd) — Diagrama Mermaid de l'arquitectura
-  - Topologia de serveis
-  - Flujos de dades
-  - Dependències entre components
+Guia pas a pas per desplegar tot el sistema sobre AKS des de zero:
 
-## Altres recursos
+- Prerequisits i variables d'entorn
+- Creació del cluster AKS i Azure Container Registry
+- Aplicació de namespace, storage class i secrets
+- Instal·lació dels brokers (Kafka/Strimzi, NATS, RabbitMQ, Redpanda)
+- Build i push de les imatges dels microserveis
+- Verificació final que tot funciona
 
-| Lloc | Contingut |
-|------|-----------|
-| [`../memoria/`](../memoria/) | Memòria del TFG en LaTeX |
-| [`../k8s/`](../k8s/) | Manifests Kubernetes (deployments, services, storage) |
-| [`../packages/`](../packages/) | Codi dels microserveis |
-| [`../plugins/`](../plugins/) | Plugin custom de Backstage |
+### 🔧 Resolució de problemes
+**[TROUBLESHOOTING.md](TROUBLESHOOTING.md)**
 
-## Flujo de lectura recomanat
+Catàleg d'errors coneguts del projecte i les seves solucions:
 
-1. **Primer cop**: INSTAL-CLUSTER.md (instal·lació sencer)
-2. **Debugging**: TROUBLESHOOTING.md (si hi ha problemes)
-3. **Arquitectura**: architecture.mmd (per entendre la topologia)
-4. **Detalls Kubernetes**: [`../k8s/README.md`](../k8s/README.md) (si modifiques manifests)
+- Errors de build i compilació TypeScript
+- Problemes de runtime al portal i microserveis
+- Errors específics de brokers (NATS payload, RabbitMQ, Kafka)
+- Problemes d'observabilitat (Grafana, Elasticsearch)
+- Errors del catàleg de components
+- Checklist ràpid quan res no funciona
 
-## Actualitzacions recents
+### 🏛️ Arquitectura del sistema
+**[architecture.mmd](architecture.mmd)**
 
-- Elasticsearch: PVC amb `Retain`, health probes, heap 1Gi
-- Grafana: Provisioning automàtic i password secret
-- Kafka (Strimzi): KRaft mode, sense Zookeeper
-- NATS: Config amb `max_payload: 4M` per vídeos 8K
+Diagrama Mermaid de l'arquitectura completa del sistema:
 
-## Contacte
+- Topologia de namespaces al cluster AKS
+- Serveis, ports i adreces IP externes
+- Flux de dades entre components
+- Dependències entre microserveis i brokers
 
-Consulta la memòria TFG per a metodologia, resultats i conclusions completes.
+---
+
+## Altres recursos del repositori
+
+| Carpeta | Contingut |
+|---------|-----------|
+| [`../k8s/`](../k8s/) | Manifests Kubernetes (deployments, services, storage, rbac) |
+| [`../packages/`](../packages/) | Codi font dels microserveis (Node.js/TypeScript) |
+| [`../plugins/`](../plugins/) | Plugin custom de Backstage (`async-benchmark`) |
+| [`../scripts/`](../scripts/) | Scripts auxiliars del projecte |
+
+---
+
+## Ordre de lectura recomanat
+
+```
+1. README.md (arrel del repo) ─── Visió general del projecte
+         │
+         ├── docs/INSTAL-CLUSTER.md ─── Per desplegar per primera vegada
+         │
+         ├── docs/TROUBLESHOOTING.md ── Per resoldre errors
+         │
+         ├── docs/architecture.mmd ─── Per entendre la topologia
+         │
+         └── k8s/README.md ──────────── Per modificar manifests K8s
+```
+
+---
+
+## Actualitzacions recents destacades
+
+| Canvi | Descripció |
+|-------|------------|
+| NATS `max_payload=4MB` | Necessari per al format `video-8k` (~2MB de payload) |
+| Elasticsearch scroll | Query amb scroll 5k en 5k; `max_result_window=1.000.000` |
+| Grafana provisioning | Dashboards i datasource aprovisionats automàticament |
+| Kafka/Strimzi KRaft | Mode sense Zookeeper (Strimzi ≥ 0.40) |
+| Storage class `Retain` | PVCs d'ES i Grafana no s'esborren en reiniciar |
+
+---
+
+> Per a la metodologia, resultats i conclusions del projecte,
+> consulteu la memòria del PFG (document LaTeX separat del repositori).

@@ -138,7 +138,6 @@ apis-asincrones/
 │   ├── storage/                    # PersistentVolumeClaims
 │   ├── kafka/                      # Strimzi cluster Kafka
 │   └── brokers/                    # ConfigMaps de NATS i altres
-├── memoria/                        # Memòria del PFG (LaTeX)
 ├── scripts/                        # Scripts auxiliars
 ├── deploy-all.sh                   # Pipeline de build + restart
 └── app-config.yaml                 # Config Backstage (dev)
@@ -264,10 +263,10 @@ hi trobaràs una secció "Base conceptual" que explica de zero:
 
 - [`docs/INSTAL-CLUSTER.md`](docs/INSTAL-CLUSTER.md) — guia pas a pas per posar el sistema al cluster AKS (amb comandes)
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md) — catàleg d'errors coneguts i com resoldre'ls
+- [`docs/architecture.mmd`](docs/architecture.mmd) — diagrama Mermaid de l'arquitectura completa
 - [`k8s/README.md`](k8s/README.md) — manifests Kubernetes
 - [`packages/README.md`](packages/README.md) — microserveis
 - [`plugins/README.md`](plugins/README.md) — plugin Backstage
-- [`memoria/`](memoria/) — memòria del PFG (LaTeX)
 
 ---
 
