@@ -33,7 +33,7 @@ export const DEFAULT_CATALOG_COMPONENTS: DefaultCatalogComponent[] = [
     shortName: 'LCA',
     name: 'Log-Centric Architecture',
     category: 'architecture',
-    description: 'Un log ordenat actua com a font de veritat i els consumidors avancen per offsets.',
+    description: 'Un log ordenat guarda els missatges i els consumidors avancen per offsets.',
     tags: ['log', 'streaming', 'offset'],
     predefined: true,
   },

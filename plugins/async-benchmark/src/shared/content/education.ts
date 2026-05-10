@@ -176,15 +176,15 @@ export const EDUCATION = {
         title: "Taxa d'error (%)",
         accent: '#ef4444',
         description:
-          'Percentatge de missatges fallits o perduts. Pot penalitzar fortament la puntuació encara que la latència sigui bona.',
+          'Percentatge de missatges fallits o perduts. Pot reduir molt la puntuació encara que la latència sigui bona.',
       },
     ],
     scoringPrinciples: [
       'La puntuació sempre és relativa als escenaris visibles amb els filtres actuals.',
       'Cada format aplica pesos diferents: financer prioritza errors, vídeo prioritza throughput i IoT prioritza volum amb payload petit.',
-      "Si la taxa d'error supera el llindar del format, s'aplica una penalització encara que la resta de mètriques siguin bones.",
+      "Si la taxa d'error supera el llindar del format, s'aplica un descompte encara que la resta de mètriques siguin bones.",
     ],
     thresholds:
-      'Llindars de penalització: financer > 0,1%, vídeo > 2%, IoT > 0,5%, per defecte > 1%.',
+      'Llindars de descompte: financer > 0,1%, vídeo > 2%, IoT > 0,5%, per defecte > 1%.',
   },
 } as const;

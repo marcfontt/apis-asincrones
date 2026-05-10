@@ -4,6 +4,7 @@ import { S } from '../theme';
 import { BrokerFlowDiagram } from '../components/BrokerEducation';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { DEMO_SCENARIO_URL, TutorialButton } from '../components/TutorialOverlay';
+import { GuideItemCard, GuidePanel, GuideStepFlow } from '../components/GuidePanel';
 
 const RUTA_API_CATALEG = '/api/proxy/catalog-service';
 const RUTA_API_ESCENARIS = '/api/proxy/scenario-service';
@@ -192,6 +193,43 @@ const SectionHeader = ({
   </div>
 );
 
+const HomeGuide = () => {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  const steps = [
+    { n: '1', label: t('home.executionSteps.0.label'), sub: t('home.executionSteps.0.sub'), color: '#2563eb' },
+    { n: '2', label: t('home.executionSteps.1.label'), sub: t('home.executionSteps.1.sub'), color: '#7c3aed' },
+    { n: '3', label: t('home.executionSteps.2.label'), sub: t('home.executionSteps.2.sub'), color: '#0891b2' },
+    { n: '4', label: t('home.executionSteps.3.label'), sub: t('home.executionSteps.3.sub'), color: '#16a34a' },
+    { n: '5', label: t('home.executionSteps.4.label'), sub: t('home.executionSteps.4.sub'), color: '#dc2626' },
+  ];
+  const items = [
+    { title: t('home.guide.items.map.title'), text: t('home.guide.items.map.text'), color: '#2563eb' },
+    { title: t('home.guide.items.catalog.title'), text: t('home.guide.items.catalog.text'), color: '#f59e0b' },
+    { title: t('home.guide.items.scenarios.title'), text: t('home.guide.items.scenarios.text'), color: '#7c3aed' },
+    { title: t('home.guide.items.results.title'), text: t('home.guide.items.results.text'), color: '#16a34a' },
+  ];
+
+  return (
+    <GuidePanel
+      title={t('home.guide.title')}
+      subtitle={t('home.guide.subtitle')}
+      open={open}
+      onToggle={() => setOpen(value => !value)}
+      showLabel={t('scenarios.guide.show')}
+      hideLabel={t('scenarios.guide.hide')}
+      marginBottom={18}
+    >
+      <GuideStepFlow steps={steps} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+        {items.map(item => (
+          <GuideItemCard key={item.title} title={item.title} text={item.text} color={item.color} />
+        ))}
+      </div>
+    </GuidePanel>
+  );
+};
+
 export const HomePage = () => {
   const { t, language } = useTranslation();
   const locale = getLocale(language);
@@ -350,10 +388,10 @@ export const HomePage = () => {
               {t('home.description')}
             </p>
             <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
-              <a href="/escenaris" className="home-btn-primary" style={{ ...S.btnPrimary, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, background: '#16a34a', boxShadow: '0 6px 18px rgba(22,163,74,0.22)' }}>
+              <a href="/escenaris" className="home-btn-primary" style={{ ...S.btnPrimary, textDecoration: 'none' }}>
                 {t('home.btnCreateScenario')}
               </a>
-              <a href="/catalog" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>{t('home.btnViewCatalog')}</a>
+              <a href="/catalog" className="home-btn-secondary" style={{ ...S.btnSoft, textDecoration: 'none' }}>{t('home.btnViewCatalog')}</a>
               <a href="/resultats" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>{t('home.btnCompareResults')}</a>
               <TutorialButton page="home" createExampleHref={DEMO_SCENARIO_URL} />
             </div>
@@ -372,6 +410,8 @@ export const HomePage = () => {
           </div>
         </div>
       </section>
+
+      <HomeGuide />
 
       <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
         <SectionHeader

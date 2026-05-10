@@ -8,9 +8,26 @@ type FilterPanelProps = {
   totalCount: number;
   searchValue?: string;
   searchPlaceholder?: string;
+  visibleLabel?: (visibleCount: number, totalCount: number) => string;
+  clearSearchLabel?: string;
+  clearFiltersLabel?: string;
   onSearchChange?: (value: string) => void;
   onClearFilters?: () => void;
   children?: React.ReactNode;
+};
+
+type FilterSelectOption = {
+  value: string;
+  label: string;
+};
+
+type FilterSelectProps = {
+  label: string;
+  value: string;
+  options: FilterSelectOption[];
+  onChange: (value: string) => void;
+  minWidth?: number;
+  accentColor?: string;
 };
 
 const FilterIcon = () => (
@@ -29,9 +46,9 @@ const SearchIcon = () => (
 /**
  * Panell comu de filtres.
  *
- * La responsabilitat d aquest component es nomes visual: mostra el títol,
- * el comptador de filtres actius, la cerca i el recompte visible. Cada pagina
- * conserva la seva logica de filtratge per no barrejar regles de negoci.
+ * Aquest component nomes pinta la carcassa: titol, cerca, recompte i accions.
+ * Cada pagina decideix com filtra les seves dades. Aixi totes les pantalles
+ * mantenen el mateix aspecte sense barrejar regles de negoci.
  */
 export const FilterPanel = ({
   title = 'Filtres',
@@ -40,11 +57,18 @@ export const FilterPanel = ({
   totalCount,
   searchValue = '',
   searchPlaceholder = 'Cerca',
+  visibleLabel,
+  clearSearchLabel = 'Netejar cerca',
+  clearFiltersLabel = 'Netejar filtres',
   onSearchChange,
   onClearFilters,
   children,
 }: FilterPanelProps) => {
-  const hasActiveFilters = activeFilterCount > 0 || searchValue.trim().length > 0;
+  const hasSearchText = searchValue.trim().length > 0;
+  const hasActiveFilters = activeFilterCount > 0 || hasSearchText;
+  const countLabel = visibleLabel
+    ? visibleLabel(visibleCount, totalCount)
+    : `${visibleCount} visibles de ${totalCount} totals`;
 
   return (
     <section style={{ ...S.card, marginBottom: 20, padding: '14px 18px' }}>
@@ -62,8 +86,8 @@ export const FilterPanel = ({
         </div>
 
         {onSearchChange && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: '1 1 260px', minWidth: 220, background: 'var(--bg-subtle)', border: `1px solid ${searchValue ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, padding: '7px 10px', transition: 'border-color var(--transition), box-shadow var(--transition)' }}>
-            <span style={{ display: 'flex', color: searchValue ? 'var(--accent)' : 'var(--text-disabled)', flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flex: '1 1 260px', minWidth: 220, background: 'var(--bg-subtle)', border: `1px solid ${hasSearchText ? 'var(--accent)' : 'var(--border)'}`, borderRadius: 8, padding: '7px 10px', transition: 'border-color var(--transition), box-shadow var(--transition)' }}>
+            <span style={{ display: 'flex', color: hasSearchText ? 'var(--accent)' : 'var(--text-disabled)', flexShrink: 0 }}>
               <SearchIcon />
             </span>
             <input
@@ -73,11 +97,11 @@ export const FilterPanel = ({
               placeholder={searchPlaceholder}
               style={{ background: 'none', border: 'none', outline: 'none', width: '100%', minWidth: 0, color: 'var(--text-primary)', fontFamily: 'var(--font)', fontSize: 12 }}
             />
-            {searchValue && (
+            {hasSearchText && (
               <button
                 type="button"
                 onClick={() => onSearchChange('')}
-                aria-label="Netejar cerca"
+                aria-label={clearSearchLabel}
                 style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, display: 'flex', fontSize: 16, lineHeight: 1 }}
               >
                 x
@@ -87,12 +111,12 @@ export const FilterPanel = ({
         )}
 
         <span style={{ fontSize: 11, color: 'var(--text-disabled)', marginLeft: 'auto', whiteSpace: 'nowrap' }}>
-          {visibleCount} visibles de {totalCount} totals
+          {countLabel}
         </span>
 
         {hasActiveFilters && onClearFilters && (
           <button type="button" onClick={onClearFilters} style={{ ...S.btn, fontSize: 12, padding: '5px 12px' }}>
-            Netejar filtres
+            {clearFiltersLabel}
           </button>
         )}
       </div>
@@ -103,5 +127,48 @@ export const FilterPanel = ({
         </div>
       )}
     </section>
+  );
+};
+
+export const FilterSelect = ({
+  label,
+  value,
+  options,
+  onChange,
+  minWidth = 170,
+  accentColor = 'var(--accent)',
+}: FilterSelectProps) => {
+  const isActive = value !== 'all' && value !== '';
+  const borderColor = isActive ? accentColor : 'var(--border)';
+
+  return (
+    <label style={{ display: 'grid', gap: 6, minWidth }}>
+      <span
+        style={{
+          fontSize: 11,
+          fontWeight: 800,
+          color: isActive ? accentColor : 'var(--text-disabled)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+        }}
+      >
+        {label}
+      </span>
+      <select
+        value={value}
+        onChange={event => onChange(event.target.value)}
+        style={{
+          ...S.select,
+          borderColor,
+          boxShadow: isActive ? `0 0 0 3px ${accentColor}14` : 'none',
+        }}
+      >
+        {options.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 };

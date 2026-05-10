@@ -35,6 +35,7 @@ import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { TutorialButton } from '../components/TutorialOverlay';
 import { GuideItemCard, GuidePanel } from '../components/GuidePanel';
+import { FilterPanel, FilterSelect } from '../components/FilterPanel';
 import { getRunMeasureCount, getRunMessageCount, getRunSentCount } from '../shared/results/historyMetrics';
 
 /* ---------------------------------------------------------------------------
@@ -396,43 +397,6 @@ const enrichRunWithMetricPoints = (run: any, metrics: any[]): any => {
     p99Latency: lastMetric.p99Latency ?? lastMetric.p99_latency_ms ?? run.p99Latency,
   };
 };
-
-const FilterSelect = ({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  options: { value: string; label: string }[];
-  onChange: (value: string) => void;
-}) => (
-  <label style={{ display: 'grid', gap: 6, minWidth: 170 }}>
-    <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-      {label}
-    </span>
-    <select
-      value={value}
-      onChange={event => onChange(event.target.value)}
-      style={{
-        ...S.input,
-        appearance: 'none',
-        paddingRight: 34,
-        backgroundImage: `url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")`,
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'right 10px center',
-        cursor: 'pointer',
-      }}
-    >
-      {options.map(option => (
-        <option key={option.value} value={option.value}>
-          {option.label}
-        </option>
-      ))}
-    </select>
-  </label>
-);
 
 // Guia curta de la pàgina. Els textos venen del diccionari per canviar d'idioma.
 const ExecucionsGuide = ({
@@ -925,9 +889,12 @@ export const ExecucionsPage = () => {
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const [selectedRunMetrics, setSelectedRunMetrics] = useState<any[]>([]);
   const [selectedRunMetricsLoading, setSelectedRunMetricsLoading] = useState(false);
-  const [guideOpen, setGuideOpen] = useState(true);
+  const [guideOpen, setGuideOpen] = useState(false);
   // Timestamp of the last successful data fetch (used for the "updated HH:MM:SS" label)
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  // Quan una execucio s'atura, el generador pot trigar uns segons a guardar
+  // l'ultima mostra. Mantenim un refresc curt per recollir aquest tancament.
+  const [postRunRefreshUntil, setPostRunRefreshUntil] = useState(0);
 
   /*
    * confirmState holds all the dynamic data for the shared ConfirmModal instance.
@@ -1065,8 +1032,8 @@ export const ExecucionsPage = () => {
         if (runsSignatureRef.current !== nextSignature) {
           runsSignatureRef.current = nextSignature;
           setRuns(merged);
-          setLastRefreshed(new Date());
         }
+        setLastRefreshed(new Date());
         hasLoadedRunsRef.current = true;
         setLoading(false);
         if (showRefreshing) {
@@ -1087,17 +1054,23 @@ export const ExecucionsPage = () => {
   // Track whether any runs are active so the polling interval can be skipped
   // when all runs are finished (avoids unnecessary network traffic when idle).
   const hasActiveRuns = runs.some(r => r.status === 'running' || r.status === 'pending');
+  const shouldKeepPolling = hasActiveRuns || Date.now() < postRunRefreshUntil;
 
-  // Poll every 8 s only while there are active runs; stop interval when idle.
+  // Poll every 8 s while there are active runs. After stopping a run, keep a
+  // short grace window so the final metrics can arrive without a manual refresh.
   useEffect(() => {
     fetchRuns(); // initial fetch on mount
-    if (!hasActiveRuns && hasLoadedRunsRef.current) {
-      // All runs are finished; no need to keep polling, user can refresh manually
+    if (!shouldKeepPolling && hasLoadedRunsRef.current) {
       return undefined;
     }
-    const i = setInterval(fetchRuns, 8000);
-    return () => clearInterval(i);
-  }, [fetchRuns, hasActiveRuns]);
+    const i = window.setInterval(() => {
+      fetchRuns();
+      if (!hasActiveRuns && Date.now() >= postRunRefreshUntil) {
+        window.clearInterval(i);
+      }
+    }, 8000);
+    return () => window.clearInterval(i);
+  }, [fetchRuns, hasActiveRuns, postRunRefreshUntil, shouldKeepPolling]);
 
 
 
@@ -1189,6 +1162,7 @@ export const ExecucionsPage = () => {
       const r = await fetch(`${ORCHESTRATOR}/runs/${run.id}/cancel`, { method: 'POST' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       showToast(`Execució "${run.scenarioName || run.id.slice(0, 8)}" aturada.`);
+      setPostRunRefreshUntil(Date.now() + 90000);
       fetchRuns(); // refresh the list so the status badge updates immediately
     } catch (e: any) { showToast('Error en cancel·lar: ' + e.message); }
     finally { setCancellingId(null); }
@@ -1507,6 +1481,7 @@ export const ExecucionsPage = () => {
             ids.map((id: string) => fetch(`${ORCHESTRATOR}/runs/${id}/cancel`, { method: 'POST' }))
           );
           showToast(`${ids.length} execució${ids.length !== 1 ? 'ns' : ''} aturada${ids.length !== 1 ? 's' : ''}.`);
+          setPostRunRefreshUntil(Date.now() + 90000);
           fetchRuns(); // refresh to reflect the new 'cancelled' statuses
         } finally { setCancellingId(null); }
       },
@@ -1606,9 +1581,9 @@ export const ExecucionsPage = () => {
       {/* Page header - title, subtitle, and top-right action buttons */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Execucions</h1>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{t('nav.execucions')}</h1>
           <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
-            Historial de benchmarks executats sobre el cluster AKS
+            {t('execucions.subtitle')}
           </p>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
@@ -1691,56 +1666,27 @@ export const ExecucionsPage = () => {
       )}
 
       {!loading && runs.length > 0 && (
-        <div style={{ ...S.card, marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Filtra execucions</div>
-              <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4 }}>
-                Cerca per nom, plataforma, protocol, arquitectura, format o estat. La cerca de l'historial continua disponible com a segon filtre.
-              </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11, color: 'var(--text-disabled)' }}>
-                {visibleRuns.length} visibles de {runs.length}
-              </span>
-              {activeFilterCount > 0 && (
-                <button
-                  onClick={() => {
-                    setRunSearch('');
-                    setFilterScenario([]);
-                    setFilterPlatform([]);
-                    setFilterProtocol([]);
-                    setFilterArchitecture([]);
-                    setFilterDataFormat([]);
-                    setFilterStatus([]);
-                  }}
-                  style={{ ...S.btn, fontSize: 12, padding: '4px 10px' }}
-                >
-                  Neteja filtres
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', marginBottom: 14 }}>
-            <span style={{ color: runSearch ? 'var(--accent)' : 'var(--text-disabled)', display: 'flex' }}><SearchIcon /></span>
-            <input
-              type="text"
-              value={runSearch}
-              onChange={event => setRunSearch(event.target.value)}
-              placeholder="Cerca per escenari, plataforma, protocol, arquitectura o format"
-              style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--text-primary)' }}
-            />
-            {runSearch && (
-              <button
-                onClick={() => setRunSearch('')}
-                style={{ background: 'none', border: 'none', color: 'var(--text-disabled)', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}
-              >
-                x
-              </button>
-            )}
-          </div>
-
+        <FilterPanel
+          title={t('execucions.filters.title')}
+          activeFilterCount={activeFilterCount}
+          visibleCount={visibleRuns.length}
+          totalCount={runs.length}
+          searchValue={runSearch}
+          searchPlaceholder={t('execucions.filters.searchPlaceholder')}
+          visibleLabel={(visible, total) => `${visible} ${t('catalog.filters.visibleOf')} ${total}`}
+          clearSearchLabel={t('catalog.filters.clearSearch')}
+          clearFiltersLabel={t('catalog.filters.clearAll')}
+          onSearchChange={setRunSearch}
+          onClearFilters={() => {
+            setRunSearch('');
+            setFilterScenario([]);
+            setFilterPlatform([]);
+            setFilterProtocol([]);
+            setFilterArchitecture([]);
+            setFilterDataFormat([]);
+            setFilterStatus([]);
+          }}
+        >
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
             <FilterSelect
               label={t('execucions.filters.status')}
@@ -1797,7 +1743,7 @@ export const ExecucionsPage = () => {
               ]}
             />
           </div>
-        </div>
+        </FilterPanel>
       )}
 
       {/* Main content area - skeleton while loading, two RunTables when ready */}

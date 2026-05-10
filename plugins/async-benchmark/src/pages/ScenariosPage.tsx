@@ -28,10 +28,22 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { getLanguage, useTranslation } from '../i18n';
-import { S } from '../theme';
-import { FilterPanel } from '../components/FilterPanel';
+import { CATEGORY_COLORS, S } from '../theme';
+import { FilterPanel, FilterSelect } from '../components/FilterPanel';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { DEMO_SCENARIO_URL, TutorialButton } from '../components/TutorialOverlay';
+import { GuideItemCard, GuidePanel, GuideStepFlow } from '../components/GuidePanel';
+import {
+  ALL_ARCHITECTURES,
+  ALL_PROTOCOLS,
+  ALL_PLATFORMS,
+  COMPATIBILITY,
+  DISABLED_PLATFORMS,
+  getCompatibleArchitectures,
+  getCompatibleProtocols,
+  getDataFormatDecision,
+  getCompatibilityStatusColor,
+} from '../shared/catalog/compatibility';
 
 // Endpoints dels microserveis (proxied per Backstage via app-config.yaml)
 const API_BASE     = '/api/proxy/scenario-service';
@@ -76,13 +88,8 @@ type SustainedLoadPlan = {
 };
 
 // -- Constants ------------------------------------------------------------------
-// Llistes de valors valids per als camps del formulari d'escenari.
-// S'usen per als selects del modal i per als filtres de la taula.
-const ALL_ARCHITECTURES  = ['EDA', 'QBA', 'LCA', 'EMA', 'SEA'];
-const ALL_PROTOCOLS      = ['Kafka', 'AMQP', 'MQTT', 'gRPC', 'WS', 'NATS'];
-const ALL_PLATFORMS      = ['Kafka', 'RabbitMQ', 'Confluent', 'NATS Server'];
-// Plataformes disponibles al cataleg pero no desploegades al clúster (cap actualment).
-const DISABLED_PLATFORMS: string[] = [];
+// Les llistes valides i la compatibilitat venen del modul compartit del cataleg.
+// Aixi Cataleg, Escenaris i Tutorial expliquen les mateixes regles.
 const HIDDEN_LEGACY_VALUES = ['sse', 'coap', 'pulsar', 'apache pulsar'];
 const SUSTAINED_MODE_DURATION_SECONDS = 3600;
 
@@ -267,37 +274,6 @@ const ARCHITECTURE_COLORS: Record<string, string> = {
   'EMA':  '#dc2626',
   'SEA':  '#d97706',
 };
-
-// Matriu de compatibilitat plataforma -> (arquitectures, protocols).
-//
-// Per que existeix aquest filtrat?
-// No totes les combinacions de plataforma+arquitectura+protocol son
-// tecnologicament viables. Per exemple:
-//   - Kafka NO suporta MQTT nativament (necessitaria un bridge extern)
-//   - NATS NO suporta el protocol de Kafka (son sistemes incompatibles)
-//   - RabbitMQ NO implementa el protocol de Kafka
-//
-// El formulari usa aquesta matriu per desactivar les opcions incompatibles
-// quan l'usuari selecciona una plataforma, evitant configuracions erronies.
-// Nota: la matriu no es exhaustiva; nomes cobreix les combinacions testades.
-const COMPATIBILITY: Record<string, { architectures: string[]; protocols: string[] }> = {
-  // Kafka: fort en Event Streaming (EDA, SEA). Protocol propi "Kafka protocol".
-  'Kafka':       { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
-  // RabbitMQ: fort en missatgeria tradicional (queues). Suporta AMQP 0-9-1, MQTT i WebSockets.
-  'RabbitMQ':    { architectures: ['EDA', 'QBA', 'EMA'], protocols: ['AMQP', 'MQTT', 'WS'] },
-  // Confluent: distribucio enterprise de Kafka. Mateixa compatibilitat + connectors addicionals.
-  'Confluent':   { architectures: ['EDA', 'SEA', 'QBA'], protocols: ['Kafka', 'AMQP', 'gRPC'] },
-  // NATS Server: dissenyat per a cloud-native i edge. Protocol NATS propi (molt lleuger).
-  // Excel·lent per a LCA (Log-Centric) i SEA (Streaming Events).
-  'NATS Server': { architectures: ['EDA', 'LCA', 'SEA'], protocols: ['NATS', 'WS', 'gRPC'] },
-};
-
-// Retorna la llista d'arquitectures compatibles per a una plataforma donada.
-// Si la plataforma no esta a la matriu, retorna totes (sense restriccio).
-const getCompatibleArchitectures = (p: string) => COMPATIBILITY[p]?.architectures ?? ALL_ARCHITECTURES;
-
-// Retorna la llista de protocols compatibles per a una plataforma donada.
-const getCompatibleProtocols     = (p: string) => COMPATIBILITY[p]?.protocols     ?? ALL_PROTOCOLS;
 
 /**
  * Normalitza el nom d'una plataforma als valors estandard de l'app.
@@ -503,26 +479,6 @@ const lbl: React.CSSProperties = {
   marginBottom: 5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
 };
 
-// -- Filter select style (custom) -----------------------------------------------
-const makeSelStyle = (active: boolean, accentColor?: string): React.CSSProperties => ({
-  padding: '7px 32px 7px 12px',
-  borderRadius: 8,
-  border: `1px solid ${active ? (accentColor || 'var(--accent)') : 'var(--border)'}`,
-  background: active ? (accentColor ? accentColor + '10' : 'var(--accent-soft)') : 'var(--bg-card)',
-  color: 'var(--text-primary)',
-  fontSize: 13,
-  fontWeight: active ? 700 : 500,
-  cursor: 'pointer',
-  outline: 'none',
-  appearance: 'none' as const,
-  fontFamily: 'var(--font)',
-  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`,
-  backgroundRepeat: 'no-repeat',
-  backgroundPosition: 'right 10px center',
-  transition: 'all 0.15s ease',
-  minWidth: 150,
-});
-
 const getScenarioRunPlan = (scenario: Scenario) => {
   const recommended = getSustainedLoadPlan({
     platform: scenario.platform || scenario.broker,
@@ -605,10 +561,21 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
    */
   const set = (k: string, v: string) => {
     if (k === 'platform') {
-      const ca = getCompatibleArchitectures(v), cp = getCompatibleProtocols(v);
-      // Manté l'arquitectura/protocol actual si son compatibles; sino els buida
-      setForm(f => ({ ...f, platform: v, architecture: ca.includes(f.architecture) ? f.architecture : '', protocol: cp.includes(f.protocol) ? f.protocol : '' }));
-    } else setForm(f => ({ ...f, [k]: v }));
+      const compatibleArchitectures = getCompatibleArchitectures(v);
+      const compatibleProtocols = getCompatibleProtocols(v);
+
+      // Mantenim els valors actuals nomes si la nova plataforma els pot executar.
+      // Si no, els deixem buits per obligar l'usuari a triar una combinacio valida.
+      setForm(f => ({
+        ...f,
+        platform: v,
+        architecture: compatibleArchitectures.includes(f.architecture) ? f.architecture : '',
+        protocol: compatibleProtocols.includes(f.protocol) ? f.protocol : '',
+      }));
+      return;
+    }
+
+    setForm(f => ({ ...f, [k]: v }));
   };
 
   const handleFormatChange = (newFormat: string) => {
@@ -634,6 +601,8 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
     dataFormat: form.dataFormat || 'default',
   });
   const selectedFormat = DEFAULTS_FORMAT[form.dataFormat || 'default'] || DEFAULTS_FORMAT.default;
+  const formatDecision = getDataFormatDecision(form.platform, form.dataFormat || 'default');
+  const formatDecisionColor = getCompatibilityStatusColor(formatDecision.status);
 
   /**
    * Envia el formulari al scenario-service (POST per crear, PUT per editar).
@@ -862,24 +831,19 @@ const ScenarioModal = ({ mode, initial, onClose, onSaved }: {
               tot el run fallara amb NATS_MAX_PAYLOAD_EXCEEDED. Es millor
               avisar-lo abans de llancar el benchmark.
             */}
-            {form.platform === 'NATS Server' && form.dataFormat === 'video-8k' && (
+            {formatDecision.status !== 'supported' && (
               <div style={{
                 marginTop: 8,
                 padding: '8px 12px',
-                background: 'rgba(245, 158, 11, 0.10)',
-                border: '1px solid rgba(245, 158, 11, 0.45)',
+                background: `${formatDecisionColor}12`,
+                border: `1px solid ${formatDecisionColor}55`,
                 borderRadius: 8,
                 fontSize: 12,
                 color: 'var(--text-primary)',
                 lineHeight: 1.5,
               }}>
-                <strong style={{ color: '#f59e0b' }}>Avis:</strong> NATS Server, per defecte,
-                no accepta missatges de més d'1 MB. El format <strong>vídeo 8K</strong> envia
-                payloads de ~2 MB i el run fallarà si el cluster no té
-                <code style={{ margin: '0 4px', background: 'var(--bg-subtle)', padding: '1px 5px', borderRadius: 4 }}>max_payload</code>
-                pujat a 4 MB. Aplica
-                <code style={{ margin: '0 4px', background: 'var(--bg-subtle)', padding: '1px 5px', borderRadius: 4 }}>k8s/brokers/nats-config.yaml</code>
-                i reinicia el deployment de NATS abans d'executar.
+                <strong style={{ color: formatDecisionColor }}>{t(formatDecision.labelKey)}:</strong>{' '}
+                {t(formatDecision.reasonKey)}
               </div>
             )}
           </div>
@@ -1264,10 +1228,6 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
   );
 };
 
-// -- Guia d'escenaris ----------------------------------------------------------
-const BookIcon   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
-const ChevronIcon = ({ open }: { open: boolean }) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }}><polyline points="6 9 12 15 18 9"/></svg>;
-
 const GUIDE_ITEMS = [
   {
     color: '#2563eb',
@@ -1314,81 +1274,48 @@ const ScenarioGuide = () => {
     { n: '5', label: t('scenarios.guide.steps.results.label'), sub: t('scenarios.guide.steps.results.sub'), color: '#22c55e' },
   ];
   return (
-    <div style={{ ...S.card, marginBottom: 24, padding: 0, overflow: 'hidden' }}>
-      {/* Header (toggle) */}
-      <button
-        onClick={() => setOpen(o => !o)}
-        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10, fontFamily: 'var(--font)', textAlign: 'left' }}
-      >
-        <span style={{ color: 'var(--accent)', display: 'flex' }}><BookIcon /></span>
-        <span style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)', flex: 1 }}>{t('scenarios.guide.how')}</span>
-        <span style={{ fontSize: 11, color: 'var(--text-disabled)', marginRight: 8 }}>
-          {open ? t('scenarios.guide.hide') : t('scenarios.guide.show')}
-        </span>
-        <span style={{ color: 'var(--text-secondary)', display: 'flex' }}><ChevronIcon open={open} /></span>
-      </button>
+    <GuidePanel
+      title={t('scenarios.guide.how')}
+      subtitle={t('scenarios.guide.subtitle')}
+      open={open}
+      onToggle={() => setOpen(o => !o)}
+      showLabel={t('scenarios.guide.show')}
+      hideLabel={t('scenarios.guide.hide')}
+      marginBottom={24}
+    >
+      <GuideStepFlow steps={steps} />
 
-      {open && (
-        <div style={{ padding: '0 20px 20px', borderTop: '1px solid var(--border)' }}>
-          {/* Flux de treball */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 0, margin: '16px 0 20px', overflowX: 'auto', paddingBottom: 4 }}>
-            {steps.map((step, i, arr) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', flex: '0 0 auto' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '0 4px' }}>
-                  <div style={{ width: 32, height: 32, borderRadius: '50%', background: step.color + '18', border: `1.5px solid ${step.color}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: step.color, fontFamily: 'var(--font-mono)' }}>
-                    {step.n}
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' as const, textAlign: 'center' }}>{step.label}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' as const, textAlign: 'center' }}>{step.sub}</div>
-                </div>
-                {i < arr.length - 1 && (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, margin: '0 2px', marginBottom: 20 }}><polyline points="9 18 15 12 9 6"/></svg>
-                )}
-              </div>
-            ))}
-          </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
+        {GUIDE_ITEMS.map(item => (
+          <GuideItemCard key={item.titleKey} title={t(item.titleKey)} text={t(item.descKey)} color={item.color} icon={item.icon} />
+        ))}
+      </div>
 
-          {/* Grid de conceptes */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
-            {GUIDE_ITEMS.map((item, i) => (
-              <div key={i} style={{ background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderLeft: `3px solid ${item.color}`, borderRadius: 8, padding: '12px 14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                  <span style={{ color: item.color, display: 'flex' }}>{item.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>{t(item.titleKey)}</span>
-                </div>
-                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>{t(item.descKey)}</p>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8 }}>
-            <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 10 }}>
-              {t('scenarios.guide.compatSummary')}
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
-              {Object.entries(COMPATIBILITY).map(([platform, config]) => {
-                const color = PLATFORM_COLORS[platform] || 'var(--accent)';
-                return (
-                  <div key={platform} style={{ background: 'var(--bg-card)', border: `1px solid ${color}35`, borderRadius: 8, padding: '9px 10px' }}>
-                    <div style={{ fontSize: 12, fontWeight: 800, color, marginBottom: 5 }}>{platform}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                      {t('scenarios.guide.architectures')}: <strong style={{ color: 'var(--text-primary)' }}>{config.architectures.join(', ')}</strong><br />
-                      {t('scenarios.guide.protocols')}: <strong style={{ color: 'var(--text-primary)' }}>{config.protocols.join(', ')}</strong>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Mode sostingut destacat */}
-          <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
-            <strong style={{ color: 'var(--accent)' }}>{t('scenarios.guide.tipLabel')}:</strong>{' '}
-            {t('scenarios.guide.tipPrefix')} <strong style={{ color: 'var(--text-primary)' }}>{t('scenarios.guide.tipHighlight')}</strong> {t('scenarios.guide.tipSuffix')}
-          </div>
+      <div style={{ marginTop: 12, padding: '12px 14px', background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 10 }}>
+          {t('scenarios.guide.compatSummary')}
         </div>
-      )}
-    </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 8 }}>
+          {Object.entries(COMPATIBILITY).map(([platform, config]) => {
+            const color = PLATFORM_COLORS[platform] || 'var(--accent)';
+            return (
+              <div key={platform} style={{ background: 'var(--bg-card)', border: `1px solid ${color}35`, borderRadius: 8, padding: '9px 10px' }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color, marginBottom: 5 }}>{platform}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--text-secondary)', lineHeight: 1.45 }}>
+                  {t('scenarios.guide.architectures')}: <strong style={{ color: 'var(--text-primary)' }}>{config.architectures.join(', ')}</strong><br />
+                  {t('scenarios.guide.protocols')}: <strong style={{ color: 'var(--text-primary)' }}>{config.protocols.join(', ')}</strong>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12, padding: '10px 14px', background: 'rgba(37,99,235,0.06)', border: '1px solid rgba(37,99,235,0.2)', borderRadius: 8, fontSize: 12, color: 'var(--text-secondary)' }}>
+        <strong style={{ color: 'var(--accent)' }}>{t('scenarios.guide.tipLabel')}:</strong>{' '}
+        {t('scenarios.guide.tipPrefix')} <strong style={{ color: 'var(--text-primary)' }}>{t('scenarios.guide.tipHighlight')}</strong> {t('scenarios.guide.tipSuffix')}
+      </div>
+    </GuidePanel>
   );
 };
 
@@ -1756,10 +1683,45 @@ export const ScenariosPage = () => {
   const activeFiltersCount = [filterArch, filterProto, filterPlatform, filterDataFormat].filter(f => f !== 'all').length + (searchQuery.trim() ? 1 : 0);
 
   const FILTER_DEFS = [
-    { label: 'Format',       value: filterDataFormat, options: ['default', 'video-4k', 'video-8k', 'financial', 'iot'],          onChange: setFilterDataFormat, allLabel: 'Tots els formats', accentColor: '#7c3aed', minWidth: 185, featured: true },
-    { label: 'Plataforma',   value: filterPlatform,   options: ALL_PLATFORMS.filter(p => !DISABLED_PLATFORMS.includes(p)),      onChange: setFilterPlatform,   allLabel: 'Totes',            accentColor: '#f59e0b', minWidth: 150, featured: false },
-    { label: 'Protocol',     value: filterProto,      options: ALL_PROTOCOLS,                                                   onChange: setFilterProto,      allLabel: 'Tots',             accentColor: '#16a34a', minWidth: 135, featured: false },
-    { label: 'Arquitectura', value: filterArch,       options: ALL_ARCHITECTURES,                                               onChange: setFilterArch,       allLabel: 'Totes',            accentColor: '#2563eb', minWidth: 145, featured: false },
+    {
+      label: t('scenarios.filters.format'),
+      value: filterDataFormat,
+      options: ['default', 'video-4k', 'video-8k', 'financial', 'iot'].map(value => ({
+        value,
+        label: DATA_FORMAT_LABELS[value] || value,
+      })),
+      onChange: setFilterDataFormat,
+      allLabel: t('scenarios.filterAllFormats'),
+      accentColor: 'var(--accent)',
+      minWidth: 185,
+    },
+    {
+      label: t('scenarios.filters.platform'),
+      value: filterPlatform,
+      options: ALL_PLATFORMS.filter(platform => !DISABLED_PLATFORMS.includes(platform)).map(value => ({ value, label: value })),
+      onChange: setFilterPlatform,
+      allLabel: t('scenarios.filterAllPlatforms'),
+      accentColor: CATEGORY_COLORS.platform,
+      minWidth: 150,
+    },
+    {
+      label: t('scenarios.filters.protocol'),
+      value: filterProto,
+      options: ALL_PROTOCOLS.map(value => ({ value, label: value })),
+      onChange: setFilterProto,
+      allLabel: t('scenarios.filterAll'),
+      accentColor: CATEGORY_COLORS.protocol,
+      minWidth: 135,
+    },
+    {
+      label: t('scenarios.filters.architecture'),
+      value: filterArch,
+      options: ALL_ARCHITECTURES.map(value => ({ value, label: value })),
+      onChange: setFilterArch,
+      allLabel: t('scenarios.filterAllArchitectures'),
+      accentColor: CATEGORY_COLORS.architecture,
+      minWidth: 145,
+    },
   ];
 
   return (
@@ -1896,58 +1858,29 @@ export const ScenariosPage = () => {
 
       {/* -- Filtres millorats -- */}
       <FilterPanel
-        title="Filtres"
+        title={t('scenarios.filters.title')}
         activeFilterCount={activeFiltersCount}
         visibleCount={loading ? 0 : filtered.length}
         totalCount={scenarios.length}
         searchValue={searchQuery}
-        searchPlaceholder="Cerca per nom, arquitectura, protocol, plataforma o format"
+        searchPlaceholder={t('scenarios.filters.searchPlaceholder')}
+        visibleLabel={(visible, total) => `${visible} ${t('catalog.filters.visibleOf')} ${total}`}
+        clearSearchLabel={t('catalog.filters.clearSearch')}
+        clearFiltersLabel={t('catalog.filters.clearAll')}
         onSearchChange={setSearchQuery}
         onClearFilters={() => { setFilterArch('all'); setFilterProto('all'); setFilterPlatform('all'); setFilterDataFormat('all'); setSearchQuery(''); }}
       >
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
-          {/* Icona filtre */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: activeFiltersCount > 0 ? 'var(--accent)' : 'var(--text-disabled)', flexShrink: 0 }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Filtres</span>
-            {activeFiltersCount > 0 && (
-              <span style={{ background: 'var(--accent)', color: '#fff', borderRadius: '50%', width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
-                {activeFiltersCount}
-              </span>
-            )}
-          </div>
-
-          {/* Separador */}
-          <div style={{ width: 1, height: 28, background: 'var(--border)', flexShrink: 0 }} />
-
-          {/* Selects per cada filtre */}
-          {FILTER_DEFS.map(({ label, value, options, onChange, allLabel, accentColor, minWidth, featured }) => {
-            const active = value !== 'all';
-            return (
-              <div key={label} style={{ display: 'flex', flexDirection: 'column', gap: 3, padding: featured ? '6px 8px' : 0, borderRadius: 9, background: featured ? `${accentColor}0f` : 'transparent', border: featured ? `1px solid ${accentColor}22` : '1px solid transparent' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, color: active ? accentColor : 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                  {label}
-                </span>
-                <select
-                  value={value}
-                  onChange={e => onChange(e.target.value)}
-                  style={{ ...makeSelStyle(active, accentColor), minWidth }}
-                >
-                  <option value="all">{allLabel}</option>
-                  {options.map(o => <option key={o} value={o}>{DATA_FORMAT_LABELS[o] || o}</option>)}
-                </select>
-              </div>
-            );
-          })}
-
-          {isFiltered && (
-            <button
-              onClick={() => { setFilterArch('all'); setFilterProto('all'); setFilterPlatform('all'); setFilterDataFormat('all'); setSearchQuery(''); }}
-              style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--error)', background: 'rgba(220,38,38,0.06)', border: '1px solid rgba(220,38,38,0.25)', borderRadius: 7, padding: '5px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font)', fontWeight: 600 }}>
-              <CloseIcon /> Netejar filtres
-            </button>
-          )}
-        </div>
+        {FILTER_DEFS.map(({ label, value, options, onChange, allLabel, accentColor, minWidth }) => (
+          <FilterSelect
+            key={label}
+            label={label}
+            value={value}
+            onChange={onChange}
+            minWidth={minWidth}
+            accentColor={accentColor}
+            options={[{ value: 'all', label: allLabel }, ...options]}
+          />
+        ))}
       </FilterPanel>
 
       {/* Taula + Detall */}

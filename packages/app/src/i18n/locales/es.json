@@ -297,7 +297,7 @@
         "body": "La puntuación suma métricas con pesos. El detalle muestra el cálculo.",
         "details": [
           "Ves normalizado por peso.",
-          "También ves la penalización por errores."
+          "También ves el descuento por errores."
         ]
       },
       "step5": {
@@ -315,6 +315,28 @@
     "subtitle": "Pruebas comparables, resultados claros",
     "description": "Crea una prueba, ejecútala en el clúster y mira qué ha pasado. Siempre medimos el mismo recorrido: mensaje enviado, broker, mensaje recibido.",
     "heroSubtitle": "Backstage es la pantalla. AKS es el clúster de Azure donde se ejecutan las pruebas.",
+    "guide": {
+      "title": "Guía rápida de Home",
+      "subtitle": "Qué mirar primero y qué camino sigue una prueba.",
+      "items": {
+        "map": {
+          "title": "Mapa del portal",
+          "text": "Home resume el camino completo: catálogo, escenario, ejecución y resultados."
+        },
+        "catalog": {
+          "title": "Primero mira componentes",
+          "text": "El catálogo dice qué brokers, protocolos y formatos puedes combinar dentro del portal."
+        },
+        "scenarios": {
+          "title": "Después crea la prueba",
+          "text": "En Escenarios eliges broker, arquitectura, protocolo, formato, duración y carga."
+        },
+        "results": {
+          "title": "Termina leyendo datos",
+          "text": "Ejecuciones muestra el estado del run. Resultados explica latencia, errores, throughput y puntuación."
+        }
+      }
+    },
     "btnCreateScenario": "Crear escenario",
     "btnViewCatalog": "Ver catálogo",
     "btnCompareResults": "Comparar resultados",
@@ -597,7 +619,40 @@
       "complete": "Completa",
       "partial": "Parcial"
     },
-    "loadError": "No se ha podido cargar el catálogo:"
+    "loadError": "No se ha podido cargar el catálogo:",
+    "filters": {
+      "category": "Categoría",
+      "visibleOf": "visibles de",
+      "clearSearch": "Limpiar búsqueda",
+      "clearAll": "Limpiar filtros"
+    },
+    "compatibility": {
+      "platform": "Plataforma",
+      "architecture": "Arquitectura",
+      "protocol": "Protocolo",
+      "architectures": "Arquitecturas",
+      "protocols": "Protocolos",
+      "archShort": "arq.",
+      "protocolShort": "prot.",
+      "matrixTitle": "Compatibilidad real del portal",
+      "matrixDescription": "Muestra qué se puede ejecutar ahora, qué necesita configuración y qué aún no está disponible.",
+      "matrixCaption": "Estado actual del portal",
+      "notDeployed": "No desplegada",
+      "status": {
+        "supported": "Se puede ejecutar",
+        "requiresConfig": "Requiere configuración",
+        "blocked": "No disponible ahora"
+      },
+      "reason": {
+        "supported": "El portal puede ejecutar esta combinación con el backend actual.",
+        "requiresConfig": "Se puede probar, pero antes hay que revisar la configuración del broker o del clúster.",
+        "blocked": "El portal todavía no tiene el camino necesario para ejecutar esta combinación.",
+        "gatewayMissing": "Este protocolo necesita un gateway o adaptador que ahora mismo no forma parte del flujo ejecutable.",
+        "kafkaLargePayload": "Kafka y Confluent pueden probar payloads grandes si el límite de mensaje está configurado de forma coherente.",
+        "natsLargePayload": "NATS necesita max_payload de 4 MB o superior para probar vídeo 8K sin fallar.",
+        "rabbitLargePayload": "RabbitMQ necesita revisar límites de tamaño y memoria antes de probar vídeo 8K."
+      }
+    }
   },
   "scenarios": {
     "pageTitle": "Escenarios | APIs Asíncronas",
@@ -704,6 +759,7 @@
     "guide": {
       "title": "Guía rápida",
       "how": "¿Cómo funcionan los escenarios?",
+      "subtitle": "Decide la composición, revisa la carga y ejecuta solo cuando tengas claro qué quieres medir.",
       "show": "Mostrar guía",
       "hide": "Ocultar guía",
       "compatSummary": "Resumen de compatibilidad",
@@ -809,6 +865,14 @@
       "errorUpdate": "Error al actualizar el escenario.",
       "errorDelete": "Error al eliminar el escenario.",
       "errorExecute": "Error al lanzar la ejecución."
+    },
+    "filters": {
+      "title": "Filtros",
+      "format": "Formato",
+      "platform": "Plataforma",
+      "protocol": "Protocolo",
+      "architecture": "Arquitectura",
+      "searchPlaceholder": "Busca por nombre, arquitectura, protocolo, plataforma o formato"
     }
   },
   "execucions": {
@@ -821,7 +885,9 @@
       "protocol": "Protocolo",
       "architecture": "Arquitectura",
       "format": "Formato",
-      "all": "Todos"
+      "all": "Todos",
+      "title": "Filtros",
+      "searchPlaceholder": "Busca por escenario, plataforma, protocolo, arquitectura o formato"
     },
     "status": {
       "pending": "Pendiente",
@@ -916,7 +982,8 @@
       "errorStop": "Error al cancelar:",
       "errorDelete": "Error al eliminar:",
       "errorRefresh": "No se han podido actualizar las ejecuciones."
-    }
+    },
+    "subtitle": "Historial de pruebas ejecutadas en el clúster AKS."
   },
   "resultats": {
     "pageTitle": "Resultados | APIs Asíncronas",
@@ -998,7 +1065,12 @@
       "tablePlatform": "Plataforma",
       "scenariosExecuted": "escenarios ejecutados",
       "run": "ejecución",
-      "runs": "ejecuciones"
+      "runs": "ejecuciones",
+      "filterTitle": "Filtros",
+      "filterAllFormats": "Todos los formatos",
+      "filterAllProtocols": "Todos los protocolos",
+      "filterAllPlatforms": "Todas las plataformas",
+      "filterAllArchitectures": "Todas las arquitecturas"
     },
     "runCard": {
       "running": "En ejecución",
@@ -1006,7 +1078,7 @@
       "pending": "Pendiente"
     },
     "drawer": {
-      "title": "Puntuación e historial",
+      "title": "Detalle del escenario",
       "subtitle": "Resumen de las ejecuciones visibles del mismo escenario.",
       "statMeasures": "Medidas",
       "statMeasuresHelper": "Puntos persistidos de todas las ejecuciones visibles.",
@@ -1038,13 +1110,13 @@
     },
     "score": {
       "title": "Puntuación",
-      "formula": "Cada métrica da puntos. Ejemplo: valor normalizado x peso = aportación. Si hay errores, se aplica una penalización final.",
+      "formula": "Tomamos cada métrica, la pasamos a una escala común y la multiplicamos por su peso. Después restamos los problemas detectados.",
       "metric": "Métrica",
       "weight": "Peso",
-      "normalized": "Normalizado",
+      "normalized": "Valor 0-100",
       "contribution": "Aportación",
-      "base": "Base ponderada",
-      "penalty": "Penalización",
+      "base": "Suma antes de descuentos",
+      "penalty": "Descuento",
       "final": "Final",
       "metrics": {
         "lat": "Latencia media",
@@ -1053,7 +1125,10 @@
         "tput": "Throughput",
         "err": "Errores"
       },
-      "calculation": "Cálculo"
+      "calculation": "Cálculo",
+      "stepValue": "Primero convertimos cada valor a una escala común: 1 es muy bueno y 0 es muy malo.",
+      "stepWeight": "Después multiplicamos ese valor por el peso de la métrica. Ejemplo: 0,57 x 20% = 11,4 puntos.",
+      "stepDiscount": "Al final aplicamos el descuento por errores o pérdida de mensajes, si los hay."
     }
   }
 }

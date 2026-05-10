@@ -315,6 +315,28 @@
     "subtitle": "Comparable tests, clear results",
     "description": "Create a test, run it on the cluster, and see what happened. We always measure the same path: message sent, broker, message received.",
     "heroSubtitle": "Backstage is the screen. AKS is the Azure cluster where the tests run.",
+    "guide": {
+      "title": "Home quick guide",
+      "subtitle": "What to look at first and the path each test follows.",
+      "items": {
+        "map": {
+          "title": "Portal map",
+          "text": "Home sums up the full path: catalog, scenario, execution and results."
+        },
+        "catalog": {
+          "title": "Start with components",
+          "text": "The catalog shows which brokers, protocols and formats you can combine in the portal."
+        },
+        "scenarios": {
+          "title": "Then create the test",
+          "text": "In Scenarios you choose broker, architecture, protocol, format, duration and load."
+        },
+        "results": {
+          "title": "Finish with data",
+          "text": "Executions shows the run status. Results explains latency, errors, throughput and score."
+        }
+      }
+    },
     "btnCreateScenario": "Create scenario",
     "btnViewCatalog": "View catalog",
     "btnCompareResults": "Compare results",
@@ -597,7 +619,40 @@
       "complete": "Complete",
       "partial": "Partial"
     },
-    "loadError": "Could not load the catalog:"
+    "loadError": "Could not load the catalog:",
+    "filters": {
+      "category": "Category",
+      "visibleOf": "visible of",
+      "clearSearch": "Clear search",
+      "clearAll": "Clear filters"
+    },
+    "compatibility": {
+      "platform": "Platform",
+      "architecture": "Architecture",
+      "protocol": "Protocol",
+      "architectures": "Architectures",
+      "protocols": "Protocols",
+      "archShort": "arch.",
+      "protocolShort": "prot.",
+      "matrixTitle": "Real portal compatibility",
+      "matrixDescription": "Shows what can run now, what needs configuration, and what is not available yet.",
+      "matrixCaption": "Current portal state",
+      "notDeployed": "Not deployed",
+      "status": {
+        "supported": "Can run",
+        "requiresConfig": "Needs configuration",
+        "blocked": "Not available yet"
+      },
+      "reason": {
+        "supported": "The portal can run this combination with the current backend.",
+        "requiresConfig": "It can be tested, but the broker or cluster configuration must be checked first.",
+        "blocked": "The portal does not yet have the path needed to run this combination.",
+        "gatewayMissing": "This protocol needs a gateway or adapter that is not part of the executable flow yet.",
+        "kafkaLargePayload": "Kafka and Confluent can test large payloads when message limits are configured consistently.",
+        "natsLargePayload": "NATS needs max_payload of 4 MB or higher to test 8K video without failing.",
+        "rabbitLargePayload": "RabbitMQ needs size and memory limits checked before testing 8K video."
+      }
+    }
   },
   "scenarios": {
     "pageTitle": "Scenarios | Async APIs",
@@ -704,6 +759,7 @@
     "guide": {
       "title": "Quick guide",
       "how": "How do scenarios work?",
+      "subtitle": "Choose the composition, check the load, and run only when you know what you want to measure.",
       "show": "Show guide",
       "hide": "Hide guide",
       "compatSummary": "Compatibility summary",
@@ -809,6 +865,14 @@
       "errorUpdate": "Error updating scenario.",
       "errorDelete": "Error deleting scenario.",
       "errorExecute": "Error launching execution."
+    },
+    "filters": {
+      "title": "Filters",
+      "format": "Format",
+      "platform": "Platform",
+      "protocol": "Protocol",
+      "architecture": "Architecture",
+      "searchPlaceholder": "Search by name, architecture, protocol, platform, or format"
     }
   },
   "execucions": {
@@ -821,7 +885,9 @@
       "protocol": "Protocol",
       "architecture": "Architecture",
       "format": "Format",
-      "all": "All"
+      "all": "All",
+      "title": "Filters",
+      "searchPlaceholder": "Search by scenario, platform, protocol, architecture, or format"
     },
     "status": {
       "pending": "Pending",
@@ -916,7 +982,8 @@
       "errorStop": "Error cancelling:",
       "errorDelete": "Error deleting:",
       "errorRefresh": "Could not update executions."
-    }
+    },
+    "subtitle": "History of tests run on the AKS cluster."
   },
   "resultats": {
     "pageTitle": "Results | Async APIs",
@@ -998,7 +1065,12 @@
       "tablePlatform": "Platform",
       "scenariosExecuted": "scenarios executed",
       "run": "execution",
-      "runs": "executions"
+      "runs": "executions",
+      "filterTitle": "Filters",
+      "filterAllFormats": "All formats",
+      "filterAllProtocols": "All protocols",
+      "filterAllPlatforms": "All platforms",
+      "filterAllArchitectures": "All architectures"
     },
     "runCard": {
       "running": "Running",
@@ -1006,7 +1078,7 @@
       "pending": "Pending"
     },
     "drawer": {
-      "title": "Score and history",
+      "title": "Scenario detail",
       "subtitle": "Summary of the visible executions for the same scenario.",
       "statMeasures": "Measurements",
       "statMeasuresHelper": "Persisted points from all visible executions.",
@@ -1038,13 +1110,13 @@
     },
     "score": {
       "title": "Score",
-      "formula": "Each metric gives points. Example: normalized value x weight = contribution. If there are errors, a final penalty is applied.",
+      "formula": "We take each metric, convert it to a common scale, and multiply it by its weight. Then we subtract detected problems.",
       "metric": "Metric",
       "weight": "Weight",
-      "normalized": "Normalized",
+      "normalized": "0-100 value",
       "contribution": "Contribution",
-      "base": "Weighted base",
-      "penalty": "Penalty",
+      "base": "Sum before discounts",
+      "penalty": "Discount",
       "final": "Final",
       "metrics": {
         "lat": "Average latency",
@@ -1053,7 +1125,10 @@
         "tput": "Throughput",
         "err": "Errors"
       },
-      "calculation": "Calculation"
+      "calculation": "Calculation",
+      "stepValue": "First we convert each value to a common scale: 1 is very good and 0 is very bad.",
+      "stepWeight": "Then we multiply that value by the metric weight. Example: 0.57 x 20% = 11.4 points.",
+      "stepDiscount": "At the end we apply the discount for errors or message loss, if any."
     }
   }
 }

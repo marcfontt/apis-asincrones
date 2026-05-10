@@ -31,20 +31,20 @@ export const KNOWN_COMPONENT_VERSIONS: Record<string, string> = {
 // Text visible al modal del Catàleg.
 // Explica que cal repetir per comparar brokers sense canviar les condicions.
 const COMMON_BROKER_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Forma de prova', value: '1 broker, 1 productor i 1 consumidor per run, excepte si l’escenari indica una altra cosa.' },
-  { label: 'Generador de càrrega', value: 'El mateix load-generator envia la càrrega a totes les plataformes comparades.' },
-  { label: 'Warm-up i durada', value: "Els dos valors surten de l'escenari i s'han de repetir igual en totes les execucions comparades." },
-  { label: 'Payload i ràtio', value: "El format de dades fixa la mida del missatge i la ràtio recomanada abans d'executar." },
-  { label: 'Aïllament del run', value: 'Cada execució ha de crear recursos propis o efímers per no arrossegar missatges, offsets o estat antic.' },
-  { label: 'Recursos objectiu', value: 'Quan el manifest és nostre, requests i limits han de coincidir perquè la prova sigui defensable.' },
+  { label: 'Forma de prova', value: "Cada run usa un broker, un productor i un consumidor. Si un escenari fa servir una altra topologia, s'ha d'indicar a la fitxa." },
+  { label: 'Generador de càrrega', value: 'El mateix load-generator envia els missatges a totes les plataformes. Així el canvi principal és el broker, no la manera de generar trànsit.' },
+  { label: 'Warm-up i durada', value: "El warm-up i la durada surten de l'escenari. Per comparar dues execucions, aquests valors han de ser iguals." },
+  { label: 'Payload i ràtio', value: "El format de dades fixa la mida del missatge i la ràtio recomanada. Canviar-los vol dir fer una prova diferent." },
+  { label: 'Aïllament del run', value: 'Cada execució ha de tenir topic, cua, subject o group-id propi. Això evita reutilitzar missatges o offsets antics.' },
+  { label: 'Recursos objectiu', value: 'Quan el manifest és nostre, requests i limits han de coincidir. Si no coincideixen, Kubernetes pot moure recursos i el resultat és menys defensable.' },
 ];
 
 // Text comu per arquitectures i protocols.
 // Marca els paràmetres que l'usuari ha de deixar igual abans de comparar.
 const COMMON_DECISION_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Configuració oficial', value: 'La combinació que es prova ha d’estar al document Scenario: broker, arquitectura, protocol, format, rate, payload, warm-up i durada.' },
-  { label: 'Comparació justa', value: 'Compara només runs amb la mateixa càrrega. Si canvies format, ràtio, payload, warm-up o durada, estàs mesurant una altra cosa.' },
-  { label: 'Run aïllat', value: 'Cada execució ha de tenir topic, cua, subject, group-id o client-id propis perquè no hereti dades de proves anteriors.' },
+  { label: 'Configuració oficial', value: 'La combinació provada ha de sortir del document Scenario: broker, arquitectura, protocol, format, rate, payload, warm-up i durada.' },
+  { label: 'Comparació justa', value: "Compara només runs amb la mateixa càrrega. Si canvies format, ràtio, payload, warm-up o durada, ja no estàs comparant el mateix cas." },
+  { label: 'Run aïllat', value: "Cada execució necessita topic, cua, subject, group-id o client-id propi. Això evita heretar dades d'una prova anterior." },
 ];
 
 export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> = {
@@ -58,8 +58,8 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
     { label: 'Topologia', value: '1 rèplica amb rol controller + broker' },
     { label: 'Particions', value: '1 partició per topic de run' },
     { label: 'Replicació', value: 'factor 1 per mantenir un cost comparable amb la resta' },
-    { label: 'Compatibilitat forta', value: 'arquitectura Log-Centric i protocol Kafka' },
-    { label: 'Vídeo 8K', value: 'compatible quan el payload final és acceptat pel productor i pel topic del run' },
+    { label: 'Execució segura', value: 'Kafka és el camí principal per protocol Kafka i escenaris de log o streaming.' },
+    { label: 'Vídeo 8K', value: 'Es pot provar si el topic i el productor accepten missatges de 2 MB. Cal mantenir el mateix límit en totes les repeticions.' },
   ],
   'Confluent Platform': [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
@@ -69,8 +69,8 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
     { label: 'Namespace', value: 'brokers' },
     { label: 'Port client', value: '9092 dins del clúster' },
     { label: 'Topologia', value: 'single-node' },
-    { label: 'Compatibilitat forta', value: 'protocol Kafka i escenaris de log/streaming' },
-    { label: 'Nota de reproduïbilitat', value: 'cal documentar si el desplegament real és Confluent o una API Kafka compatible' },
+    { label: 'Execució segura', value: 'Confluent es prova pel camí Kafka. No es dona per vàlid cap protocol extra si no hi ha adaptador desplegat.' },
+    { label: 'Nota de reproduïbilitat', value: 'Cal documentar si el desplegament real és Confluent o una API Kafka compatible, perquè això afecta la lectura acadèmica.' },
   ],
   RabbitMQ: [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
@@ -81,8 +81,8 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
     { label: 'Port client', value: '5672' },
     { label: 'Port monitoratge', value: '15672' },
     { label: 'Cues', value: 'classic queues efímeres per run' },
-    { label: 'Compatibilitat forta', value: 'arquitectura Queue-Based i protocol AMQP' },
-    { label: 'Vídeo 8K', value: 'compatible si la cua accepta el payload i el consumidor confirma correctament' },
+    { label: 'Execució segura', value: 'RabbitMQ és el camí principal per cues i protocol AMQP.' },
+    { label: 'Vídeo 8K', value: 'Requereix revisar límits de mida i memòria abans de provar. No s’ha de marcar com a verd per defecte.' },
   ],
   'NATS Server': [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
@@ -94,8 +94,8 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
     { label: 'Port monitoratge', value: '8222 via svc/nats-headless' },
     { label: 'Topologia', value: 'single-node + JetStream quan el chart el desplega' },
     { label: 'Payload màxim', value: '4 MB / 4194304 bytes' },
-    { label: 'Compatibilitat forta', value: 'Event-Driven, Event-Mesh, SEA i protocol NATS' },
-    { label: 'Vídeo 8K', value: 'compatible només si /varz mostra "max_payload": 4194304' },
+    { label: 'Execució segura', value: 'NATS Server es prova pel protocol NATS. WebSocket o gRPC necessiten un gateway que aquí no es dona per fet.' },
+    { label: 'Vídeo 8K', value: 'Requereix que /varz mostri "max_payload": 4194304 o superior. Sense això, el run pot fallar abans de publicar mètriques útils.' },
   ],
 };
 

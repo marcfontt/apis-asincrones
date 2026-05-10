@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { useTranslation, tRaw } from '../i18n';
 import { S, CATEGORY_COLORS } from '../theme';
-import { FilterPanel } from '../components/FilterPanel';
+import { FilterPanel, FilterSelect } from '../components/FilterPanel';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { TutorialButton } from '../components/TutorialOverlay';
 import { GuidePanel } from '../components/GuidePanel';
@@ -216,8 +216,8 @@ const getCompatibilityDetails = (component: CatalogComponent) => {
     }
 
     return [
-      { label: 'Arquitectures compatibles', values: entry.architectures, color: CATEGORY_COLORS.architecture },
-      { label: 'Protocols compatibles', values: entry.protocols, color: CATEGORY_COLORS.protocol },
+      { label: 'Arquitectures que pot executar', values: entry.architectures, color: CATEGORY_COLORS.architecture },
+      { label: 'Protocols que pot executar', values: entry.protocols, color: CATEGORY_COLORS.protocol },
     ];
   }
 
@@ -228,8 +228,8 @@ const getCompatibilityDetails = (component: CatalogComponent) => {
     const protocols = uniqueValues(platforms.flatMap(platform => COMPATIBILITY[platform]?.protocols || []));
 
     return [
-      { label: 'Plataformes que la poden usar', values: platforms, color: CATEGORY_COLORS.platform },
-      { label: 'Protocols disponibles en aquestes plataformes', values: protocols, color: CATEGORY_COLORS.protocol },
+      { label: 'Plataformes que la poden executar', values: platforms, color: CATEGORY_COLORS.platform },
+      { label: 'Protocols disponibles ara', values: protocols, color: CATEGORY_COLORS.protocol },
     ];
   }
 
@@ -240,8 +240,8 @@ const getCompatibilityDetails = (component: CatalogComponent) => {
     const architectures = uniqueValues(platforms.flatMap(platform => COMPATIBILITY[platform]?.architectures || []));
 
     return [
-      { label: 'Plataformes que el poden usar', values: platforms, color: CATEGORY_COLORS.platform },
-      { label: 'Arquitectures disponibles en aquestes plataformes', values: architectures, color: CATEGORY_COLORS.architecture },
+      { label: 'Plataformes que el poden executar', values: platforms, color: CATEGORY_COLORS.platform },
+      { label: 'Arquitectures disponibles ara', values: architectures, color: CATEGORY_COLORS.architecture },
     ];
   }
 
@@ -446,7 +446,7 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
     <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
       {label}
     </div>
-    <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.55, wordBreak: 'break-word' }}>
+    <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.55, wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
       {value || '-'}
     </div>
   </div>
@@ -465,7 +465,7 @@ const ComponentCompatibilityDetails = ({ component }: { component: CatalogCompon
         Compatibilitat dins del portal
       </div>
       <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-        Aquest bloc connecta el component amb les opcions que apareixeran a Escenaris. Serveix per evitar combinacions que el portal encara no sap executar de manera reproduïble.
+        Aquest bloc mostra les opcions que el portal pot provar ara mateix. Si una combinació necessita un gateway o una configuració extra, no surt com a executable directa.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
         {details.map(group => (
@@ -477,7 +477,7 @@ const ComponentCompatibilityDetails = ({ component }: { component: CatalogCompon
                   {value}
                 </span>
               )) : (
-                <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>Cap combinació declarada</span>
+                <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>Cap opció executable declarada</span>
               )}
             </div>
           </div>
@@ -1049,29 +1049,26 @@ const tableCardStyle: CSSProperties = {
         totalCount={visibleComponents.length}
         searchValue={searchQuery}
         searchPlaceholder={t('catalog.searchPlaceholder')}
+        visibleLabel={(visible, total) => `${visible} ${t('catalog.filters.visibleOf')} ${total}`}
+        clearSearchLabel={t('catalog.filters.clearSearch')}
+        clearFiltersLabel={t('catalog.filters.clearAll')}
         onSearchChange={setSearchQuery}
         onClearFilters={resetFilters}
       >
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-          {CATEGORY_ORDER.map(category => {
-            const isActive = activeCategory === category;
+        <FilterSelect
+          label={t('catalog.filters.category')}
+          value={activeCategory}
+          onChange={value => setActiveCategory(value as CategoryFilter)}
+          minWidth={220}
+          accentColor="var(--accent)"
+          options={CATEGORY_ORDER.map(category => {
             const label = category === 'all' ? t('catalog.filterAll') : categoryLabels[category];
-            const color = category === 'all' ? 'var(--accent)' : CATEGORY_COLORS[category];
-            return (
-              <button
-                key={category}
-                type="button"
-                onClick={() => setActiveCategory(category)}
-                style={{ ...S.chip(isActive, color), display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                {category !== 'all' && <CategoryIcon category={category} />}
-                {label}
-                <span style={{ fontFamily: 'var(--font-mono)', opacity: 0.72 }}>{countByCategory(category)}</span>
-              </button>
-            );
+            return {
+              value: category,
+              label: `${label} (${countByCategory(category)})`,
+            };
           })}
-        </div>
-
+        />
       </FilterPanel>
 
       <div

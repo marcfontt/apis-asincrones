@@ -470,13 +470,48 @@ const NAV_LABEL_KEYS: Record<TutorialPage, string> = {
   resultats: 'nav.resultats',
 };
 
+const PREVIEW_TITLE_KEYS: Record<TutorialPage, string> = {
+  home: 'home.title',
+  catalog: 'catalog.heading',
+  scenarios: 'scenarios.heading',
+  execucions: 'nav.execucions',
+  resultats: 'nav.resultats',
+};
+
+const PREVIEW_SUBTITLE_KEYS: Record<TutorialPage, string> = {
+  home: 'home.guide.subtitle',
+  catalog: 'catalog.subheading',
+  scenarios: 'scenarios.guide.subtitle',
+  execucions: 'execucions.guide.subtitle',
+  resultats: 'resultats.glossary.shortSubtitle',
+};
+
+const PreviewText = ({ children, color = 'var(--text-primary)' }: { children: string; color?: string }) => (
+  <span style={{ fontSize: 10.5, fontWeight: 850, color, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+    {children}
+  </span>
+);
+
+const PreviewHeader = ({ page, t }: { page: TutorialPage; t: (key: string) => string }) => (
+  <div style={{ display: 'grid', gap: 5, minWidth: 0 }}>
+    <PreviewText color="var(--accent)">{t(NAV_LABEL_KEYS[page])}</PreviewText>
+    <div style={{ display: 'grid', gap: 6 }}>
+      <PreviewLine width="44%" height={13} color="var(--text-primary)" />
+      <PreviewText color="var(--text-secondary)">{t(PREVIEW_TITLE_KEYS[page])}</PreviewText>
+      <PreviewText color="var(--text-disabled)">{t(PREVIEW_SUBTITLE_KEYS[page])}</PreviewText>
+      <PreviewLine width="72%" height={6} />
+    </div>
+  </div>
+);
+
 const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => string }) => {
   if (page === 'home') {
     return (
-      <div style={{ display: 'grid', gap: 18 }}>
+      <div style={{ display: 'grid', gap: 14 }}>
+        <PreviewHeader page="home" t={t} />
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: 16, alignItems: 'stretch' }}>
           <div style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
-            <PreviewLine width="54%" height={15} color="var(--text-primary)" />
+            <PreviewText color="var(--text-primary)">{t('home.sections.executionTitle')}</PreviewText>
             <PreviewLine width="86%" />
             <PreviewLine width="70%" />
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4 }}>
@@ -485,7 +520,7 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
             </div>
           </div>
           <div className="asyncbench-tutorial-card" style={{ padding: 14, display: 'grid', gap: 10 }}>
-            <PreviewLine width="45%" height={8} color="var(--accent)" />
+            <PreviewText color="var(--accent)">{t('home.sections.metricsLabel')}</PreviewText>
             <MiniRow accent="#ef4444" />
             <MiniRow accent="#22c55e" />
           </div>
@@ -506,9 +541,10 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
   if (page === 'catalog') {
     return (
       <div style={{ display: 'grid', gap: 14 }}>
+        <PreviewHeader page="catalog" t={t} />
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'grid', gap: 8, flex: 1 }}>
-            <PreviewLine width="34%" height={14} color="var(--text-primary)" />
+            <PreviewText color="var(--text-primary)">{t('catalog.tableHeading')}</PreviewText>
             <PreviewLine width="62%" />
           </div>
           <PreviewButton label={t('tutorial.visual.filters')} tone="soft" />
@@ -524,12 +560,13 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.78fr', gap: 10 }}>
           <div className="asyncbench-tutorial-card" style={{ padding: 12, display: 'grid', gap: 8 }}>
-            <PreviewLine width="46%" height={9} color="var(--text-primary)" />
+            <PreviewText color="var(--text-primary)">{t('catalog.compatTable.heading')}</PreviewText>
             <MiniRow accent="#22c55e" />
             <MiniRow accent="#3b82f6" />
           </div>
           <div className="asyncbench-tutorial-card" style={{ padding: 12, display: 'grid', gap: 10, borderColor: 'rgba(37,99,235,0.34)' }}>
             <MiniTabs activeIndex={1} />
+            <PreviewText color="var(--text-primary)">{t('catalog.modal.tabs.repro')}</PreviewText>
             <PreviewLine width="82%" height={7} />
             <PreviewLine width="66%" height={7} />
             <PreviewButton label={t('tutorial.visual.useComponent')} tone="soft" />
@@ -542,16 +579,17 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
   if (page === 'scenarios') {
     return (
       <div style={{ display: 'grid', gap: 14 }}>
+        <PreviewHeader page="scenarios" t={t} />
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
           <div style={{ display: 'grid', gap: 8, flex: 1 }}>
-            <PreviewLine width="42%" height={14} color="var(--text-primary)" />
+            <PreviewText color="var(--text-primary)">{t('scenarios.guide.compatSummary')}</PreviewText>
             <PreviewLine width="64%" />
           </div>
           <PreviewButton label={t('tutorial.visual.newScenario')} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div className="asyncbench-tutorial-card" style={{ padding: 14, display: 'grid', gap: 10 }}>
-            <PreviewLine width="40%" height={9} color="var(--accent)" />
+            <PreviewText color="var(--accent)">{t('tutorial.visual.composition')}</PreviewText>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <MiniField color="#3b82f6" />
               <MiniField color="#22c55e" />
@@ -565,7 +603,7 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
             </div>
           </div>
           <div className="asyncbench-tutorial-card" style={{ padding: 14, display: 'grid', gap: 10 }}>
-            <PreviewLine width="52%" height={9} color="#22c55e" />
+            <PreviewText color="#22c55e">{t('scenarios.predefined.heading')}</PreviewText>
             <MiniRow accent="#ef4444" active />
             <MiniRow accent="#f59e0b" />
             <MiniRow accent="#3b82f6" />
@@ -579,6 +617,7 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
   if (page === 'execucions') {
     return (
       <div style={{ display: 'grid', gap: 14 }}>
+        <PreviewHeader page="execucions" t={t} />
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 10 }}>
           {['#f59e0b', '#22c55e', '#3b82f6', '#8b5cf6'].map(color => (
             <div key={color} className="asyncbench-tutorial-card" style={{ padding: 10, display: 'grid', gap: 7 }}>
@@ -589,7 +628,7 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
         </div>
         <div className="asyncbench-tutorial-card" style={{ padding: 12, display: 'grid', gap: 10 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <PreviewLine width="28%" height={10} color="var(--text-primary)" />
+            <PreviewText color="var(--text-primary)">{t('tutorial.visual.executionRow')}</PreviewText>
             <PreviewButton label={t('tutorial.visual.filters')} tone="soft" />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.42fr', gap: 10 }}>
@@ -599,7 +638,7 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
               <MiniRow accent="#ef4444" />
             </div>
             <div className="asyncbench-tutorial-card" style={{ padding: 10, display: 'grid', gap: 8, borderColor: 'rgba(34,197,94,0.34)' }}>
-              <PreviewLine width="52%" height={8} color="#22c55e" />
+              <PreviewText color="#22c55e">{t('execucions.status.running')}</PreviewText>
               <PreviewLine width="70%" height={7} />
               <PreviewLine width="56%" height={7} />
               <PreviewLine width="82%" height={7} color="#3b82f6" />
@@ -616,6 +655,7 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
 
   return (
     <div style={{ display: 'grid', gap: 14 }}>
+      <PreviewHeader page="resultats" t={t} />
       <div style={{ display: 'flex', gap: 8, justifyContent: 'space-between', alignItems: 'center' }}>
         <MiniTabs activeIndex={1} />
         <PreviewButton label={t('tutorial.visual.resultFilters')} tone="soft" />
@@ -634,7 +674,7 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.7fr', gap: 14 }}>
         <div className="asyncbench-tutorial-card" style={{ padding: 12, display: 'grid', gap: 9 }}>
-          <PreviewLine width="36%" height={10} color="var(--text-primary)" />
+          <PreviewText color="var(--text-primary)">{t('resultats.tabHistory')}</PreviewText>
           <MiniRow accent="#22c55e" active />
           <MiniRow accent="#3b82f6" />
           <MiniRow accent="#ef4444" />
@@ -644,7 +684,7 @@ const PreviewContent = ({ page, t }: { page: TutorialPage; t: (key: string) => s
           <div style={{ width: 86, height: 86, borderRadius: '50%', border: '10px solid rgba(34,197,94,0.28)', borderTopColor: '#22c55e', display: 'grid', placeItems: 'center', fontSize: 18, fontWeight: 900, color: 'var(--text-primary)' }}>
             84
           </div>
-          <PreviewLine width="58%" height={8} color="var(--text-primary)" />
+          <PreviewText color="var(--text-primary)">{t('tutorial.visual.scoreBreakdown')}</PreviewText>
           <div style={{ display: 'grid', gap: 5, width: '100%' }}>
             <PreviewLine width="82%" height={6} color="#3b82f6" />
             <PreviewLine width="64%" height={6} color="#22c55e" />
@@ -783,7 +823,7 @@ export const TutorialButton = ({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        style={{ ...S.btn, fontWeight: 700 }}
+        style={S.btnTutorial}
       >
         {seen ? t('tutorial.replay') : t('tutorial.show')}
       </button>

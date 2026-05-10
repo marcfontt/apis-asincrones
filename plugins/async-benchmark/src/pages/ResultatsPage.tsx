@@ -45,6 +45,7 @@ import { MetricsDetailDrawer } from '../components/MetricsDetailDrawer';
 import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { TutorialButton } from '../components/TutorialOverlay';
 import { GuideItemCard, GuidePanel } from '../components/GuidePanel';
+import { FilterPanel, FilterSelect } from '../components/FilterPanel';
 import { EDUCATION } from '../shared/content/education';
 import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
 import { aggregateScenarioHistory, getRunMeasureCount, getRunMessageCount, getRunSentCount, getScenarioMeasureCount } from '../shared/results/historyMetrics';
@@ -466,17 +467,8 @@ const IconClock = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="no
 /** Compact upward marker indicating the top-performing scenario. */
 const IconTrophy = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15" /></svg>;
 
-/**
- * Animated chevron arrow that rotates 180deg when open=true.
- * Used in collapsible sections (MetricGlossary, secondary filters).
- */
-const IconChevron = ({ open }: { open: boolean }) => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><polyline points="6 9 12 15 18 9" /></svg>;
-
 /** Check-circle icon used in the "best scenario" summary card (neutral, professional). */
 const IconAward = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" /><polyline points="22 4 12 14.01 9 11.01" /></svg>;
-
-/** Small funnel filter icon used in the secondary filters toggle button. */
-const IconFilter = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>;
 
 /** Small search icon used in live/history quick-search inputs. */
 const SearchIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
@@ -828,23 +820,6 @@ const LiveLineChart = ({ data, color = '#3b82f6', label, unit = '' }: {
 };
 
 // ---------------------------------------------------------------------------
-// Chip - filter chip button
-// ---------------------------------------------------------------------------
-
-/**
- * Chip - a toggleable filter chip for the filter bar.
- * Delegates styling to S.chip(active, color) from the theme.
- *
- * @param label   - Text label displayed in the chip
- * @param active  - Whether this chip is currently selected
- * @param onClick - Called when the chip is clicked
- * @param color   - Optional brand color for active state
- */
-const Chip = ({ label, active, onClick, color }: { label: string; active: boolean; onClick: () => void; color?: string }) => (
-  <button onClick={onClick} style={{ ...S.chip(active, color), fontSize: 12 }}>{label}</button>
-);
-
-// ---------------------------------------------------------------------------
 // ScoreRing - circular SVG score indicator
 // ---------------------------------------------------------------------------
 
@@ -952,6 +927,15 @@ const ScoreBreakdownPanel = ({
             {t('resultats.score.formula')}
           </div>
         </div>
+      </div>
+
+      <div style={{ display: 'grid', gap: 6, marginBottom: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--bg-card)' }}>
+        {[t('resultats.score.stepValue'), t('resultats.score.stepWeight'), t('resultats.score.stepDiscount')].map(step => (
+          <div key={step} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+            <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', marginTop: 6, flexShrink: 0 }} />
+            <span>{step}</span>
+          </div>
+        ))}
       </div>
 
       <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
@@ -1110,9 +1094,6 @@ const HistorialTab = () => {
   const [selectedScenarioId, setSelectedScenarioId] = useState('');
   const hasLoadedHistoryRef = useRef(false);
 
-  // Controls visibility of the secondary filters (protocol/platform/arch)
-  const [filtersOpen, setFiltersOpen] = useState(false);
-
   /**
    * Fetches both summary and scenario data in parallel.
    * Gracefully handles API errors by defaulting to empty arrays,
@@ -1235,13 +1216,6 @@ const HistorialTab = () => {
   const availArchs = [...new Set(syncedSummary.map((s: any) => s.architecture || '').filter(Boolean))];
   const availDataFormats = [...new Set(syncedSummary.map(dataFormatOf).filter(Boolean))];
 
-  /**
-   * Toggles a value in a filter list - adds if not present, removes if present.
-   * Used by Chip onClick handlers.
-   */
-  const toggle = (list: string[], set: (v: string[]) => void, val: string) =>
-    set(list.includes(val) ? list.filter(x => x !== val) : [...list, val]);
-
   // Apply all active filters to the full summary set
   const filteredSummary = syncedSummary.filter(s => {
     const platform = normalizePlatform(s.platform || s.broker) || '';
@@ -1272,7 +1246,6 @@ const HistorialTab = () => {
   };
 
   const scenarioHistory = aggregateScenarioHistory(filteredSummary);
-  const totalScenarioHistory = aggregateScenarioHistory(syncedSummary);
   const totalMeasures = scenarioHistory.reduce((sum, s) => sum + getScenarioMeasureCount(s), 0);
   const totalRuns = filteredSummary.length;
 
@@ -1344,114 +1317,60 @@ const HistorialTab = () => {
     <div>
       <MetricGlossary />
 
-      {/* Filter bar */}
-      <div style={{ ...S.card, marginBottom: 20 }}>
-        {/* Data format filter - always visible (primary filter, most commonly used) */}
-        {availDataFormats.length > 0 && (
-          <div style={{ marginBottom: filtersOpen || availDataFormats.length > 0 ? 14 : 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{t('resultats.history.filterFormat')}</div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-              {availDataFormats.map(f => (
-                <Chip
-                  key={f}
-                  label={dataFormatLabel(f)}
-                  active={filterDataFormat.includes(f)}
-                  color={DATA_FORMAT_COLORS[f] || '#7c3aed'}
-                  onClick={() => toggle(filterDataFormat, setFilterDataFormat, f)}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 220, background: 'var(--bg-subtle)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px' }}>
-            <span style={{ color: 'var(--text-disabled)', display: 'flex' }}><IconFilter /></span>
-            <input
-              type="text"
-              value={historySearch}
-              onChange={e => setHistorySearch(e.target.value)}
-              placeholder={t('resultats.history.searchPlaceholder')}
-              style={{ background: 'none', border: 'none', outline: 'none', width: '100%', fontFamily: 'var(--font)', fontSize: 12, color: 'var(--text-primary)' }}
-            />
-            {historySearch && (
-              <button
-                onClick={() => setHistorySearch('')}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-disabled)', padding: 0, fontSize: 14, lineHeight: 1 }}
-                aria-label={t('resultats.history.clearSearch')}
-              >
-                ×
-              </button>
-            )}
-          </div>
-          <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-            {filteredSummary.length} {t('resultats.history.visibleRuns')}
-          </span>
-        </div>
-
-        {/* Divider + toggle button for secondary filters (protocol, platform, arch) */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: availDataFormats.length > 0 ? '1px solid var(--border)' : 'none', paddingTop: availDataFormats.length > 0 ? 14 : 0 }}>
-          <button
-            onClick={() => setFiltersOpen(o => !o)}
-            style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'var(--font)', color: 'var(--text-secondary)', fontWeight: 600, fontSize: 13 }}
-          >
-            <IconFilter />
-            {t('resultats.history.filterMore')}
-            {/* Show active secondary filter count as a badge */}
-            {(filterPlatform.length + filterProtocol.length + filterArch.length) > 0 && (
-              <span style={{ background: 'var(--accent)', color: 'white', borderRadius: '50%', width: 17, height: 17, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700 }}>
-                {filterPlatform.length + filterProtocol.length + filterArch.length}
-              </span>
-            )}
-            <IconChevron open={filtersOpen} />
-          </button>
-
-          {/* Right side: filter count + clear + refresh buttons */}
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {/* Show filtered count when a filter is active */}
-            {scenarioHistory.length !== totalScenarioHistory.length && (
-              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
-                {t('resultats.history.showing')} <strong>{scenarioHistory.length}</strong> {t('resultats.history.of')} {totalScenarioHistory.length} {t('resultats.history.scenarios')}
-              </span>
-            )}
-            {activeFilters > 0 && (
-              <button onClick={clearFilters} style={{ ...S.btn, fontSize: 12, padding: '4px 12px', color: 'var(--error)', borderColor: 'var(--error)' }}>
-                {t('resultats.history.clearAll')}
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Secondary filters - collapsible (protocol, platform, architecture) */}
-        {filtersOpen && (
-          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
-            {availProtocols.length > 0 && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('resultats.history.filterProtocol')}</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {availProtocols.map(p => <Chip key={p} label={p} active={filterProtocol.includes(p)} color="#16a34a" onClick={() => toggle(filterProtocol, setFilterProtocol, p)} />)}
-                </div>
-              </div>
-            )}
-            {availPlatforms.length > 0 && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('resultats.history.filterPlatform')}</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {availPlatforms.map(p => <Chip key={p} label={p} active={filterPlatform.includes(p)} color={PLATFORM_COLORS[p] || '#d97706'} onClick={() => toggle(filterPlatform, setFilterPlatform, p)} />)}
-                </div>
-              </div>
-            )}
-            {availArchs.length > 0 && (
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>{t('resultats.history.filterArchitecture')}</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {availArchs.map(a => <Chip key={a} label={a} active={filterArch.includes(a)} color={ARCHITECTURE_COLORS[a] || '#2563eb'} onClick={() => toggle(filterArch, setFilterArch, a)} />)}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <FilterPanel
+        title={t('resultats.history.filterTitle')}
+        activeFilterCount={activeFilters}
+        visibleCount={filteredSummary.length}
+        totalCount={syncedSummary.length}
+        searchValue={historySearch}
+        searchPlaceholder={t('resultats.history.searchPlaceholder')}
+        visibleLabel={(visible, total) => `${visible} ${t('catalog.filters.visibleOf')} ${total}`}
+        clearSearchLabel={t('resultats.history.clearSearch')}
+        clearFiltersLabel={t('resultats.history.clearAll')}
+        onSearchChange={setHistorySearch}
+        onClearFilters={clearFilters}
+      >
+        <FilterSelect
+          label={t('resultats.history.filterFormat')}
+          value={filterDataFormat[0] || 'all'}
+          onChange={value => setFilterDataFormat(value === 'all' ? [] : [value])}
+          accentColor="var(--accent)"
+          options={[
+            { value: 'all', label: t('resultats.history.filterAllFormats') },
+            ...availDataFormats.map(value => ({ value, label: dataFormatLabel(value) })),
+          ]}
+        />
+        <FilterSelect
+          label={t('resultats.history.filterProtocol')}
+          value={filterProtocol[0] || 'all'}
+          onChange={value => setFilterProtocol(value === 'all' ? [] : [value])}
+          accentColor="#16a34a"
+          options={[
+            { value: 'all', label: t('resultats.history.filterAllProtocols') },
+            ...availProtocols.map(value => ({ value, label: value })),
+          ]}
+        />
+        <FilterSelect
+          label={t('resultats.history.filterPlatform')}
+          value={filterPlatform[0] || 'all'}
+          onChange={value => setFilterPlatform(value === 'all' ? [] : [value])}
+          accentColor="#d97706"
+          options={[
+            { value: 'all', label: t('resultats.history.filterAllPlatforms') },
+            ...availPlatforms.map(value => ({ value, label: value })),
+          ]}
+        />
+        <FilterSelect
+          label={t('resultats.history.filterArchitecture')}
+          value={filterArch[0] || 'all'}
+          onChange={value => setFilterArch(value === 'all' ? [] : [value])}
+          accentColor="#2563eb"
+          options={[
+            { value: 'all', label: t('resultats.history.filterAllArchitectures') },
+            ...availArchs.map(value => ({ value, label: value })),
+          ]}
+        />
+      </FilterPanel>
 
       {/* Empty state: no runs have been recorded in Elasticsearch yet */}
       {syncedSummary.length === 0 && (

@@ -297,7 +297,7 @@
         "body": "La puntuació suma mètriques amb pesos. El detall mostra el càlcul.",
         "details": [
           "Veus normalitzat per pes.",
-          "També veus la penalització per errors."
+          "També veus el descompte per errors."
         ]
       },
       "step5": {
@@ -315,6 +315,28 @@
     "subtitle": "Proves comparables, resultats clars",
     "description": "Crea una prova, executa-la al clúster i mira què ha passat. Sempre mesurem el mateix recorregut: missatge enviat, broker, missatge rebut.",
     "heroSubtitle": "Backstage és la pantalla. AKS és el clúster d'Azure on corren les proves.",
+    "guide": {
+      "title": "Guia ràpida de la Home",
+      "subtitle": "Què mirar primer i quin camí segueix una prova.",
+      "items": {
+        "map": {
+          "title": "Mapa del portal",
+          "text": "La Home resumeix el camí complet: catàleg, escenari, execució i resultats."
+        },
+        "catalog": {
+          "title": "Primer mira components",
+          "text": "El catàleg diu quins brokers, protocols i formats pots combinar sense sortir del portal."
+        },
+        "scenarios": {
+          "title": "Després crea la prova",
+          "text": "A Escenaris tries broker, arquitectura, protocol, format, durada i càrrega."
+        },
+        "results": {
+          "title": "Acaba llegint dades",
+          "text": "Execucions mostra l'estat del run. Resultats explica latència, errors, throughput i puntuació."
+        }
+      }
+    },
     "btnCreateScenario": "Crear escenari",
     "btnViewCatalog": "Veure catàleg",
     "btnCompareResults": "Comparar resultats",
@@ -597,7 +619,40 @@
       "complete": "Completa",
       "partial": "Parcial"
     },
-    "loadError": "No s'ha pogut carregar el catàleg:"
+    "loadError": "No s'ha pogut carregar el catàleg:",
+    "filters": {
+      "category": "Categoria",
+      "visibleOf": "visibles de",
+      "clearSearch": "Neteja la cerca",
+      "clearAll": "Neteja filtres"
+    },
+    "compatibility": {
+      "platform": "Plataforma",
+      "architecture": "Arquitectura",
+      "protocol": "Protocol",
+      "architectures": "Arquitectures",
+      "protocols": "Protocols",
+      "archShort": "arq.",
+      "protocolShort": "prot.",
+      "matrixTitle": "Compatibilitat real del portal",
+      "matrixDescription": "Mostra què es pot executar ara, què necessita configuració i què encara no està disponible.",
+      "matrixCaption": "Estat actual del portal",
+      "notDeployed": "No desplegada",
+      "status": {
+        "supported": "Es pot executar",
+        "requiresConfig": "Requereix configuració",
+        "blocked": "No disponible ara"
+      },
+      "reason": {
+        "supported": "El portal pot executar aquesta combinació amb el backend actual.",
+        "requiresConfig": "Es pot provar, però abans cal revisar la configuració del broker o del clúster.",
+        "blocked": "El portal encara no té el camí necessari per executar aquesta combinació.",
+        "gatewayMissing": "Aquest protocol necessita un gateway o adaptador que ara mateix no forma part del flux executable.",
+        "kafkaLargePayload": "Kafka i Confluent poden provar payloads grans si el límit de missatge està configurat de manera coherent.",
+        "natsLargePayload": "NATS necessita max_payload de 4 MB o superior per provar vídeo 8K sense fallar.",
+        "rabbitLargePayload": "RabbitMQ necessita revisar límits de mida i memòria abans de provar vídeo 8K."
+      }
+    }
   },
   "scenarios": {
     "pageTitle": "Escenaris | APIs Asíncrones",
@@ -704,6 +759,7 @@
     "guide": {
       "title": "Guia ràpida",
       "how": "Com funcionen els escenaris?",
+      "subtitle": "Decideix la composició, revisa la càrrega i executa només quan tinguis clar què vols mesurar.",
       "show": "Mostra guia",
       "hide": "Amaga guia",
       "compatSummary": "Resum de compatibilitat",
@@ -809,6 +865,14 @@
       "errorUpdate": "Error en actualitzar l'escenari.",
       "errorDelete": "Error en eliminar l'escenari.",
       "errorExecute": "Error en llançar l'execució."
+    },
+    "filters": {
+      "title": "Filtres",
+      "format": "Format",
+      "platform": "Plataforma",
+      "protocol": "Protocol",
+      "architecture": "Arquitectura",
+      "searchPlaceholder": "Cerca per nom, arquitectura, protocol, plataforma o format"
     }
   },
   "execucions": {
@@ -821,7 +885,9 @@
       "protocol": "Protocol",
       "architecture": "Arquitectura",
       "format": "Format",
-      "all": "Tots"
+      "all": "Tots",
+      "title": "Filtres",
+      "searchPlaceholder": "Cerca per escenari, plataforma, protocol, arquitectura o format"
     },
     "status": {
       "pending": "Pendent",
@@ -916,7 +982,8 @@
       "errorStop": "Error en cancel·lar:",
       "errorDelete": "Error en eliminar:",
       "errorRefresh": "No s'han pogut actualitzar les execucions."
-    }
+    },
+    "subtitle": "Historial de proves executades al clúster AKS."
   },
   "resultats": {
     "pageTitle": "Resultats | APIs Asíncrones",
@@ -998,7 +1065,12 @@
       "tablePlatform": "Plataforma",
       "scenariosExecuted": "escenaris executats",
       "run": "execució",
-      "runs": "execucions"
+      "runs": "execucions",
+      "filterTitle": "Filtres",
+      "filterAllFormats": "Tots els formats",
+      "filterAllProtocols": "Tots els protocols",
+      "filterAllPlatforms": "Totes les plataformes",
+      "filterAllArchitectures": "Totes les arquitectures"
     },
     "runCard": {
       "running": "En execució",
@@ -1006,7 +1078,7 @@
       "pending": "Pendent"
     },
     "drawer": {
-      "title": "Puntuació i historial",
+      "title": "Detall de l’escenari",
       "subtitle": "Resum de les execucions visibles del mateix escenari.",
       "statMeasures": "Mesures",
       "statMeasuresHelper": "Punts persistits de totes les execucions visibles.",
@@ -1038,13 +1110,13 @@
     },
     "score": {
       "title": "Puntuació",
-      "formula": "Cada mètrica dona punts. Exemple: valor normalitzat x pes = aportació. Si hi ha errors, s’aplica una penalització final.",
+      "formula": "Agafem cada mètrica, la passem a una escala comuna i la multipliquem pel seu pes. Després restem els problemes detectats.",
       "metric": "Mètrica",
       "weight": "Pes",
-      "normalized": "Normalitzat",
+      "normalized": "Valor 0-100",
       "contribution": "Aportació",
-      "base": "Base ponderada",
-      "penalty": "Penalització",
+      "base": "Suma abans dels descomptes",
+      "penalty": "Descompte",
       "final": "Final",
       "metrics": {
         "lat": "Latència mitjana",
@@ -1053,7 +1125,10 @@
         "tput": "Throughput",
         "err": "Errors"
       },
-      "calculation": "Càlcul"
+      "calculation": "Càlcul",
+      "stepValue": "Primer convertim cada valor a una escala comuna: 1 és molt bo i 0 és molt dolent.",
+      "stepWeight": "Després multipliquem aquest valor pel pes de la mètrica. Exemple: 0,57 x 20% = 11,4 punts.",
+      "stepDiscount": "Al final apliquem el descompte per errors o pèrdua de missatges, si n’hi ha."
     }
   }
 }
