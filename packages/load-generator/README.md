@@ -1,59 +1,57 @@
-# load-generator
+# `load-generator`
 
-Container que **genera càrrega real** contra el broker triat (Kafka,
-Confluent, NATS, RabbitMQ) sota un contracte just per fer comparatives
-fiables.
+Container que genera càrrega contra el broker triat. No és un servei web:
+`benchmark-orchestrator` l'arrenca com a Job de Kubernetes per a cada
+execució.
 
-> No és un servei web: és una imatge que `benchmark-orchestrator` arrenca
-> com a Job de Kubernetes per cada execució. Quan acaba, el Pod desapareix.
+## Flux
 
-## Què fa, pas a pas
-
-1. Llegeix les variables d'entorn (`BROKER_TYPE`, `RUN_ID`,
-   `MESSAGE_SIZE_BYTES`, `MESSAGES_PER_SECOND`, `TEST_DURATION_SECONDS`,
-   ...).
+1. Llegeix variables d'entorn com `RUN_ID`, `BROKER_TYPE`,
+   `MESSAGES_PER_SECOND`, `MESSAGE_SIZE_BYTES` i `TEST_DURATION_SECONDS`.
 2. Connecta amb el broker corresponent.
-3. Crea el topic/queue/subject efímer per a aquest run.
-4. Envia missatges a la velocitat configurada (`MESSAGES_PER_SECOND`).
-5. Llegeix els missatges al consumidor mesurant la latència
-   amb `performance.now()` (precisió sub-millisegon).
-6. Cada 5 segons, calcula i envia un snapshot de mètriques a
-   `metrics-api` via `POST /metrics`.
-7. Quan acaba la durada (o rep `SIGTERM` per cancel·lació), envia el
-   snapshot final amb `status: 'completed'` i finalitza.
+3. Crea el topic, queue o subject efimer.
+4. Envia missatges a la velocitat configurada.
+5. Llegeix missatges al consumidor i calcula latència.
+6. Envia snapshots a `metrics-api` cada 5 segons.
+7. En acabar, o quan rep una aturada, intenta enviar una mostra final.
 
-## Contracte de comparació justa
+## Contracte de comparacio
 
-Perquè dos runs puguin comparar-se, totes les implementacions:
+Per comparar runs, el generador intenta mantenir les mateixes condicions:
 
-- Fan **fire-and-forget**, sense ACKs del broker.
-- No persisten missatges (broker en memòria, queues efímeres).
-- Tenen un **warm-up de 5 segons** (les primeres mostres es descarten).
-- Usen `performance.now()` per a la latència.
-- Generen el mateix payload (mateix `MESSAGE_SIZE_BYTES`, contingut
-  determinista segons `DATA_FORMAT`).
+- mateix payload si `MESSAGE_SIZE_BYTES` i `DATA_FORMAT` són iguals;
+- mateixa velocitat objectiu;
+- mateix criteri de latencia;
+- snapshots acumulats cada 5 segons;
+- dades parcials si el run s'atura abans d'acabar.
+
+El warm-up tècnic es controla amb `WARMUP_SECONDS`. Si no es passa cap
+valor, el defecte del generador és de 5 segons. La UI pot recomanar
+escenaris amb warm-up més llarg, però per aplicar-lo al Job cal passar
+aquesta variable des de l'orquestrador.
 
 ## Variables d'entorn
 
-| Variable                  | Què                                       |
-|---------------------------|-------------------------------------------|
-| `RUN_ID`                  | Identificador únic del run                |
-| `SCENARIO_ID`             | ID de l'escenari                          |
-| `BROKER_TYPE`             | `kafka`, `confluent`, `nats`, `rabbitmq`  |
-| `ARCHITECTURE`            | Per a la metadada del doc                 |
-| `PROTOCOL` / `PLATFORM`   | Per a la metadada del doc                 |
-| `DATA_FORMAT`             | `default`, `video-4k`, `video-8k`, `iot`, `financial` |
-| `KAFKA_BROKERS`           | Bootstrap servers                         |
-| `NATS_URL`                | URL de NATS                               |
-| `RABBITMQ_URL`            | URL d'AMQP                                |
-| `METRICS_API_URL`         | Endpoint per pujar mètriques              |
-| `TEST_DURATION_SECONDS`   | `0` = indefinit, sinó segons              |
-| `MESSAGES_PER_SECOND`     | Ratio de generació                        |
-| `MESSAGE_SIZE_BYTES`      | Mida del payload                          |
+| Variable | Què indica |
+|----------|------------|
+| `RUN_ID` | Identificador únic del run. |
+| `SCENARIO_ID` | Escenari que s'està executant. |
+| `BROKER_TYPE` | `kafka`, `confluent`, `nats` o `rabbitmq`. |
+| `ARCHITECTURE` | Arquitectura declarada a l'escenari. |
+| `PROTOCOL` | Protocol declarat a l'escenari. |
+| `PLATFORM` | Plataforma declarada a l'escenari. |
+| `DATA_FORMAT` | Format de dades de la prova. |
+| `KAFKA_BROKERS` | Bootstrap servers de Kafka o Confluent. |
+| `NATS_URL` | URL de NATS. |
+| `RABBITMQ_URL` | URL d'AMQP. |
+| `METRICS_API_URL` | Endpoint on es pugen les mostres. |
+| `TEST_DURATION_SECONDS` | `0` vol dir execució indefinida. |
+| `MESSAGES_PER_SECOND` | Velocitat objectiu. |
+| `MESSAGE_SIZE_BYTES` | Mida del payload. |
+| `WARMUP_SECONDS` | Segons inicials que no haurien de pesar en la mesura. |
 
 ## Errors coneguts
 
-- **NATS_MAX_PAYLOAD_EXCEEDED**: NATS Server per defecte rebutja
-  missatges de més d'1 MB. Si tries `video-8k` (~2 MB) sobre NATS,
-  cal aplicar `k8s/brokers/nats-config.yaml` (puja el límit a 4 MB) i
-  reiniciar el deployment de NATS abans d'executar.
+NATS rebutja missatges grans si `max_payload` no està configurat. Per
+proves de vídeo 8K sobre NATS cal aplicar `k8s/brokers/nats-config.yaml`
+i reiniciar NATS abans d'executar.

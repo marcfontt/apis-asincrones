@@ -1,58 +1,54 @@
-# benchmark-orchestrator
+# `benchmark-orchestrator`
 
-Microservei que **orquestra els benchmarks reals** sobre Kubernetes.
-Quan l'usuari clica "Executar" al portal, aquest servei rep la petició
-i crea un Job de K8s amb el container `load-generator` configurat per
-l'escenari triat.
+Microservei que llança proves reals sobre Kubernetes. Quan l'usuari clica
+`Executar`, el portal envia una petició a aquest servei i el servei crea
+un Job amb el container `load-generator`.
 
 ## Què fa
 
-- Rep `POST /runs` amb un `scenarioId` i opcionalment overrides de
-  durada/ratio/payload.
-- Llegeix la definició de l'escenari del `scenario-service`.
-- Decideix el `brokerType` correcte (kafka, confluent, nats, rabbitmq)
-  segons la combinació protocol+plataforma.
-- Crea un namespace efímer (`sc-<slug>-<shortId>`).
-- Còpia el Secret de l'ACR al namespace nou per poder fer pull de la
-  imatge del load-generator.
-- Crea el Job amb totes les variables d'entorn: brokers URLs, durada,
-  ratio, payload size, etc.
-- Monitoritza el Job (cada 10s) i actualitza l'estat del run.
-- Quan l'usuari atura, esborra el namespace després d'un *flush window*
-  de 6 segons perquè el load-generator pugui pujar el seu snapshot final.
+- Rep `POST /runs` amb l'escenari i possibles canvis de durada, ràtio o payload.
+- Llegeix l'escenari des de `scenario-service`.
+- Decideix quin broker tècnic s'ha d'usar: `kafka`, `confluent`, `nats` o `rabbitmq`.
+- Crea un namespace efímer per a la prova.
+- Copia el Secret d'ACR al namespace nou.
+- Crea el Job de Kubernetes amb les variables d'entorn necessaries.
+- Revisa l'estat del Job cada pocs segons.
+- Si l'usuari atura el run, deixa una finestra curta perquè el generador enviï l'última mostra.
 
 ## API
 
-| Mètode | Ruta                          | Descripció                            |
-|--------|-------------------------------|---------------------------------------|
-| GET    | `/health`                     | Healthcheck + estat de K8s            |
-| GET    | `/runs`                       | Llista runs (in-memory, ordenat desc) |
-| GET    | `/runs/active`                | Només runs en curs/pendent            |
-| GET    | `/runs/:id`                   | Detall                                |
-| POST   | `/runs`                       | Llança un nou run                     |
-| POST   | `/runs/:id/cancel`            | Atura un run en curs                  |
-| POST   | `/runs/reset`                 | Esborra TOTS els runs + mètriques     |
-| DELETE | `/runs/:id`                   | Elimina un run i les seves mètriques  |
+| Mètode | Ruta | Descripció |
+|--------|------|------------|
+| GET | `/health` | Healthcheck i estat de Kubernetes. |
+| GET | `/runs` | Llista runs en memòria, ordenats de més nou a més antic. |
+| GET | `/runs/active` | Llista runs pendents o en curs. |
+| GET | `/runs/:id` | Detall d'un run. |
+| POST | `/runs` | Llança un run nou. |
+| POST | `/runs/:id/cancel` | Atura un run en curs. |
+| POST | `/runs/reset` | Esborra tots els runs i les mètriques. |
+| DELETE | `/runs/:id` | Elimina un run i les seves mètriques. |
 
 ## Mode indefinit
 
-Si l'escenari té `duration = 0` o `null`, el run s'executa **fins que
-l'usuari l'atura manualment**. Al codi això es decideix a `runTiming.ts`,
-funció `isIndefiniteDuration`. Antigament `>= 3600` també es considerava
-indefinit; ara s'ha canviat per evitar confusions amb la durada legítima
-d'una hora.
+Un escenari amb `duration = 0` o `duration = null` s'executa fins que
+l'usuari l'atura. Una execució aturada no es reprèn automàticament en
+aquesta fase. Si ja havia enviat mostres, aquestes queden com a dades
+parcials.
 
 ## Entorn
 
-| Variable                  | Defecte                                |
-|---------------------------|----------------------------------------|
-| `PORT`                    | `3002` (sí, comparteix port amb scenario-service en K8s; cada un té el seu Service) |
-| `SCENARIO_SERVICE_URL`    | `http://scenario-service:3002`         |
-| `METRICS_API_URL`         | `http://metrics-api:3004`              |
-| `ACR_SERVER`              | `asyncbenchmarkregistry.azurecr.io`    |
-| `NAMESPACE`               | `apis-asincronas`                      |
+| Variable | Valor habitual |
+|----------|----------------|
+| `PORT` | `3003` en Kubernetes. Si no es defineix, el codi local pot usar `3002`. |
+| `SCENARIO_SERVICE_URL` | `http://scenario-service:3002` |
+| `METRICS_API_URL` | `http://metrics-api:3004` |
+| `ACR_SERVER` | `asyncbenchmarkregistry.azurecr.io` |
+| `NAMESPACE` | `apis-asincronas` |
+
+En local, defineix `PORT=3003` si vols provar-lo darrere del mateix proxy
+que usa Backstage.
 
 ## Permisos
 
-El servei necessita poder crear namespaces, jobs i secrets. Vegeu
-[`k8s/rbac/benchmark-orchestrator-rbac.yaml`](../../k8s/rbac/benchmark-orchestrator-rbac.yaml).
+Necessita permisos per crear namespaces, Jobs i Secrets. La configuració
+està a `k8s/rbac/benchmark-orchestrator-rbac.yaml`.

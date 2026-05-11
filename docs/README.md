@@ -1,27 +1,20 @@
-# `docs/` — Documentació tècnica
+# `docs/` - Documentació tècnica
 
-Aquesta carpeta conté la documentació tècnica del projecte.
-
----
+Aquesta carpeta recull la documentació tècnica que acompanya el portal.
+El README principal del repositori dona la visió general; aquesta carpeta
+serveix per ampliar arquitectura i decisions.
 
 ## Documents disponibles
 
-### 🏛️ Arquitectura del sistema
-**[architecture.md](architecture.md)**
+| Document | Què conté |
+|----------|-----------|
+| [`architecture.md`](architecture.md) | Diagrama del sistema, serveis, ports i flux d'una execució. |
 
-Diagrama Mermaid de l'arquitectura completa i descripció de cada component:
+## Recursos relacionats
 
-- Topologia de namespaces al cluster AKS
-- Taules de serveis, ports i adreces IP externes
-- Flux detallat d'una execució de benchmark
-
----
-
-## Altres recursos
-
-| Carpeta | Contingut |
-|---------|-----------|
-| [`../k8s/`](../k8s/) | Manifests Kubernetes (deployments, services, storage, rbac) |
-| [`../packages/`](../packages/) | Codi font dels microserveis (Node.js/TypeScript) |
-| [`../plugins/`](../plugins/) | Plugin custom de Backstage (`async-benchmark`) |
-| [`../README.md`](../README.md) | Visió general del projecte |
+| Ruta | Contingut |
+|------|-----------|
+| [`../README.md`](../README.md) | Resum actual del projecte i estat del portal. |
+| [`../plugins/`](../plugins/) | Plugin Backstage visible per l'usuari. |
+| [`../packages/`](../packages/) | App i microserveis. |
+| [`../k8s/`](../k8s/) | Manifests Kubernetes. |

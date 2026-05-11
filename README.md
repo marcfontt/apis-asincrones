@@ -1,279 +1,271 @@
-# APIs Asíncrones — Plataforma de Benchmark
+# APIs Asíncrones - Portal de proves
 
-Portal web (Backstage + plugin) i conjunt de microserveis per definir,
-executar i analitzar **benchmarks d'APIs asíncrones** (Kafka, RabbitMQ,
-NATS, Confluent...) sobre Azure Kubernetes Service (AKS).
+Portal web basat en Backstage per crear, executar i comparar proves
+d'APIs asíncrones. El projecte permet provar combinacions de broker,
+protocol, arquitectura i format de dades sobre un clúster AKS, i després
+veure si el resultat és comparable i defensable.
 
-> Projecte de Final de Grau · Universitat de Girona · Marc Font · 2026
+Projecte de Final de Grau. Universitat de Girona. Marc Font. 2026.
 
----
+## Què fa el portal
 
-## Què és això?
+L'app està pensada per respondre preguntes concretes:
 
-És una intranet d'aprenentatge i recerca on un alumne, professor o
-enginyer pot:
+1. Quins components puc provar?
+2. Quines combinacions es poden executar ara mateix?
+3. Com creo un escenari de prova?
+4. Què està passant mentre una execució està en marxa?
+5. D'on surt la puntuació final d'un resultat?
 
-1. **Triar una combinació** d'arquitectura + protocol + plataforma de
-   missatgeria + format de dades.
-2. **Llançar un benchmark real** contra el cluster AKS, sota la mateixa
-   càrrega que totes les altres combinacions.
-3. **Veure les mètriques en directe**: latència (P50/P99), throughput
-   (msg/s), taxa d'error.
-4. **Comparar** quina combinació funciona millor per cada cas d'ús.
+Les pàgines principals són:
 
----
+| Pàgina | Funció |
+|--------|--------|
+| Home | Explica el flux general: escenari, execució, mesures i resultats. |
+| Catàleg | Mostra components, compatibilitat i detalls de reproduïbilitat. |
+| Escenaris | Crea, edita, duplica i executa escenaris. |
+| Execucions | Mostra runs actius, aturats i finalitzats amb detall en directe. |
+| Resultats | Compara historial, mètriques i càlcul de puntuació. |
+| Settings | Canvia idioma i tema visual. |
 
-## Arquitectura del sistema
+El text visible està preparat en català, castellà i anglès.
 
-El sistema viu dins un cluster **AKS** organitzat en tres _namespaces_ que aïllen
-l'aplicació, el cluster Kafka gestionat per Strimzi, i la resta de brokers. El
-fitxer font del diagrama es troba a [`docs/architecture.md`](docs/architecture.md).
+## Estat funcional
+
+Canvis més recents del portal:
+
+- Guies de pàgina unificades amb el mateix format visual.
+- Tutorials propis per Home, Catàleg, Escenaris, Execucions i Resultats.
+- Filtres compartits a Catàleg, Escenaris, Execucions i Resultats.
+- Botons més coherents entre pàgines, inclòs el botó de tutorial.
+- Textos reescrits amb llenguatge més curt i directe.
+- Catàleg amb estats de compatibilitat més honestos:
+  `Es pot executar`, `Requereix configuració` i `No disponible ara`.
+- Modal de component amb reproduïbilitat, configuració i condicions de prova.
+- Execucions amb detall estable mentre arriben refrescos.
+- Resultats amb `Detall de l'escenari` i càlcul de puntuació més traçable.
+
+## Últims commits rellevants
+
+| Commit | Resum |
+|--------|-------|
+| `190157d` | Simplifica textos del portal, comentaris i etiquetes principals. |
+| `a84ae8d` | Unifica guies, filtres, compatibilitat i explicació de puntuació. |
+| `01a52ce` | Reordena guies i còpia visible de les pàgines principals. |
+| `eef958d` | Millora tutorials guiats i claredat del càlcul de resultats. |
+| `a4ef7e4` | Sincronitza idioma del tutorial i neteja Settings. |
+| `33d3882` | Elimina rastres d'eines d'assistent del repositori. |
+
+## Arquitectura
+
+El sistema viu dins un clúster Azure Kubernetes Service. Els manifests
+actuals del repo fan servir el namespace `apis-asincronas` per a l'app,
+`kafka-strimzi` per a Kafka i `brokers` per a la resta de brokers. Si el
+clúster real usa una altra grafia, cal normalitzar-la abans de desplegar.
 
 ```mermaid
 flowchart TB
-    user(["Usuari<br/>(alumne / professor / enginyer)"]):::external
+    user(["Usuari"]) --> backstage["Backstage UI<br/>plugin async-benchmark"]
 
-    subgraph cluster["Cluster AKS (Azure Kubernetes Service)"]
-        direction TB
-
-        subgraph nsApp["ns: apis-asincrones"]
-            direction TB
-            backstage["backstage-service<br/>(plugin async-benchmark)<br/>LoadBalancer 80:30304<br/>ext: 20.23.94.191"]:::app
-            catalog["catalog-service<br/>ClusterIP :3001"]:::app
-            scenario["scenario-service<br/>ClusterIP :3002"]:::app
-            orchestrator["benchmark-orchestrator<br/>ClusterIP :3003"]:::app
-            metrics["metrics-api<br/>ClusterIP :3004<br/>(REST + WebSocket)"]:::app
-            es[("elasticsearch<br/>ClusterIP :9200<br/>índex async-metrics")]:::data
-            grafana["grafana<br/>LoadBalancer 3000:31926<br/>ext: 98.64.47.155"]:::obs
-            loadgen[/"load-generator<br/>(K8s Job efímer)"/]:::job
+    subgraph aks["AKS"]
+        subgraph app["ns: apis-asincronas"]
+            backstage
+            catalog["catalog-service :3001"]
+            scenario["scenario-service :3002"]
+            orchestrator["benchmark-orchestrator :3003"]
+            metrics["metrics-api :3004"]
+            es[("Elasticsearch")]
+            loadgen["load-generator<br/>Job efímer"]
         end
 
-        subgraph nsKafka["ns: kafka-strimzi"]
-            direction TB
-            kafkaBoot["kafka-cluster-kafka-bootstrap<br/>:9091 / :9092"]:::broker
-            kafkaBrokers["kafka-cluster-kafka-brokers<br/>(headless) :9090 / :9091"]:::broker
+        subgraph kafka["ns: kafka-strimzi"]
+            kafkaBroker["Kafka Strimzi"]
         end
 
-        subgraph nsBrokers["ns: brokers"]
-            direction TB
-            nats["nats<br/>:4222"]:::broker
-            natsHl["nats-headless<br/>:4222 / :8222"]:::broker
-            rabbit["rabbitmq<br/>:5672 / :15672"]:::broker
-            redpanda["redpanda<br/>:9644 / :8082 / :9093"]:::broker
-            redpandaExt["redpanda-external<br/>NodePort 9645:31644"]:::broker
+        subgraph brokers["ns: brokers"]
+            rabbit["RabbitMQ"]
+            nats["NATS"]
+            redpanda["Redpanda / Confluent API"]
         end
     end
 
-    user -- "HTTPS" --> backstage
-    user -- "HTTP (dashboards)" --> grafana
-
-    backstage -- "HTTP REST" --> catalog
-    backstage -- "HTTP REST" --> scenario
-    backstage -- "HTTP REST" --> orchestrator
-    backstage -- "HTTP REST + WS" --> metrics
-
-    orchestrator -- "kubectl create Job" --> loadgen
-
-    loadgen -- "Kafka (TCP 9092)" --> kafkaBoot
-    loadgen -- "AMQP (5672)" --> rabbit
-    loadgen -- "NATS (4222)" --> nats
-    loadgen -- "Kafka API (9093)" --> redpanda
-
-    loadgen -- "POST snapshots /5s" --> metrics
-    metrics -- "index / search" --> es
-    grafana -- "datasource" --> es
-
-    kafkaBoot -.-> kafkaBrokers
-
-    classDef external fill:#fef3c7,stroke:#b45309,stroke-width:2px,color:#1f2937;
-    classDef app fill:#dbeafe,stroke:#1d4ed8,stroke-width:1.5px,color:#0f172a;
-    classDef data fill:#ede9fe,stroke:#6d28d9,stroke-width:1.5px,color:#1f2937;
-    classDef obs fill:#dcfce7,stroke:#15803d,stroke-width:1.5px,color:#1f2937;
-    classDef broker fill:#ffe4e6,stroke:#be123c,stroke-width:1.5px,color:#1f2937;
-    classDef job fill:#fde68a,stroke:#b45309,stroke-width:1.5px,color:#1f2937,stroke-dasharray: 4 2;
-
-    style cluster fill:#f8fafc,stroke:#475569,stroke-width:2px
-    style nsApp fill:#eff6ff,stroke:#1d4ed8,stroke-width:1px
-    style nsKafka fill:#fff1f2,stroke:#be123c,stroke-width:1px
-    style nsBrokers fill:#fef2f2,stroke:#9f1239,stroke-width:1px
+    backstage --> catalog
+    backstage --> scenario
+    backstage --> orchestrator
+    backstage --> metrics
+    orchestrator --> loadgen
+    loadgen --> kafkaBroker
+    loadgen --> rabbit
+    loadgen --> nats
+    loadgen --> redpanda
+    loadgen --> metrics
+    metrics --> es
 ```
 
-### Components
+Flux d'una prova:
 
-- **Usuari** — accedeix al portal des del navegador. Punt d'entrada únic via IP pública del LoadBalancer (`20.23.94.191`).
-- **backstage-service** (`ns: apis-asincrones`) — portal Backstage que serveix el plugin `async-benchmark` (Home, Catàleg, Escenaris, Execucions, Resultats). Exposat amb LoadBalancer `80:30304/TCP`.
-- **catalog-service** (`:3001`) — CRUD del catàleg de components disponibles (arquitectures, protocols, plataformes, formats).
-- **scenario-service** (`:3002`) — CRUD d'escenaris de benchmark (combinacions reutilitzables amb paràmetres de càrrega).
-- **benchmark-orchestrator** (`:3003`) — converteix una petició `POST /runs` en un `Job` de Kubernetes que arrenca el `load-generator` dins un namespace efímer.
-- **load-generator** (`Job` K8s) — container efímer que es connecta al broker triat, envia missatges sota un contracte just (fire-and-forget, payload determinista) i envia snapshots de mètriques cada 5s.
-- **metrics-api** (`:3004`) — rep snapshots, els indexa a Elasticsearch i exposa REST (`/metrics`, `/metrics/summary`) i WebSocket per al directe.
-- **elasticsearch** (`:9200`) — emmagatzematge de sèries temporals (índex `async-metrics`).
-- **grafana** (`3000:31926`, ext `98.64.47.155`) — observabilitat operativa amb Elasticsearch com a datasource.
-- **kafka-strimzi** — cluster Kafka gestionat per l'operador Strimzi (`bootstrap` per a clients, `brokers` headless per a coordinació interna).
-- **brokers** — namespace que agrupa la resta de plataformes de missatgeria sota prova: **RabbitMQ** (AMQP), **NATS** (protocol propi), **Redpanda** (compatible amb l'API Kafka, també exposat com a NodePort per a accés extern).
-
----
+1. L'usuari crea o tria un escenari.
+2. El portal envia la petició al backend de Backstage.
+3. El backend fa proxy cap al `benchmark-orchestrator`.
+4. L'orquestrador crea un Job de Kubernetes amb el `load-generator`.
+5. El generador envia missatges al broker triat i puja mesures a `metrics-api`.
+6. `metrics-api` desa les mostres a Elasticsearch i les mostra al portal.
 
 ## Estructura del repositori
 
-```
+```text
 apis-asincrones/
-├── packages/                       # Microserveis i app Backstage
-│   ├── app/                        # Frontend Backstage (React)
-│   ├── backend/                    # Backend Backstage
-│   ├── catalog-service/            # CRUD del catàleg de components
-│   ├── scenario-service/           # CRUD d'escenaris de benchmark
-│   ├── benchmark-orchestrator/     # Orquestra Jobs de K8s
-│   ├── load-generator/             # Genera càrrega contra el broker
-│   └── metrics-api/                # WebSocket + REST sobre Elasticsearch
+├── packages/
+│   ├── app/                        # Frontend Backstage
+│   ├── backend/                    # Backend Backstage i proxy
+│   ├── catalog-service/            # Catàleg de components
+│   ├── scenario-service/           # CRUD d'escenaris
+│   ├── benchmark-orchestrator/     # Crea Jobs de Kubernetes
+│   ├── load-generator/             # Envia carrega al broker
+│   └── metrics-api/                # REST + WebSocket de mètriques
 ├── plugins/
-│   └── async-benchmark/            # Plugin Backstage amb les pàgines
-│       └── src/
-│           ├── pages/              # Home, Catàleg, Escenaris, Execucions, Resultats
-│           ├── components/         # Components reutilitzables
-│           └── shared/             # Helpers compartits
-├── k8s/                            # Manifests Kubernetes
-│   ├── deployments/                # ES, Grafana, microserveis
-│   ├── services/                   # ClusterIPs i LoadBalancers
-│   ├── storage/                    # PersistentVolumeClaims
-│   ├── kafka/                      # Strimzi cluster Kafka
-│   └── brokers/                    # ConfigMaps de NATS i altres
+│   └── async-benchmark/            # Plugin visible del portal
+├── k8s/                            # Manifests AKS
+├── docs/                           # Documentacio tecnica
 ├── scripts/                        # Scripts auxiliars
-├── deploy-all.sh                   # Pipeline de build + restart
-└── app-config.yaml                 # Config Backstage (dev)
+├── deploy-all.sh                   # Build, push i restart a AKS
+└── app-config.yaml                 # Configuració Backstage local
 ```
 
----
+## Stack
 
-## Stack tecnològic
+| Capa | Tecnologia |
+|------|------------|
+| Portal | Backstage 1.47, React 18, TypeScript |
+| Paquets | Yarn 4 |
+| Backend | Node.js i Express als microserveis |
+| Dades | Elasticsearch |
+| Cluster | Azure Kubernetes Service |
+| Brokers | Kafka, RabbitMQ, NATS, Redpanda / API Kafka |
+| Observabilitat | Metrics API, WebSocket i Grafana |
 
-| Capa               | Tecnologia                       | Versió |
-|--------------------|----------------------------------|--------|
-| Frontend           | React + Backstage 1.47           | 18.x   |
-| Backend            | Node.js + Express                | 22 o 24|
-| Llenguatge         | TypeScript                       | 5.x    |
-| Storage            | Elasticsearch                    | 8.12   |
-| Cluster            | Azure Kubernetes Service (AKS)   | k8s 1.33 |
-| Brokers            | Apache Kafka, RabbitMQ, NATS, Redpanda | varies |
-| Operador Kafka     | Strimzi                          | 0.51.0 |
-| Package manager    | Yarn                             | 4.4.1  |
-| Tests              | Jest + Playwright                | varies |
+No s'han afegit dependències noves per als canvis recents de UI.
 
----
+## Engegada en local
 
-## Engegada en local (mode desenvolupament)
+Prerequisits:
 
-### Prerrequisits
-
-- Node.js 22 o 24
-- Yarn 4.4.1 (s'instal·la sol via `corepack`)
-- Git
-- (Opcional) `kubectl` connectat a un cluster AKS si vols executar
-  benchmarks reals; en cas contrari el frontend funciona sense problema
-  i mostrarà escenaris desats però no pots llençar runs reals.
-
-### Passos
+- Node.js 22 o 24.
+- Corepack habilitat per usar Yarn 4.
+- Git.
+- Opcional: `kubectl` si vols executar proves reals contra AKS.
 
 ```bash
-git clone https://github.com/marcfontt/apis-asincrones.git
-cd apis-asincrones
-yarn install
-yarn start
+corepack enable
+corepack yarn install --immutable
+corepack yarn start
 ```
 
-Això arrenca:
+Serveis locals principals:
 
-| Servei   | URL                        |
-|----------|----------------------------|
-| Frontend | http://localhost:3000      |
-| Backend  | http://localhost:7007      |
+| Servei | URL |
+|--------|-----|
+| Frontend | http://localhost:3000 |
+| Backend Backstage | http://localhost:7007 |
 
-Obre <http://localhost:3000> i navega a Home → Escenaris → Execucions → Resultats.
+Per navegar pel portal: Home, Catàleg, Escenaris, Execucions, Resultats i
+Settings.
 
----
+## Comandes de validació
 
-## Comandes útils
+```bash
+npx tsc --noEmit
+corepack yarn lint:all
+corepack yarn build:all
+```
 
-| Comanda                | Que fa                                        |
-|------------------------|-----------------------------------------------|
-| `yarn start`           | Arrenca frontend + backend en mode dev        |
-| `yarn build:all`       | Compila tots els paquets                      |
-| `yarn build:backend`   | Compila només el backend                      |
-| `yarn test`            | Executa tests unitaris                        |
-| `yarn test:e2e`        | Executa tests E2E (Playwright)                |
-| `yarn lint:all`        | Linter a tot el projecte                      |
-| `yarn prettier:check`  | Comprova format del codi                      |
-| `yarn tsc`             | Type check TypeScript                         |
-| `./deploy-all.sh`      | Pipeline complet: build + push + restart AKS  |
+Notes:
 
----
+- `corepack yarn lint` només revisa canvis contra `origin/master`.
+- `corepack yarn lint:all` és la revisió completa del monorepo.
+- `corepack yarn install --immutable` ha de passar sense tocar lockfiles.
+
+## Compatibilitat i reproduïbilitat
+
+El portal no ha de marcar una combinació com a bona si el sistema actual
+no la pot provar correctament. Per això es fan servir tres estats:
+
+| Estat | Significat |
+|-------|------------|
+| Es pot executar | La combinació encaixa amb el camí implementat. |
+| Requereix configuració | Pot funcionar, però cal ajustar el broker o el format. |
+| No disponible ara | No hi ha gateway o cami implementat en aquesta fase. |
+
+Reproduïbilitat vol dir poder repetir una prova amb les mateixes
+condicions i obtenir resultats comparables. Per això el catàleg explica
+versió, configuració, limitacions, variables que cal fixar i lectura del
+resultat.
+
+## Resultats i puntuació
+
+El detall d'un resultat mostra:
+
+- configuració de l'escenari;
+- estat final;
+- mètriques disponibles;
+- avisos si falten dades;
+- càlcul de puntuació.
+
+La puntuació es presenta amb una fórmula llegible:
+
+```text
+valor convertit x pes = punts aportats
+```
+
+Després es mostra la suma abans de descomptes, els descomptes per errors
+o pèrdua de missatges, i la puntuació final.
+
+## Execucions aturades i mesures que falten
+
+Una execució aturada no es reprèn automàticament en aquesta fase. Pot
+conservar dades parcials si el generador ja havia enviat mostres a
+`metrics-api`. Si no hi ha dades, la UI ha d'explicar si encara no han
+arribat, si l'execució ha fallat o si s'ha aturat massa aviat.
+
+El `load-generator` envia snapshots cada 5 segons i intenta enviar una
+mostra final quan acaba o rep senyal d'aturada.
 
 ## Desplegament a AKS
 
-El sistema està pensat per córrer dins un cluster AKS amb tots els
-brokers pre-instal·lats. Els passos típics:
+Aplicacio base:
 
 ```bash
-# 1. Aplica la infra (PVCs, Deployments, Services)
 kubectl apply -f k8s/storage/
 kubectl apply -f k8s/deployments/
 kubectl apply -f k8s/services/
 kubectl apply -f k8s/rbac/
 kubectl apply -f k8s/brokers/
+```
 
-# 2. Build + push imatges + restart
+Build, push i restart:
+
+```bash
 ./deploy-all.sh
 ```
 
-Vegeu [`k8s/README.md`](k8s/README.md) per detalls.
+El desplegament públic recomanat és AKS amb ingress nginx i cert-manager.
+Vercel queda descartat per aquest projecte: el backend necessita processos
+persistents, Jobs de Kubernetes i connexió amb brokers stateful.
 
----
+## Documentacio addicional
 
-## Conceptes que has d'entendre
-
-Si arribes nou al projecte, comença per la pàgina **Home** del portal:
-hi trobaràs una secció "Base conceptual" que explica de zero:
-
-- API síncrona vs API asíncrona
-- Què és una arquitectura, un protocol i una plataforma
-- Què és la latència (P50, P99), el throughput i la taxa d'error
-- Un diagrama del flux d'un missatge productor → broker → consumidor
-
----
-
-## Estructura del codi (visió ràpida)
-
-- **`packages/load-generator`** — quan l'orquestrador crea un Job a K8s,
-  aquest container arrenca, es connecta al broker, envia missatges sota
-  un contracte just (fire-and-forget, sense ACK del broker, payload
-  determinista) i puja snapshots de mètriques cada 5s a `metrics-api`.
-- **`packages/metrics-api`** — guarda cada snapshot a Elasticsearch
-  (índex `async-metrics`) i serveix:
-  - `GET /metrics?runId=X` → totes les mostres d'un run
-  - `GET /metrics/summary` → agregació per run
-  - WebSocket `/` → broadcast en directe als subscriptors
-- **`packages/benchmark-orchestrator`** — converteix una crida `POST /runs`
-  en un `kubectl create -f Job` aïllat dins un namespace efímer.
-- **`plugins/async-benchmark`** — el plugin Backstage amb les 5 pàgines
-  visibles: Home, Catàleg, Escenaris, Execucions, Resultats.
-
----
-
-## Documentació addicional
-
-- [`docs/architecture.md`](docs/architecture.md) — diagrama Mermaid de l'arquitectura i descripció de components
-- [`k8s/README.md`](k8s/README.md) — manifests Kubernetes
-- [`packages/README.md`](packages/README.md) — microserveis
-- [`plugins/README.md`](plugins/README.md) — plugin Backstage
-
----
+- [`docs/architecture.md`](docs/architecture.md): arquitectura i flux.
+- [`plugins/README.md`](plugins/README.md): plugin Backstage.
+- [`plugins/async-benchmark/README.md`](plugins/async-benchmark/README.md): UI del benchmark.
+- [`packages/README.md`](packages/README.md): microserveis.
+- [`k8s/README.md`](k8s/README.md): manifests Kubernetes.
 
 ## Autoria
 
-| Persona      | Rol                              |
-|--------------|----------------------------------|
-| Marc Font    | Estudiant / autor                |
-| Jerónimo Hernández González | Tutor UdG          |
-| David Teres Carrillo | Tutor empresa (NTT Data) |
+| Persona | Rol |
+|---------|-----|
+| Marc Font | Estudiant i autor |
+| Jerónimo Hernández González | Tutor UdG |
+| David Teres Carrillo | Tutor empresa |
 
-Llicència: vegeu fitxer `LICENSE` (a afegir).
+Llicència: pendent d'afegir al fitxer `LICENSE`.

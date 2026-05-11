@@ -1,64 +1,51 @@
-# `plugins/` — Plugins Backstage del portal
+# `plugins/` - Plugins Backstage del portal
 
-Aquest directori només conté un plugin propi: `async-benchmark`. Tot el
-que veu l'usuari al portal (les 5 pàgines) ve d'aquí.
+Aquest directori conté el plugin propi `async-benchmark`. Tot el que
+l'usuari veu a Home, Catàleg, Escenaris, Execucions i Resultats surt
+d'aquest plugin.
 
-## `async-benchmark/`
+## Estructura
 
-```
+```text
 async-benchmark/
 ├── src/
 │   ├── pages/
-│   │   ├── HomePage.tsx          ← Pàgina inicial + base conceptual
-│   │   ├── CatalogPage.tsx       ← Catàleg de components
-│   │   ├── ScenariosPage.tsx     ← Definició d'escenaris
-│   │   ├── ExecucionsPage.tsx    ← Estat actiu i històric d'execucions
-│   │   ├── ResultatsPage.tsx     ← Live + History + comparativa
-│   │   └── RunsPage.tsx          ← Vista alternativa
-│   ├── components/               ← Components reutilitzables
-│   ├── shared/                   ← Helpers (compatibility, metrics, results)
-│   ├── theme.ts                  ← Tokens de tema (light + dark)
-│   ├── plugin.ts                 ← Registre del plugin a Backstage
+│   │   ├── HomePage.tsx
+│   │   ├── CatalogPage.tsx
+│   │   ├── ScenariosPage.tsx
+│   │   ├── ExecucionsPage.tsx
+│   │   └── ResultatsPage.tsx
+│   ├── components/
+│   │   ├── FilterPanel.tsx
+│   │   ├── GuidePanel.tsx
+│   │   ├── TutorialOverlay.tsx
+│   │   └── CompatibilityMatrix.tsx
+│   ├── shared/
+│   ├── theme.ts
+│   ├── plugin.ts
 │   └── index.ts
-├── package.json
 └── README.md
 ```
 
-## Com es connecta amb el backend
+## Connexió amb el backend
 
-El plugin no parla mai directament amb els microserveis: tot va a través
-del **proxy de Backstage** (`/api/proxy/...`) configurat a `app-config.yaml`.
+El plugin no crida directament els microserveis. Sempre passa pel proxy de
+Backstage configurat a `app-config.yaml`.
 
-```
-async-benchmark plugin
-       |
-       | fetch('/api/proxy/metrics-api/metrics?runId=X')
-       v
-Backstage backend (proxy)
-       |
-       v
-metrics-api ClusterIP service
+```text
+Plugin React
+  -> /api/proxy/catalog-service
+  -> /api/proxy/scenario-service
+  -> /api/proxy/benchmark-orchestrator
+  -> /api/proxy/metrics-api
 ```
 
-Això vol dir que el frontend **no necessita** saber les URLs reals dels
-microserveis ni gestionar CORS.
+Això evita CORS al navegador i manté les URLs internes fora del frontend.
 
-## Pàgines
+## Convencions
 
-| Ruta                | Component        | Que fa                                    |
-|---------------------|------------------|-------------------------------------------|
-| `/home`             | HomePage         | Hero + base conceptual + accessos ràpids  |
-| `/catalog`          | CatalogPage      | Llista de components + matriu compatibilitats |
-| `/escenaris`        | ScenariosPage    | CRUD d'escenaris + execució en lot        |
-| `/execucions`       | ExecucionsPage   | Runs actius i històric                    |
-| `/resultats`        | ResultatsPage    | Live + History + millor escenari          |
-
-## Convencions de codi
-
-- **Estils inline + variables CSS** definides a `theme.ts`. No fem
-  servir cap framework de CSS-in-JS pesat (styled-components, etc.) per
-  mantenir el plugin lleuger.
-- **Comentaris**: les pàgines són grans (1000–2000 línies); cada secció
-  té el seu encapçalament `// ── Nom de la secció ──`.
-- **Nomenclatura**: variables locals i funcions privades en català o
-  castellà. Tipus exportats i contractes públics en anglès.
+- Els textos visibles han d'estar traduïts a català, castellà i anglès.
+- Els filtres han d'usar `FilterPanel`.
+- Les guies han d'usar `GuidePanel`.
+- Els tutorials han d'usar `TutorialOverlay` i han de representar la pàgina real.
+- La compatibilitat ha de venir de `shared/catalog/compatibility.ts`.

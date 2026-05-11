@@ -1,75 +1,75 @@
-# app
+# `packages/app`
 
-Frontend **Backstage** (React) del portal del benchmark. Gestiona la UI per
-consultar components del catàleg, definir escenaris, executar benchmarks i
-visualitzar resultats en temps real.
+Frontend Backstage del portal. Dona la navegació principal, el tema visual,
+els idiomes i el contenidor on es renderitza el plugin `async-benchmark`.
 
 ## Què fa
 
-- Navega per le catàleg de components (arquitectures, protocols, plataformes).
-- Crea i edita escenaris combinant components.
-- Executa benchmarks (crea Jobs a K8s) via el `benchmark-orchestrator`.
-- Monitoritza métriques en viu: latència, throughput, error rate, percentils.
-- Compara resultats de múltiples runs.
-- Tema clar/fosc personalitzat (variables CSS).
+- Mostra Home, Catàleg, Escenaris, Execucions, Resultats i Settings.
+- Permet canviar idioma entre català, castellà i anglès.
+- Permet canviar tema clar o fosc.
+- Manté una navegació comuna amb accessos ràpids.
+- Usa el backend de Backstage com a proxy cap als microserveis.
 
 ## Estructura
 
-```
+```text
 src/
 ├── components/
-│   ├── Root/              # Layout principal (header, nav, footer)
-│   │   ├── Root.tsx       # App wrapper amb context + providers
-│   │   ├── TopNavigationShell.tsx  # Navbar amb menús
-│   │   ├── LogoIcon.tsx, LogoFull.tsx  # Branding
-│   │   └── index.ts
+│   ├── Root/
+│   │   ├── Root.tsx
+│   │   ├── TopNavigationShell.tsx
+│   │   ├── LogoIcon.tsx
+│   │   └── LogoFull.tsx
 │   ├── catalog/
-│   │   └── EntityPage.tsx # Detall d'un component del catàleg
 │   └── search/
-│       └── SearchPage.tsx # Search global (Backstage)
-├── App.tsx                # Routes principals + tema
-├── apis.ts                # Configuration d'APIs
-├── theme-vars.css         # Variables CSS personalitzades
-├── setupTests.ts          # Jest config
-└── *.test.ts              # Tests unitaris
+├── App.tsx
+├── apis.ts
+├── theme-vars.css
+└── setupTests.ts
 ```
 
-## Engegada en local
+## Idioma i tema
+
+L'idioma es desa a `localStorage` amb la clau
+`apis-asincrones.language`. Els textos del portal han de venir de claus de
+traducció, no de literals solts dins les pàgines.
+
+El tema clar i fosc comparteix variables CSS. Si s'afegeix un color nou,
+cal definir-lo per als dos temes.
+
+## Engegada local
 
 ```bash
-yarn install         # només el primer cop
-yarn workspace app start
+corepack yarn install --immutable
+corepack yarn start
 ```
 
-El frontend arrenca a **http://localhost:3000** i carrega el backend des de
+El frontend arrenca a `http://localhost:3000` i el backend de Backstage a
 `http://localhost:7007`.
-
-## Variables d'entorn
-
-| Variable | Defecte | Descripció |
-|----------|---------|-----------|
-| `PORT` | `3000` | Port HTTP |
-| `DANGEROUSLY_BYPASS_IDENTITY_CHECK` | (Backstage) | Per env dev |
 
 ## Connexions
 
-- **Backend Backstage**: proxy routes a través de `/api/`
-- **catalog-service**: `GET /components` (API indirecta via backend)
-- **scenario-service**: `GET/POST /scenarios`
-- **benchmark-orchestrator**: `POST /executions`
-- **metrics-api**: WebSocket + `GET /metrics` (live charts)
+El frontend parla amb els microserveis a través de `/api/proxy/...`:
 
-## Estil i tema
+| Servei | Ruta principal |
+|--------|----------------|
+| `catalog-service` | `/api/proxy/catalog-service/components` |
+| `scenario-service` | `/api/proxy/scenario-service/scenarios` |
+| `benchmark-orchestrator` | `/api/proxy/benchmark-orchestrator/runs` |
+| `metrics-api` | `/api/proxy/metrics-api/metrics` |
 
-- **Material-UI** (`@material-ui/core`)
-- **Backstage theme provider** amb temes clar i fosc
-- **Variables CSS** a `theme-vars.css` per personalitzar colors, espaiat
-- **Prettier** per format (`yarn prettier:check`)
+## Criteri visual
 
-## Tests
+- Botons coherents entre pàgines.
+- Focus visible per teclat.
+- Filtres amb el mateix patró que la resta del plugin.
+- Text curt i directe.
+- Cap dependència nova per a components visuals del portal.
+
+## Proves
 
 ```bash
-yarn workspace app test
+corepack yarn workspace app test
+npx tsc --noEmit
 ```
-
-Cobertura mínima del 80%. Tests a `*.test.ts`.

@@ -1,66 +1,81 @@
-# Kubernetes — manifests d'infraestructura
+# `k8s/` - Manifests d'infraestructura
 
-Aquest directori conté tots els YAMLs que defineixen el desplegament del
-benchmark al cluster AKS. Aquí trobaràs:
+Aquest directori conté els YAMLs per desplegar el portal i els serveis de
+benchmark a AKS.
 
-```
+## Namespace
+
+Els manifests actuals fan servir principalment:
+
+| Namespace | Funció |
+|-----------|--------|
+| `apis-asincronas` | Backstage, microserveis, Elasticsearch i Grafana. |
+| `kafka-strimzi` | Cluster Kafka gestionat per Strimzi. |
+| `brokers` | RabbitMQ, NATS i altres brokers de prova. |
+
+Si el clúster real usa `apis-asincrones`, cal canviar-ho de manera
+coherent a tots els manifests i variables abans de desplegar. No s'ha de
+barrejar una grafia al codi i una altra al clúster.
+
+## Estructura
+
+```text
 k8s/
-├── deployments/        # Deployments dels serveis principals
-├── services/           # Serveis (ClusterIP/LoadBalancer) que els exposen
-├── storage/            # PersistentVolumeClaims (Elasticsearch, Grafana)
-├── rbac/               # ServiceAccounts i Roles per a l'orquestrador
-├── kafka/              # Strimzi cluster per a Apache Kafka
-├── brokers/            # ConfigMaps de NATS, RabbitMQ, etc.
-└── README.md           # Aquest fitxer
+├── deployments/
+├── services/
+├── storage/
+├── rbac/
+├── kafka/
+├── brokers/
+└── README.md
 ```
 
 ## Estat de cada peça
 
-| Peça                 | Estat | Notes |
-|----------------------|-------|-------|
-| Backstage portal     | OK    | UI principal — `deployments/backstage.yaml` |
-| catalog-service      | OK    | CRUD de components; auto-seed |
-| scenario-service     | OK    | CRUD d'escenaris; persisteix a ES |
-| benchmark-orchestrator | OK  | Crea Jobs de load-generator a K8s |
-| metrics-api          | OK    | WebSocket + REST; índex `async-metrics` |
-| Elasticsearch        | OK    | Single-node 8.12; PVC retain |
-| Grafana              | OK    | Vistes ad-hoc sobre ES; provisioning automàtic |
+| Peça | Estat | Notes |
+|------|-------|-------|
+| Backstage portal | OK | UI principal. |
+| `catalog-service` | OK | Catàleg de components i seed inicial. |
+| `scenario-service` | OK | Escenaris persistits a Elasticsearch. |
+| `benchmark-orchestrator` | OK | Crea Jobs del `load-generator`. |
+| `metrics-api` | OK | REST i WebSocket sobre Elasticsearch. |
+| Elasticsearch | OK | Single-node amb PVC. |
+| Grafana | OK | Datasource d'Elasticsearch. |
+| NATS | Revisar per payload gran | Cal `max_payload` més alt per vídeo 8K. |
 
-## Aplicar canvis (un cop el cluster ja està a punt)
+## Aplicar canvis
 
 ```bash
-# Tota la infra d'un cop
 kubectl apply -f k8s/storage/
 kubectl apply -f k8s/deployments/
 kubectl apply -f k8s/services/
 kubectl apply -f k8s/rbac/
 kubectl apply -f k8s/brokers/
+```
 
-# Si toques NOMÉS Grafana:
+Si només canvies Grafana:
+
+```bash
 kubectl apply -f k8s/deployments/grafana-provisioning.yaml
 kubectl apply -f k8s/deployments/grafana-secret.yaml
 kubectl apply -f k8s/deployments/grafana.yaml
 kubectl rollout restart deployment/grafana -n apis-asincronas
+```
 
-# Si toques només Elasticsearch:
+Si només canvies Elasticsearch:
+
+```bash
 kubectl apply -f k8s/storage/elasticsearch-pvc.yaml
 kubectl apply -f k8s/deployments/elasticsearch.yaml
 kubectl rollout restart deployment/elasticsearch -n apis-asincronas
 ```
 
-## Canvis recents
-
-- **Elasticsearch**: afegits health probes i increment de heap a 1Gi.
-  Nova PVC amb `storageClassName: azure-retain` per evitar pèrdua de dades.
-- **Grafana**: la PVC NO estava muntada (perdia dashboards a cada restart).
-  Ara està connectada. També s'ha afegit provisioning automàtic del
-  datasource d'Elasticsearch i el password d'admin viu en un Secret.
-- **NATS**: hi ha `brokers/nats-config.yaml` que puja `max_payload` a 4 MB.
-  És imprescindible per executar escenaris de vídeo 8K (~2 MB per missatge).
-
 ## Observabilitat
 
-- **Logs**: `kubectl logs -n apis-asincronas <pod>`
-- **Mètriques al portal**: <http://20.23.94.191/resultats>
-- **Grafana**: `kubectl port-forward -n apis-asincronas svc/grafana 3000:3000`
-  i obre <http://localhost:3000>. Usuari: `admin` / contrasenya: vegeu el Secret.
+```bash
+kubectl logs -n apis-asincronas <pod>
+kubectl port-forward -n apis-asincronas svc/grafana 3000:3000
+```
+
+Grafana queda disponible a `http://localhost:3000` durant el
+port-forward. La contrasenya d'admin viu al Secret de Grafana.

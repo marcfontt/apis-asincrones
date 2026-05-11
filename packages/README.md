@@ -1,61 +1,50 @@
-# `packages/` — Microserveis i app Backstage
+# `packages/` - Microserveis i app Backstage
 
-Aquest directori conté tot el codi del **monorepo** del portal i els
-microserveis que componen el benchmark.
+Aquest directori conté l'app Backstage i els serveis que fan funcionar el
+benchmark.
 
 ## Mapa ràpid
 
-| Carpeta                   | Que fa                                       | Port |
-|---------------------------|----------------------------------------------|------|
-| `app/`                    | Frontend Backstage (React) + tema custom     | 3000 |
-| `backend/`                | Backend Backstage (proxy + plugins core)     | 7007 |
-| `catalog-service/`        | CRUD de components del catàleg               | 3001 |
-| `scenario-service/`       | CRUD d'escenaris                             | 3002 |
-| `benchmark-orchestrator/` | Crea Jobs de K8s amb el load-generator       | 3003 |
-| `metrics-api/`            | Ingesta + WebSocket sobre Elasticsearch      | 3004 |
-| `load-generator/`         | Container que envia càrrega al broker        | (Job)|
+| Carpeta | Funció | Port |
+|---------|--------|------|
+| `app/` | Frontend Backstage | 3000 |
+| `backend/` | Backend Backstage i proxy | 7007 |
+| `catalog-service/` | Catàleg de components | 3001 |
+| `scenario-service/` | CRUD d'escenaris | 3002 |
+| `benchmark-orchestrator/` | Crea Jobs de Kubernetes | 3003 |
+| `metrics-api/` | Desa i serveix mètriques | 3004 |
+| `load-generator/` | Genera carrega dins un Job | Job |
 
 ## Com es connecten
 
-```
-                +----------------------+
-   Browser ---> | app (Backstage)     |
-                +----------+----------+
-                           | proxy
-            +--------------+----------------+
-            v              v                v
-  catalog-service   scenario-service   benchmark-orchestrator
-            |              |                |
-            +------+-------+                | crea Job
-                   v                        v
-              Elasticsearch          load-generator (Pod)
-                   ^                        |
-                   |                        v
-                   +------ metrics-api <----+ (POST /metrics)
-                                        WebSocket  ^
-                                                   |
-                                            Browser (live)
+```text
+Navegador
+  -> app
+  -> backend Backstage
+  -> catalog-service
+  -> scenario-service
+  -> benchmark-orchestrator
+  -> metrics-api
 ```
 
-## Build i execució
+Quan es llança una execució, `benchmark-orchestrator` crea un Job amb el
+`load-generator`. El Job envia mostres a `metrics-api`, i `metrics-api`
+les desa a Elasticsearch.
 
-Cada paquet té el seu propi `package.json`. Per arrencar tots els
-serveis en local:
+## Execucio local
 
 ```bash
-yarn install        # només el primer cop
-yarn start          # frontend + backend Backstage
+corepack yarn install --immutable
+corepack yarn start
 ```
 
-Els microserveis es despleguen al cluster AKS via Docker. Vegeu
-[`../deploy-all.sh`](../deploy-all.sh) i [`../k8s/README.md`](../k8s/README.md).
+Els microserveis de benchmark normalment es despleguen a AKS amb Docker i
+Kubernetes. Vegeu `k8s/README.md` i `deploy-all.sh`.
 
 ## Convencions
 
-- **Llenguatge**: TypeScript a tot arreu.
-- **Estil**: Prettier (`yarn prettier:check`).
-- **Comentaris**: si apliques una decisió no òbvia, deixa-la documentada
-  amb un comentari curt explicant el "perquè", no el "què".
-- **Variables**: noms en català o castellà són benvinguts; els noms
-  d'API públiques i camps d'Elasticsearch es mantenen en anglès per
-  compatibilitat.
+- TypeScript a tot el monorepo.
+- Codi clar abans que expressions massa comprimides.
+- Comentaris curts quan expliquen una regla important.
+- Noms tècnics d'API en anglès si formen part del contracte.
+- Text visible del portal traduït al sistema d'i18n.

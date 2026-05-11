@@ -1,16 +1,55 @@
 # `plugins/async-benchmark`
 
-Plugin principal del portal de benchmark d'APIs asíncrones.
+Plugin principal del portal. Conté les pantalles que veu l'usuari per
+entendre components, crear escenaris, seguir execucions i comparar
+resultats.
 
-## Estructura
+## Pàgines
 
-- `src/plugin.ts`: registre de rutes i extensions Backstage.
-- `src/theme.ts`: tokens visuals compartits.
-- `src/pages/`: pantalles principals del plugin (`Home`, `Catàleg`, `Escenaris`, `Execucions`, `Resultats`).
-- `src/shared/`: helpers reutilitzables entre pàgines.
+| Fitxer | Què fa |
+|--------|--------|
+| `src/pages/HomePage.tsx` | Explica el flux general del sistema i dona accessos ràpids. |
+| `src/pages/CatalogPage.tsx` | Mostra components, compatibilitat i detalls de reproduïbilitat. |
+| `src/pages/ScenariosPage.tsx` | Crea, edita, duplica i executa escenaris. |
+| `src/pages/ExecucionsPage.tsx` | Mostra runs actius, aturats i finalitzats. |
+| `src/pages/ResultatsPage.tsx` | Mostra historial, comparació i detall de puntuació. |
 
-## Criteri d'organització
+## Components compartits
 
-Les pantalles s'han separat de les utilitats compartides per evitar que `components/`
-acabi sent una carpeta genèrica on hi cap tot. Això facilita trobar cada pàgina,
-reduir imports creuats i preparar futures extraccions a subcomponents quan convingui.
+| Component | Funció |
+|-----------|--------|
+| `FilterPanel` | Dona el mateix format als filtres de totes les pàgines. |
+| `GuidePanel` | Dona el mateix format a guies, blocs d'ajuda i passos. |
+| `TutorialOverlay` | Mostra tutorials per pàgina amb mock visual i cursor animat. |
+| `CompatibilityMatrix` | Ensenya si una combinació és executable, requereix configuració o està bloquejada. |
+| `MetricsDetailDrawer` | Mostra explicació detallada de mètriques quan cal context. |
+
+Els tutorials no s'obren sols. L'usuari els obre amb el botó de tutorial
+de cada pàgina. Quan ja s'ha vist un tutorial, el botó passa a dir
+`Repetir tutorial`.
+
+## Fonts compartides
+
+| Fitxer | Responsabilitat |
+|--------|-----------------|
+| `src/shared/catalog/compatibility.ts` | Criteri únic de compatibilitat. |
+| `src/shared/catalog/reproducibility.ts` | Dades de reproduïbilitat i snippets de configuració. |
+| `src/shared/results/scenarioDetail.ts` | Preparació del detall d'un escenari. |
+| `src/shared/results/historyMetrics.ts` | Helpers per comptar mostres, missatges i historial. |
+| `src/shared/metrics/liveMetrics.ts` | Lectura segura de mètriques en directe. |
+
+## Idiomes
+
+Les pàgines fan servir el sistema d'i18n del paquet `packages/app`.
+Tot text visible ha d'anar per clau de traducció. Les dades internes,
+identificadors d'API i noms de mètriques es mantenen en anglès quan formen
+part del contracte tècnic.
+
+## Criteri de codi
+
+- Millor codi llegible que expressions massa compactes.
+- Comentaris només on expliquen una decisió o una regla de negoci.
+- Booleans amb prefixos clars: `is`, `has`, `can`, `should`.
+- Handlers amb prefix `handle`.
+- Dades derivades amb noms com `filteredRuns`, `sortedRuns` o `visibleItems`.
+- No s'han afegit dependències noves per als tutorials, guies o filtres.
