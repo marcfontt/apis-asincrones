@@ -20,6 +20,16 @@ export const KNOWN_COMPONENT_VERSIONS: Record<string, string> = {
   'nats server': '2.12.5',
   nats: '2.12.5',
   'nats protocol': '2.12.5',
+  'event-driven architecture': 'Model del portal v1',
+  eda: 'Model del portal v1',
+  'queue-based architecture': 'Model del portal v1',
+  qba: 'Model del portal v1',
+  'log-centric architecture': 'Model del portal v1',
+  lca: 'Model del portal v1',
+  'event-mesh architecture': 'Model del portal v1',
+  ema: 'Model del portal v1',
+  'streaming events architecture': 'Model del portal v1',
+  sea: 'Model del portal v1',
   mqtt: '5.0',
   amqp: '0.9.1',
   'amqp 0-9-1': '0.9.1',
@@ -31,20 +41,20 @@ export const KNOWN_COMPONENT_VERSIONS: Record<string, string> = {
 // Text visible al modal del Catàleg.
 // Explica que cal repetir per comparar brokers sense canviar les condicions.
 const COMMON_BROKER_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Forma de prova', value: "Cada run usa un broker, un productor i un consumidor. Si un escenari fa servir una altra topologia, s'ha d'indicar a la fitxa." },
-  { label: 'Generador de càrrega', value: 'El mateix load-generator envia els missatges a totes les plataformes. Així el canvi principal és el broker, no la manera de generar trànsit.' },
-  { label: 'Warm-up i durada', value: "El warm-up i la durada surten de l'escenari. Per comparar dues execucions, aquests valors han de ser iguals." },
-  { label: 'Payload i ràtio', value: "El format de dades fixa la mida del missatge i la ràtio recomanada. Canviar-los vol dir fer una prova diferent." },
-  { label: 'Aïllament del run', value: 'Cada execució ha de tenir topic, cua, subject o group-id propi. Això evita reutilitzar missatges o offsets antics.' },
-  { label: 'Recursos objectiu', value: 'Quan el manifest és nostre, requests i limits han de coincidir. Si no coincideixen, Kubernetes pot moure recursos i el resultat és menys defensable.' },
+  { label: 'Com es prova', value: "Cada run fa servir un broker, un productor i un consumidor. Si hi ha més peces, han de quedar escrites a l'escenari." },
+  { label: 'Mateix generador', value: 'El mateix load-generator envia els missatges a totes les plataformes. Així el canvi principal és el broker, no la manera de generar trànsit.' },
+  { label: 'Temps de prova', value: "El warm-up i la durada surten de l'escenari. Per comparar dues execucions, aquests valors han de ser iguals." },
+  { label: 'Missatge i ritme', value: "El format de dades fixa la mida del missatge i la ràtio recomanada. Si els canvies, ja estàs fent una prova diferent." },
+  { label: 'Canal del run', value: 'Cada execució ha de tenir topic, cua, subject o group-id propi. Això evita barrejar dades amb una prova anterior.' },
+  { label: 'Recursos', value: 'Quan el manifest és nostre, requests i limits han de coincidir. Si no coincideixen, Kubernetes pot moure recursos i el resultat és menys defensable.' },
 ];
 
 // Text comu per arquitectures i protocols.
 // Marca els paràmetres que l'usuari ha de deixar igual abans de comparar.
 const COMMON_DECISION_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Configuració oficial', value: 'La combinació provada ha de sortir del document Scenario: broker, arquitectura, protocol, format, rate, payload, warm-up i durada.' },
+  { label: 'Què cal repetir', value: 'La combinació provada ha de sortir del document Scenario: broker, arquitectura, protocol, format, rate, payload, warm-up i durada.' },
   { label: 'Comparació justa', value: "Compara només runs amb la mateixa càrrega. Si canvies format, ràtio, payload, warm-up o durada, ja no estàs comparant el mateix cas." },
-  { label: 'Run aïllat', value: "Cada execució necessita topic, cua, subject, group-id o client-id propi. Això evita heretar dades d'una prova anterior." },
+  { label: 'Canal propi', value: "Cada execució necessita topic, cua, subject, group-id o client-id propi. Això evita heretar dades d'una prova anterior." },
 ];
 
 export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> = {

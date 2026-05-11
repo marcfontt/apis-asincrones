@@ -277,7 +277,7 @@ export const RUNTIME_TEXT_TRANSLATIONS: RuntimeTextEntry[] = [
   { ca: 'Error rate (%)', es: 'Tasa de error (%)', en: 'Error rate (%)' },
   { ca: 'Últimes mesures', es: 'Últimas medidas', en: 'Latest measures' },
   { ca: 'mesures - actualització cada 3s', es: 'medidas - actualización cada 3s', en: 'measures - refresh every 3s' },
-  { ca: "Metriques en temps real i comparatives d'arquitectures asincrones", es: 'Métricas en tiempo real y comparativas de arquitecturas asíncronas', en: 'Real-time metrics and asynchronous architecture comparisons' },
+  { ca: "Mètriques en directe i comparatives d'arquitectures asíncrones", es: 'Métricas en directo y comparativas de arquitecturas asíncronas', en: 'Live metrics and comparisons for async architectures.' },
   { ca: 'Abans de comparar', es: 'Antes de comparar', en: 'Before comparing' },
   { ca: 'La puntuació només ordena els resultats visibles. Si canvies filtres, pot canviar. Mira també latència, throughput i errors.', es: 'La puntuación solo ordena los resultados visibles. Si cambias filtros, puede cambiar. Mira también latencia, throughput y errores.', en: 'The score only ranks the visible results. If you change filters, it can change. Also check latency, throughput, and errors.' },
   { ca: 'Vistes de resultats', es: 'Vistas de resultados', en: 'Results views' },

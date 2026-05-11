@@ -50,7 +50,7 @@ const HOME_CSS = `
   .home-btn-primary:hover {
     transform: translateY(-2px);
     filter: brightness(1.08);
-    box-shadow: 0 10px 26px rgba(22,163,74,0.30) !important;
+    box-shadow: 0 10px 24px rgba(37,99,235,0.22) !important;
   }
 
   .home-btn-primary:active {
@@ -64,8 +64,9 @@ const HOME_CSS = `
 
   .home-btn-secondary:hover {
     transform: translateY(-2px);
-    border-color: var(--accent) !important;
-    background: rgba(37,99,235,0.08) !important;
+    border-color: var(--border-strong) !important;
+    background: var(--bg-hover) !important;
+    box-shadow: var(--shadow-md) !important;
   }
 
   .home-btn-secondary:active {
@@ -251,7 +252,7 @@ export const HomePage = () => {
 
     const carregarEstadistiquesPortal = async () => {
       try {
-        const [respostaComponents, respostaEscenaris, respostaRunsActius, respostaResumMetriques] = await Promise.all([
+        const [respostaComponents, respostaEscenaris, respostaRunsActius, respostaResumMesures] = await Promise.all([
           fetch(`${RUTA_API_CATALEG}/components`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
           fetch(`${RUTA_API_ESCENARIS}/scenarios`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
           fetch(`${RUTA_API_ORQUESTRADOR}/runs/active`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
@@ -265,9 +266,9 @@ export const HomePage = () => {
           : 0;
         const totalEscenaris = Array.isArray(respostaEscenaris) ? respostaEscenaris.length : 0;
         const totalRunsActius = Array.isArray(respostaRunsActius) ? respostaRunsActius.length : 0;
-        const resumMetriques = Array.isArray(respostaResumMetriques) ? respostaResumMetriques : [];
-        const totalEscenarisAmbHistorial = new Set(resumMetriques.map((resum: any) => resum.scenarioId).filter(Boolean)).size;
-        const totalMesures = resumMetriques.reduce((suma: number, resum: any) =>
+        const resumMesures = Array.isArray(respostaResumMesures) ? respostaResumMesures : [];
+        const totalEscenarisAmbHistorial = new Set(resumMesures.map((resum: any) => resum.scenarioId).filter(Boolean)).size;
+        const totalMesures = resumMesures.reduce((suma: number, resum: any) =>
           suma + (Number(resum.pointCount ?? resum.measureCount ?? 0) || 0), 0);
 
         setEstadistiquesPortal({
@@ -391,7 +392,7 @@ export const HomePage = () => {
               <a href="/escenaris" className="home-btn-primary" style={{ ...S.btnPrimary, textDecoration: 'none' }}>
                 {t('home.btnCreateScenario')}
               </a>
-              <a href="/catalog" className="home-btn-secondary" style={{ ...S.btnSoft, textDecoration: 'none' }}>{t('home.btnViewCatalog')}</a>
+              <a href="/catalog" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>{t('home.btnViewCatalog')}</a>
               <a href="/resultats" className="home-btn-secondary" style={{ ...S.btn, textDecoration: 'none' }}>{t('home.btnCompareResults')}</a>
               <TutorialButton page="home" createExampleHref={DEMO_SCENARIO_URL} />
             </div>

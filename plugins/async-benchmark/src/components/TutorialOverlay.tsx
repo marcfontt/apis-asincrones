@@ -29,35 +29,35 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
       bodyKey: 'tutorial.home.step1.body',
       detailKey: 'tutorial.home.step1.details',
       visual: 'home',
-      target: { labelKey: 'tutorial.visual.homeStart', x: 22, y: 36, width: 18, height: 10, cursorX: 38, cursorY: 43 },
+      target: { labelKey: 'tutorial.visual.homeStart', x: 13, y: 32, width: 24, height: 11, cursorX: 35, cursorY: 41 },
     },
     {
       titleKey: 'tutorial.home.step2.title',
       bodyKey: 'tutorial.home.step2.body',
       detailKey: 'tutorial.home.step2.details',
       visual: 'catalog',
-      target: { labelKey: 'tutorial.visual.catalogCard', x: 11, y: 36, width: 24, height: 24, cursorX: 32, cursorY: 56 },
+      target: { labelKey: 'tutorial.visual.catalogCard', x: 8, y: 41, width: 27, height: 23, cursorX: 32, cursorY: 59 },
     },
     {
       titleKey: 'tutorial.home.step3.title',
       bodyKey: 'tutorial.home.step3.body',
       detailKey: 'tutorial.home.step3.details',
       visual: 'scenarios',
-      target: { labelKey: 'tutorial.visual.composition', x: 28, y: 38, width: 25, height: 23, cursorX: 51, cursorY: 58 },
+      target: { labelKey: 'tutorial.visual.composition', x: 12, y: 43, width: 31, height: 25, cursorX: 40, cursorY: 63 },
     },
     {
       titleKey: 'tutorial.home.step4.title',
       bodyKey: 'tutorial.home.step4.body',
       detailKey: 'tutorial.home.step4.details',
       visual: 'execucions',
-      target: { labelKey: 'tutorial.visual.executionRow', x: 11, y: 45, width: 78, height: 12, cursorX: 85, cursorY: 55 },
+      target: { labelKey: 'tutorial.visual.executionRow', x: 10, y: 48, width: 77, height: 12, cursorX: 84, cursorY: 57 },
     },
     {
       titleKey: 'tutorial.home.step5.title',
       bodyKey: 'tutorial.home.step5.body',
       detailKey: 'tutorial.home.step5.details',
       visual: 'resultats',
-      target: { labelKey: 'tutorial.visual.scoreDetail', x: 69, y: 26, width: 20, height: 26, cursorX: 88, cursorY: 48 },
+      target: { labelKey: 'tutorial.visual.scoreDetail', x: 67, y: 52, width: 22, height: 27, cursorX: 87, cursorY: 74 },
     },
   ],
   catalog: [
@@ -66,35 +66,35 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
       bodyKey: 'tutorial.catalog.step1.body',
       detailKey: 'tutorial.catalog.step1.details',
       visual: 'catalog',
-      target: { labelKey: 'tutorial.visual.filters', x: 71, y: 16, width: 17, height: 10, cursorX: 86, cursorY: 24 },
+      target: { labelKey: 'tutorial.visual.filters', x: 69, y: 31, width: 20, height: 10, cursorX: 86, cursorY: 39 },
     },
     {
       titleKey: 'tutorial.catalog.step2.title',
       bodyKey: 'tutorial.catalog.step2.body',
       detailKey: 'tutorial.catalog.step2.details',
       visual: 'catalog',
-      target: { labelKey: 'tutorial.visual.catalogCard', x: 29, y: 34, width: 19, height: 23, cursorX: 46, cursorY: 54 },
+      target: { labelKey: 'tutorial.visual.catalogCard', x: 11, y: 45, width: 24, height: 22, cursorX: 32, cursorY: 62 },
     },
     {
       titleKey: 'tutorial.catalog.step3.title',
       bodyKey: 'tutorial.catalog.step3.body',
       detailKey: 'tutorial.catalog.step3.details',
       visual: 'catalog',
-      target: { labelKey: 'tutorial.visual.compatibility', x: 29, y: 62, width: 47, height: 17, cursorX: 73, cursorY: 74 },
+      target: { labelKey: 'tutorial.visual.compatibility', x: 10, y: 69, width: 51, height: 17, cursorX: 58, cursorY: 82 },
     },
     {
       titleKey: 'tutorial.catalog.step4.title',
       bodyKey: 'tutorial.catalog.step4.body',
       detailKey: 'tutorial.catalog.step4.details',
       visual: 'catalog',
-      target: { labelKey: 'tutorial.visual.modalTabs', x: 57, y: 36, width: 30, height: 18, cursorX: 84, cursorY: 49 },
+      target: { labelKey: 'tutorial.visual.modalTabs', x: 61, y: 70, width: 29, height: 15, cursorX: 87, cursorY: 80 },
     },
     {
       titleKey: 'tutorial.catalog.step5.title',
       bodyKey: 'tutorial.catalog.step5.body',
       detailKey: 'tutorial.catalog.step5.details',
       visual: 'catalog',
-      target: { labelKey: 'tutorial.visual.useComponent', x: 59, y: 65, width: 27, height: 10, cursorX: 84, cursorY: 73 },
+      target: { labelKey: 'tutorial.visual.useComponent', x: 62, y: 80, width: 26, height: 9, cursorX: 86, cursorY: 87 },
     },
   ],
   scenarios: [
@@ -103,42 +103,42 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
       bodyKey: 'tutorial.scenarios.step1.body',
       detailKey: 'tutorial.scenarios.step1.details',
       visual: 'scenarios',
-      target: { labelKey: 'tutorial.visual.newScenario', x: 67, y: 13, width: 23, height: 10, cursorX: 87, cursorY: 21 },
+      target: { labelKey: 'tutorial.visual.newScenario', x: 66, y: 31, width: 24, height: 10, cursorX: 87, cursorY: 39 },
     },
     {
       titleKey: 'tutorial.scenarios.step2.title',
       bodyKey: 'tutorial.scenarios.step2.body',
       detailKey: 'tutorial.scenarios.step2.details',
       visual: 'scenarios',
-      target: { labelKey: 'tutorial.visual.composition', x: 27, y: 38, width: 26, height: 24, cursorX: 51, cursorY: 57 },
+      target: { labelKey: 'tutorial.visual.composition', x: 11, y: 47, width: 34, height: 26, cursorX: 42, cursorY: 68 },
     },
     {
       titleKey: 'tutorial.scenarios.step3.title',
       bodyKey: 'tutorial.scenarios.step3.body',
       detailKey: 'tutorial.scenarios.step3.details',
       visual: 'scenarios',
-      target: { labelKey: 'tutorial.visual.dataFormat', x: 27, y: 63, width: 26, height: 10, cursorX: 51, cursorY: 71 },
+      target: { labelKey: 'tutorial.visual.dataFormat', x: 12, y: 71, width: 33, height: 10, cursorX: 42, cursorY: 79 },
     },
     {
       titleKey: 'tutorial.scenarios.step4.title',
       bodyKey: 'tutorial.scenarios.step4.body',
       detailKey: 'tutorial.scenarios.step4.details',
       visual: 'scenarios',
-      target: { labelKey: 'tutorial.visual.presetCard', x: 56, y: 36, width: 31, height: 28, cursorX: 84, cursorY: 58 },
+      target: { labelKey: 'tutorial.visual.presetCard', x: 55, y: 48, width: 33, height: 26, cursorX: 85, cursorY: 68 },
     },
     {
       titleKey: 'tutorial.scenarios.step5.title',
       bodyKey: 'tutorial.scenarios.step5.body',
       detailKey: 'tutorial.scenarios.step5.details',
       visual: 'scenarios',
-      target: { labelKey: 'tutorial.visual.scenarioActions', x: 56, y: 69, width: 32, height: 12, cursorX: 85, cursorY: 78 },
+      target: { labelKey: 'tutorial.visual.scenarioActions', x: 55, y: 77, width: 33, height: 11, cursorX: 85, cursorY: 85 },
     },
     {
       titleKey: 'tutorial.scenarios.step6.title',
       bodyKey: 'tutorial.scenarios.step6.body',
       detailKey: 'tutorial.scenarios.step6.details',
       visual: 'scenarios',
-      target: { labelKey: 'tutorial.visual.sustainedMode', x: 28, y: 74, width: 25, height: 9, cursorX: 51, cursorY: 81 },
+      target: { labelKey: 'tutorial.visual.sustainedMode', x: 12, y: 81, width: 31, height: 9, cursorX: 41, cursorY: 88 },
     },
   ],
   execucions: [
@@ -147,35 +147,35 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
       bodyKey: 'tutorial.execucions.step1.body',
       detailKey: 'tutorial.execucions.step1.details',
       visual: 'execucions',
-      target: { labelKey: 'tutorial.visual.runFilters', x: 25, y: 20, width: 63, height: 13, cursorX: 86, cursorY: 30 },
+      target: { labelKey: 'tutorial.visual.runFilters', x: 9, y: 31, width: 79, height: 13, cursorX: 86, cursorY: 40 },
     },
     {
       titleKey: 'tutorial.execucions.step2.title',
       bodyKey: 'tutorial.execucions.step2.body',
       detailKey: 'tutorial.execucions.step2.details',
       visual: 'execucions',
-      target: { labelKey: 'tutorial.visual.executionRow', x: 27, y: 45, width: 59, height: 12, cursorX: 83, cursorY: 55 },
+      target: { labelKey: 'tutorial.visual.executionRow', x: 9, y: 56, width: 59, height: 12, cursorX: 65, cursorY: 65 },
     },
     {
       titleKey: 'tutorial.execucions.step3.title',
       bodyKey: 'tutorial.execucions.step3.body',
       detailKey: 'tutorial.execucions.step3.details',
       visual: 'execucions',
-      target: { labelKey: 'tutorial.visual.liveMetrics', x: 62, y: 60, width: 24, height: 20, cursorX: 84, cursorY: 76 },
+      target: { labelKey: 'tutorial.visual.liveMetrics', x: 68, y: 55, width: 22, height: 24, cursorX: 87, cursorY: 75 },
     },
     {
       titleKey: 'tutorial.execucions.step4.title',
       bodyKey: 'tutorial.execucions.step4.body',
       detailKey: 'tutorial.execucions.step4.details',
       visual: 'execucions',
-      target: { labelKey: 'tutorial.visual.runActions', x: 69, y: 45, width: 17, height: 12, cursorX: 84, cursorY: 55 },
+      target: { labelKey: 'tutorial.visual.runActions', x: 70, y: 56, width: 17, height: 12, cursorX: 85, cursorY: 65 },
     },
     {
       titleKey: 'tutorial.execucions.step5.title',
       bodyKey: 'tutorial.execucions.step5.body',
       detailKey: 'tutorial.execucions.step5.details',
       visual: 'execucions',
-      target: { labelKey: 'tutorial.visual.persistedHistory', x: 34, y: 77, width: 43, height: 9, cursorX: 75, cursorY: 84 },
+      target: { labelKey: 'tutorial.visual.persistedHistory', x: 31, y: 83, width: 45, height: 9, cursorX: 73, cursorY: 89 },
     },
   ],
   resultats: [
@@ -184,35 +184,35 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
       bodyKey: 'tutorial.resultats.step1.body',
       detailKey: 'tutorial.resultats.step1.details',
       visual: 'resultats',
-      target: { labelKey: 'tutorial.visual.resultFilters', x: 26, y: 20, width: 61, height: 13, cursorX: 85, cursorY: 30 },
+      target: { labelKey: 'tutorial.visual.resultFilters', x: 25, y: 31, width: 63, height: 13, cursorX: 85, cursorY: 40 },
     },
     {
       titleKey: 'tutorial.resultats.step2.title',
       bodyKey: 'tutorial.resultats.step2.body',
       detailKey: 'tutorial.resultats.step2.details',
       visual: 'resultats',
-      target: { labelKey: 'tutorial.visual.metricsPanel', x: 25, y: 34, width: 53, height: 18, cursorX: 76, cursorY: 49 },
+      target: { labelKey: 'tutorial.visual.metricsPanel', x: 9, y: 44, width: 64, height: 18, cursorX: 70, cursorY: 58 },
     },
     {
       titleKey: 'tutorial.resultats.step3.title',
       bodyKey: 'tutorial.resultats.step3.body',
       detailKey: 'tutorial.resultats.step3.details',
       visual: 'resultats',
-      target: { labelKey: 'tutorial.visual.historyRow', x: 25, y: 57, width: 50, height: 12, cursorX: 73, cursorY: 66 },
+      target: { labelKey: 'tutorial.visual.historyRow', x: 10, y: 66, width: 51, height: 12, cursorX: 58, cursorY: 75 },
     },
     {
       titleKey: 'tutorial.resultats.step4.title',
       bodyKey: 'tutorial.resultats.step4.body',
       detailKey: 'tutorial.resultats.step4.details',
       visual: 'resultats',
-      target: { labelKey: 'tutorial.visual.scoreBreakdown', x: 73, y: 52, width: 18, height: 27, cursorX: 90, cursorY: 74 },
+      target: { labelKey: 'tutorial.visual.scoreBreakdown', x: 72, y: 62, width: 18, height: 25, cursorX: 88, cursorY: 82 },
     },
     {
       titleKey: 'tutorial.resultats.step5.title',
       bodyKey: 'tutorial.resultats.step5.body',
       detailKey: 'tutorial.resultats.step5.details',
       visual: 'resultats',
-      target: { labelKey: 'tutorial.visual.comparison', x: 30, y: 74, width: 45, height: 12, cursorX: 73, cursorY: 83 },
+      target: { labelKey: 'tutorial.visual.comparison', x: 28, y: 82, width: 47, height: 11, cursorX: 72, cursorY: 90 },
     },
   ],
 };
@@ -294,14 +294,19 @@ const TUTORIAL_CSS = `
   background: var(--border);
 }
 .asyncbench-tutorial-app {
-  display: grid;
-  grid-template-columns: 112px 1fr;
+  display: flex;
+  flex-direction: column;
   min-height: 326px;
 }
 .asyncbench-tutorial-nav {
-  border-right: 1px solid var(--border);
-  padding: 14px 10px;
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
   background: var(--bg-subtle);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
 }
 .asyncbench-tutorial-nav span,
 .asyncbench-tutorial-line {
@@ -312,13 +317,15 @@ const TUTORIAL_CSS = `
 .asyncbench-tutorial-nav-item {
   display: flex;
   align-items: center;
+  justify-content: center;
   min-height: 22px;
-  padding: 0 8px;
+  padding: 0 10px;
   border-radius: 8px;
   font-size: 10px;
   font-weight: 800;
   color: var(--text-secondary);
   background: transparent;
+  white-space: nowrap;
 }
 .asyncbench-tutorial-nav-item[data-active="true"] {
   color: var(--accent);
@@ -342,7 +349,15 @@ const TUTORIAL_CSS = `
     min-height: 300px;
   }
   .asyncbench-tutorial-app {
-    grid-template-columns: 82px 1fr;
+    min-height: 270px;
+  }
+  .asyncbench-tutorial-nav {
+    gap: 5px;
+    padding: 8px;
+  }
+  .asyncbench-tutorial-nav-item {
+    padding: 0 7px;
+    font-size: 9px;
   }
   .asyncbench-tutorial-cursor-label {
     display: none;
@@ -716,21 +731,15 @@ const TutorialPreview = ({
     </div>
     <div className="asyncbench-tutorial-app">
       <nav className="asyncbench-tutorial-nav">
-        <div style={{ display: 'grid', gap: 12 }}>
-          <PreviewLine width="72%" height={10} color="var(--text-primary)" />
-          {(['home', 'catalog', 'scenarios', 'execucions', 'resultats'] as TutorialPage[]).map(item => (
-            <span
-              key={item}
-              className="asyncbench-tutorial-nav-item"
-              data-active={item === page}
-              style={{
-                width: item === page ? '92%' : '78%',
-              }}
-            >
-              {t(NAV_LABEL_KEYS[item])}
-            </span>
-          ))}
-        </div>
+        {(['home', 'catalog', 'scenarios', 'execucions', 'resultats'] as TutorialPage[]).map(item => (
+          <span
+            key={item}
+            className="asyncbench-tutorial-nav-item"
+            data-active={item === page}
+          >
+            {t(NAV_LABEL_KEYS[item])}
+          </span>
+        ))}
       </nav>
       <main className="asyncbench-tutorial-content">
         <PreviewContent page={page} t={t} />
@@ -774,7 +783,7 @@ export const TutorialButton = ({
   const storageKey = `apis-asincrones.tutorial.seen.${page}`;
   const [open, setOpen] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
-  const [seen, setSeen] = useState(() => {
+  const [, setSeen] = useState(() => {
     try {
       return window.localStorage.getItem(storageKey) === 'true';
     } catch {
@@ -825,7 +834,7 @@ export const TutorialButton = ({
         onClick={() => setOpen(true)}
         style={S.btnTutorial}
       >
-        {seen ? t('tutorial.replay') : t('tutorial.show')}
+        {t('tutorial.show')}
       </button>
 
       {open && (

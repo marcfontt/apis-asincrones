@@ -10,6 +10,8 @@ construir un escenari.
 - Auto-omple l'índex amb un seed predefinit la primera vegada que
   arrenca (vegeu `src/seed.ts`).
 - Exposa una API REST amb CRUD complet sobre `/components`.
+- El seed actual manté versions conegudes per al portal: Kafka `4.1.1`,
+  Confluent `7.6`, RabbitMQ `3.13` i NATS Server `2.12.5`.
 
 ## API
 
@@ -31,7 +33,7 @@ construir un escenari.
   name: string,                 // 'Event-Driven Architecture'
   category: 'architecture' | 'protocol' | 'platform',
   description: string,          // Descripció en català
-  version?: string,             // Versió coneguda (3.7, 0.9.1, ...)
+  version?: string,             // Versió coneguda (4.1.1, 0.9.1, ...)
   tags?: string[],              // Etiquetes lliures
   predefined?: boolean,         // true = ve del seed, no es pot esborrar
   createdAt: string,            // ISO timestamp

@@ -56,8 +56,8 @@
     "success": "Success"
   },
   "tutorial": {
-    "show": "View tutorial",
-    "replay": "Replay tutorial",
+    "show": "Tutorial",
+    "replay": "Tutorial",
     "previous": "Previous",
     "next": "Next",
     "skip": "Skip tutorial",
@@ -93,7 +93,7 @@
     "home": {
       "step1": {
         "title": "Start on Home",
-        "body": "This screen is the app map. Read it like this: define a test, run it, then read the results.",
+        "body": "Home explains the full path: first understand the idea, then create a test, and finally read the data.",
         "details": [
           "Backstage is the web app.",
           "AKS is the Azure cluster where tests run.",
@@ -110,7 +110,7 @@
       },
       "step3": {
         "title": "Create the scenario",
-        "body": "In Scenarios you choose what to test. This is where guessing hurts most.",
+        "body": "In Scenarios you choose the combination to test: broker, architecture, protocol, and data format.",
         "details": [
           "Choose broker, architecture, protocol, and format.",
           "The format changes message size and recommended load."
@@ -314,15 +314,15 @@
     "title": "Async APIs",
     "portalLabel": "Test portal",
     "subtitle": "Comparable tests, clear results",
-    "description": "Create a test, run it on the cluster, and see what happened. We always measure the same path: message sent, broker, message received.",
-    "heroSubtitle": "Backstage is the screen. AKS is the Azure cluster where the tests run.",
+    "description": "Compare systems that send messages without waiting for an immediate answer. Choose the combination, run the test, and read the data.",
+    "heroSubtitle": "Backstage is the portal screen. AKS is the Azure cluster where the test containers run.",
     "guide": {
       "title": "Home quick guide",
       "subtitle": "What to look at first and the path each test follows.",
       "items": {
         "map": {
-          "title": "Portal map",
-          "text": "Home sums up the full path: catalog, scenario, execution and results."
+        "title": "Where to start",
+        "text": "First understand the flow: choose components, create a scenario, run the test, and read the results."
         },
         "catalog": {
           "title": "Start with components",
@@ -369,13 +369,13 @@
     "sections": {
       "systemEyebrow": "System structure",
       "systemTitle": "From scenario to results",
-      "systemDesc": "Think of it as a chain: you define the test, the backend prepares it, AKS runs it, and Results shows the data. AKS means Azure Kubernetes Service: a group of cloud machines for running containers.",
+      "systemDesc": "The flow is this: you define the test, the backend prepares it, AKS runs it, and Results shows the data. AKS means Azure Kubernetes Service: a group of cloud machines for running containers.",
       "conceptsEyebrow": "Before looking at results",
       "conceptsTitle": "What are you actually comparing?",
       "conceptsDesc": "Before comparing, check what you are changing: broker, protocol, architecture, format, and load.",
       "brokerEyebrow": "Key concept",
       "brokerTitle": "How does a broker work?",
-      "brokerDesc": "A message broker decouples producers from consumers: each side works at its own pace without depending on the other.",
+      "brokerDesc": "A broker receives messages from producers and delivers them to consumers. This lets each side work at its own pace.",
       "executionEyebrow": "Execution",
       "executionTitle": "What happens when you launch a benchmark?",
       "executionDesc": "A run is one concrete execution. Every run follows the same path so the comparison makes sense.",
@@ -417,20 +417,20 @@
     ],
     "concepts": [
       {
-        "title": "Architecture",
-        "text": "How the parts are arranged. It changes the path the message follows."
-      },
-      {
-        "title": "Protocol",
-        "text": "How the system communicates: Kafka, AMQP, MQTT, SSE, or others."
-      },
-      {
-        "title": "Data format",
-        "text": "The size and type of message. IoT, finance, and video do not load the broker the same way."
+        "title": "Async API",
+        "text": "A system sends a message and does not wait for an immediate answer. The receiver processes it when it can."
       },
       {
         "title": "Broker",
-        "text": "The platform that receives and distributes messages. It is the center of the comparison."
+        "text": "The piece that receives, stores, or distributes messages. Kafka, RabbitMQ, and NATS play this role."
+      },
+      {
+        "title": "Protocol and architecture",
+        "text": "The protocol says how the message travels. The architecture says how the pieces are arranged."
+      },
+      {
+        "title": "Format and load",
+        "text": "The format sets the message size. The load says how many messages you send and for how long."
       }
     ],
     "executionSteps": [
@@ -574,11 +574,11 @@
       "copied": "Copied",
       "overviewFallback": "Component used by the test portal.",
       "impactFallback": "Its impact depends on how it is combined inside the scenario.",
-      "reproDescription": "Reproducibility means repeating the test with the same conditions and comparing the result fairly. Fix the version, scenario, load and run isolation before launching.",
+      "reproDescription": "Reproducibility means repeating a test with the same conditions and getting comparable results. Keep the version, configuration, load, and run channel unchanged.",
       "noReproRows": "This component does not yet have structured reproducibility data.",
       "noConfigSnippet": "This component does not yet have a configuration snippet.",
       "useDescription": "Open the scenario form with this value preselected when possible.",
-      "sectionWhat": "Role in the test",
+      "sectionWhat": "What it is and when to use it",
       "sectionCard": "Quick card",
       "labelCategory": "Category",
       "labelShortName": "Short name",
@@ -592,9 +592,9 @@
       "reproChecklistTitle": "Before replicating",
       "reproChecklist": [
         "Use the same component version and deployment.",
-        "Repeat the same scenario: broker, architecture, protocol and format.",
+        "Repeat the same combination: broker, architecture, protocol and format.",
         "Keep payload, rate, warm-up and duration unchanged.",
-        "Create an isolated run with its own topic, queue, subject or group-id."
+        "Create a dedicated run channel: topic, queue, subject or group-id."
       ]
     },
     "compatTable": {
@@ -609,7 +609,16 @@
       "compatibleArchitectures": "Compatible architectures",
       "compatibleProtocols": "Compatible protocols",
       "platformsCanUse": "Platforms that can use it",
-      "supportedBy": "Supported by"
+      "supportedBy": "Supported by",
+      "portalTitle": "Portal compatibility",
+      "portalDescription": "This block shows what the portal can test right now. If a combination needs a gateway or extra configuration, it is not shown as directly executable.",
+      "noExecutable": "No executable option declared",
+      "platformArchitectures": "Architectures it can run",
+      "platformProtocols": "Protocols it can run",
+      "architecturePlatforms": "Platforms that can run it",
+      "architectureProtocols": "Protocols available now",
+      "protocolPlatforms": "Platforms that can run it",
+      "protocolArchitectures": "Architectures available now"
     },
     "stats": {
       "compatibleCombinations": "compatible combinations",
@@ -984,10 +993,86 @@
       "errorDelete": "Error deleting:",
       "errorRefresh": "Could not update executions."
     },
-    "subtitle": "History of tests run on the AKS cluster."
+    "subtitle": "History of tests run on the AKS cluster.",
+    "summary": {
+      "runningNow": "Running",
+      "runningHelp": "Runs that are sending load right now."
+    },
+    "refresh": {
+      "updating": "Updating in the background...",
+      "latest": "Last update:",
+      "automatic": "auto every 8s",
+      "pending": "Waiting for the first update"
+    },
+    "actions": {
+      "results": "View results",
+      "resultsTitle": "Open the historical comparison by scenario",
+      "refresh": "Refresh",
+      "refreshing": "Refreshing",
+      "refreshTitle": "Refresh executions and metrics without clearing the screen",
+      "stopAll": "Stop all",
+      "stopAllTitle": "Stop all running or pending executions",
+      "resetAll": "Reset all",
+      "resetAllTitle": "Delete all executions and samples from the cluster"
+    },
+    "sections": {
+      "activeTitle": "Active executions",
+      "historyTitle": "Full history"
+    },
+    "detail": {
+      "eyebrow": "Execution detail",
+      "loadingSubtitle": "Loading the saved samples for this run...",
+      "subtitle": "This panel summarizes the configuration, saved samples, and processed message volume.",
+      "statMeasures": "Measures",
+      "statMeasuresLoading": "Updating saved samples.",
+      "statMeasuresHelper": "Samples persisted for this run.",
+      "statReceived": "Messages received",
+      "statReceivedHelper": "Volume received by the consumer or recorded in the final telemetry.",
+      "statSent": "Messages sent",
+      "statSentHelper": "Volume sent by the load-generator during this execution.",
+      "statDuration": "Duration",
+      "statDurationHelper": "Elapsed time for the visible run.",
+      "configuration": "Configuration",
+      "scenario": "Scenario",
+      "repetition": "Repetition",
+      "architecture": "Architecture",
+      "protocol": "Protocol",
+      "platform": "Platform",
+      "format": "Format",
+      "timeline": "Timeline",
+      "start": "Start",
+      "end": "End",
+      "firstSample": "First sample",
+      "lastSample": "Last sample",
+      "source": "Source",
+      "internalStatus": "Internal status",
+      "metricsAvailable": "Available metrics",
+      "latency": "Latency",
+      "errorRate": "Error rate",
+      "errors": "Errors",
+      "scoreDetail": "Score detail",
+      "diagnosis": "Diagnosis",
+      "code": "Code",
+      "technicalDetail": "Detail",
+      "noTechnicalDetail": "No technical detail saved.",
+      "interpretTitle": "How to read this run",
+      "interpretText": "If the live area goes back to zero when you run a scenario again, that is expected: it is a new run and counters start over. When it finishes or is stopped manually, saved samples move to Results with their own runId.",
+      "lowerBetter": "lower is better",
+      "higherBetter": "higher is better",
+      "notAvailable": "Not available yet",
+      "sourceOrchestrator": "Orchestrator",
+      "sourceMetrics": "Metrics API / Elasticsearch",
+      "sourceBoth": "Orchestrator + Elasticsearch",
+      "unknown": "Unknown"
+    }
   },
   "resultats": {
     "pageTitle": "Results | Async APIs",
+    "heading": "Results",
+    "subtitle": "Live metrics and comparisons for async architectures.",
+    "beforeCompareTitle": "Before comparing",
+    "beforeCompareText": "The score only ranks the visible results. If you change filters, it can change. Also check latency, throughput, and errors.",
+    "tabsAria": "Result views",
     "tabLive": "Live",
     "tabHistory": "History and comparisons",
     "dataFormatLabels": {
@@ -1020,7 +1105,37 @@
       "runningScenario": "Running scenario",
       "inactive": "Inactive",
       "visible": "visible",
-      "emptySearch": "No execution matches the current search."
+      "emptySearch": "No execution matches the current search.",
+      "pollError": "Error loading metrics:",
+      "emptyTitle": "No active execution",
+      "emptyDescription": "Start a scenario from the Scenarios page. You will see latency, throughput, P50, and P99 here when samples arrive.",
+      "goScenarios": "Go to Scenarios",
+      "metricsIntro": "The top counter shows accumulated messages for the selected run. The charts and table show samples published every 3 seconds. When you switch execution, counters belong only to that run.",
+      "noSamplesYet": "This run does not have saved samples yet. It may be starting, may have failed before sending the first sample, or may have stopped too early.",
+      "messagesReceived": "Messages received",
+      "avgLatency": "Average latency (ms)",
+      "avgThroughput": "Average throughput",
+      "avgErrorRate": "Average error rate (%)",
+      "p50Label": "P50 latency",
+      "p50Description": "50% of messages arrive below this time.",
+      "p99Label": "P99 latency",
+      "p99Description": "99% of messages arrive below this time.",
+      "measureWindow": "Measure window",
+      "measures": "measures",
+      "of": "of",
+      "last50": "Last 50",
+      "last100": "Last 100",
+      "last200": "Last 200",
+      "last500": "Last 500",
+      "all": "All",
+      "latencyChart": "Latency (ms)",
+      "throughputChart": "Throughput (msg/s)",
+      "errorChart": "Error rate (%)",
+      "recentMeasures": "Recent measures",
+      "updatesEvery": "updates every 3s",
+      "time": "Time",
+      "throughput": "Throughput",
+      "errorPercent": "Error (%)"
     },
     "history": {
       "filterFormat": "Data Format",
@@ -1050,7 +1165,7 @@
       "chartThroughput": "Average throughput (msg/s)",
       "chartError": "Average error rate (%)",
       "comparisonTitle": "Head-to-head comparison",
-      "comparisonDesc": "Select two scenarios to compare their metrics.",
+      "comparisonDesc": "Choose a table row to compare it with the best visible scenario.",
       "btnCloseComparison": "Close comparison",
       "difference": "Difference:",
       "favorOf": "in favour of",

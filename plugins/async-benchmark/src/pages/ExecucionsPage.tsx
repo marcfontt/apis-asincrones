@@ -1252,10 +1252,10 @@ export const ExecucionsPage = () => {
   const refreshLabel = refreshError
     ? <span style={{ color: 'var(--error)' }}>{refreshError}</span>
     : refreshing
-      ? <span>Actualitzant en segon pla...</span>
+      ? <span>{t('execucions.refresh.updating')}</span>
       : lastRefreshedTime
-        ? `Última actualització: ${lastRefreshedTime}${hasActiveRuns ? ' · auto cada 8s' : ''}`
-        : 'Pendent de la primera actualització';
+        ? `${t('execucions.refresh.latest')} ${lastRefreshedTime}${hasActiveRuns ? ` · ${t('execucions.refresh.automatic')}` : ''}`
+        : t('execucions.refresh.pending');
   const activeFilterCount = filterScenario.length + filterPlatform.length + filterProtocol.length + filterArchitecture.length + filterDataFormat.length + filterStatus.length + (runSearch.trim() ? 1 : 0);
   const availableScenarioFilters = Array.from(new Map(
     runs
@@ -1429,38 +1429,38 @@ export const ExecucionsPage = () => {
             <a
               href="/resultats"
               style={{ ...S.btn, fontSize: 13, textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 6, borderColor: 'rgba(37,99,235,0.28)', color: 'var(--accent)', background: 'var(--accent-soft)', fontWeight: 700 }}
-              title="Obre la comparativa històrica per escenari"
+              title={t('execucions.actions.resultsTitle')}
             >
-              <ListIcon /> Veure resultats
+              <ListIcon /> {t('execucions.actions.results')}
             </a>
             <button
               onClick={() => fetchRuns(true)}
               disabled={refreshing && !loading}
-              title="Actualitza execucions i mètriques sense buidar la pantalla"
+              title={t('execucions.actions.refreshTitle')}
               style={{ ...S.btn, fontSize: 13 }}
             >
               <span style={{ display: 'inline-flex', animation: refreshing && !loading ? 'spin 0.8s linear infinite' : 'none' }}>
                 <RefreshIcon />
               </span>
-              {refreshing && !loading ? 'Actualitzant' : 'Actualitza'}
+              {refreshing && !loading ? t('execucions.actions.refreshing') : t('execucions.actions.refresh')}
             </button>
             {/* "Atura tot" button - only shown when there are active runs to stop */}
             {runningAll.length > 0 && (
               <button
                 onClick={handleStopAll}
-                title="Atura totes les execucions en curs o pendents"
+                title={t('execucions.actions.stopAllTitle')}
                 style={{ ...S.btn, fontSize: 13, borderColor: 'rgba(245,158,11,0.32)', color: '#d97706', background: 'rgba(245,158,11,0.10)', fontWeight: 700 }}
               >
-                <StopIcon /> Atura tot ({runningAll.length})
+                <StopIcon /> {t('execucions.actions.stopAll')} ({runningAll.length})
               </button>
             )}
             {runs.length > 0 && (
               <button
                 onClick={handleResetAll}
-                title="Esborra totes les execucions i mostres del cluster"
+                title={t('execucions.actions.resetAllTitle')}
                 style={{ ...S.btn, fontSize: 13, borderColor: 'var(--error)', color: 'var(--error)', background: 'rgba(239,68,68,0.06)' }}
               >
-                <RefreshIcon /> Reinicia tot
+                <RefreshIcon /> {t('execucions.actions.resetAll')}
               </button>
             )}
           </div>
@@ -1476,22 +1476,16 @@ export const ExecucionsPage = () => {
         </div>
       </div>
 
-      {/* Stats bar - summary counts for each status category (hidden while loading) */}
+      {/* Resum curt: la resta d'estats ja es veuen als filtres i a la taula. */}
       {!loading && (
-        <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total',       value: runs.length,                                            color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: 'En execució', value: runs.filter(r => r.status === 'running').length,        color: '#3b82f6',               bg: 'rgba(59,130,246,0.10)' },
-            { label: 'Pendents',    value: runs.filter(r => r.status === 'pending').length,        color: '#d97706',               bg: 'rgba(245,158,11,0.10)' },
-            { label: 'Completades', value: runs.filter(r => r.status === 'completed').length,      color: 'var(--success)',        bg: 'rgba(34,197,94,0.08)' },
-            { label: 'Aturades',    value: runs.filter(r => r.status === 'cancelled').length,      color: '#d97706',               bg: 'rgba(245,158,11,0.10)' },
-            { label: 'Errors',      value: runs.filter(isFailedRun).length,                        color: 'var(--error)',          bg: 'rgba(239,68,68,0.08)' },
-          ].map(s => (
-            <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
-              <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
-              <span style={{ fontSize: 11, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{s.label}</span>
-            </div>
-          ))}
+        <div style={{ display: 'flex', marginBottom: 24 }}>
+          <div style={{ background: 'rgba(59,130,246,0.10)', border: '1px solid rgba(59,130,246,0.24)', borderRadius: 10, padding: '12px 20px', display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <span style={{ fontSize: 24, fontWeight: 850, fontFamily: 'var(--font-mono)', color: '#3b82f6', letterSpacing: '-0.02em' }}>
+              {runs.filter(run => run.status === 'running').length}
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 800 }}>{t('execucions.summary.runningNow')}</span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('execucions.summary.runningHelp')}</span>
+          </div>
         </div>
       )}
 
@@ -1603,7 +1597,7 @@ export const ExecucionsPage = () => {
           <RunTable
             data={running}
             totalCount={runningAll.length}
-            title="En execució / Pendents"
+            title={t('execucions.sections.activeTitle')}
             showStop={true}
             icon={<ActivityIcon />}
             onCancel={handleCancel}
@@ -1623,7 +1617,7 @@ export const ExecucionsPage = () => {
           <RunTable
             data={completed}          /* filtered by search query */
             totalCount={completedBase.length} /* unfiltered count shown in the badge */
-            title="Historial complet"
+            title={t('execucions.sections.historyTitle')}
             showStop={false}
             icon={<ListIcon />}
             searchValue={historySearch}
@@ -1656,7 +1650,11 @@ export const ExecucionsPage = () => {
         const measureCount = getRunMeasureCount(selectedRun);
         const messageCount = getRunMessageCount(selectedRun);
         const sentCount = getRunSentCount(selectedRun);
-        const status = STATUS_CONFIG[selectedRun.status] || { color: '#94a3b8', label: selectedRun.status || 'Desconegut', bg: 'transparent' };
+        const statusConfig = STATUS_CONFIG[selectedRun.status] || { color: '#94a3b8', label: selectedRun.status || t('execucions.detail.unknown'), bg: 'transparent' };
+        const status = {
+          ...statusConfig,
+          label: selectedRun.status ? t(`execucions.status.${selectedRun.status}`) : t('execucions.detail.unknown'),
+        };
         const runStartedAt = getStartTime(selectedRun);
         const runEndedAt = selectedRun.completedAt || selectedRun.completed_at || selectedRun.endedAt || selectedRun.ended_at || selectedRun.updatedAt || selectedRun.updated_at || '';
         const firstMetric = selectedRunMetrics[0] || null;
@@ -1675,22 +1673,22 @@ export const ExecucionsPage = () => {
           ? `${runSequenceIndex + 1} de ${scenarioRunsForSelected.length}`
           : '-';
         const sourceLabel = selectedRun._source === 'metrics'
-          ? 'Metrics API / Elasticsearch'
+          ? t('execucions.detail.sourceMetrics')
           : selectedRun._source === 'orchestrator+metrics'
-            ? 'Orquestrador + Elasticsearch'
-            : 'Orquestrador';
+            ? t('execucions.detail.sourceBoth')
+            : t('execucions.detail.sourceOrchestrator');
         const mostraAvisNatsVideo8k = isFailedRun(selectedRun) && platform === 'NATS Server' && dataFormat === 'video-8k';
 
         return (
           <MetricsDetailDrawer
             open={!!selectedRun}
             onClose={() => setSelectedRunId(null)}
-            eyebrow="Detall d'execució"
+            eyebrow={t('execucions.detail.eyebrow')}
             title={scenarioName}
             monoId={selectedRun.id || undefined}
             subtitle={selectedRunMetricsLoading
-              ? 'Carregant les mostres persistides d’aquest run...'
-              : 'Aquest panell resumeix la configuració del run seleccionat, les mostres guardades i el volum de missatges processat.'}
+              ? t('execucions.detail.loadingSubtitle')
+              : t('execucions.detail.subtitle')}
             accent={status.color}
             badges={[
               { label: status.label, color: status.color },
@@ -1701,82 +1699,82 @@ export const ExecucionsPage = () => {
             ]}
             stats={[
               {
-                label: 'Mesures',
+                label: t('execucions.detail.statMeasures'),
                 value: measureCount,
-                helper: selectedRunMetricsLoading ? 'Actualitzant les mostres guardades.' : 'Mostres persistides per aquest run.',
+                helper: selectedRunMetricsLoading ? t('execucions.detail.statMeasuresLoading') : t('execucions.detail.statMeasuresHelper'),
                 color: '#22c55e',
               },
               {
-                label: 'Missatges rebuts',
+                label: t('execucions.detail.statReceived'),
                 value: messageCount,
-                helper: 'Volum rebut pel consumidor o registrat a la telemetria final.',
+                helper: t('execucions.detail.statReceivedHelper'),
                 color: '#3b82f6',
               },
               {
-                label: 'Missatges enviats',
+                label: t('execucions.detail.statSent'),
                 value: sentCount,
-                helper: 'Volum enviat pel load-generator durant aquesta execució.',
+                helper: t('execucions.detail.statSentHelper'),
                 color: '#f59e0b',
               },
               {
-                label: 'Durada',
+                label: t('execucions.detail.statDuration'),
                 value: runStartedAt ? formatDuration(runStartedAt, runEndedAt || undefined) : '-',
-                helper: 'Temps transcorregut del run visible.',
+                helper: t('execucions.detail.statDurationHelper'),
                 color: 'var(--text-primary)',
               },
             ]}
             sections={[
               {
-                title: 'Configuració',
+                title: t('execucions.detail.configuration'),
                 items: [
                   { label: 'Run ID', value: <code style={{ fontFamily: 'var(--font-mono)' }}>{selectedRun.id || '-'}</code> },
-                  { label: 'Escenari', value: scenarioName },
-                  { label: 'Repetició', value: runSequenceLabel },
-                  { label: 'Arquitectura', value: selectedRun.architecture || '-' },
-                  { label: 'Protocol', value: selectedRun.protocol || '-' },
-                  { label: 'Plataforma', value: platform || '-' },
-                  { label: 'Format', value: DATA_FORMAT_LABELS[dataFormat] || dataFormat },
+                  { label: t('execucions.detail.scenario'), value: scenarioName },
+                  { label: t('execucions.detail.repetition'), value: runSequenceLabel },
+                  { label: t('execucions.detail.architecture'), value: selectedRun.architecture || '-' },
+                  { label: t('execucions.detail.protocol'), value: selectedRun.protocol || '-' },
+                  { label: t('execucions.detail.platform'), value: platform || '-' },
+                  { label: t('execucions.detail.format'), value: DATA_FORMAT_LABELS[dataFormat] || dataFormat },
                 ],
               },
               {
-                title: 'Timeline',
+                title: t('execucions.detail.timeline'),
                 items: [
-                  { label: 'Inici', value: formatDateTime(runStartedAt) },
-                  { label: 'Fi', value: formatDateTime(runEndedAt) },
-                  { label: 'Primera mostra', value: formatDateTime(firstMetricAt) },
-                  { label: 'Última mostra', value: formatDateTime(lastMetricAt) },
-                  { label: 'Font', value: sourceLabel },
-                  { label: 'Estat intern', value: selectedRun.status || '-' },
+                  { label: t('execucions.detail.start'), value: formatDateTime(runStartedAt) },
+                  { label: t('execucions.detail.end'), value: formatDateTime(runEndedAt) },
+                  { label: t('execucions.detail.firstSample'), value: formatDateTime(firstMetricAt) },
+                  { label: t('execucions.detail.lastSample'), value: formatDateTime(lastMetricAt) },
+                  { label: t('execucions.detail.source'), value: sourceLabel },
+                  { label: t('execucions.detail.internalStatus'), value: selectedRun.status || '-' },
                 ],
               },
               {
-                title: 'Mètriques disponibles',
+                title: t('execucions.detail.metricsAvailable'),
                 items: [
-                  { label: 'Latència', value: formatMetricWithUnit(selectedRun.avgLatency, 'ms') },
+                  { label: t('execucions.detail.latency'), value: formatMetricWithUnit(selectedRun.avgLatency, 'ms') },
                   { label: 'P50', value: formatMetricWithUnit(selectedRun.p50Latency, 'ms') },
                   { label: 'P95', value: formatMetricWithUnit(selectedRun.p95Latency, 'ms') },
                   { label: 'P99', value: formatMetricWithUnit(selectedRun.p99Latency, 'ms') },
                   { label: 'Throughput', value: formatMetricWithUnit(selectedRun.avgThroughput, 'msg/s') },
-                  { label: 'Taxa d’error', value: formatMetricWithUnit(selectedRun.avgErrorRate, '%', 3) },
-                  { label: 'Errors', value: selectedRun.errors != null ? formatMetricNumber(selectedRun.errors, 0) : 'Encara no disponible' },
+                  { label: t('execucions.detail.errorRate'), value: formatMetricWithUnit(selectedRun.avgErrorRate, '%', 3) },
+                  { label: t('execucions.detail.errors'), value: selectedRun.errors != null ? formatMetricNumber(selectedRun.errors, 0) : t('execucions.detail.notAvailable') },
                 ],
               },
               {
-                title: 'Detall de la puntuació',
+                title: t('execucions.detail.scoreDetail'),
                 items: Object.entries(METRIC_WEIGHTS).map(([key, cfg]) => ({
                   label: `${cfg.label} (pes ${Math.round(cfg.weight * 100)}%)`,
                   value: <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                     {(selectedRun as any)[key] != null
-                      ? `${Number((selectedRun as any)[key]).toLocaleString(getCurrentLocale(), { maximumFractionDigits: 2 })} ${cfg.unit} · ${cfg.direction === 'lower' ? 'menys és millor' : 'més és millor'}`
-                      : 'Encara no disponible'}
+                      ? `${Number((selectedRun as any)[key]).toLocaleString(getCurrentLocale(), { maximumFractionDigits: 2 })} ${cfg.unit} · ${cfg.direction === 'lower' ? t('execucions.detail.lowerBetter') : t('execucions.detail.higherBetter')}`
+                      : t('execucions.detail.notAvailable')}
                   </span>,
                 })),
               },
               ...((selectedRun.errorCode || selectedRun.errorDetail) ? [{
-                title: 'Diagnòstic',
+                title: t('execucions.detail.diagnosis'),
                 items: [
-                  { label: 'Codi', value: selectedRun.errorCode || '-' },
-                  { label: 'Detall', value: selectedRun.errorDetail || 'Sense detall tècnic guardat.' },
+                  { label: t('execucions.detail.code'), value: selectedRun.errorCode || '-' },
+                  { label: t('execucions.detail.technicalDetail'), value: selectedRun.errorDetail || t('execucions.detail.noTechnicalDetail') },
                 ],
               }] : []),
             ]}
@@ -1793,10 +1791,10 @@ export const ExecucionsPage = () => {
             )}
             <div style={{ ...S.card, background: 'var(--bg-surface)', borderStyle: 'dashed' }}>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
-                Com interpretar aquest run
+                {t('execucions.detail.interpretTitle')}
               </div>
               <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-                Si la part en viu està a zero quan tornes a executar un escenari, és correcte: el run és nou i els comptadors recomencen. Quan finalitza o s’atura manualment, les mostres guardades passen a Resultats amb el seu propi runId.
+                {t('execucions.detail.interpretText')}
               </div>
             </div>
           </MetricsDetailDrawer>

@@ -56,8 +56,8 @@
     "success": "Éxito"
   },
   "tutorial": {
-    "show": "Ver tutorial",
-    "replay": "Repetir tutorial",
+    "show": "Tutorial",
+    "replay": "Tutorial",
     "previous": "Anterior",
     "next": "Siguiente",
     "skip": "Saltar tutorial",
@@ -93,7 +93,7 @@
     "home": {
       "step1": {
         "title": "Empieza por Home",
-        "body": "Esta pantalla es el mapa de la app. Léela así: defines una prueba, la lanzas y después miras resultados.",
+        "body": "Home explica el camino completo: primero entiendes el concepto, después creas una prueba y al final lees datos.",
         "details": [
           "Backstage es la web.",
           "AKS es el clúster de Azure donde corren las pruebas.",
@@ -110,7 +110,7 @@
       },
       "step3": {
         "title": "Crea el escenario",
-        "body": "En Escenarios eliges qué quieres probar. Aquí conviene no ir a ciegas.",
+        "body": "En Escenarios eliges la combinación que quieres probar. El formato de datos también cambia la carga y la puntuación.",
         "details": [
           "Elige broker, arquitectura, protocolo y formato.",
           "El formato cambia el tamaño del mensaje y la carga recomendada."
@@ -314,15 +314,15 @@
     "title": "APIs Asíncronas",
     "portalLabel": "Portal de pruebas",
     "subtitle": "Pruebas comparables, resultados claros",
-    "description": "Crea una prueba, ejecútala en el clúster y mira qué ha pasado. Siempre medimos el mismo recorrido: mensaje enviado, broker, mensaje recibido.",
-    "heroSubtitle": "Backstage es la pantalla. AKS es el clúster de Azure donde se ejecutan las pruebas.",
+    "description": "Compara sistemas que envían mensajes sin esperar una respuesta inmediata. Tú eliges la combinación, lanzas la prueba y ves los datos.",
+    "heroSubtitle": "Backstage es la pantalla del portal. AKS es el clúster de Azure donde corren los contenedores de la prueba.",
     "guide": {
       "title": "Guía rápida de Home",
       "subtitle": "Qué mirar primero y qué camino sigue una prueba.",
       "items": {
         "map": {
-          "title": "Mapa del portal",
-          "text": "Home resume el camino completo: catálogo, escenario, ejecución y resultados."
+        "title": "Por dónde empezar",
+        "text": "Primero entiende el flujo general: eliges componentes, creas un escenario, ejecutas la prueba y lees resultados."
         },
         "catalog": {
           "title": "Primero mira componentes",
@@ -369,13 +369,13 @@
     "sections": {
       "systemEyebrow": "Estructura del sistema",
       "systemTitle": "Del escenario a los resultados",
-      "systemDesc": "Piénsalo como una cadena: tú defines la prueba, el backend la prepara, AKS la ejecuta y Resultados muestra los datos. AKS significa Azure Kubernetes Service: un grupo de máquinas en la nube para ejecutar contenedores.",
+      "systemDesc": "El flujo es este: tú defines la prueba, el backend la prepara, AKS la ejecuta y Resultados muestra los datos. AKS significa Azure Kubernetes Service: un grupo de máquinas en la nube para ejecutar contenedores.",
       "conceptsEyebrow": "Antes de mirar resultados",
       "conceptsTitle": "¿Qué estás comparando realmente?",
       "conceptsDesc": "Antes de comparar, mira qué estás cambiando: broker, protocolo, arquitectura, formato y carga.",
       "brokerEyebrow": "Concepto clave",
       "brokerTitle": "¿Cómo funciona un bróker?",
-      "brokerDesc": "Un bróker de mensajería desacopla los productores de los consumidores: cada parte trabaja a su ritmo sin depender de la otra.",
+      "brokerDesc": "Un bróker recibe mensajes de los productores y los entrega a los consumidores. Así cada parte trabaja a su ritmo.",
       "executionEyebrow": "Ejecución",
       "executionTitle": "¿Qué ocurre cuando lanzas un benchmark?",
       "executionDesc": "Un run es una ejecución concreta. Todos los runs siguen el mismo camino para que la comparación tenga sentido.",
@@ -417,20 +417,20 @@
     ],
     "concepts": [
       {
-        "title": "Arquitectura",
-        "text": "Cómo están organizadas las piezas. Cambia el camino que sigue el mensaje."
-      },
-      {
-        "title": "Protocolo",
-        "text": "La forma en que se comunica el sistema: Kafka, AMQP, MQTT, SSE u otros."
-      },
-      {
-        "title": "Formato de datos",
-        "text": "El tamaño y el tipo de mensaje. IoT, financiero o vídeo no cargan igual el broker."
+        "title": "API asíncrona",
+        "text": "Un sistema envía un mensaje y no espera una respuesta inmediata. El receptor lo procesa cuando le toca."
       },
       {
         "title": "Broker",
-        "text": "La plataforma que recibe y reparte mensajes. Es el centro de la comparación."
+        "text": "Es la pieza que recibe, guarda o reparte mensajes. Kafka, RabbitMQ y NATS hacen este papel."
+      },
+      {
+        "title": "Protocolo y arquitectura",
+        "text": "El protocolo dice cómo viaja el mensaje. La arquitectura dice cómo están ordenadas las piezas."
+      },
+      {
+        "title": "Formato y carga",
+        "text": "El formato marca el tamaño del mensaje. La carga dice cuántos mensajes envías y durante cuánto tiempo."
       }
     ],
     "executionSteps": [
@@ -574,11 +574,11 @@
       "copied": "Copiado",
       "overviewFallback": "Componente utilizado por el portal de pruebas.",
       "impactFallback": "Su impacto depende de cómo se combina dentro del escenario.",
-      "reproDescription": "Reproducibilidad significa poder repetir la prueba con las mismas condiciones y comparar el resultado sin trampas. Fija versión, escenario, carga y aislamiento del run antes de ejecutar.",
+      "reproDescription": "Reproducibilidad significa repetir una prueba con las mismas condiciones y obtener resultados comparables. Mantén igual la versión, la configuración, la carga y el canal de cada run.",
       "noReproRows": "Este componente todavía no tiene datos de reproducibilidad estructurados.",
       "noConfigSnippet": "Este componente todavía no tiene ningún snippet de configuración.",
       "useDescription": "Abre el formulario de escenarios con este valor preseleccionado cuando sea posible.",
-      "sectionWhat": "Papel dentro de la prueba",
+      "sectionWhat": "Qué es y cuándo se usa",
       "sectionCard": "Ficha rápida",
       "labelCategory": "Categoría",
       "labelShortName": "Nombre corto",
@@ -592,9 +592,9 @@
       "reproChecklistTitle": "Antes de replicar",
       "reproChecklist": [
         "Usa la misma versión del componente y el mismo despliegue.",
-        "Repite el mismo escenario: broker, arquitectura, protocolo y formato.",
+        "Repite la misma combinación: broker, arquitectura, protocolo y formato.",
         "Mantén iguales payload, ratio, warm-up y duración.",
-        "Crea un run aislado con topic, cola, subject o group-id propio."
+        "Crea un canal propio para el run: topic, cola, subject o group-id."
       ]
     },
     "compatTable": {
@@ -609,7 +609,16 @@
       "compatibleArchitectures": "Arquitecturas compatibles",
       "compatibleProtocols": "Protocolos compatibles",
       "platformsCanUse": "Plataformas que la pueden usar",
-      "supportedBy": "Compatible con"
+      "supportedBy": "Compatible con",
+      "portalTitle": "Compatibilidad dentro del portal",
+      "portalDescription": "Este bloque muestra las opciones que el portal puede probar ahora mismo. Si una combinación necesita un gateway o una configuración extra, no sale como ejecutable directa.",
+      "noExecutable": "Ninguna opción ejecutable declarada",
+      "platformArchitectures": "Arquitecturas que puede ejecutar",
+      "platformProtocols": "Protocolos que puede ejecutar",
+      "architecturePlatforms": "Plataformas que la pueden ejecutar",
+      "architectureProtocols": "Protocolos disponibles ahora",
+      "protocolPlatforms": "Plataformas que lo pueden ejecutar",
+      "protocolArchitectures": "Arquitecturas disponibles ahora"
     },
     "stats": {
       "compatibleCombinations": "combinaciones compatibles",
@@ -984,10 +993,86 @@
       "errorDelete": "Error al eliminar:",
       "errorRefresh": "No se han podido actualizar las ejecuciones."
     },
-    "subtitle": "Historial de pruebas ejecutadas en el clúster AKS."
+    "subtitle": "Historial de pruebas ejecutadas en el clúster AKS.",
+    "summary": {
+      "runningNow": "En ejecución",
+      "runningHelp": "Runs que están enviando carga ahora mismo."
+    },
+    "refresh": {
+      "updating": "Actualizando en segundo plano...",
+      "latest": "Última actualización:",
+      "automatic": "auto cada 8s",
+      "pending": "Pendiente de la primera actualización"
+    },
+    "actions": {
+      "results": "Ver resultados",
+      "resultsTitle": "Abre la comparativa histórica por escenario",
+      "refresh": "Actualizar",
+      "refreshing": "Actualizando",
+      "refreshTitle": "Actualiza ejecuciones y métricas sin vaciar la pantalla",
+      "stopAll": "Parar todo",
+      "stopAllTitle": "Para todas las ejecuciones en curso o pendientes",
+      "resetAll": "Reiniciar todo",
+      "resetAllTitle": "Borra todas las ejecuciones y muestras del clúster"
+    },
+    "sections": {
+      "activeTitle": "Ejecuciones activas",
+      "historyTitle": "Historial completo"
+    },
+    "detail": {
+      "eyebrow": "Detalle de ejecución",
+      "loadingSubtitle": "Cargando las muestras guardadas de este run...",
+      "subtitle": "Este panel resume la configuración, las muestras guardadas y el volumen de mensajes procesado.",
+      "statMeasures": "Medidas",
+      "statMeasuresLoading": "Actualizando las muestras guardadas.",
+      "statMeasuresHelper": "Muestras persistidas para este run.",
+      "statReceived": "Mensajes recibidos",
+      "statReceivedHelper": "Volumen recibido por el consumidor o registrado en la telemetría final.",
+      "statSent": "Mensajes enviados",
+      "statSentHelper": "Volumen enviado por el load-generator durante esta ejecución.",
+      "statDuration": "Duración",
+      "statDurationHelper": "Tiempo transcurrido del run visible.",
+      "configuration": "Configuración",
+      "scenario": "Escenario",
+      "repetition": "Repetición",
+      "architecture": "Arquitectura",
+      "protocol": "Protocolo",
+      "platform": "Plataforma",
+      "format": "Formato",
+      "timeline": "Línea de tiempo",
+      "start": "Inicio",
+      "end": "Fin",
+      "firstSample": "Primera muestra",
+      "lastSample": "Última muestra",
+      "source": "Fuente",
+      "internalStatus": "Estado interno",
+      "metricsAvailable": "Métricas disponibles",
+      "latency": "Latencia",
+      "errorRate": "Tasa de error",
+      "errors": "Errores",
+      "scoreDetail": "Detalle de la puntuación",
+      "diagnosis": "Diagnóstico",
+      "code": "Código",
+      "technicalDetail": "Detalle",
+      "noTechnicalDetail": "Sin detalle técnico guardado.",
+      "interpretTitle": "Cómo interpretar este run",
+      "interpretText": "Si la parte en vivo está a cero cuando vuelves a ejecutar un escenario, es correcto: el run es nuevo y los contadores empiezan de nuevo. Cuando finaliza o se para manualmente, las muestras guardadas pasan a Resultados con su propio runId.",
+      "lowerBetter": "menos es mejor",
+      "higherBetter": "más es mejor",
+      "notAvailable": "Todavía no disponible",
+      "sourceOrchestrator": "Orquestador",
+      "sourceMetrics": "Metrics API / Elasticsearch",
+      "sourceBoth": "Orquestador + Elasticsearch",
+      "unknown": "Desconocido"
+    }
   },
   "resultats": {
     "pageTitle": "Resultados | APIs Asíncronas",
+    "heading": "Resultados",
+    "subtitle": "Métricas en directo y comparativas de arquitecturas asíncronas.",
+    "beforeCompareTitle": "Antes de comparar",
+    "beforeCompareText": "La puntuación solo ordena los resultados visibles. Si cambias filtros, puede cambiar. Mira también latencia, throughput y errores.",
+    "tabsAria": "Vistas de resultados",
     "tabLive": "En directo",
     "tabHistory": "Historial y comparativas",
     "dataFormatLabels": {
@@ -1020,7 +1105,37 @@
       "runningScenario": "Escenario en ejecución",
       "inactive": "Inactivo",
       "visible": "visibles",
-      "emptySearch": "Ninguna ejecución coincide con la búsqueda actual."
+      "emptySearch": "Ninguna ejecución coincide con la búsqueda actual.",
+      "pollError": "Error al cargar métricas:",
+      "emptyTitle": "No hay ninguna ejecución activa",
+      "emptyDescription": "Inicia un escenario desde la página Escenarios. Aquí verás latencia, throughput, P50 y P99 cuando lleguen muestras.",
+      "goScenarios": "Ir a Escenarios",
+      "metricsIntro": "El contador superior muestra mensajes acumulados del run seleccionado. Los gráficos y la tabla muestran muestras publicadas cada 3 segundos. Cuando cambias de ejecución, los contadores corresponden solo a ese run.",
+      "noSamplesYet": "Este run todavía no tiene muestras guardadas. Puede estar arrancando, haber fallado antes de enviar la primera muestra o haberse parado demasiado pronto.",
+      "messagesReceived": "Mensajes recibidos",
+      "avgLatency": "Latencia media (ms)",
+      "avgThroughput": "Throughput medio",
+      "avgErrorRate": "Tasa de error media (%)",
+      "p50Label": "P50 Latencia",
+      "p50Description": "50% de los mensajes llegan por debajo de este tiempo.",
+      "p99Label": "P99 Latencia",
+      "p99Description": "99% de los mensajes llegan por debajo de este tiempo.",
+      "measureWindow": "Ventana de medidas",
+      "measures": "medidas",
+      "of": "de",
+      "last50": "Últimas 50",
+      "last100": "Últimas 100",
+      "last200": "Últimas 200",
+      "last500": "Últimas 500",
+      "all": "Todas",
+      "latencyChart": "Latencia (ms)",
+      "throughputChart": "Throughput (msg/s)",
+      "errorChart": "Tasa de error (%)",
+      "recentMeasures": "Últimas medidas",
+      "updatesEvery": "actualización cada 3s",
+      "time": "Hora",
+      "throughput": "Throughput",
+      "errorPercent": "Error (%)"
     },
     "history": {
       "filterFormat": "Formato de Datos",
@@ -1050,7 +1165,7 @@
       "chartThroughput": "Throughput medio (msg/s)",
       "chartError": "Tasa de error media (%)",
       "comparisonTitle": "Comparativa cara a cara",
-      "comparisonDesc": "Selecciona dos escenarios para comparar sus métricas.",
+      "comparisonDesc": "Elige una fila de la tabla para compararla con el mejor escenario visible.",
       "btnCloseComparison": "Cerrar comparativa",
       "difference": "Diferencia:",
       "favorOf": "a favor de",

@@ -145,6 +145,38 @@ const normalizeText = (value: unknown): string =>
     .toLowerCase()
     .trim();
 
+const hasCorruptVisibleText = (value: unknown): boolean => {
+  const text = String(value || '').trim();
+  const compact = text.replace(/\s+/g, '');
+
+  if (!compact) {
+    return false;
+  }
+
+  // Protegeix la UI de dades corruptes amb caràcters repetits.
+  return /(.)\1{24,}/.test(compact) || /compatibles{8,}/i.test(compact);
+};
+
+const safeCatalogText = (value: unknown, fallback: string): string => {
+  const text = String(value || '').trim();
+  if (!text || hasCorruptVisibleText(text)) {
+    return fallback;
+  }
+  return text;
+};
+
+const sanitizeCatalogComponent = (component: CatalogComponent): CatalogComponent => {
+  const tags = Array.isArray(component.tags)
+    ? component.tags.filter(tag => !hasCorruptVisibleText(tag))
+    : component.tags;
+
+  return {
+    ...component,
+    description: hasCorruptVisibleText(component.description) ? '' : component.description,
+    tags,
+  };
+};
+
 const componentColor = (component: CatalogComponent): string =>
   CATEGORY_COLORS[component.category || ''] || 'var(--accent)';
 
@@ -204,7 +236,16 @@ const platformKeyForCompatibility = (component: CatalogComponent): string => {
   return aliasMap[normalized] || rawValue;
 };
 
-const getCompatibilityDetails = (component: CatalogComponent) => {
+type CompatibilityDetailLabels = {
+  platformArchitectures: string;
+  platformProtocols: string;
+  architecturePlatforms: string;
+  architectureProtocols: string;
+  protocolPlatforms: string;
+  protocolArchitectures: string;
+};
+
+const getCompatibilityDetails = (component: CatalogComponent, labels: CompatibilityDetailLabels) => {
   const code = component.shortName || component.name || '';
 
   if (component.category === 'platform') {
@@ -216,8 +257,8 @@ const getCompatibilityDetails = (component: CatalogComponent) => {
     }
 
     return [
-      { label: 'Arquitectures que pot executar', values: entry.architectures, color: CATEGORY_COLORS.architecture },
-      { label: 'Protocols que pot executar', values: entry.protocols, color: CATEGORY_COLORS.protocol },
+      { label: labels.platformArchitectures, values: entry.architectures, color: CATEGORY_COLORS.architecture },
+      { label: labels.platformProtocols, values: entry.protocols, color: CATEGORY_COLORS.protocol },
     ];
   }
 
@@ -228,8 +269,8 @@ const getCompatibilityDetails = (component: CatalogComponent) => {
     const protocols = uniqueValues(platforms.flatMap(platform => COMPATIBILITY[platform]?.protocols || []));
 
     return [
-      { label: 'Plataformes que la poden executar', values: platforms, color: CATEGORY_COLORS.platform },
-      { label: 'Protocols disponibles ara', values: protocols, color: CATEGORY_COLORS.protocol },
+      { label: labels.architecturePlatforms, values: platforms, color: CATEGORY_COLORS.platform },
+      { label: labels.architectureProtocols, values: protocols, color: CATEGORY_COLORS.protocol },
     ];
   }
 
@@ -240,8 +281,8 @@ const getCompatibilityDetails = (component: CatalogComponent) => {
     const architectures = uniqueValues(platforms.flatMap(platform => COMPATIBILITY[platform]?.architectures || []));
 
     return [
-      { label: 'Plataformes que el poden executar', values: platforms, color: CATEGORY_COLORS.platform },
-      { label: 'Arquitectures disponibles ara', values: architectures, color: CATEGORY_COLORS.architecture },
+      { label: labels.protocolPlatforms, values: platforms, color: CATEGORY_COLORS.platform },
+      { label: labels.protocolArchitectures, values: architectures, color: CATEGORY_COLORS.architecture },
     ];
   }
 
@@ -453,7 +494,15 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
 );
 
 const ComponentCompatibilityDetails = ({ component }: { component: CatalogComponent }) => {
-  const details = getCompatibilityDetails(component);
+  const { t } = useTranslation();
+  const details = getCompatibilityDetails(component, {
+    platformArchitectures: t('catalog.compatDetails.platformArchitectures'),
+    platformProtocols: t('catalog.compatDetails.platformProtocols'),
+    architecturePlatforms: t('catalog.compatDetails.architecturePlatforms'),
+    architectureProtocols: t('catalog.compatDetails.architectureProtocols'),
+    protocolPlatforms: t('catalog.compatDetails.protocolPlatforms'),
+    protocolArchitectures: t('catalog.compatDetails.protocolArchitectures'),
+  });
 
   if (details.length === 0) {
     return null;
@@ -462,10 +511,10 @@ const ComponentCompatibilityDetails = ({ component }: { component: CatalogCompon
   return (
     <section style={{ ...S.card, boxShadow: 'none', marginTop: 16 }}>
       <div style={{ fontSize: 11, color: componentColor(component), fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-        Compatibilitat dins del portal
+        {t('catalog.compatDetails.portalTitle')}
       </div>
       <p style={{ margin: '0 0 12px', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-        Aquest bloc mostra les opcions que el portal pot provar ara mateix. Si una combinació necessita un gateway o una configuració extra, no surt com a executable directa.
+        {t('catalog.compatDetails.portalDescription')}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
         {details.map(group => (
@@ -477,7 +526,7 @@ const ComponentCompatibilityDetails = ({ component }: { component: CatalogCompon
                   {value}
                 </span>
               )) : (
-                <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>Cap opció executable declarada</span>
+                <span style={{ fontSize: 12, color: 'var(--text-disabled)' }}>{t('catalog.compatDetails.noExecutable')}</span>
               )}
             </div>
           </div>
@@ -600,8 +649,8 @@ const ComponentDetailModal = ({
             <h2 style={{ margin: 0, fontSize: 24, lineHeight: 1.15, fontWeight: 900, letterSpacing: '-0.02em' }}>
               {component.name || t('catalog.modal.noName')}
             </h2>
-            <p style={{ margin: '10px 0 0', maxWidth: 680, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-              {component.description || t('catalog.modal.noDescriptionLong')}
+            <p style={{ margin: '10px 0 0', maxWidth: 680, fontSize: 13.5, color: 'var(--text-secondary)', lineHeight: 1.65, overflowWrap: 'anywhere' }}>
+              {safeCatalogText(component.description, t('catalog.modal.noDescriptionLong'))}
             </p>
           </div>
           <button
@@ -821,7 +870,7 @@ export const CatalogPage = () => {
   const [error, setError] = useState('');
   const [catalogNotice, setCatalogNotice] = useState('');
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>('all');
-const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortKey, setSortKey] = useState<SortKey | null>('category');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -852,9 +901,11 @@ const [searchQuery, setSearchQuery] = useState('');
         throw new Error('El catalog-service no ha retornat JSON vàlid');
       }
 
-      const nextComponents = Array.isArray(data) ? data : [];
+      const nextComponents = Array.isArray(data)
+        ? (data as CatalogComponent[]).map(sanitizeCatalogComponent)
+        : [];
       if (nextComponents.length === 0) {
-        setComponents(DEFAULT_CATALOG_COMPONENTS);
+        setComponents(DEFAULT_CATALOG_COMPONENTS.map(sanitizeCatalogComponent));
         setCatalogNotice('El catalog-service ha respost sense components. Es mostra el catàleg base local per poder treballar igualment.');
         return;
       }
@@ -862,7 +913,7 @@ const [searchQuery, setSearchQuery] = useState('');
       setComponents(nextComponents);
     } catch (err) {
       if (components.length === 0) {
-        setComponents(DEFAULT_CATALOG_COMPONENTS);
+        setComponents(DEFAULT_CATALOG_COMPONENTS.map(sanitizeCatalogComponent));
         setCatalogNotice(`No s'ha pogut llegir el catalog-service (${(err as Error).message}). Es mostra el catàleg base local.`);
       } else {
         setError((err as Error).message);
@@ -1225,8 +1276,8 @@ const tableCardStyle: CSSProperties = {
                         {version || '-'}
                       </td>
                       <td style={{ ...S.td, color: 'var(--text-secondary)', maxWidth: 470 }}>
-                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {component.description || t('catalog.noDescription')}
+                        <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'normal', overflowWrap: 'anywhere', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                          {safeCatalogText(component.description, t('catalog.noDescription'))}
                         </div>
                       </td>
                     </tr>

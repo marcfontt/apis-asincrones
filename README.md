@@ -35,15 +35,17 @@ El text visible està preparat en català, castellà i anglès.
 Canvis més recents del portal:
 
 - Guies de pàgina unificades amb el mateix format visual.
-- Tutorials propis per Home, Catàleg, Escenaris, Execucions i Resultats.
+- Tutorials propis per Home, Catàleg, Escenaris, Execucions i Resultats, amb pantalla tipus top-nav com el portal real.
 - Filtres compartits a Catàleg, Escenaris, Execucions i Resultats.
-- Botons més coherents entre pàgines, inclòs el botó de tutorial.
+- Botons coherents entre pàgines, sense degradats i amb `Tutorial` com a etiqueta única.
 - Textos reescrits amb llenguatge més curt i directe.
 - Catàleg amb estats de compatibilitat més honestos:
   `Es pot executar`, `Requereix configuració` i `No disponible ara`.
-- Modal de component amb reproduïbilitat, configuració i condicions de prova.
+- Modal de component amb reproduïbilitat, configuració, versions revisades i condicions de prova.
+- Protecció visual contra textos corruptes o massa repetits dins el Catàleg.
 - Execucions amb detall estable mentre arriben refrescos.
-- Resultats amb `Detall de l'escenari` i càlcul de puntuació més traçable.
+- Execucions amb resum superior simplificat: la taula i els filtres porten la resta del context.
+- Resultats amb `Detall de l'escenari`, missatges més clars quan falten mostres i càlcul de puntuació més traçable.
 
 ## Últims commits rellevants
 
@@ -59,7 +61,7 @@ Canvis més recents del portal:
 ## Arquitectura
 
 El sistema viu dins un clúster Azure Kubernetes Service. Els manifests
-actuals del repo fan servir el namespace `apis-asincronas` per a l'app,
+actuals del repo fan servir el namespace `apis-asincrones` per a l'app,
 `kafka-strimzi` per a Kafka i `brokers` per a la resta de brokers. Si el
 clúster real usa una altra grafia, cal normalitzar-la abans de desplegar.
 
@@ -68,7 +70,7 @@ flowchart TB
     user(["Usuari"]) --> backstage["Backstage UI<br/>plugin async-benchmark"]
 
     subgraph aks["AKS"]
-        subgraph app["ns: apis-asincronas"]
+        subgraph app["ns: apis-asincrones"]
             backstage
             catalog["catalog-service :3001"]
             scenario["scenario-service :3002"]
@@ -194,7 +196,7 @@ no la pot provar correctament. Per això es fan servir tres estats:
 |-------|------------|
 | Es pot executar | La combinació encaixa amb el camí implementat. |
 | Requereix configuració | Pot funcionar, però cal ajustar el broker o el format. |
-| No disponible ara | No hi ha gateway o cami implementat en aquesta fase. |
+| No disponible ara | No hi ha gateway o camí implementat en aquesta fase. |
 
 Reproduïbilitat vol dir poder repetir una prova amb les mateixes
 condicions i obtenir resultats comparables. Per això el catàleg explica

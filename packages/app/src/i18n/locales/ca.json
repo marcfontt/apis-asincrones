@@ -56,8 +56,8 @@
     "success": "Èxit"
   },
   "tutorial": {
-    "show": "Veure tutorial",
-    "replay": "Repetir tutorial",
+    "show": "Tutorial",
+    "replay": "Tutorial",
     "previous": "Anterior",
     "next": "Següent",
     "skip": "Saltar tutorial",
@@ -93,11 +93,11 @@
     "home": {
       "step1": {
         "title": "Comença per Home",
-        "body": "Aquesta pantalla és el mapa de l’app. Mira-la així: defineixes una prova, la llances i després llegeixes resultats.",
+        "body": "La Home explica el camí complet: primer entens el concepte, després crees una prova i al final llegeixes dades.",
         "details": [
-          "Backstage és la web.",
-          "AKS és el clúster d'Azure on corren les proves.",
-          "Resultats és on mires si la prova ha anat bé."
+          "Backstage és la web que estàs fent servir.",
+          "AKS és el clúster d'Azure on corren els contenidors.",
+          "Resultats és on mires què ha passat."
         ]
       },
       "step2": {
@@ -110,7 +110,7 @@
       },
       "step3": {
         "title": "Crea l’escenari",
-        "body": "A Escenaris tries què vols provar. Aquí és on més importa no anar a cegues.",
+        "body": "A Escenaris tries la combinació que vols provar: broker, arquitectura, protocol i format de dades.",
         "details": [
           "Tria broker, arquitectura, protocol i format.",
           "El format canvia mida del missatge i càrrega recomanada."
@@ -314,15 +314,15 @@
     "title": "APIs Asíncrones",
     "portalLabel": "Portal de proves",
     "subtitle": "Proves comparables, resultats clars",
-    "description": "Crea una prova, executa-la al clúster i mira què ha passat. Sempre mesurem el mateix recorregut: missatge enviat, broker, missatge rebut.",
-    "heroSubtitle": "Backstage és la pantalla. AKS és el clúster d'Azure on corren les proves.",
+    "description": "Compara sistemes que envien missatges sense esperar una resposta immediata. Tu tries la combinació, llances la prova i veus les dades.",
+    "heroSubtitle": "Backstage és la pantalla del portal. AKS és el clúster d'Azure on corren els contenidors de la prova.",
     "guide": {
       "title": "Guia ràpida de la Home",
       "subtitle": "Què mirar primer i quin camí segueix una prova.",
       "items": {
         "map": {
-          "title": "Mapa del portal",
-          "text": "La Home resumeix el camí complet: catàleg, escenari, execució i resultats."
+        "title": "Per on començar",
+        "text": "Primer entén el flux general: tries components, crees un escenari, executes la prova i llegeixes resultats."
         },
         "catalog": {
           "title": "Primer mira components",
@@ -369,13 +369,13 @@
     "sections": {
       "systemEyebrow": "Estructura del sistema",
       "systemTitle": "De l'escenari als resultats",
-      "systemDesc": "Pensa-ho com una cadena: tu defines la prova, el backend la prepara, AKS la fa córrer i Resultats mostra les dades. AKS vol dir Azure Kubernetes Service: un grup de màquines al núvol per executar contenidors.",
+      "systemDesc": "El flux és aquest: tu defineixes la prova, el backend la prepara, AKS l'executa i Resultats mostra les dades. AKS vol dir Azure Kubernetes Service: un grup de màquines al núvol per executar contenidors.",
       "conceptsEyebrow": "Abans de mirar resultats",
       "conceptsTitle": "Què estàs comparant realment?",
       "conceptsDesc": "Abans de comparar, mira què estàs canviant: broker, protocol, arquitectura, format i càrrega.",
       "brokerEyebrow": "Concepte clau",
       "brokerTitle": "Com funciona un bròker?",
-      "brokerDesc": "Un bròker de missatgeria desacobla els productors dels consumidors: cada part treballa al seu ritme sense dependre de l'altra.",
+      "brokerDesc": "Un bròker rep missatges dels productors i els entrega als consumidors. Això permet que cada part treballi al seu ritme.",
       "executionEyebrow": "Execució",
       "executionTitle": "Què passa quan llances un benchmark?",
       "executionDesc": "Un run és una execució concreta. Tots els runs segueixen el mateix camí perquè la comparació tingui sentit.",
@@ -417,20 +417,20 @@
     ],
     "concepts": [
       {
-        "title": "Arquitectura",
-        "text": "Com estan organitzades les peces. Canvia el camí que fa el missatge."
-      },
-      {
-        "title": "Protocol",
-        "text": "La manera com es comunica el sistema: Kafka, AMQP, MQTT, SSE o altres."
-      },
-      {
-        "title": "Format de dades",
-        "text": "La mida i el tipus de missatge. IoT, financer o vídeo no carreguen igual el broker."
+        "title": "API asíncrona",
+        "text": "Un sistema envia un missatge i no espera una resposta immediata. El receptor el processa quan li toca."
       },
       {
         "title": "Broker",
-        "text": "La plataforma que rep i reparteix missatges. És el centre de la comparació."
+        "text": "És la peça que rep, guarda o reparteix missatges. Kafka, RabbitMQ i NATS fan aquest paper."
+      },
+      {
+        "title": "Protocol i arquitectura",
+        "text": "El protocol diu com viatja el missatge. L'arquitectura diu com estan ordenades les peces."
+      },
+      {
+        "title": "Format i càrrega",
+        "text": "El format marca la mida del missatge. La càrrega diu quants missatges envies i durant quant temps."
       }
     ],
     "executionSteps": [
@@ -574,11 +574,11 @@
       "copied": "Copiat",
       "overviewFallback": "Component utilitzat pel portal de proves.",
       "impactFallback": "El seu impacte depèn de com es combina dins de l'escenari.",
-      "reproDescription": "Reproduïbilitat vol dir poder repetir la prova amb les mateixes condicions i comparar el resultat sense trampes. Fixa versió, escenari, càrrega i aïllament del run abans d’executar.",
+      "reproDescription": "Reproduïbilitat vol dir repetir una prova amb les mateixes condicions i obtenir resultats comparables. Mantén igual la versió, la configuració, la càrrega i el canal de cada run.",
       "noReproRows": "Aquest component encara no té dades de reproduïbilitat estructurades.",
       "noConfigSnippet": "Aquest component encara no té cap snippet de configuració.",
       "useDescription": "Obre el formulari d'escenaris amb aquest valor preseleccionat quan sigui possible.",
-      "sectionWhat": "Paper dins de la prova",
+      "sectionWhat": "Què és i quan s'utilitza",
       "sectionCard": "Fitxa ràpida",
       "labelCategory": "Categoria",
       "labelShortName": "Nom curt",
@@ -592,9 +592,9 @@
       "reproChecklistTitle": "Abans de replicar",
       "reproChecklist": [
         "Usa la mateixa versió del component i el mateix desplegament.",
-        "Repeteix el mateix escenari: broker, arquitectura, protocol i format.",
+        "Repeteix la mateixa combinació: broker, arquitectura, protocol i format.",
         "Mantén iguals payload, ràtio, warm-up i durada.",
-        "Crea un run aïllat amb topic, cua, subject o group-id propi."
+        "Crea un canal propi per al run: topic, cua, subject o group-id."
       ]
     },
     "compatTable": {
@@ -609,7 +609,16 @@
       "compatibleArchitectures": "Arquitectures compatibles",
       "compatibleProtocols": "Protocols compatibles",
       "platformsCanUse": "Plataformes que la poden usar",
-      "supportedBy": "Compatible amb"
+      "supportedBy": "Compatible amb",
+      "portalTitle": "Compatibilitat dins del portal",
+      "portalDescription": "Aquest bloc mostra les opcions que el portal pot provar ara mateix. Si una combinació necessita un gateway o una configuració extra, no surt com a executable directa.",
+      "noExecutable": "Cap opció executable declarada",
+      "platformArchitectures": "Arquitectures que pot executar",
+      "platformProtocols": "Protocols que pot executar",
+      "architecturePlatforms": "Plataformes que la poden executar",
+      "architectureProtocols": "Protocols disponibles ara",
+      "protocolPlatforms": "Plataformes que el poden executar",
+      "protocolArchitectures": "Arquitectures disponibles ara"
     },
     "stats": {
       "compatibleCombinations": "combinacions compatibles",
@@ -984,10 +993,86 @@
       "errorDelete": "Error en eliminar:",
       "errorRefresh": "No s'han pogut actualitzar les execucions."
     },
-    "subtitle": "Historial de proves executades al clúster AKS."
+    "subtitle": "Historial de proves executades al clúster AKS.",
+    "summary": {
+      "runningNow": "En execució",
+      "runningHelp": "Runs que estan enviant càrrega ara mateix."
+    },
+    "refresh": {
+      "updating": "Actualitzant en segon pla...",
+      "latest": "Última actualització:",
+      "automatic": "auto cada 8s",
+      "pending": "Pendent de la primera actualització"
+    },
+    "actions": {
+      "results": "Veure resultats",
+      "resultsTitle": "Obre la comparativa històrica per escenari",
+      "refresh": "Actualitza",
+      "refreshing": "Actualitzant",
+      "refreshTitle": "Actualitza execucions i mètriques sense buidar la pantalla",
+      "stopAll": "Atura tot",
+      "stopAllTitle": "Atura totes les execucions en curs o pendents",
+      "resetAll": "Reinicia tot",
+      "resetAllTitle": "Esborra totes les execucions i mostres del clúster"
+    },
+    "sections": {
+      "activeTitle": "Execucions actives",
+      "historyTitle": "Historial complet"
+    },
+    "detail": {
+      "eyebrow": "Detall d'execució",
+      "loadingSubtitle": "Carregant les mostres guardades d'aquest run...",
+      "subtitle": "Aquest panell resumeix la configuració, les mostres guardades i el volum de missatges processat.",
+      "statMeasures": "Mesures",
+      "statMeasuresLoading": "Actualitzant les mostres guardades.",
+      "statMeasuresHelper": "Mostres persistides per aquest run.",
+      "statReceived": "Missatges rebuts",
+      "statReceivedHelper": "Volum rebut pel consumidor o registrat a la telemetria final.",
+      "statSent": "Missatges enviats",
+      "statSentHelper": "Volum enviat pel load-generator durant aquesta execució.",
+      "statDuration": "Durada",
+      "statDurationHelper": "Temps transcorregut del run visible.",
+      "configuration": "Configuració",
+      "scenario": "Escenari",
+      "repetition": "Repetició",
+      "architecture": "Arquitectura",
+      "protocol": "Protocol",
+      "platform": "Plataforma",
+      "format": "Format",
+      "timeline": "Línia de temps",
+      "start": "Inici",
+      "end": "Fi",
+      "firstSample": "Primera mostra",
+      "lastSample": "Última mostra",
+      "source": "Font",
+      "internalStatus": "Estat intern",
+      "metricsAvailable": "Mètriques disponibles",
+      "latency": "Latència",
+      "errorRate": "Taxa d'error",
+      "errors": "Errors",
+      "scoreDetail": "Detall de la puntuació",
+      "diagnosis": "Diagnòstic",
+      "code": "Codi",
+      "technicalDetail": "Detall",
+      "noTechnicalDetail": "Sense detall tècnic guardat.",
+      "interpretTitle": "Com interpretar aquest run",
+      "interpretText": "Si la part en viu està a zero quan tornes a executar un escenari, és correcte: el run és nou i els comptadors recomencen. Quan finalitza o s'atura manualment, les mostres guardades passen a Resultats amb el seu propi runId.",
+      "lowerBetter": "menys és millor",
+      "higherBetter": "més és millor",
+      "notAvailable": "Encara no disponible",
+      "sourceOrchestrator": "Orquestrador",
+      "sourceMetrics": "Metrics API / Elasticsearch",
+      "sourceBoth": "Orquestrador + Elasticsearch",
+      "unknown": "Desconegut"
+    }
   },
   "resultats": {
     "pageTitle": "Resultats | APIs Asíncrones",
+    "heading": "Resultats",
+    "subtitle": "Mètriques en directe i comparatives d'arquitectures asíncrones.",
+    "beforeCompareTitle": "Abans de comparar",
+    "beforeCompareText": "La puntuació només ordena els resultats visibles. Si canvies filtres, pot canviar. Mira també latència, throughput i errors.",
+    "tabsAria": "Vistes de resultats",
     "tabLive": "En directe",
     "tabHistory": "Historial i comparatives",
     "dataFormatLabels": {
@@ -1020,7 +1105,37 @@
       "runningScenario": "Escenari en execució",
       "inactive": "Inactiu",
       "visible": "visibles",
-      "emptySearch": "Cap execució coincideix amb la cerca actual."
+      "emptySearch": "Cap execució coincideix amb la cerca actual.",
+      "pollError": "Error en carregar mètriques:",
+      "emptyTitle": "Cap execució activa",
+      "emptyDescription": "Inicia un escenari des de la pàgina Escenaris. Aquí veuràs latència, throughput, P50 i P99 quan arribin mostres.",
+      "goScenarios": "Anar a Escenaris",
+      "metricsIntro": "El comptador superior mostra missatges acumulats del run seleccionat. Els gràfics i la taula mostren mostres publicades cada 3 segons. Quan canvies d'execució, els comptadors corresponen només a aquell run.",
+      "noSamplesYet": "Aquest run encara no té mostres guardades. Pot estar arrencant, haver fallat abans d'enviar la primera mostra o haver-se aturat massa aviat.",
+      "messagesReceived": "Missatges rebuts",
+      "avgLatency": "Latència mitjana (ms)",
+      "avgThroughput": "Throughput mitjà",
+      "avgErrorRate": "Taxa d'error mitjana (%)",
+      "p50Label": "P50 Latència",
+      "p50Description": "50% dels missatges arriben per sota d'aquest temps.",
+      "p99Label": "P99 Latència",
+      "p99Description": "99% dels missatges arriben per sota d'aquest temps.",
+      "measureWindow": "Finestra de mesures",
+      "measures": "mesures",
+      "of": "de",
+      "last50": "Últimes 50",
+      "last100": "Últimes 100",
+      "last200": "Últimes 200",
+      "last500": "Últimes 500",
+      "all": "Totes",
+      "latencyChart": "Latència (ms)",
+      "throughputChart": "Throughput (msg/s)",
+      "errorChart": "Taxa d'error (%)",
+      "recentMeasures": "Últimes mesures",
+      "updatesEvery": "actualització cada 3s",
+      "time": "Hora",
+      "throughput": "Throughput",
+      "errorPercent": "Error (%)"
     },
     "history": {
       "filterFormat": "Format de Dades",
@@ -1050,7 +1165,7 @@
       "chartThroughput": "Throughput mitja (msg/s)",
       "chartError": "Taxa d'error mitjana (%)",
       "comparisonTitle": "Comparativa cara a cara",
-      "comparisonDesc": "Selecciona dos escenaris per comparar les seves mètriques.",
+      "comparisonDesc": "Tria una fila de la taula per comparar-la amb el millor escenari visible.",
       "btnCloseComparison": "Tancar comparativa",
       "difference": "Diferència:",
       "favorOf": "a favor de",

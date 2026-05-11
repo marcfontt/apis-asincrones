@@ -1528,14 +1528,14 @@ const HistorialTab = () => {
                       {titol}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                      {menorEsMillor ? 'menor és millor' : 'major és millor'}
+                      {menorEsMillor ? t('resultats.chart.lowerBetter') : t('resultats.chart.higherBetter')}
                     </div>
                   </div>
 
                   {/* Barra A */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
                     <div style={{ width: 110, fontSize: 12, fontWeight: guanyaA ? 700 : 500, color: guanyaA ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nomA}>
-                      {guanyaA ? '🏆 ' : ''}{nomA}
+                      {nomA}
                     </div>
                     <div style={{ flex: 1, height: 22, background: 'var(--bg-hover)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
                       <div style={{ width: `${pctA}%`, height: '100%', background: colorA, borderRadius: 4, transition: 'width 0.4s ease' }} />
@@ -1548,7 +1548,7 @@ const HistorialTab = () => {
                   {/* Barra B */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <div style={{ width: 110, fontSize: 12, fontWeight: !guanyaA ? 700 : 500, color: !guanyaA ? 'var(--text-primary)' : 'var(--text-secondary)', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={nomB}>
-                      {!guanyaA ? '🏆 ' : ''}{nomB}
+                      {nomB}
                     </div>
                     <div style={{ flex: 1, height: 22, background: 'var(--bg-hover)', borderRadius: 4, overflow: 'hidden', position: 'relative' }}>
                       <div style={{ width: `${pctB}%`, height: '100%', background: colorB, borderRadius: 4, transition: 'width 0.4s ease' }} />
@@ -1560,8 +1560,8 @@ const HistorialTab = () => {
 
                   {/* Diferencia en text pla, fàcil de llegir */}
                   <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                    Diferència: <strong style={{ color: '#22c55e' }}>{diff.toFixed(1)}%</strong>{' '}
-                    {guanyaA ? `a favor de ${nomA}` : `a favor de ${nomB}`}.
+                    {t('resultats.history.difference')} <strong style={{ color: '#22c55e' }}>{diff.toFixed(1)}%</strong>{' '}
+                    {t('resultats.history.favorOf')} {guanyaA ? nomA : nomB}.
                   </div>
                 </div>
               );
@@ -1572,27 +1572,27 @@ const HistorialTab = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 14 }}>
                   <div>
                     <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
-                      Comparativa cara a cara
+                      {t('resultats.history.comparisonTitle')}
                     </div>
                     <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)' }}>
                       {nomA} vs {nomB}
                     </div>
                     <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 4, lineHeight: 1.5, maxWidth: 540 }}>
-                      Tria qualsevol fila de la taula per comparar-la amb el millor escenari. Els valors es pinten amb barres proporcionals; el guanyador surt en verd amb un trofeu.
+                      {t('resultats.history.comparisonDesc')}
                     </div>
                   </div>
                   <button
                     onClick={() => setSelectedScenarioId('')}
                     style={{ ...S.btn, fontSize: 12 }}
                   >
-                    Tancar comparativa
+                    {t('resultats.history.btnCloseComparison')}
                   </button>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-                  {pintarMetrica('Latència mitjana', best.avgLatency, selectedScenarioSummary.avgLatency, ' ms', true)}
+                  {pintarMetrica(t('resultats.history.chartLatency'), best.avgLatency, selectedScenarioSummary.avgLatency, ' ms', true)}
                   {pintarMetrica('Throughput', best.avgThroughput, selectedScenarioSummary.avgThroughput, ' msg/s', false)}
-                  {pintarMetrica("Taxa d'error", best.avgErrorRate, selectedScenarioSummary.avgErrorRate, ' %', true)}
+                  {pintarMetrica(t('resultats.history.chartError'), best.avgErrorRate, selectedScenarioSummary.avgErrorRate, ' %', true)}
                 </div>
               </div>
             );
@@ -2359,7 +2359,7 @@ const LiveTab = () => {
         {/* Error banner - shown when metrics fetch fails */}
         {pollError && (
           <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid var(--error)', borderRadius: 6, fontSize: 12, color: 'var(--error)' }}>
-            Error en carregar mètriques: {pollError}
+            {t('resultats.live.pollError')} {pollError}
           </div>
         )}
       </div>
@@ -2372,27 +2372,33 @@ const LiveTab = () => {
       {activeRuns.length === 0 && !selectedRunFinished ? (
         <div style={{ ...S.card, textAlign: 'center', padding: 72 }}>
           <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}><IconSignal /></div>
-          <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 8 }}>Cap execució activa</div>
+          <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 8 }}>{t('resultats.live.emptyTitle')}</div>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 380, margin: '0 auto 20px' }}>
-            Inicia un escenari des de la pàgina <strong>Escenaris</strong> i aquí apareixeran les mètriques en temps real: latència, throughput, P50 i P99.
+            {t('resultats.live.emptyDescription')}
           </div>
           <a href="/escenaris" style={{ ...S.btnPrimary as React.CSSProperties, textDecoration: 'none', display: 'inline-flex' }}>
-            Anar a Escenaris
+            {t('resultats.live.goScenarios')}
           </a>
         </div>
       ) : (
         <>
           <div style={{ marginBottom: 12, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-            El comptador superior mostra missatges acumulats del run seleccionat. Els gràfics i la taula inferior mostren mesures de telemetria publicades cada 3 segons. Quan canvies d&apos;execució, tant els missatges com les mesures tornen a començar des de zero per a aquell run.
+            {t('resultats.live.metricsIntro')}
           </div>
+
+          {selectedRunId && filteredMetrics.length === 0 && (
+            <div style={{ ...S.card, marginBottom: 16, background: 'var(--bg-subtle)', borderStyle: 'dashed', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+              {t('resultats.live.noSamplesYet')}
+            </div>
+          )}
 
           {/* Summary stat cards (4 columns: samples, latency avg, throughput avg, error avg) */}
           <div aria-live="polite" aria-atomic="true" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
             {[
-              { l: 'Missatges rebuts', v: String(liveMessageCount), c: '#3b82f6' },
-              { l: 'Latència mitjana (ms)', v: `${avg(lat)}ms`, c: '#f59e0b' },
-              { l: 'Throughput avg', v: avg(tput), c: '#22c55e' },
-              { l: 'Error rate avg (%)', v: `${avg(err)}%`, c: '#ef4444' },
+              { l: t('resultats.live.messagesReceived'), v: String(liveMessageCount), c: '#3b82f6' },
+              { l: t('resultats.live.avgLatency'), v: `${avg(lat)}ms`, c: '#f59e0b' },
+              { l: t('resultats.live.avgThroughput'), v: avg(tput), c: '#22c55e' },
+              { l: t('resultats.live.avgErrorRate'), v: `${avg(err)}%`, c: '#ef4444' },
             ].map(c => (
               <div key={c.l} style={{ ...S.card, textAlign: 'center', padding: '14px 12px' }}>
                 <div style={{ fontSize: 22, fontWeight: 800, color: c.c, fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em' }}>{c.v}</div>
@@ -2405,8 +2411,8 @@ const LiveTab = () => {
           {filteredMetrics.length >= 5 && (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
               {[
-                { l: 'P50 Latència (mediana)', v: `${p50v(lat)}ms`, c: '#3b82f6', desc: '50% dels missatges arriben en menys d\'aquest temps' },
-                { l: 'P99 Latència (cua llarga)', v: `${p99v(lat)}ms`, c: '#7c3aed', desc: '99% dels missatges arriben en menys d\'aquest temps (pitjor cas practic)' },
+                { l: t('resultats.live.p50Label'), v: `${p50v(lat)}ms`, c: '#3b82f6', desc: t('resultats.live.p50Description') },
+                { l: t('resultats.live.p99Label'), v: `${p99v(lat)}ms`, c: '#7c3aed', desc: t('resultats.live.p99Description') },
               ].map(c => (
                 <div key={c.l} style={{ ...S.card, display: 'flex', alignItems: 'center', gap: 14 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 10, background: c.c + '14', color: c.c, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: 12 }}>
@@ -2432,18 +2438,18 @@ const LiveTab = () => {
             marginBottom: 10, flexWrap: 'wrap', gap: 8,
           }}>
             <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Finestra de mesures
+              {t('resultats.live.measureWindow')}
               <span style={{ marginLeft: 8, color: 'var(--text-secondary)', textTransform: 'none', letterSpacing: 0 }}>
-                ({windowedMetrics.length} de {livePointCount} mesures)
+                ({windowedMetrics.length} {t('resultats.live.of')} {livePointCount} {t('resultats.live.measures')})
               </span>
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {([
-                { label: 'Ultimes 50', value: 50 as number | 'all' },
-                { label: 'Ultimes 100', value: 100 },
-                { label: 'Ultimes 200', value: 200 },
-                { label: 'Ultimes 500', value: 500 },
-                { label: 'Totes', value: 'all' as number | 'all' },
+                { label: t('resultats.live.last50'), value: 50 as number | 'all' },
+                { label: t('resultats.live.last100'), value: 100 },
+                { label: t('resultats.live.last200'), value: 200 },
+                { label: t('resultats.live.last500'), value: 500 },
+                { label: t('resultats.live.all'), value: 'all' as number | 'all' },
               ] as { label: string; value: number | 'all' }[]).map(opt => {
                 const active = chartWindow === opt.value;
                 return (
@@ -2467,9 +2473,9 @@ const LiveTab = () => {
               chart readable at high sample counts. */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 20 }}>
             {[
-              { data: lat, color: '#f59e0b', label: 'Latència (ms)', unit: 'ms' },
-              { data: tput, color: '#22c55e', label: 'Throughput (msg/s)', unit: '' },
-              { data: err, color: '#ef4444', label: 'Error rate (%)', unit: '%' },
+              { data: lat, color: '#f59e0b', label: t('resultats.live.latencyChart'), unit: 'ms' },
+              { data: tput, color: '#22c55e', label: t('resultats.live.throughputChart'), unit: '' },
+              { data: err, color: '#ef4444', label: t('resultats.live.errorChart'), unit: '%' },
             ].map(c => (
               <div key={c.label} style={{ ...S.card }}>
                 <LiveLineChart data={c.data} color={c.color} label={c.label} unit={c.unit} />
@@ -2482,9 +2488,9 @@ const LiveTab = () => {
             <div style={{ ...S.card, padding: 0, overflow: 'hidden' }}>
               <div style={{ padding: '10px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ color: 'var(--text-secondary)' }}><IconPulse /></span>
-                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Últimes mesures</span>
+                <span style={{ fontSize: 12, color: 'var(--text-secondary)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{t('resultats.live.recentMeasures')}</span>
                 <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--text-disabled)' }}>
-                  {livePointCount} mesures - actualització cada 3s
+                  {livePointCount} {t('resultats.live.measures')} - {t('resultats.live.updatesEvery')}
                 </span>
               </div>
               {/* Scrollable table body - capped at 480px height to avoid page overflow */}
@@ -2492,8 +2498,8 @@ const LiveTab = () => {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={S.tableHeader}>
-                      {['Hora', 'Latència (ms)', 'Throughput', 'Error (%)'].map(h => (
-                        <th key={h} style={{ ...S.th, textAlign: h === 'Hora' ? 'left' : 'right' }}>{h}</th>
+                      {[t('resultats.live.time'), t('resultats.live.latencyChart'), t('resultats.live.throughput'), t('resultats.live.errorPercent')].map((h, index) => (
+                        <th key={h} style={{ ...S.th, textAlign: index === 0 ? 'left' : 'right' }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -2575,9 +2581,9 @@ export const ResultatsPage = () => {
       {/* Page header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Resultats</h1>
+          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{t('resultats.heading')}</h1>
           <p style={{ margin: '6px 0 0', color: 'var(--text-secondary)', fontSize: 15 }}>
-            Metriques en temps real i comparatives d'arquitectures asincrones
+            {t('resultats.subtitle')}
           </p>
         </div>
         <TutorialButton page="resultats" />
@@ -2585,21 +2591,21 @@ export const ResultatsPage = () => {
 
       <section style={{ ...S.card, marginBottom: 22, padding: '14px 18px', borderLeft: '3px solid var(--accent)' }}>
         <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 5 }}>
-          Abans de comparar
+          {t('resultats.beforeCompareTitle')}
         </div>
         <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.65 }}>
-          La puntuació només ordena els resultats visibles. Si canvies filtres, pot canviar. Mira també latència, throughput i errors.
+          {t('resultats.beforeCompareText')}
         </p>
       </section>
 
       {/* Tab navigation bar - uses ARIA roles for accessibility */}
-      <div role="tablist" aria-label="Vistes de resultats" style={{ borderBottom: '1px solid var(--border)', marginBottom: 24, display: 'flex' }}>
-        <button role="tab" aria-selected={tab === 'live'} style={tabBtn(tab === 'live')} onClick={() => setTab('live')}>      <IconPulse /> En directe</button>
-        <button role="tab" aria-selected={tab === 'historial'} style={tabBtn(tab === 'historial')} onClick={() => setTab('historial')}><IconClock /> Historial i comparatives</button>
+      <div role="tablist" aria-label={t('resultats.tabsAria')} style={{ borderBottom: '1px solid var(--border)', marginBottom: 24, display: 'flex' }}>
+        <button role="tab" aria-selected={tab === 'live'} style={tabBtn(tab === 'live')} onClick={() => setTab('live')}><IconPulse /> {t('resultats.tabLive')}</button>
+        <button role="tab" aria-selected={tab === 'historial'} style={tabBtn(tab === 'historial')} onClick={() => setTab('historial')}><IconClock /> {t('resultats.tabHistory')}</button>
       </div>
 
       {/* Tab panel - only the active tab is rendered (unmounts inactive tab) */}
-      <div role="tabpanel" aria-label={tab === 'live' ? 'En directe' : 'Historial i comparatives'}>
+      <div role="tabpanel" aria-label={tab === 'live' ? t('resultats.tabLive') : t('resultats.tabHistory')}>
         {tab === 'live' && <LiveTab />}
         {tab === 'historial' && <HistorialTab />}
       </div>

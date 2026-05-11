@@ -25,15 +25,19 @@ resultats.
 | `MetricsDetailDrawer` | Mostra explicació detallada de mètriques quan cal context. |
 
 Els tutorials no s'obren sols. L'usuari els obre amb el botó de tutorial
-de cada pàgina. Quan ja s'ha vist un tutorial, el botó passa a dir
-`Repetir tutorial`.
+de cada pàgina. El botó sempre diu `Tutorial`, també si l'usuari ja l'ha
+obert abans.
+
+El mock del tutorial fa servir la mateixa idea visual que el portal:
+navegació superior, zones de contingut i cursor animat que apunta a
+elements que existeixen a cada pàgina.
 
 ## Fonts compartides
 
 | Fitxer | Responsabilitat |
 |--------|-----------------|
 | `src/shared/catalog/compatibility.ts` | Criteri únic de compatibilitat. |
-| `src/shared/catalog/reproducibility.ts` | Dades de reproduïbilitat i snippets de configuració. |
+| `src/shared/catalog/reproducibility.ts` | Dades de reproduïbilitat, versions conegudes i snippets de configuració. |
 | `src/shared/results/scenarioDetail.ts` | Preparació del detall d'un escenari. |
 | `src/shared/results/historyMetrics.ts` | Helpers per comptar mostres, missatges i historial. |
 | `src/shared/metrics/liveMetrics.ts` | Lectura segura de mètriques en directe. |
