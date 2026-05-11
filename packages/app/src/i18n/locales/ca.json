@@ -312,6 +312,7 @@
   },
   "home": {
     "title": "APIs Asíncrones",
+    "portalLabel": "Portal de proves",
     "subtitle": "Proves comparables, resultats clars",
     "description": "Crea una prova, executa-la al clúster i mira què ha passat. Sempre mesurem el mateix recorregut: missatge enviat, broker, missatge rebut.",
     "heroSubtitle": "Backstage és la pantalla. AKS és el clúster d'Azure on corren les proves.",
@@ -571,7 +572,7 @@
       },
       "copy": "Copiar",
       "copied": "Copiat",
-      "overviewFallback": "Component utilitzat pel portal de benchmark.",
+      "overviewFallback": "Component utilitzat pel portal de proves.",
       "impactFallback": "El seu impacte depèn de com es combina dins de l'escenari.",
       "reproDescription": "Reproduïbilitat vol dir poder repetir la prova amb les mateixes condicions i comparar el resultat sense trampes. Fixa versió, escenari, càrrega i aïllament del run abans d’executar.",
       "noReproRows": "Aquest component encara no té dades de reproduïbilitat estructurades.",

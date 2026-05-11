@@ -312,6 +312,7 @@
   },
   "home": {
     "title": "APIs Asíncronas",
+    "portalLabel": "Portal de pruebas",
     "subtitle": "Pruebas comparables, resultados claros",
     "description": "Crea una prueba, ejecútala en el clúster y mira qué ha pasado. Siempre medimos el mismo recorrido: mensaje enviado, broker, mensaje recibido.",
     "heroSubtitle": "Backstage es la pantalla. AKS es el clúster de Azure donde se ejecutan las pruebas.",
@@ -571,7 +572,7 @@
       },
       "copy": "Copiar",
       "copied": "Copiado",
-      "overviewFallback": "Componente utilizado por el portal de benchmark.",
+      "overviewFallback": "Componente utilizado por el portal de pruebas.",
       "impactFallback": "Su impacto depende de cómo se combina dentro del escenario.",
       "reproDescription": "Reproducibilidad significa poder repetir la prueba con las mismas condiciones y comparar el resultado sin trampas. Fija versión, escenario, carga y aislamiento del run antes de ejecutar.",
       "noReproRows": "Este componente todavía no tiene datos de reproducibilidad estructurados.",

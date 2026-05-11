@@ -1,30 +1,13 @@
 /*
- * ExecucionsPage.tsx
- * AsyncBench - Backstage plugin for async API benchmarking
+ * Pagina d'execucions.
  *
- * This page shows all benchmark executions (runs) managed by the orchestrator service.
- * It is split into two sections:
- *   1. "En execució / Pendents" - live runs that are currently running or queued
- *   2. "Historial" - finished runs (completed, cancelled, error)
+ * Mostra dues llistes:
+ * 1. Runs pendents o en curs.
+ * 2. Runs acabats, aturats o fallits.
  *
- * Key responsibilities:
- *   - Poll the orchestrator API every 8 seconds to keep the run list fresh
- *   - Allow the user to stop individual runs or all running runs at once
- *   - Allow the user to delete individual runs, bulk-selected runs, or all finished runs
- *   - Show a confirmation modal before any destructive or semi-destructive action
- *   - Display rich metadata badges: architecture, protocol, platform, data format, status
- *
- * Design decisions:
- *   - A single ConfirmModal instance is reused for all confirmation dialogs. Its appearance
- *     (button text and color) is controlled by `confirmLabel` and `danger` props so that
- *     the "stop" action does NOT look like a delete action (red button reserved for deletes).
- *   - Runs are fetched in a single GET /runs request and split client-side into live/finished,
- *     avoiding two separate polling loops.
- *   - Scenario metadata (dataFormat, etc.) is fetched once from the scenario service and
- *     cached in a map so rows can show the format even when the run record omits it.
- *   - All colors and fonts come from CSS variables defined in the design system
- *     (var(--font) = IBM Plex Sans, var(--font-mono) = JetBrains Mono).
- *   - Dark-mode OLED background is #09090b, applied via [data-theme="dark"] on <html>.
+ * La part important es no perdre context mentre arriben dades noves. Per aixo
+ * el detall obert es guarda per id i el refresc nomes canvia l'estat quan hi ha
+ * dades noves de veritat.
  */
 
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
@@ -38,17 +21,11 @@ import { GuideItemCard, GuidePanel } from '../components/GuidePanel';
 import { FilterPanel, FilterSelect } from '../components/FilterPanel';
 import { getRunMeasureCount, getRunMessageCount, getRunSentCount } from '../shared/results/historyMetrics';
 
-/* ---------------------------------------------------------------------------
- * API base paths - routed through the Backstage proxy so the browser never
- * talks directly to internal cluster services.
- * ---------------------------------------------------------------------------*/
+// Totes les crides passen pel proxy de Backstage.
 const ORCHESTRATOR   = '/api/proxy/benchmark-orchestrator';
 const SCENARIOS_BASE = '/api/proxy/scenario-service';
-// Metrics API serves the persistent run history from Elasticsearch. We need it
-// here because the orchestrator keeps runs in memory only; after a pod restart
-// its /runs list is empty, even though the runs are still in ES. Without this
-// fallback the Execucions page shows 0 rows while the Historial/Resultats tab
-// shows 163, a jarring inconsistency for the user.
+// Metrics API guarda l'historial persistent. L'orquestrador pot perdre runs si
+// es reinicia, pero les mostres continuen existint a l'historial.
 const METRICS_BASE   = '/api/proxy/metrics-api';
 
 const LOCALE_BY_LANGUAGE: Record<string, string> = {
@@ -59,22 +36,8 @@ const LOCALE_BY_LANGUAGE: Record<string, string> = {
 
 const getCurrentLocale = () => LOCALE_BY_LANGUAGE[getLanguage()] || 'ca-ES';
 
-/* ---------------------------------------------------------------------------
- * STATUS_CONFIG
- * Maps each orchestrator run status string to the visual token set used in
- * the status badge: a foreground color, a translucent background, and the
- * Catalan display label.
- *
- * "cancelled" is deliberately shown as a separate state. A manually stopped
- * run may contain useful samples, but it is not the same as a benchmark that
- * reached its configured duration. Keeping that distinction visible avoids
- * treating partial measurements as fully completed results.
- * ---------------------------------------------------------------------------*/
-// Cobrim tots els estats que retorna l'orquestrador. Antigament nomes hi havia
-// "error" pero l'orquestrador envia "failed", i aquell missing key feia que
-// el badge sortis gris i sense etiqueta. Ara qualsevol fallada (failed o
-// error) es pinta en VERMELL viu i amb la lletra "Error" perque destaqui
-// per damunt de la resta i l'usuari el detecti immediatament.
+// Configuracio visual de cada estat. "Aturada" queda separada de "Completat"
+// perque pot tenir dades parcials, pero no es una prova acabada.
 const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
   pending:   { color: '#f59e0b', bg: 'rgba(245,158,11,0.10)', label: 'Pendent' },
   running:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', label: 'En execució' },
@@ -84,8 +47,7 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }
   error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Error' },
 };
 
-// Helper compartit per saber si un run ha fallat. Cobrim tots dos noms
-// (failed i error) per si en el futur hi ha mes variants de l'API.
+// L'API ha fet servir "failed" i "error" en moments diferents.
 const isFailedRun = (r: { status?: string } | null | undefined): boolean => {
   if (!r || !r.status) return false;
   return r.status === 'failed' || r.status === 'error';
@@ -117,11 +79,7 @@ const sameMetricPoints = (prev: any[], next: any[]): boolean => {
   return true;
 };
 
-/* ---------------------------------------------------------------------------
- * PLATFORM_COLORS
- * Maps normalized platform/broker names to a distinguishing accent color.
- * Used for the platform badge in each run row.
- * ---------------------------------------------------------------------------*/
+// Colors dels badges de plataforma.
 const PLATFORM_COLORS: Record<string, string> = {
   'Kafka':       '#ef4444',
   'Confluent':   '#3b82f6',
@@ -130,14 +88,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 };
 
 
-/* ---------------------------------------------------------------------------
- * METRIC_WEIGHTS
- * Per-metric weights used when computing the composite benchmark score.
- * Lower P99 latency and lower error rate are most important for async APIs;
- * higher throughput and lower resource usage complete the picture.
- * These values are surfaced in the "Detall de la puntuació" section of the
- * run detail drawer.
- * ---------------------------------------------------------------------------*/
+// Pesos que expliquen d'on surt la puntuacio del detall.
 const METRIC_WEIGHTS: Record<string, { weight: number; label: string; unit: string; direction: 'lower' | 'higher' }> = {
   p99Latency:   { weight: 0.35, label: 'Latència P99',   unit: 'ms',    direction: 'lower'  },
   throughput:   { weight: 0.30, label: 'Throughput',      unit: 'msg/s', direction: 'higher' },
@@ -146,16 +97,9 @@ const METRIC_WEIGHTS: Record<string, { weight: number; label: string; unit: stri
   memoryUsage:  { weight: 0.07, label: 'Memòria',         unit: 'MB',    direction: 'lower'  },
 };
 
-/*
- * normalizePlatform
- * The orchestrator may return platform names in different cases or with
- * abbreviated aliases (e.g. "nats" instead of "NATS Server"). This function
- * normalizes them to the canonical form used in PLATFORM_COLORS so the badge
- * always renders with the correct color regardless of how the API reports them.
- */
+// Normalitza noms curts com "nats" per poder pintar sempre el badge correcte.
 const normalizePlatform = (p?: string): string => {
   if (!p) return '';
-  // Lookup table keyed by lowercase so the comparison is case-insensitive
   const map: Record<string, string> = {
     'kafka':       'Kafka',
     'confluent':   'Confluent',
@@ -163,20 +107,10 @@ const normalizePlatform = (p?: string): string => {
     'nats server': 'NATS Server',
     'nats':        'NATS Server', // short alias used by some scenario configs
   };
-  // If the value is not in the map, fall back to the original string unchanged
   return map[p.toLowerCase()] ?? p;
 };
 
-/* ---------------------------------------------------------------------------
- * DATA_FORMAT_LABELS / DATA_FORMAT_COLORS
- * Added to give human-readable Catalan labels and distinct colors to each
- * data format used in benchmark scenarios (video streams, financial ticks,
- * IoT sensor data, etc.).
- * These values are displayed as badges in the "Format" column of each run row.
- * The format can come from the run record itself (r.dataFormat) or fall back
- * to the scenario definition fetched from the scenario service (sc.dataFormat).
- * If neither is present, the key 'default' is used.
- * ---------------------------------------------------------------------------*/
+// Etiquetes i colors dels formats que apareixen a la taula.
 const DATA_FORMAT_LABELS: Record<string, string> = {
   'default':   'Per defecte',
   'video-4k':  'Video 4K',
@@ -193,10 +127,7 @@ const DATA_FORMAT_COLORS: Record<string, string> = {
   'iot':       '#10b981', // green - IoT sensor streams
 };
 
-/* ---------------------------------------------------------------------------
- * PROTOCOL_COLORS
- * Maps async protocol names to colors for the "Protocol" badge column.
- * ---------------------------------------------------------------------------*/
+// Colors dels badges de protocol.
 const PROTOCOL_COLORS: Record<string, string> = {
   'Kafka':  '#ef4444',
   'AMQP':   '#f97316',
@@ -208,11 +139,7 @@ const PROTOCOL_COLORS: Record<string, string> = {
 
 const VISIBLE_PROTOCOLS = ['Kafka', 'AMQP', 'MQTT', 'gRPC', 'WS', 'NATS'];
 
-/* ---------------------------------------------------------------------------
- * ARCHITECTURE_COLORS
- * Maps architecture pattern acronyms to colors for the "Arquitectura" badge.
- * EDA = Event-Driven, QBA = Queue-Based, LCA = Log-Centric, etc.
- * ---------------------------------------------------------------------------*/
+// Colors dels badges d'arquitectura.
 const ARCHITECTURE_COLORS: Record<string, string> = {
   'EDA':  '#2563eb',
   'QBA':  '#9333ea',
@@ -221,13 +148,7 @@ const ARCHITECTURE_COLORS: Record<string, string> = {
   'SEA':  '#d97706',
 };
 
-/*
- * SK_STYLE
- * Shared inline style for skeleton loading placeholder blocks.
- * Uses a shimmer gradient animation (defined in GLOBAL_CSS) to indicate
- * that content is loading. Each block uses `animationDelay` to stagger
- * the shimmer across rows for a more natural loading feel.
- */
+// Placeholder visual mentre carreguen les dades.
 const SK_STYLE = {
   background: 'linear-gradient(90deg, var(--border) 25%, var(--bg-hover) 50%, var(--border) 75%)',
   backgroundSize: '200% 100%',
@@ -235,29 +156,15 @@ const SK_STYLE = {
   borderRadius: 4,
 };
 
-/* ---------------------------------------------------------------------------
- * SVG Icon components
- * Defined inline as tiny function components to avoid an external icon library
- * dependency. Each icon is 12-14px and uses currentColor for theming so it
- * inherits the surrounding text color automatically.
- * ---------------------------------------------------------------------------*/
-// Magnifying glass - used on the history search input
+// Icones petites sense dependencia externa.
 const SearchIcon  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
-// Filled square - standard "stop" symbol for stopping a run
 const StopIcon    = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="3" width="18" height="18" rx="2"/></svg>;
-// Circular arrows - manual refresh / reset actions
 const RefreshIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2"/><path d="M3 12a9 9 0 0 1 15.5-6.2"/><path d="M18 3v5h-5"/><path d="M6 21v-5h5"/></svg>;
-// Trash bin outline - delete a single run record
 const TrashIcon   = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>;
-// Trash bin with extra lines inside - used for "delete all" to visually differ from single delete
 const TrashAllIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>;
-// Activity / EKG waveform - used as the icon for the live executions table
 const ActivityIcon = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
-// Bulleted list - used as the icon for the history table
 const ListIcon    = () => <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
-// Empty-state waveform icon - dimmed, shown when a table has no rows
 const EmptyIcon   = () => <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
-// Warning triangle with exclamation - shown inside the confirmation modal header
 const WarnIcon    = ({ color = 'var(--error)' }: { color?: string }) => <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 /*
  * CheckboxIcon
@@ -275,9 +182,7 @@ const CheckboxIcon = (checked: boolean) => checked
  */
 const IndetermIcon = () => <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="14" height="14" rx="3" fill="var(--accent-soft)" stroke="var(--accent)" strokeWidth="1.5"/><line x1="4.5" y1="8" x2="11.5" y2="8" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"/></svg>;
 
-/* ---------------------------------------------------------------------------
- * Utility helpers
- * ---------------------------------------------------------------------------*/
+// Utility helpers
 
 /*
  * formatDuration
@@ -429,57 +334,36 @@ const ExecucionsGuide = ({
   );
 };
 
-/* ---------------------------------------------------------------------------
- * ConfirmModal
+/*
+ * Modal de confirmacio compartit.
  *
- * A reusable confirmation dialog rendered as a fixed overlay.
- * It is intentionally generic so that a single instance in ExecucionsPage can
- * handle all confirmation scenarios just by swapping the props stored in
- * `confirmState`.
- *
- * Props:
- *   - open         : whether the modal is visible
- *   - title        : heading text
- *   - message      : body content (ReactNode to allow bold/links)
- *   - onConfirm    : called when the user clicks the confirm button
- *   - onCancel     : called when the user clicks Cancel or the backdrop
- *   - confirmLabel : text for the confirm button (default "Esborra")
- *   - danger       : controls button color - true = red (var(--error)),
- *                    false = amber (var(--warning)) for non-destructive stops
- *
- * Design change: originally the confirm button was always labelled "Eliminar"
- * and always red. This was misleading for the "stop all" action because
- * stopping a run does NOT delete data. The `confirmLabel` and `danger` props
- * were added so the same modal component can be used for both delete (red,
- * "Eliminar") and stop (amber, "Atura") flows without code duplication.
- * ---------------------------------------------------------------------------*/
+ * El fem servir per aturar, esborrar i reiniciar. El color vermell queda per
+ * accions destructives. Aturar una execucio usa color d'avis per deixar clar
+ * que conserva les dades parcials que ja hagin arribat.
+ */
 const ConfirmModal = ({
   open, title, message, onConfirm, onCancel, confirmLabel = 'Esborra', danger = true,
 }: {
   open: boolean; title: string; message: React.ReactNode;
   onConfirm: () => void; onCancel: () => void;
-  /* confirmLabel: overrides the button text - defaults to "Esborra" */
   confirmLabel?: string;
-  /* danger: when false the confirm button uses amber instead of red */
   danger?: boolean;
 }) => {
-  // Return nothing when closed to keep it out of the DOM entirely
+  // Quan esta tancat no cal deixar cap node al DOM.
   if (!open) return null;
   return (
     <div
       role="dialog" aria-modal="true"
       style={{ position: 'fixed', inset: 0, zIndex: 3000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
-      onClick={onCancel} /* clicking outside the panel closes the modal */
+      onClick={onCancel}
     >
-      {/* Semi-transparent backdrop with blur to dim the page behind the dialog */}
       <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }} />
 
-      {/* Dialog panel - stopPropagation prevents the outer onClick from closing it */}
+      {/* Evita que clicar dins el panell tanqui el modal. */}
       <div
         onClick={e => e.stopPropagation()}
         style={{ position: 'relative', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: '28px 28px 24px', maxWidth: 420, width: '100%', boxShadow: 'var(--shadow-lg)', animation: 'fadeUp 0.15s ease' }}
       >
-        {/* Icon + Title row - icon background switches between red and accent based on `danger` */}
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 14 }}>
           <div style={{ flexShrink: 0, padding: 10, borderRadius: 10, background: danger ? 'rgba(220,38,38,0.08)' : 'rgba(245,158,11,0.10)', display: 'flex' }}>
             <WarnIcon color={danger ? 'var(--error)' : 'var(--warning)'} />
@@ -490,10 +374,8 @@ const ConfirmModal = ({
           </div>
         </div>
 
-        {/* Action buttons */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
           <button onClick={onCancel} style={{ ...S.btn }}>Cancel·la</button>
-          {/* Confirm button color: red for destructive deletes, amber for non-destructive stops */}
           <button
             onClick={onConfirm}
             style={{ ...S.btnPrimary, background: danger ? 'var(--error)' : 'var(--warning)' }}
@@ -506,33 +388,13 @@ const ConfirmModal = ({
   );
 };
 
-/* ---------------------------------------------------------------------------
- * RunTable
+/*
+ * Taula de runs.
  *
- * A generic table component that renders a list of benchmark run objects.
- * It is reused for both the live runs section and the history section,
- * controlled by the `showStop` prop.
- *
- * Props:
- *   - data            : array of run objects to display
- *   - title           : section heading text
- *   - showStop        : true = live table (shows stop buttons, hides delete + checkboxes);
- *                       false = history table (shows delete buttons and checkboxes)
- *   - icon            : section heading icon (ReactNode)
- *   - totalCount      : total unfiltered count, shown next to the filtered count
- *   - searchValue     : controlled search input value (history table only)
- *   - onSearchChange  : callback to update search value (history table only)
- *   - onCancel        : called when the user clicks the stop button on a live run
- *   - onRequestDelete : called when the user clicks the delete button on a finished run
- *   - onBulkDelete    : called with an array of IDs when bulk-deleting selected rows
- *   - onDeleteAll     : called when the user clicks "Eliminar tot" in the history header
- *   - cancellingId    : ID of the run currently being cancelled (disables its button)
- *   - deletingIds     : Set of IDs currently being deleted (fades their rows)
- *   - scenarioMap     : map of scenarioId -> scenario object for metadata fallback
- *   - selectedIds     : Set of run IDs currently selected for bulk action
- *   - onToggleSelect  : called when a single row's checkbox is toggled
- *   - onToggleAll     : called when the header checkbox is toggled
- * ---------------------------------------------------------------------------*/
+ * S'usa dues vegades: una per runs actius i una per historial. La prop
+ * showStop decideix si la fila mostra el boto d'aturar o les accions
+ * d'historial.
+ */
 const RunTable = ({
   data, title, showStop, icon, totalCount,
   searchValue, onSearchChange,
@@ -850,31 +712,26 @@ const RunTable = ({
   );
 };
 
-/* ---------------------------------------------------------------------------
- * ExecucionsPage
- *
- * Top-level page component exported from this module.
- * Owns all data-fetching and mutation logic; passes callbacks down to RunTable.
- * ---------------------------------------------------------------------------*/
+// Component principal: carrega dades, aplica filtres i obre el detall.
 export const ExecucionsPage = () => {
   const { t } = useTranslation();
-  // All benchmark run records from the orchestrator
+  // Runs que mostra la pagina. Poden venir de l'orquestrador o de l'historial.
   const [runs,          setRuns]          = useState<any[]>([]);
-  // Scenario definitions fetched from the scenario service (for metadata fallback)
+  // Escenaris carregats per completar nom, format i altres camps si el run no els porta.
   const [scenarios,     setScenarios]     = useState<any[]>([]);
-  // True while the initial (or manual refresh) fetch is in progress
+  // Carrega inicial o refresc manual.
   const [loading,       setLoading]       = useState(true);
-  // ID of the run whose cancel request is currently in-flight (null = none)
+  // Run que s'esta aturant ara mateix.
   const [cancellingId,  setCancellingId]  = useState<string | null>(null);
-  // Set of IDs whose delete requests are currently in-flight (for row fade-out)
+  // Runs que s'estan esborrant.
   const [deletingIds,   setDeletingIds]   = useState<Set<string>>(new Set());
-  // Current toast notification message (empty string = no toast shown)
+  // Missatge temporal de feedback.
   const [toast,         setToast]         = useState('');
-  // Set of run IDs selected for bulk delete in the history table
+  // Seleccio per esborrar diversos runs de l'historial.
   const [selectedIds,   setSelectedIds]   = useState<Set<string>>(new Set());
-  // Current value of the history search input
+  // Cerca propia de la taula d'historial.
   const [historySearch, setHistorySearch] = useState('');
-  // Global run search applied to live and history lists
+  // Cerca comuna aplicada a runs actius i historial.
   const [runSearch,     setRunSearch]     = useState('');
   const [refreshing,    setRefreshing]    = useState(false);
   const [refreshError,  setRefreshError]  = useState('');
@@ -890,23 +747,13 @@ export const ExecucionsPage = () => {
   const [selectedRunMetrics, setSelectedRunMetrics] = useState<any[]>([]);
   const [selectedRunMetricsLoading, setSelectedRunMetricsLoading] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
-  // Timestamp of the last successful data fetch (used for the "updated HH:MM:SS" label)
+  // Hora de l'ultima actualitzacio correcta.
   const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
   // Quan una execucio s'atura, el generador pot trigar uns segons a guardar
   // l'ultima mostra. Mantenim un refresc curt per recollir aquest tancament.
   const [postRunRefreshUntil, setPostRunRefreshUntil] = useState(0);
 
-  /*
-   * confirmState holds all the dynamic data for the shared ConfirmModal instance.
-   * Instead of separate boolean flags for each action type, a single state object
-   * is used so that only one modal can be open at a time, and the confirm handler
-   * is always the exact function appropriate for the current action.
-   *
-   * confirmLabel and danger were added to allow the stop-all action to display
-   * a non-red "Atura" button instead of the default red delete button.
-   * This matters because stopping is reversible (runs can be re-triggered) while
-   * deleting is permanent.
-   */
+  // Un sol modal de confirmacio evita tenir estats separats per cada accio.
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     title: string;
@@ -956,7 +803,7 @@ export const ExecucionsPage = () => {
     //   1. Orchestrator /runs   -> source of truth for live/pending/just-finished runs,
     //                              but only holds them in memory (lost on pod restart).
     //   2. Metrics-API /summary -> persistent ES history, one row per runId.
-    //
+
     // Merge strategy:
     //   - Orchestrator runs ALWAYS win when the runId exists in both lists
     //     (fresher status info: running/pending vs. completed).
@@ -1129,9 +976,7 @@ export const ExecucionsPage = () => {
     };
   }, [selectedRunId, runs]);
 
-  /* ---------------------------------------------------------------------------
-   * Local helpers
-   * ---------------------------------------------------------------------------*/
+  // Local helpers
 
   // Close the confirmation modal without triggering the action
   const closeConfirm = () => setConfirmState(s => ({ ...s, open: false }));
@@ -1147,9 +992,7 @@ export const ExecucionsPage = () => {
   const unmarkDeleting = (id: string) =>
     setDeletingIds(prev => { const s = new Set(prev); s.delete(id); return s; });
 
-  /* ---------------------------------------------------------------------------
-   * Actions
-   * ---------------------------------------------------------------------------*/
+  // Actions
 
   /*
    * handleCancel
@@ -1300,9 +1143,7 @@ export const ExecucionsPage = () => {
     });
   };
 
-  /* ---------------------------------------------------------------------------
-   * Selection helpers
-   * ---------------------------------------------------------------------------*/
+  // Selection helpers
 
   /*
    * handleToggleSelect
@@ -1334,9 +1175,7 @@ export const ExecucionsPage = () => {
     });
   };
 
-  /* ---------------------------------------------------------------------------
-   * Derived data
-   * ---------------------------------------------------------------------------*/
+  // Derived data
 
   const getStatusGroup = (run: any): string => {
     if (isFailedRun(run)) return 'errors';
@@ -1549,9 +1388,7 @@ export const ExecucionsPage = () => {
     </tr>
   );
 
-  /* ---------------------------------------------------------------------------
-   * Render
-   * ---------------------------------------------------------------------------*/
+  // Render
   return (
     <div style={{ ...S.page, maxWidth: 1280 }}>
       {/* Inject global keyframe animations (shimmer, fadeUp, pulseDot) */}

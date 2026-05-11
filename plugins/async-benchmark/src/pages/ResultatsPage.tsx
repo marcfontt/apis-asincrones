@@ -51,9 +51,7 @@ import { getLiveMessageCount } from '../shared/metrics/liveMetrics';
 import { aggregateScenarioHistory, getRunMeasureCount, getRunMessageCount, getRunSentCount, getScenarioMeasureCount } from '../shared/results/historyMetrics';
 import { buildScenarioHistoryDetail } from '../shared/results/scenarioDetail';
 
-// ---------------------------------------------------------------------------
 // API base URLs - routed through Backstage proxy to avoid CORS issues
-// ---------------------------------------------------------------------------
 
 /** Metrics collection and aggregation service (backed by Elasticsearch). */
 const METRICS_BASE = '/api/proxy/metrics-api';
@@ -68,9 +66,7 @@ const SCENARIOS_BASE = '/api/proxy/scenario-service';
  */
 const ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
 
-// ---------------------------------------------------------------------------
 // Helper utilities
-// ---------------------------------------------------------------------------
 
 const LOCALE_BY_LANGUAGE: Record<string, string> = {
   ca: 'ca-ES',
@@ -215,9 +211,7 @@ const normalizePlatform = (p?: string): string => {
   return map[p.toLowerCase()] ?? p;
 };
 
-// ---------------------------------------------------------------------------
 // Format-aware scoring system
-// ---------------------------------------------------------------------------
 
 /**
  * Per-format metric weights for the composite scoring algorithm.
@@ -447,9 +441,7 @@ const scoreColor = (score: number): string => {
   return '#ef4444';
 };
 
-// ---------------------------------------------------------------------------
 // SVG Icon components - inline SVG for zero-dependency icon rendering
-// ---------------------------------------------------------------------------
 
 /** Large bar chart icon used in the empty state of the History tab. */
 const IconBarChart = () => <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--border)" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="12" width="4" height="9" /><rect x="10" y="7" width="4" height="14" /><rect x="17" y="3" width="4" height="18" /></svg>;
@@ -587,10 +579,7 @@ const MetricGlossary = () => {
   );
 };
 
-// ---------------------------------------------------------------------------
-// ---------------------------------------------------------------------------
 // HBarChart - horizontal bar chart component
-// ---------------------------------------------------------------------------
 
 /**
  * HBarChart - horizontal bar chart for metric comparison.
@@ -721,9 +710,7 @@ const HBarChart = ({
   );
 };
 
-// ---------------------------------------------------------------------------
 // LiveLineChart - real-time sparkline chart
-// ---------------------------------------------------------------------------
 
 /**
  * LiveLineChart - SVG-based sparkline chart for streaming metric data.
@@ -819,9 +806,7 @@ const LiveLineChart = ({ data, color = '#3b82f6', label, unit = '' }: {
   );
 };
 
-// ---------------------------------------------------------------------------
 // ScoreRing - circular SVG score indicator
-// ---------------------------------------------------------------------------
 
 /**
  * ScoreRing - a circular progress ring that visualizes a 0-100 score.
@@ -1027,9 +1012,7 @@ const ScoreBreakdownPanel = ({
   );
 };
 
-// ---------------------------------------------------------------------------
 // HistorialTab - historical comparison view
-// ---------------------------------------------------------------------------
 
 /**
  * HistorialTab - aggregated benchmark history and multi-scenario comparison.
@@ -1125,24 +1108,19 @@ const HistorialTab = () => {
     return () => window.clearInterval(id);
   }, [fetchData]);
 
-  // -------------------------------------------------------------------------
   // Client-side percentile fallback.
-  //
   // The /metrics/summary endpoint is supposed to return server-computed
   // p50Latency and p99Latency via Elasticsearch percentiles aggregation.
   // In practice these fields are frequently missing (backend aggregation
   // not populated, field renamed, etc.), which causes the table P50/P99
   // columns to show "-".
-  //
   // Fix: for any run whose summary doc lacks p50Latency/p99Latency, fetch
   // its raw metrics by runId and compute the percentiles client-side.
   // Results are cached in `percentileMap` keyed by runId so each run is
   // only fetched once per page load.
-  //
   // Performance: runs are fetched in parallel batches of 6 to avoid
   // hammering the metrics-api with dozens of simultaneous requests.
   // Runs without a runId (very old data) are skipped.
-  // -------------------------------------------------------------------------
   useEffect(() => {
     if (summary.length === 0) return;
     // Only fetch percentiles for runs that need them and haven't been
@@ -1959,9 +1937,7 @@ const HistorialTab = () => {
   );
 };
 
-// ---------------------------------------------------------------------------
 // RunCard - scenario card for the Live tab picker
-// ---------------------------------------------------------------------------
 
 /**
  * RunCard - selectable card representing an active or pending benchmark run.
@@ -2055,9 +2031,7 @@ const RunCard = ({
   );
 };
 
-// ---------------------------------------------------------------------------
 // LiveTab - real-time metrics view
-// ---------------------------------------------------------------------------
 
 /**
  * LiveTab - polls the orchestrator and metrics API to show live benchmark data.
@@ -2099,22 +2073,17 @@ const LiveTab = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
   const [pollError, setPollError] = useState('');
 
-  // -------------------------------------------------------------------------
   // Chart window selector.
-  //
   // When a benchmark runs for a long time, the live chart accumulates
   // hundreds or thousands of samples. At that point the SVG line becomes
   // a dense blob where individual variations are invisible - the chart
   // becomes useless.
-  //
   // Fix: a windowSize selector that limits which samples are plotted.
   // The user picks from 50 / 100 / 200 / 500 / all. The default is 100,
   // which gives a clean readable chart while still showing recent history.
   // Setting to "all" plots the entire sample array (old behaviour).
-  //
   // Applies ONLY to the chart rendering and summary stat cards. The raw
   // metrics table at the bottom still shows all samples.
-  // -------------------------------------------------------------------------
   const [chartWindow, setChartWindow] = useState<number | 'all'>(100);
   const liveDataFormatLabel = (format?: string): string => {
     const normalized = format || 'default';
@@ -2155,7 +2124,6 @@ const LiveTab = () => {
   // SIGTERM / natural end-of-run). If we auto-switched, the polling
   // effect cleanup would wipe the metrics array and the user would
   // never see the run's endgame.
-  //
   // When the selected run leaves activeRuns we keep polling /metrics?
   // runId=X for a short grace window (handled in the polling effect)
   // so the "completed" snapshot is captured, then the view is frozen.
@@ -2192,7 +2160,6 @@ const LiveTab = () => {
   const selectedRunFinished = !!selectedRunId && !activeRuns.find(r => r.id === selectedRunId);
 
   // Metrics polling: resets and restarts when selectedRunId changes.
-  //
   // No defensive timestamp filter is needed because runId is unique per
   // execution (orchestrator generates a fresh randomUUID for every run,
   // see packages/benchmark-orchestrator/src/index.ts). That means
@@ -2229,7 +2196,6 @@ const LiveTab = () => {
   }, [selectedRunId]);
 
   // Grace-window polling after run completion:
-  //
   // When a run leaves activeRuns, the load-generator is shutting down and
   // will POST one last snapshot (status:'completed') within ~2 seconds.
   // We keep polling every 3s for ~15s to catch that final doc, then stop.
@@ -2560,9 +2526,7 @@ const LiveTab = () => {
   );
 };
 
-// ---------------------------------------------------------------------------
 // ResultatsPage - root page component
-// ---------------------------------------------------------------------------
 
 /**
  * ResultatsPage - the top-level page component for the Results section.

@@ -1,12 +1,9 @@
 /**
- * SettingsPage.tsx - Pàgina de configuració personalitzada
+ * Pagina de configuracio.
  *
- * Seccions:
- *   1. Identitat - informació de l'usuari actual (via identityApiRef)
- *   2. Idioma - selector ca/es/en, persistit a localStorage
- *   3. Aparença - commutador de tema clar/fosc (via storageApiRef)
- *
- * Utilitza el patró S de theme.ts per a tots els estils inline.
+ * Te tres blocs senzills: identitat, idioma i aparenca.
+ * La sessio no te un logout real en aquesta fase, per aixo no es mostra cap
+ * boto de tancar sessio que pugui confondre l'usuari.
  */
 
 import { useEffect, useState, type ReactNode } from 'react';
@@ -20,7 +17,7 @@ const THEME_KEY = '@backstage/core-app-api:themeId';
 
 type Language = 'ca' | 'es' | 'en';
 
-// -- Injecció del CSS global (variables + animacions) --------------------------
+// Afegeix les variables visuals compartides si encara no hi son.
 const useGlobalCss = () => {
   useEffect(() => {
     const id = 'async-benchmark-global-css';
@@ -33,7 +30,7 @@ const useGlobalCss = () => {
   }, []);
 };
 
-// -- Secció card genèrica ------------------------------------------------------
+// Targeta base per mantenir el mateix format a totes les seccions.
 const SettingsCard = ({
   title,
   children,
@@ -69,7 +66,7 @@ const SettingsCard = ({
   </div>
 );
 
-// -- 1. Secció Identitat -------------------------------------------------------
+// Mostra la informacio que Backstage coneix de l'usuari.
 const IdentitySection = () => {
   const { t } = useTranslation();
   const identityApi = useApi(identityApiRef);
@@ -144,7 +141,7 @@ const IdentitySection = () => {
   );
 };
 
-// -- 2. Secció Idioma ----------------------------------------------------------
+// Canvia l'idioma i avisa els components subscrits.
 const LanguageSection = () => {
   const { t } = useTranslation();
 
@@ -220,7 +217,7 @@ const LanguageSection = () => {
   );
 };
 
-// -- 3. Secció Aparença --------------------------------------------------------
+// Canvia el tema clar/fosc i el desa al mateix storage que Backstage.
 const AppearanceSection = () => {
   const { t } = useTranslation();
   const storageApi = useApi(storageApiRef);
@@ -244,13 +241,13 @@ const AppearanceSection = () => {
     setTheme(id);
     try {
       localStorage.setItem(THEME_KEY, JSON.stringify(id));
-      // Notify same-tab listeners (Root.tsx polls every 300ms, but storage
-      // event doesn't fire for the same tab, so the poll covers it)
+      // El mateix tab no rep l'event storage, per aixo actualitzem l'atribut
+      // del document directament.
       document.documentElement.setAttribute('data-theme', id);
     } catch {
       // ignore
     }
-    // Also persist via backstage storageApi for consistency
+    // Tambe el desem al storage de Backstage per coherencia.
     storageApi.forBucket('core').set('themeId', id);
   };
 
@@ -303,7 +300,7 @@ const AppearanceSection = () => {
   );
 };
 
-// -- Component principal -------------------------------------------------------
+// Component principal de la pagina.
 export const SettingsPage = () => {
   const { t } = useTranslation();
   useGlobalCss();

@@ -1,6 +1,6 @@
 const LogoFull = () => (
   <span
-    aria-label="APIs Asíncrones Benchmark Portal"
+    aria-label="APIs Asíncrones Portal de proves"
     style={{
       display: 'inline-flex',
       alignItems: 'center',
@@ -38,7 +38,7 @@ const LogoFull = () => (
           whiteSpace: 'nowrap',
         }}
       >
-        Benchmark Portal
+        Portal de proves
       </span>
     </span>
   </span>

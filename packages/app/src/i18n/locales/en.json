@@ -312,6 +312,7 @@
   },
   "home": {
     "title": "Async APIs",
+    "portalLabel": "Test portal",
     "subtitle": "Comparable tests, clear results",
     "description": "Create a test, run it on the cluster, and see what happened. We always measure the same path: message sent, broker, message received.",
     "heroSubtitle": "Backstage is the screen. AKS is the Azure cluster where the tests run.",
@@ -571,7 +572,7 @@
       },
       "copy": "Copy",
       "copied": "Copied",
-      "overviewFallback": "Component used by the benchmark portal.",
+      "overviewFallback": "Component used by the test portal.",
       "impactFallback": "Its impact depends on how it is combined inside the scenario.",
       "reproDescription": "Reproducibility means repeating the test with the same conditions and comparing the result fairly. Fix the version, scenario, load and run isolation before launching.",
       "noReproRows": "This component does not yet have structured reproducibility data.",

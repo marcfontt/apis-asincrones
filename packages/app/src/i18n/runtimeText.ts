@@ -16,7 +16,7 @@ export const RUNTIME_TEXT_TRANSLATIONS: RuntimeTextEntry[] = [
   { ca: 'Navegació principal mòbil', es: 'Navegación principal móvil', en: 'Mobile primary navigation' },
   { ca: 'Obrir menú de navegació', es: 'Abrir menú de navegación', en: 'Open navigation menu' },
   { ca: 'Tancar menú de navegació', es: 'Cerrar menú de navegación', en: 'Close navigation menu' },
-  { ca: 'Benchmark Portal', es: 'Portal de benchmark', en: 'Benchmark portal' },
+  { ca: 'Portal de proves', es: 'Portal de pruebas', en: 'Test portal' },
 
   { ca: 'Protocols disponibles en aquestes plataformes', es: 'Protocolos disponibles en estas plataformas', en: 'Protocols available on these platforms' },
   { ca: 'Plataformes que el poden usar', es: 'Plataformas que lo pueden usar', en: 'Platforms that can use it' },

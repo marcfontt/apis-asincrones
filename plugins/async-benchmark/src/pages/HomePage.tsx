@@ -243,7 +243,7 @@ export const HomePage = () => {
   });
 
   useEffect(() => {
-    document.title = t('home.title') + ' | Benchmark Portal';
+    document.title = `${t('home.title')} | ${t('home.portalLabel')}`;
   }, [t]);
 
   useEffect(() => {
@@ -370,7 +370,7 @@ export const HomePage = () => {
               <img src="/assets/async-logo-icon.svg" alt="" style={{ width: 44, height: 44, display: 'block' }} />
               <div>
                 <div style={{ fontSize: 11, fontWeight: 900, color: 'var(--teal)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>
-                  Benchmark Portal
+                  {t('home.portalLabel')}
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--text-secondary)', marginTop: 4 }}>
                   {t('home.heroSubtitle')}
