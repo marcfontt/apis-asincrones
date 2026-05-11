@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3002;
 const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenario-service:3002';
 const ACR_SERVER = process.env.ACR_SERVER || 'asyncbenchmarkregistry.azurecr.io';
 const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
-const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincronas';
+const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincrones';
 // Used by DELETE /runs/:id to cascade-delete the run's metrics from
 // Elasticsearch via metrics-api. Without this, deleting a run in the UI
 // only drops the orchestrator's in-memory record; the historical mostres
@@ -89,6 +89,8 @@ interface RunRecord {
   status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
   startedAt: string;
   completedAt?: string;
+  errorCode?: string;
+  errorDetail?: string;
   namespace?: string;
   jobName?: string;
 }
@@ -283,9 +285,12 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
       },
     },
   };
-  // Only set TTL for finite runs
+  // Els runs finits tenen marge per tancar connexions i enviar la mostra final.
   if (!esDuracionIndefinida) {
+    const duracionNumerica = Number(duracionEscenario);
+    const duracionBase = Number.isFinite(duracionNumerica) && duracionNumerica > 0 ? duracionNumerica : 60;
     jobSpec.ttlSecondsAfterFinished = 600;
+    jobSpec.activeDeadlineSeconds = Math.max(duracionBase, 60) + 900;
   }
 
   await batchApi.createNamespacedJob(namespace, {
@@ -312,10 +317,6 @@ async function monitorJob(
     const run = runs.get(runId);
     if (!run || run.status === 'cancelled') return;
     attempts += 1;
-    if (maxAttempts !== null && attempts > maxAttempts) {
-      run.status = 'failed'; run.completedAt = new Date().toISOString();
-      await updateScenarioStatus(scenarioId, 'idle', null); return;
-    }
     try {
       const job = (await batchApi.readNamespacedJob(jobName, namespace)).body;
       const succeeded = job.status?.succeeded || 0;
@@ -328,13 +329,29 @@ async function monitorJob(
         console.log(`[orchestrator] Run ${runId} completed`);
       } else if (failed > limit) {
         run.status = 'failed'; run.completedAt = new Date().toISOString();
+        run.errorCode = 'KUBERNETES_JOB_FAILED';
+        run.errorDetail = `El Job ${jobName} ha superat el backoffLimit (${limit}).`;
         await updateScenarioStatus(scenarioId, 'idle', null);
         console.log(`[orchestrator] Run ${runId} failed`);
+      } else if (maxAttempts !== null && attempts > maxAttempts) {
+        run.status = 'failed'; run.completedAt = new Date().toISOString();
+        run.errorCode = 'JOB_MONITOR_TIMEOUT';
+        run.errorDetail = `El Job ${jobName} no ha informat d'èxit dins la finestra esperada. Revisa els logs del pod load-generator.`;
+        await updateScenarioStatus(scenarioId, 'idle', null);
+        console.log(`[orchestrator] Run ${runId} monitor timeout`);
       } else {
         setTimeout(poll, 10_000);
       }
     } catch (e) {
       console.warn(`[orchestrator] poll error: ${(e as Error).message}`);
+      if (maxAttempts !== null && attempts > maxAttempts) {
+        run.status = 'failed';
+        run.completedAt = new Date().toISOString();
+        run.errorCode = 'JOB_MONITOR_ERROR';
+        run.errorDetail = `No s'ha pogut llegir l'estat del Job ${jobName}: ${(e as Error).message}`;
+        await updateScenarioStatus(scenarioId, 'idle', null);
+        return;
+      }
       setTimeout(poll, 10_000);
     }
   };

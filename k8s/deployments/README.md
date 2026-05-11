@@ -4,7 +4,7 @@ Aquest directori conté totes les definicions de Deployment que executen els ser
 del benchmark al cluster AKS.
 
 ## Namespace
-Tots els Deployments es desplegan al namespace `apis-asincronas`.
+Tots els Deployments es desplegan al namespace `apis-asincrones`.
 
 ## Manifests
 
@@ -42,20 +42,20 @@ kubectl apply -f k8s/deployments/
 kubectl apply -f k8s/deployments/backstage.yaml
 
 # Reiniciar un servei (força nova imatge)
-kubectl rollout restart deployment/backstage -n apis-asincronas
+kubectl rollout restart deployment/backstage -n apis-asincrones
 ```
 
 ## Monitorar
 
 ```bash
 # Veure estat de tots els Deployments
-kubectl get deployments -n apis-asincronas
+kubectl get deployments -n apis-asincrones
 
 # Veure logs d'un servei
-kubectl logs -n apis-asincronas -l app=backstage --tail=50 -f
+kubectl logs -n apis-asincrones -l app=backstage --tail=50 -f
 
 # Describir un Deployment (veure events, pullPolicy, etc.)
-kubectl describe deployment backstage -n apis-asincronas
+kubectl describe deployment backstage -n apis-asincrones
 ```
 
 ## Configuració de recursos

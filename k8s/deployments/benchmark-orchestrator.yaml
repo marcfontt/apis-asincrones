@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: benchmark-orchestrator
-  namespace: apis-asincronas
+  namespace: apis-asincrones
 spec:
   progressDeadlineSeconds: 600
   replicas: 1
@@ -31,6 +31,12 @@ spec:
           value: http://elasticsearch:9200
         - name: PORT
           value: "3003"
+        - name: NAMESPACE
+          value: apis-asincrones
+        - name: SCENARIO_SERVICE_URL
+          value: http://scenario-service:3002
+        - name: METRICS_API_URL
+          value: http://metrics-api:3004
         ports:
         - containerPort: 3003
           protocol: TCP

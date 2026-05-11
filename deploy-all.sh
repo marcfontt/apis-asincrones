@@ -22,7 +22,7 @@ set -e
 
 ACR_NAME="asyncbenchmarkregistry"
 ACR="${ACR_NAME}.azurecr.io"
-NAMESPACE="apis-asincronas"
+NAMESPACE="apis-asincrones"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 ONLY=""

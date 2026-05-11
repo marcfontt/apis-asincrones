@@ -4,7 +4,7 @@ Aquest directori defineix emmagatzematge persistent per als serveis
 que necessiten conservar dades entre redeploys.
 
 ## Namespace
-Tots els recursos de storage es desplegen al namespace `apis-asincronas`.
+Tots els recursos de storage es desplegen al namespace `apis-asincrones`.
 
 ## Manifests
 
@@ -49,7 +49,7 @@ kubectl apply -f k8s/storage/elasticsearch-pvc.yaml
 kubectl apply -f k8s/storage/grafana-pvc.yaml
 
 # Verificar
-kubectl get pvc -n apis-asincronas
+kubectl get pvc -n apis-asincrones
 kubectl get storageclass
 ```
 
@@ -57,10 +57,10 @@ kubectl get storageclass
 
 ```bash
 # Veure PVCs i estat
-kubectl get pvc -n apis-asincronas
+kubectl get pvc -n apis-asincrones
 
 # Veure dades ocupades
-kubectl describe pvc elasticsearch-pvc -n apis-asincronas
+kubectl describe pvc elasticsearch-pvc -n apis-asincrones
 
 # Veure PersistentVolumes subjacents
 kubectl get pv

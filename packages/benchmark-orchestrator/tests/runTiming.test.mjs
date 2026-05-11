@@ -20,7 +20,7 @@ test('does not apply a finite watchdog to indefinite runs', () => {
 });
 
 test('extends the monitor window beyond the real finite run duration', () => {
-  const attempts = runTiming.getMonitorMaxAttempts(1800, 10_000, 180);
+  const attempts = runTiming.getMonitorMaxAttempts(1800);
 
-  assert.equal(attempts, 198);
+  assert.equal(attempts, 240);
 });

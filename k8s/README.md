@@ -9,11 +9,11 @@ Els manifests actuals fan servir principalment:
 
 | Namespace | Funció |
 |-----------|--------|
-| `apis-asincronas` | Backstage, microserveis, Elasticsearch i Grafana. |
+| `apis-asincrones` | Backstage, microserveis, Elasticsearch i Grafana. |
 | `kafka-strimzi` | Cluster Kafka gestionat per Strimzi. |
 | `brokers` | RabbitMQ, NATS i altres brokers de prova. |
 
-Si el clúster real usa `apis-asincrones`, cal canviar-ho de manera
+Si el clúster real usa una altra grafia, cal canviar-ho de manera
 coherent a tots els manifests i variables abans de desplegar. No s'ha de
 barrejar una grafia al codi i una altra al clúster.
 
@@ -59,7 +59,7 @@ Si només canvies Grafana:
 kubectl apply -f k8s/deployments/grafana-provisioning.yaml
 kubectl apply -f k8s/deployments/grafana-secret.yaml
 kubectl apply -f k8s/deployments/grafana.yaml
-kubectl rollout restart deployment/grafana -n apis-asincronas
+kubectl rollout restart deployment/grafana -n apis-asincrones
 ```
 
 Si només canvies Elasticsearch:
@@ -67,14 +67,14 @@ Si només canvies Elasticsearch:
 ```bash
 kubectl apply -f k8s/storage/elasticsearch-pvc.yaml
 kubectl apply -f k8s/deployments/elasticsearch.yaml
-kubectl rollout restart deployment/elasticsearch -n apis-asincronas
+kubectl rollout restart deployment/elasticsearch -n apis-asincrones
 ```
 
 ## Observabilitat
 
 ```bash
-kubectl logs -n apis-asincronas <pod>
-kubectl port-forward -n apis-asincronas svc/grafana 3000:3000
+kubectl logs -n apis-asincrones <pod>
+kubectl port-forward -n apis-asincrones svc/grafana 3000:3000
 ```
 
 Grafana queda disponible a `http://localhost:3000` durant el

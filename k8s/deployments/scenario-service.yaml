@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: scenario-service
-  namespace: apis-asincronas
+  namespace: apis-asincrones
 spec:
   progressDeadlineSeconds: 600
   replicas: 1

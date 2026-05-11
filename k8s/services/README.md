@@ -4,7 +4,7 @@ Aquest directori exposa els Deployments coma Serveis de Kubernetes,
 permetent que altres pods hi accedisquen dins el cluster o des de fora.
 
 ## Namespace
-Tots els Serveis es desplegen al namespace `apis-asincronas`.
+Tots els Serveis es desplegen al namespace `apis-asincrones`.
 
 ## Manifests
 
@@ -22,8 +22,8 @@ Tots els Serveis es desplegen al namespace `apis-asincronas`.
 
 ### Des d'altre pod (intern)
 ```
-http://catalog-service.apis-asincronas.svc.cluster.local:3001
-http://elasticsearch.apis-asincronas.svc.cluster.local:9200
+http://catalog-service.apis-asincrones.svc.cluster.local:3001
+http://elasticsearch.apis-asincrones.svc.cluster.local:9200
 ```
 
 ### Des de fora del cluster
@@ -34,17 +34,17 @@ http://<IP-PUBLICA-AKS>:80
 ```
 Obté la IP pública:
 ```bash
-kubectl get svc backstage-service -n apis-asincronas
+kubectl get svc backstage-service -n apis-asincrones
 # Output: EXTERNAL-IP = 20.23.94.191
 ```
 
 #### Port-forward (temporalment)
 ```bash
 # Accés a Elasticsearch
-kubectl port-forward -n apis-asincronas svc/elasticsearch 9200:9200
+kubectl port-forward -n apis-asincrones svc/elasticsearch 9200:9200
 
 # Accés a Grafana
-kubectl port-forward -n apis-asincronas svc/grafana 3000:3000
+kubectl port-forward -n apis-asincrones svc/grafana 3000:3000
 # Obre http://localhost:3000
 ```
 
@@ -58,20 +58,20 @@ kubectl apply -f k8s/services/
 kubectl apply -f k8s/services/elasticsearch.yaml
 
 # Eliminar un servei (però NO els Pods)
-kubectl delete svc elasticsearch -n apis-asincronas
+kubectl delete svc elasticsearch -n apis-asincrones
 ```
 
 ## Monitorar
 
 ```bash
 # Veure tots els serveis
-kubectl get svc -n apis-asincronas
+kubectl get svc -n apis-asincrones
 
 # Veure detalls (endpoints, ClusterIP, etc.)
-kubectl describe svc elasticsearch -n apis-asincronas
+kubectl describe svc elasticsearch -n apis-asincrones
 
 # Verificar endpoints actius
-kubectl get endpoints elasticsearch -n apis-asincronas
+kubectl get endpoints elasticsearch -n apis-asincrones
 ```
 
 ## Notes

@@ -4,7 +4,7 @@ Aquest directori conté configuracions personalitzades per a Message Brokers
 (NATS, RabbitMQ, etc.) desplegats al cluster.
 
 ## Namespace
-Les ConfigMaps es desplegen al namespace `apis-asincronas`.
+Les ConfigMaps es desplegen al namespace `apis-asincrones`.
 
 ## Manifests
 
@@ -34,8 +34,8 @@ Els escenaris de vídeo 8K generen missatges de ~2 MB. Amb marge de seguretat,
 kubectl apply -f k8s/brokers/nats-config.yaml
 
 # Verificar
-kubectl get cm -n apis-asincronas
-kubectl describe cm nats-config -n apis-asincronas
+kubectl get cm -n apis-asincrones
+kubectl describe cm nats-config -n apis-asincrones
 ```
 
 ### Muntar a NATS Deployment
@@ -72,10 +72,10 @@ Cada uno amb la seva ConfigMap personalitzada.
 
 ```bash
 # Veure ConfigMaps
-kubectl get cm -n apis-asincronas
+kubectl get cm -n apis-asincrones
 
 # Veure contingut de nats-config
-kubectl get cm nats-config -n apis-asincronas -o yaml | grep -A 50 'data:'
+kubectl get cm nats-config -n apis-asincrones -o yaml | grep -A 50 'data:'
 ```
 
 ## Notes
@@ -83,4 +83,4 @@ kubectl get cm nats-config -n apis-asincronas -o yaml | grep -A 50 'data:'
 - Els ConfigMaps es creen sense Deployment/StatefulSet soci. Úsals
   des de tus Deployments (mounts de volum).
 - Canvis a la ConfigMap NO recarreguen automàticament NATS.
-  Cal restart manual: `kubectl rollout restart deployment/nats -n apis-asincronas`
+  Cal restart manual: `kubectl rollout restart deployment/nats -n apis-asincrones`

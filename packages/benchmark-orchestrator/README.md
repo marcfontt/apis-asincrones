@@ -43,7 +43,7 @@ parcials.
 | `SCENARIO_SERVICE_URL` | `http://scenario-service:3002` |
 | `METRICS_API_URL` | `http://metrics-api:3004` |
 | `ACR_SERVER` | `asyncbenchmarkregistry.azurecr.io` |
-| `NAMESPACE` | `apis-asincronas` |
+| `NAMESPACE` | `apis-asincrones` |
 
 En local, defineix `PORT=3003` si vols provar-lo darrere del mateix proxy
 que usa Backstage.

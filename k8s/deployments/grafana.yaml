@@ -23,7 +23,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: apis-asincronas
+  namespace: apis-asincrones
   labels:
     app: grafana
     component: observability

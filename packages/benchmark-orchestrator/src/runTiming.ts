@@ -27,7 +27,7 @@ export function isIndefiniteDuration(value: unknown): boolean {
 export function getMonitorMaxAttempts(
   durationSeconds: unknown,
   pollIntervalMs = 10_000,
-  graceSeconds = 180,
+  graceSeconds = 600,
 ): number | null {
   if (isIndefiniteDuration(durationSeconds)) {
     return null;

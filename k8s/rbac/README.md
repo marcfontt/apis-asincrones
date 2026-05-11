@@ -4,7 +4,7 @@ Aquest directori conté configuracions de control d'accés (ServiceAccounts, Rol
 perquè els microserveis tinguin els permisos mínims necessaris.
 
 ## Namespace
-Tots els recursos RBAC es desplegen al namespace `apis-asincronas`.
+Tots els recursos RBAC es desplegen al namespace `apis-asincrones`.
 
 ## Manifests
 
@@ -17,7 +17,7 @@ Tots els recursos RBAC es desplegen al namespace `apis-asincronas`.
 ### ServiceAccount
 ```yaml
 name: benchmark-orchestrator-sa
-namespace: apis-asincronas
+namespace: apis-asincrones
 ```
 
 Identifica l'orquestrador dins el cluster.
@@ -54,22 +54,22 @@ amb aquests permisos.
 kubectl apply -f k8s/rbac/benchmark-orchestrator-rbac.yaml
 
 # Verificar
-kubectl get sa -n apis-asincronas
-kubectl get role -n apis-asincronas
-kubectl get rolebinding -n apis-asincronas
+kubectl get sa -n apis-asincrones
+kubectl get role -n apis-asincrones
+kubectl get rolebinding -n apis-asincrones
 ```
 
 ## Monitorar
 
 ```bash
 # Veure SA
-kubectl describe sa benchmark-orchestrator-sa -n apis-asincronas
+kubectl describe sa benchmark-orchestrator-sa -n apis-asincrones
 
 # Veure Role
-kubectl describe role benchmark-orchestrator-role -n apis-asincronas
+kubectl describe role benchmark-orchestrator-role -n apis-asincrones
 
 # Veure qui està bound
-kubectl describe rolebinding benchmark-orchestrator-rolebinding -n apis-asincronas
+kubectl describe rolebinding benchmark-orchestrator-rolebinding -n apis-asincrones
 ```
 
 ## Afegir nous permisos

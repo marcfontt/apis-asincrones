@@ -36,7 +36,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: elasticsearch
-  namespace: apis-asincronas
+  namespace: apis-asincrones
   labels:
     app: elasticsearch
     component: storage
