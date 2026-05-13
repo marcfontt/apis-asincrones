@@ -337,6 +337,19 @@ export const TutorialButton = ({
     }
   }, [open]);
 
+  // Permite cerrar el tutorial con la tecla Escape mientras esta abierto.
+  useEffect(() => {
+    if (!open) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeAndRemember();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
   const closeAndRemember = () => {
     try {
       window.localStorage.setItem(storageKey, 'true');
@@ -384,6 +397,7 @@ export const TutorialButton = ({
             className="asyncbench-tutorial-shell"
             style={{
               ...S.card,
+              position: 'relative',
               width: '100%',
               maxWidth: 980,
               padding: 28,
@@ -391,6 +405,38 @@ export const TutorialButton = ({
               animation: 'asyncbench-tutorial-in 0.18s ease',
             }}
           >
+            <button
+              type="button"
+              onClick={closeAndRemember}
+              aria-label={t('tutorial.close')}
+              title={t('tutorial.close')}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                width: 34,
+                height: 34,
+                borderRadius: 999,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-card)',
+                color: 'var(--text-secondary)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: 18,
+                lineHeight: 1,
+                fontWeight: 800,
+                boxShadow: 'var(--shadow-sm)',
+                zIndex: 1,
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
             <TutorialStepCard
               visual={step.visual}
               stepNumber={currentStep + 1}

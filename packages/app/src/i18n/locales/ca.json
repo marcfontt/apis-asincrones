@@ -67,6 +67,7 @@
     "openPage": "Obre {page}",
     "stepCounter": "Pas {current} de {total}",
     "stepIndex": "Passos del tutorial",
+    "close": "Tanca el tutorial",
     "visual": {
       "homeStart": "Comença aquí",
       "catalogCard": "Obre una fitxa",
