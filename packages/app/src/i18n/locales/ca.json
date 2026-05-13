@@ -64,6 +64,9 @@
     "finish": "Finalitzar",
     "createExample": "Crear escenari d'exemple",
     "keyPoints": "Guia ràpida",
+    "openPage": "Obre {page}",
+    "stepCounter": "Pas {current} de {total}",
+    "stepIndex": "Passos del tutorial",
     "visual": {
       "homeStart": "Comença aquí",
       "catalogCard": "Obre una fitxa",

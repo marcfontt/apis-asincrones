@@ -64,6 +64,9 @@
     "finish": "Finish",
     "createExample": "Create example scenario",
     "keyPoints": "Quick guide",
+    "openPage": "Open {page}",
+    "stepCounter": "Step {current} of {total}",
+    "stepIndex": "Tutorial steps",
     "visual": {
       "homeStart": "Start here",
       "catalogCard": "Open a card",
