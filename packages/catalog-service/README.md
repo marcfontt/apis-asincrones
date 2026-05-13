@@ -7,11 +7,17 @@ construir un escenari.
 ## Què fa
 
 - Persisteix els components a Elasticsearch (índex `async-catalog`).
-- Auto-omple l'índex amb un seed predefinit la primera vegada que
-  arrenca (vegeu `src/seed.ts`).
+- Sincronitza l'índex amb el seed predefinit cada vegada que arrenca
+  (vegeu `src/seed.ts`). Només afegeix els components que falten; no
+  esborra ni sobreescriu files existents.
 - Exposa una API REST amb CRUD complet sobre `/components`.
-- El seed actual manté versions conegudes per al portal: Kafka `4.1.1`,
-  Confluent `7.6`, RabbitMQ `3.13` i NATS Server `2.12.5`.
+- El seed actual inclou cinc arquitectures: `SEA`, `LCA`, `EMA`, `EDA`
+  i `QBA`.
+- Versions fixades al codi: Kafka `4.1.1`, RabbitMQ `3.13` i NATS
+  Server `2.12.5`.
+- El valor intern `Confluent` apunta al servei Redpanda/Kafka-compatible
+  del clúster. No es mostra com a Confluent Platform perquè el repositori
+  no desplega Confluent real.
 
 ## API
 
@@ -23,7 +29,7 @@ construir un escenari.
 | POST   | `/components`          | Crea un component                   |
 | PUT    | `/components/:id`      | Actualitza                          |
 | DELETE | `/components/:id`      | Elimina (només els no predefinits)  |
-| POST   | `/components/seed`     | Reseed manual de l'índex            |
+| POST   | `/components/seed`     | Sincronitza components predefinits  |
 
 ## Model de dades
 

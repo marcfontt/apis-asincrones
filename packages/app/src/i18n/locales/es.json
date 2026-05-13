@@ -314,7 +314,7 @@
     "title": "APIs Asíncronas",
     "portalLabel": "Portal de pruebas",
     "subtitle": "Pruebas comparables, resultados claros",
-    "description": "Compara sistemas que envían mensajes sin esperar una respuesta inmediata. Tú eliges la combinación, lanzas la prueba y ves los datos.",
+    "description": "Compara sistemas que envían mensajes sin esperar una respuesta inmediata. Primero eliges los componentes, después lanzas una prueba y al final miras los datos.",
     "heroSubtitle": "Backstage es la pantalla del portal. AKS es el clúster de Azure donde corren los contenedores de la prueba.",
     "guide": {
       "title": "Guía rápida de Home",
@@ -377,8 +377,8 @@
       "brokerTitle": "¿Cómo funciona un bróker?",
       "brokerDesc": "Un bróker recibe mensajes de los productores y los entrega a los consumidores. Así cada parte trabaja a su ritmo.",
       "executionEyebrow": "Ejecución",
-      "executionTitle": "¿Qué ocurre cuando lanzas un benchmark?",
-      "executionDesc": "Un run es una ejecución concreta. Todos los runs siguen el mismo camino para que la comparación tenga sentido.",
+      "executionTitle": "¿Qué pasa cuando lanzas una prueba?",
+      "executionDesc": "Cada ejecución sigue el mismo camino. Así puedes comparar resultados sin mezclar casos distintos.",
       "pagesEyebrow": "Páginas interiores",
       "pagesTitle": "Dónde continúa cada tarea",
       "metricsLabel": "Métricas que leerás en Resultados"
@@ -422,7 +422,7 @@
       },
       {
         "title": "Broker",
-        "text": "Es la pieza que recibe, guarda o reparte mensajes. Kafka, RabbitMQ y NATS hacen este papel."
+        "text": "Es la pieza que recibe mensajes y los entrega a los consumidores. Kafka, RabbitMQ y NATS hacen este papel."
       },
       {
         "title": "Protocolo y arquitectura",
@@ -551,7 +551,7 @@
     "compatibilityNotes": {
       "Kafka": "Referencia para logs y streaming. Cuando se combine con protocolos que no son Kafka, el escenario debe declarar claramente el gateway o adaptador.",
       "RabbitMQ": "Fuerte en colas, ACKs y enrutamiento flexible. Es la plataforma natural para AMQP y pruebas de trabajo en cola.",
-      "Confluent": "Variante Kafka-compatible para comparar comportamiento de streaming con una distribución diferente del mismo ecosistema.",
+      "Confluent": "Endpoint Redpanda con API Kafka. El valor interno Confluent se mantiene por compatibilidad con escenarios antiguos.",
       "NATS Server": "Muy ligero para pub/sub y baja latencia. Para payloads grandes hay que verificar max_payload antes de lanzar el benchmark."
     },
     "modal": {
@@ -658,7 +658,7 @@
         "requiresConfig": "Se puede probar, pero antes hay que revisar la configuración del broker o del clúster.",
         "blocked": "El portal todavía no tiene el camino necesario para ejecutar esta combinación.",
         "gatewayMissing": "Este protocolo necesita un gateway o adaptador que ahora mismo no forma parte del flujo ejecutable.",
-        "kafkaLargePayload": "Kafka y Confluent pueden probar payloads grandes si el límite de mensaje está configurado de forma coherente.",
+        "kafkaLargePayload": "Kafka y el endpoint Kafka-compatible pueden probar payloads grandes si el límite de mensaje está configurado de forma coherente.",
         "natsLargePayload": "NATS necesita max_payload de 4 MB o superior para probar vídeo 8K sin fallar.",
         "rabbitLargePayload": "RabbitMQ necesita revisar límites de tamaño y memoria antes de probar vídeo 8K."
       }
@@ -857,7 +857,7 @@
           "desc": "AMQP sobre RabbitMQ con formato financiero JSON compacto. Permite comparar latencia y errores en transacciones cortas."
         },
         "confluent8kVideo": {
-          "name": "Confluent vídeo 8K",
+          "name": "Kafka-compatible vídeo 8K",
           "desc": "Escenario pesado para validar límites de payload y throughput. Solo es recomendable si el broker acepta mensajes de 2 MB."
         },
         "kafkaBaselineControl": {

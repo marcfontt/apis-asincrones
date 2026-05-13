@@ -14,22 +14,10 @@ export const KNOWN_COMPONENT_VERSIONS: Record<string, string> = {
   'apache kafka': '4.1.1',
   kafka: '4.1.1',
   'kafka protocol': '4.1.1',
-  confluent: '7.6',
-  'confluent platform': '7.6',
   rabbitmq: '3.13',
   'nats server': '2.12.5',
   nats: '2.12.5',
   'nats protocol': '2.12.5',
-  'event-driven architecture': 'Model del portal v1',
-  eda: 'Model del portal v1',
-  'queue-based architecture': 'Model del portal v1',
-  qba: 'Model del portal v1',
-  'log-centric architecture': 'Model del portal v1',
-  lca: 'Model del portal v1',
-  'event-mesh architecture': 'Model del portal v1',
-  ema: 'Model del portal v1',
-  'streaming events architecture': 'Model del portal v1',
-  sea: 'Model del portal v1',
   mqtt: '5.0',
   amqp: '0.9.1',
   'amqp 0-9-1': '0.9.1',
@@ -41,19 +29,19 @@ export const KNOWN_COMPONENT_VERSIONS: Record<string, string> = {
 // Text visible al modal del Catàleg.
 // Explica que cal repetir per comparar brokers sense canviar les condicions.
 const COMMON_BROKER_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Com es prova', value: "Cada run fa servir un broker, un productor i un consumidor. Si hi ha més peces, han de quedar escrites a l'escenari." },
-  { label: 'Mateix generador', value: 'El mateix load-generator envia els missatges a totes les plataformes. Així el canvi principal és el broker, no la manera de generar trànsit.' },
-  { label: 'Temps de prova', value: "El warm-up i la durada surten de l'escenari. Per comparar dues execucions, aquests valors han de ser iguals." },
-  { label: 'Missatge i ritme', value: "El format de dades fixa la mida del missatge i la ràtio recomanada. Si els canvies, ja estàs fent una prova diferent." },
-  { label: 'Canal del run', value: 'Cada execució ha de tenir topic, cua, subject o group-id propi. Això evita barrejar dades amb una prova anterior.' },
-  { label: 'Recursos', value: 'Quan el manifest és nostre, requests i limits han de coincidir. Si no coincideixen, Kubernetes pot moure recursos i el resultat és menys defensable.' },
+  { label: 'Què es repeteix', value: "La mateixa prova s'ha de llançar amb el mateix broker, productor, consumidor, format, ritme, warm-up i durada." },
+  { label: 'Mateix generador de càrrega', value: 'El load-generator és el mateix per a totes les plataformes. Així el canvi principal és el broker, no la manera de crear missatges.' },
+  { label: 'Temps de prova', value: "El warm-up i la durada surten de l'escenari. Si canvies aquests valors, la comparació ja no és la mateixa." },
+  { label: 'Missatge i ritme', value: "El format fixa la mida del missatge i la ràtio recomanada. Si els canvies a mà, cal deixar-ho escrit." },
+  { label: 'Canal de l’execució', value: 'Cada execució ha de tenir topic, cua, subject o group-id propi. Això evita barrejar dades amb una prova anterior.' },
+  { label: 'Recursos', value: 'Quan el manifest és nostre, CPU i memòria han de quedar fixats. Si Kubernetes canvia recursos durant la prova, el resultat és menys fiable.' },
 ];
 
 // Text comu per arquitectures i protocols.
 // Marca els paràmetres que l'usuari ha de deixar igual abans de comparar.
 const COMMON_DECISION_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Què cal repetir', value: 'La combinació provada ha de sortir del document Scenario: broker, arquitectura, protocol, format, rate, payload, warm-up i durada.' },
-  { label: 'Comparació justa', value: "Compara només runs amb la mateixa càrrega. Si canvies format, ràtio, payload, warm-up o durada, ja no estàs comparant el mateix cas." },
+  { label: 'Què ha de quedar igual', value: 'La combinació provada ha de sortir del document Scenario: broker, arquitectura, protocol, format, rate, payload, warm-up i durada.' },
+  { label: 'Comparació justa', value: "Compara només execucions amb la mateixa càrrega. Si canvies format, ràtio, payload, warm-up o durada, estàs mesurant un cas diferent." },
   { label: 'Canal propi', value: "Cada execució necessita topic, cua, subject, group-id o client-id propi. Això evita heretar dades d'una prova anterior." },
 ];
 
@@ -71,16 +59,16 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
     { label: 'Execució segura', value: 'Kafka és el camí principal per protocol Kafka i escenaris de log o streaming.' },
     { label: 'Vídeo 8K', value: 'Es pot provar si el topic i el productor accepten missatges de 2 MB. Cal mantenir el mateix límit en totes les repeticions.' },
   ],
-  'Confluent Platform': [
+  'Redpanda / API Kafka-compatible': [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
-    { label: 'Producte', value: 'plataforma Kafka-compatible usada com a alternativa Confluent dins del benchmark' },
-    { label: 'Versió declarada', value: '7.6 a la fitxa de compatibilitat del projecte' },
-    { label: 'Instal·lació', value: 'Helm chart Kafka-compatible al namespace brokers' },
+    { label: 'Producte real', value: 'Redpanda exposant API Kafka. El valor intern "Confluent" només manté compatibilitat amb escenaris ja creats.' },
+    { label: 'Versió', value: 'No està fixada al repositori. Cal verificar la imatge del pod abans de defensar resultats.' },
+    { label: 'Instal·lació', value: 'Servei redpanda al namespace brokers, accessible pel port Kafka-compatible 9093' },
     { label: 'Namespace', value: 'brokers' },
-    { label: 'Port client', value: '9092 dins del clúster' },
+    { label: 'Port client', value: '9093 dins del clúster' },
     { label: 'Topologia', value: 'single-node' },
-    { label: 'Execució segura', value: 'Confluent es prova pel camí Kafka. No es dona per vàlid cap protocol extra si no hi ha adaptador desplegat.' },
-    { label: 'Nota de reproduïbilitat', value: 'Cal documentar si el desplegament real és Confluent o una API Kafka compatible, perquè això afecta la lectura acadèmica.' },
+    { label: 'Execució segura', value: 'Aquest camí només és vàlid amb protocol Kafka. No valida cap component propi de Confluent Platform.' },
+    { label: 'Què cal escriure a la memòria', value: 'Indica que és un endpoint Kafka-compatible. Si vols parlar de Confluent Platform, cal desplegar Confluent real.' },
   ],
   RabbitMQ: [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
@@ -111,7 +99,8 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
 
 const PLATFORM_REPRODUCIBILITY_ALIASES: Record<string, string> = {
   Kafka: 'Apache Kafka',
-  Confluent: 'Confluent Platform',
+  Confluent: 'Redpanda / API Kafka-compatible',
+  'Confluent Platform': 'Redpanda / API Kafka-compatible',
   NATS: 'NATS Server',
 };
 
@@ -169,7 +158,7 @@ const KAFKA_PROTOCOL_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
   { label: 'Transport', value: 'protocol Kafka sobre el port 9092 del broker compatible' },
   { label: 'Com es reprodueix', value: 'Topic per run, producer amb acks declarats i group-id efímer al consumidor.' },
-  { label: 'Compatible amb', value: 'Apache Kafka i Confluent/Kafka-compatible.' },
+  { label: 'Compatible amb', value: 'Apache Kafka i endpoints Kafka-compatible del clúster.' },
   { label: 'Paràmetre crític', value: 'Particions, acks i offsets, perquè canvien latència i throughput.' },
 ];
 
@@ -248,12 +237,13 @@ export const REPRODUCIBILITY_SNIPPETS: Record<string, ReproducibilitySnippet> = 
       'kubectl logs -n kafka-strimzi -l strimzi.io/name=kafka-cluster-kafka',
     ].join('\n'),
   },
-  'Confluent Platform': {
-    titol: 'Verificar la plataforma Kafka-compatible',
+  'Redpanda / API Kafka-compatible': {
+    titol: 'Verificar el broker Kafka-compatible',
     codi: [
       'kubectl get pods -n brokers',
       'kubectl get svc -n brokers',
       'kubectl logs -n brokers -l app.kubernetes.io/name=redpanda',
+      'kubectl get pod -n brokers -l app.kubernetes.io/name=redpanda -o jsonpath="{.items[0].spec.containers[0].image}"',
     ].join('\n'),
   },
   RabbitMQ: {
@@ -421,6 +411,10 @@ function getComponentReproducibilitySnippet(componentName: string, shortName: st
 export function getKnownComponentVersion(component: any): string {
   const shortName = normalizeComponentKey(component?.shortName);
   const componentName = normalizeComponentKey(component?.name);
+
+  if (shortName === 'confluent' || componentName === 'confluent platform') {
+    return '';
+  }
 
   if (componentName && KNOWN_COMPONENT_VERSIONS[componentName]) {
     return KNOWN_COMPONENT_VERSIONS[componentName];

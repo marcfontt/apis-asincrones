@@ -314,7 +314,7 @@
     "title": "APIs Asíncrones",
     "portalLabel": "Portal de proves",
     "subtitle": "Proves comparables, resultats clars",
-    "description": "Compara sistemes que envien missatges sense esperar una resposta immediata. Tu tries la combinació, llances la prova i veus les dades.",
+    "description": "Compara sistemes que envien missatges sense esperar una resposta immediata. Primer tries els components, després llances una prova i finalment mires les dades.",
     "heroSubtitle": "Backstage és la pantalla del portal. AKS és el clúster d'Azure on corren els contenidors de la prova.",
     "guide": {
       "title": "Guia ràpida de la Home",
@@ -377,8 +377,8 @@
       "brokerTitle": "Com funciona un bròker?",
       "brokerDesc": "Un bròker rep missatges dels productors i els entrega als consumidors. Això permet que cada part treballi al seu ritme.",
       "executionEyebrow": "Execució",
-      "executionTitle": "Què passa quan llances un benchmark?",
-      "executionDesc": "Un run és una execució concreta. Tots els runs segueixen el mateix camí perquè la comparació tingui sentit.",
+      "executionTitle": "Què passa quan llances una prova?",
+      "executionDesc": "Cada execució segueix el mateix camí. Així pots comparar resultats sense barrejar casos diferents.",
       "pagesEyebrow": "Pàgines interiors",
       "pagesTitle": "On continua cada tasca",
       "metricsLabel": "Mètriques que llegiràs a Resultats"
@@ -422,7 +422,7 @@
       },
       {
         "title": "Broker",
-        "text": "És la peça que rep, guarda o reparteix missatges. Kafka, RabbitMQ i NATS fan aquest paper."
+        "text": "És la peça que rep missatges i els entrega als consumidors. Kafka, RabbitMQ i NATS fan aquest paper."
       },
       {
         "title": "Protocol i arquitectura",
@@ -551,7 +551,7 @@
     "compatibilityNotes": {
       "Kafka": "Referència per logs i streaming. Quan es combini amb protocols que no són Kafka, cal que l'escenari declari clarament el gateway o adaptador.",
       "RabbitMQ": "Fort en cues, ACKs i encaminament flexible. És la plataforma natural per AMQP i proves de treball en cua.",
-      "Confluent": "Variant Kafka-compatible per comparar comportament de streaming amb una distribució diferent del mateix ecosistema.",
+      "Confluent": "Endpoint Redpanda amb API Kafka. El valor intern Confluent es manté per compatibilitat amb escenaris antics.",
       "NATS Server": "Molt lleuger per pub/sub i baixa latència. Per payloads grans cal verificar max_payload abans de llançar el benchmark."
     },
     "modal": {
@@ -658,7 +658,7 @@
         "requiresConfig": "Es pot provar, però abans cal revisar la configuració del broker o del clúster.",
         "blocked": "El portal encara no té el camí necessari per executar aquesta combinació.",
         "gatewayMissing": "Aquest protocol necessita un gateway o adaptador que ara mateix no forma part del flux executable.",
-        "kafkaLargePayload": "Kafka i Confluent poden provar payloads grans si el límit de missatge està configurat de manera coherent.",
+        "kafkaLargePayload": "Kafka i l'endpoint Kafka-compatible poden provar payloads grans si el límit de missatge està configurat de manera coherent.",
         "natsLargePayload": "NATS necessita max_payload de 4 MB o superior per provar vídeo 8K sense fallar.",
         "rabbitLargePayload": "RabbitMQ necessita revisar límits de mida i memòria abans de provar vídeo 8K."
       }
@@ -857,7 +857,7 @@
           "desc": "AMQP sobre RabbitMQ amb format financer JSON compacte. Permet comparar latència i errors en transaccions curtes."
         },
         "confluent8kVideo": {
-          "name": "Confluent vídeo 8K",
+          "name": "Kafka-compatible vídeo 8K",
           "desc": "Escenari pesat per validar límits de payload i throughput. Només és recomanable si el broker accepta missatges de 2 MB."
         },
         "kafkaBaselineControl": {

@@ -6,7 +6,7 @@ import { performance } from 'perf_hooks';
 import { retryKafkaStartupStep, waitForKafkaTopicReady } from './kafkaInit';
 import { getNatsPayloadPreflightError } from './natsPreflight';
 
-// Contracte de comparacio justa per Kafka, Confluent, NATS i RabbitMQ.
+// Contracte de comparacio justa per Kafka, endpoint Kafka-compatible, NATS i RabbitMQ.
 // Tots els runners han de seguir aquestes regles perque el resultat depengui
 // del broker/protocol i no d'una configuracio mes favorable per a un d'ells.
 //
@@ -593,7 +593,7 @@ async function runRabbitMQ() {
   try {
     // Routing complet: abans nomes 'kafka' funcionava.
     if (CONFIGURACION.brokerType === 'kafka') { await runKafka(); }
-    else if (CONFIGURACION.brokerType === 'confluent') { await runKafka(); } // Confluent es compatible amb Kafka API
+    else if (CONFIGURACION.brokerType === 'confluent') { await runKafka(); } // Valor intern antic: usa l'endpoint Kafka-compatible.
     else if (CONFIGURACION.brokerType === 'nats') { await runNats(); }
     else if (CONFIGURACION.brokerType === 'rabbitmq' || CONFIGURACION.brokerType === 'mqtt' || CONFIGURACION.brokerType === 'amqp') { await runRabbitMQ(); }
     else {

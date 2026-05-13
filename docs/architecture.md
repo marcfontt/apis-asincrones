@@ -132,7 +132,7 @@ flowchart TB
 | `nats` | 4222 | NATS Server (protocol NATS) |
 | `nats-headless` | 4222, 8222 | Accés directe a pods + monitoratge HTTP |
 | `rabbitmq` | 5672, 15672 | Broker AMQP + consola de gestió |
-| `redpanda` | 9093, 8082, 9644 | Kafka-compatible + REST proxy + admin |
+| `redpanda` | 9093, 8082, 9644 | Endpoint Kafka-compatible + REST proxy + admin |
 | `redpanda-external` | 9645:31644 | NodePort per a accés extern a Redpanda |
 
 ---

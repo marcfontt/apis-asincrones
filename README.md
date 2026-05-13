@@ -41,6 +41,8 @@ Canvis més recents del portal:
 - Textos reescrits amb llenguatge més curt i directe.
 - Catàleg amb estats de compatibilitat més honestos:
   `Es pot executar`, `Requereix configuració` i `No disponible ara`.
+- Catàleg sincronitzat amb el seed predefinit encara que Elasticsearch ja
+  tingués dades antigues. Això garanteix que també aparegui `SEA`.
 - Modal de component amb reproduïbilitat, configuració, versions revisades i condicions de prova.
 - Protecció visual contra textos corruptes o massa repetits dins el Catàleg.
 - Execucions amb detall estable mentre arriben refrescos.
@@ -87,7 +89,7 @@ flowchart TB
         subgraph brokers["ns: brokers"]
             rabbit["RabbitMQ"]
             nats["NATS"]
-            redpanda["Redpanda / Confluent API"]
+            redpanda["Redpanda / API Kafka-compatible"]
         end
     end
 
@@ -203,6 +205,12 @@ condicions i obtenir resultats comparables. Per això el catàleg explica
 versió, configuració, limitacions, variables que cal fixar i lectura del
 resultat.
 
+Nota important sobre el valor intern `Confluent`: el codi actual l'envia
+al servei `redpanda.brokers.svc.cluster.local:9093`, és a dir, un
+endpoint Kafka-compatible. Per això la UI no el presenta com a Confluent
+Platform 7.6. Si es vol defensar Confluent real, cal desplegar Confluent
+real i actualitzar el catàleg.
+
 ## Resultats i puntuació
 
 El detall d'un resultat mostra:
@@ -231,6 +239,10 @@ arribat, si l'execució ha fallat o si s'ha aturat massa aviat.
 
 El `load-generator` envia snapshots cada 5 segons i intenta enviar una
 mostra final quan acaba o rep senyal d'aturada.
+
+`metrics-api` prepara l'índex `async-metrics` en arrencar i també ho
+torna a intentar abans del primer `POST /metrics` si Elasticsearch encara
+no estava llest. Això fa més robusta la recollida de les primeres mostres.
 
 ## Desplegament a AKS
 

@@ -6,10 +6,10 @@ import { GlobalBenchmarkStyles } from '../components/GlobalBenchmarkStyles';
 import { DEMO_SCENARIO_URL, TutorialButton } from '../components/TutorialOverlay';
 import { GuideItemCard, GuidePanel, GuideStepFlow } from '../components/GuidePanel';
 
-const RUTA_API_CATALEG = '/api/proxy/catalog-service';
-const RUTA_API_ESCENARIS = '/api/proxy/scenario-service';
-const RUTA_API_ORQUESTRADOR = '/api/proxy/benchmark-orchestrator';
-const RUTA_API_METRIQUES = '/api/proxy/metrics-api';
+const API_CATALOG = '/api/proxy/catalog-service';
+const API_SCENARIO = '/api/proxy/scenario-service';
+const API_ORCHESTRATOR = '/api/proxy/benchmark-orchestrator';
+const API_METRICS = '/api/proxy/metrics-api';
 
 const HOME_CSS = `
   .home-hero-panel {
@@ -253,10 +253,10 @@ export const HomePage = () => {
     const carregarEstadistiquesPortal = async () => {
       try {
         const [respostaComponents, respostaEscenaris, respostaRunsActius, respostaResumMesures] = await Promise.all([
-          fetch(`${RUTA_API_CATALEG}/components`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
-          fetch(`${RUTA_API_ESCENARIS}/scenarios`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
-          fetch(`${RUTA_API_ORQUESTRADOR}/runs/active`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
-          fetch(`${RUTA_API_METRIQUES}/metrics/summary`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
+          fetch(`${API_CATALOG}/components`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
+          fetch(`${API_SCENARIO}/scenarios`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
+          fetch(`${API_ORCHESTRATOR}/runs/active`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
+          fetch(`${API_METRICS}/metrics/summary`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
         ]);
 
         if (peticioCancelada) return;
@@ -416,6 +416,23 @@ export const HomePage = () => {
 
       <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
         <SectionHeader
+          eyebrow={t('home.sections.conceptsEyebrow')}
+          title={t('home.sections.conceptsTitle')}
+          description={t('home.sections.conceptsDesc')}
+        />
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+          {conceptesClau.map(concepte => (
+            <div key={concepte.title} style={miniCard(concepte.color)}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: concepte.color, marginBottom: 8 }}>{concepte.title}</div>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.62 }}>{concepte.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
+        <SectionHeader
           eyebrow={t('home.sections.systemEyebrow')}
           title={t('home.sections.systemTitle')}
           description={t('home.sections.systemDesc')}
@@ -445,23 +462,6 @@ export const HomePage = () => {
               </div>
               <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 4 }}>{part.title}</div>
               <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.58 }}>{part.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section style={{ ...S.card, marginBottom: 18, padding: 22 }}>
-        <SectionHeader
-          eyebrow={t('home.sections.conceptsEyebrow')}
-          title={t('home.sections.conceptsTitle')}
-          description={t('home.sections.conceptsDesc')}
-        />
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
-          {conceptesClau.map(concepte => (
-            <div key={concepte.title} style={miniCard(concepte.color)}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: concepte.color, marginBottom: 8 }}>{concepte.title}</div>
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.62 }}>{concepte.text}</p>
             </div>
           ))}
         </div>

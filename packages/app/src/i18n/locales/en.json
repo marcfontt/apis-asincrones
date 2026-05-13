@@ -314,7 +314,7 @@
     "title": "Async APIs",
     "portalLabel": "Test portal",
     "subtitle": "Comparable tests, clear results",
-    "description": "Compare systems that send messages without waiting for an immediate answer. Choose the combination, run the test, and read the data.",
+    "description": "Compare systems that send messages without waiting for an immediate answer. First choose the components, then run a test, and finally read the data.",
     "heroSubtitle": "Backstage is the portal screen. AKS is the Azure cluster where the test containers run.",
     "guide": {
       "title": "Home quick guide",
@@ -377,8 +377,8 @@
       "brokerTitle": "How does a broker work?",
       "brokerDesc": "A broker receives messages from producers and delivers them to consumers. This lets each side work at its own pace.",
       "executionEyebrow": "Execution",
-      "executionTitle": "What happens when you launch a benchmark?",
-      "executionDesc": "A run is one concrete execution. Every run follows the same path so the comparison makes sense.",
+      "executionTitle": "What happens when you run a test?",
+      "executionDesc": "Each execution follows the same path. This lets you compare results without mixing different cases.",
       "pagesEyebrow": "Inner pages",
       "pagesTitle": "Where each task continues",
       "metricsLabel": "Metrics you will read in Results"
@@ -422,7 +422,7 @@
       },
       {
         "title": "Broker",
-        "text": "The piece that receives, stores, or distributes messages. Kafka, RabbitMQ, and NATS play this role."
+        "text": "The piece that receives messages and delivers them to consumers. Kafka, RabbitMQ, and NATS play this role."
       },
       {
         "title": "Protocol and architecture",
@@ -551,7 +551,7 @@
     "compatibilityNotes": {
       "Kafka": "Reference for logs and streaming. When combined with non-Kafka protocols, the scenario must clearly declare the gateway or adapter.",
       "RabbitMQ": "Strong in queues, ACKs and flexible routing. The natural platform for AMQP and queue-work tests.",
-      "Confluent": "Kafka-compatible variant to compare streaming behaviour with a different distribution of the same ecosystem.",
+      "Confluent": "Redpanda endpoint with the Kafka API. The internal Confluent value is kept for compatibility with older scenarios.",
       "NATS Server": "Very lightweight for pub/sub and low latency. For large payloads, verify max_payload before launching the benchmark."
     },
     "modal": {
@@ -658,7 +658,7 @@
         "requiresConfig": "It can be tested, but the broker or cluster configuration must be checked first.",
         "blocked": "The portal does not yet have the path needed to run this combination.",
         "gatewayMissing": "This protocol needs a gateway or adapter that is not part of the executable flow yet.",
-        "kafkaLargePayload": "Kafka and Confluent can test large payloads when message limits are configured consistently.",
+        "kafkaLargePayload": "Kafka and the Kafka-compatible endpoint can test large payloads when message limits are configured consistently.",
         "natsLargePayload": "NATS needs max_payload of 4 MB or higher to test 8K video without failing.",
         "rabbitLargePayload": "RabbitMQ needs size and memory limits checked before testing 8K video."
       }
@@ -857,7 +857,7 @@
           "desc": "AMQP over RabbitMQ with a compact financial JSON format. It compares latency and errors in short transactions."
         },
         "confluent8kVideo": {
-          "name": "Confluent 8K video",
+          "name": "Kafka-compatible 8K video",
           "desc": "Heavy scenario for validating payload and throughput limits. Recommended only if the broker accepts 2 MB messages."
         },
         "kafkaBaselineControl": {

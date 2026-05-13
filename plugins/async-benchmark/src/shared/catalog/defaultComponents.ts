@@ -118,11 +118,10 @@ export const DEFAULT_CATALOG_COMPONENTS: DefaultCatalogComponent[] = [
   },
   {
     shortName: 'Confluent',
-    name: 'Confluent Platform',
+    name: 'Redpanda / API Kafka-compatible',
     category: 'platform',
-    version: '7.6',
-    description: 'Plataforma Kafka-compatible usada per comparar el mateix model amb una distribució diferent.',
-    tags: ['kafka-compatible', 'schema-registry', 'enterprise'],
+    description: 'Endpoint Kafka-compatible del clúster. El codi actual hi arriba amb brokerType=confluent, però el servei desplegat és Redpanda.',
+    tags: ['kafka-compatible', 'redpanda', 'streaming'],
     predefined: true,
   },
   {

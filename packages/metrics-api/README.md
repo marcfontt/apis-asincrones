@@ -44,10 +44,15 @@ Per defecte, Elasticsearch limita els resultats d'una sola search a
 10.000 docs (`index.max_result_window`). Per als benchmarks llargs ens
 quedavem curts; per això:
 
-1. Augmentem el límit a 1.000.000 al crear l'índex (`inicialitzarIndexMostres`).
+1. Augmentem el límit a 1.000.000 al crear l'índex (`initializeMetricsIndex`).
 2. La consulta `/metrics` fa servir l'API de **scroll** per paginar en
    blocs de 5.000 fins esgotar els resultats. El client sempre rep
    totes les mostres existents.
+
+Si Elasticsearch encara no està llest quan arrenca el servei,
+`POST /metrics` torna a intentar preparar l'índex abans de guardar la
+mostra. Això evita que el primer snapshot d'una execució falli només per
+una arrencada lenta d'Elasticsearch.
 
 ## Mapping i percentils
 

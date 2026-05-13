@@ -104,7 +104,7 @@ const isHiddenLegacyScenario = (s: Scenario): boolean => {
 // Colors coherents amb la identitat de cada producte (Kafka=roig, NATS=verd...).
 const PLATFORM_COLORS: Record<string, string> = {
   'Kafka':       '#ef4444', // vermell -- marca Apache Kafka
-  'Confluent':   '#3b82f6', // blau -- marca Confluent (Kafka Enterprise)
+  'Confluent':   '#3b82f6', // blau -- endpoint Kafka-compatible del cluster
   'RabbitMQ':    '#f59e0b', // ambre -- marca RabbitMQ
   'NATS Server': '#22c55e', // verd -- marca NATS (lightweight, fast)
 };
@@ -113,7 +113,7 @@ const PLATFORM_COLORS: Record<string, string> = {
 // Cada format ajusta automaticament el payload i ratio en mode sostingut.
 // 'video-8k' usa payloads de 2MB: IMPORTANT - Kafka broker per defecte
 // te un limit de 1MB per missatge (message.max.bytes). Els escenaris
-// video-8k amb Kafka/Confluent mostraran 0ms latencia i 0 throughput
+// video-8k amb Kafka o endpoint Kafka-compatible pot mostrar 0ms latencia i 0 throughput
 // per aixo (el broker rebutja silenciosament els missatges).
 // Per habilitar-los caldria configurar message.max.bytes > 2MB al broker.
 const DATA_FORMATS = [
@@ -195,7 +195,7 @@ const DEFAULTS_FORMAT: Record<string, { ratio: number; payloadBytes: number; hin
 
 const PLATFORM_LOAD_FACTORS: Record<string, { factor: number; hint: string }> = {
   'Kafka':       { factor: 0.95, hint: 'Kafka prioritza logs ordenats; baixem lleugerament la ràtio recomanada quan el payload és alt.' },
-  'Confluent':   { factor: 1.00, hint: 'Confluent/Kafka compatible es manté com a referència per streaming i logs.' },
+  'Confluent':   { factor: 1.00, hint: 'L’endpoint Kafka-compatible es manté com a referència per streaming i logs.' },
   'RabbitMQ':    { factor: 0.85, hint: 'RabbitMQ treballa molt bé amb cues i ACKs; evitem sobrecarregar-lo amb ràtios extremes per defecte.' },
   'NATS Server': { factor: 1.15, hint: 'NATS encaixa amb missatges petits i alta freqüència; pot pujar la ràtio en IoT o payloads lleugers.' },
 };
@@ -324,9 +324,9 @@ const SK_STYLE = {
 // Cadascun representa una combinacio real:
 //   - Finances: AMQP + RabbitMQ -- missatgeria garantida, zero perdua
 //   - IoT:      NATS + NATS Server -- throughput maxim, payload minim
-//   - Video 4K: Kafka + Confluent -- alt throughput, tolera latencia
+//   - Video 4K: Kafka o endpoint Kafka-compatible -- alt throughput, tolera latencia
 //   - Ultra-low latency: gRPC + Kafka -- processat rapid, sincronic
-//   - Video 8K: Kafka + Confluent -- carrega maxima (NOTA: pot mostrar
+//   - Video 8K: Kafka o endpoint Kafka-compatible -- carrega maxima (NOTA: pot mostrar
 //               0ms/0 throughput si Kafka no esta configurat per a
 //               missatges >1MB. Veure comentari a DATA_FORMATS.)
 const PREDEFINED_PRESETS = [
@@ -391,7 +391,7 @@ const PREDEFINED_PRESETS = [
     color:        '#eab308',
   },
   {
-    name:         'Confluent vídeo 8K',
+    name:         'Kafka-compatible vídeo 8K',
     nameKey:      'scenarios.presets.items.confluent8kVideo.name',
     platform:     'Confluent',
     architecture: 'SEA',

@@ -45,7 +45,7 @@ export const EDUCATION = {
         label: 'Broker o plataforma',
         accent: '#f59e0b',
         description:
-          'Kafka, Confluent, RabbitMQ o NATS Server reben i distribueixen els missatges dins del clúster AKS.',
+          'Kafka, Redpanda/API Kafka-compatible, RabbitMQ o NATS Server reben i distribueixen els missatges dins del clúster AKS.',
       },
       {
         label: 'Protocol',
@@ -89,7 +89,7 @@ export const EDUCATION = {
         title: 'Broker',
         accent: '#f59e0b',
         description:
-          'Plataforma de missatgeria que rep, emmagatzema o distribueix missatges. En aquest portal comparem Kafka, Confluent, RabbitMQ i NATS Server.',
+          'Plataforma de missatgeria que rep, guarda o reparteix missatges. En aquest portal comparem Kafka, un endpoint Kafka-compatible, RabbitMQ i NATS Server.',
       },
       {
         title: 'Missatge',

@@ -4,8 +4,8 @@
  * The catalog-service stores component definitions in Elasticsearch
  * (index: `async-catalog`). This module defines the canonical list of
  * predefined components (architectures, protocols, platforms) used by the
- * UI and scenario builder, and exposes `seedIfEmpty()` to populate the
- * index on first boot (or after a data-loss event — e.g. a wiped PVC).
+ * UI and scenario builder, and exposes `syncCatalogSeed()` to keep the
+ * Elasticsearch index aligned without deleting existing rows.
  *
  * These are the SAME values the UI's scenario builder expects
  * (see plugins/async-benchmark/src/pages/ScenariosPage.tsx and
@@ -23,7 +23,6 @@
  */
 
 import { Client } from '@elastic/elasticsearch';
-import { v4 as uuidv4 } from 'uuid';
 
 type CatalogComponent = {
   shortName: string;
@@ -139,11 +138,10 @@ export const CATALOG_SEED: CatalogComponent[] = [
   },
   {
     shortName: 'Confluent',
-    name: 'Confluent Platform',
+    name: 'Redpanda / API Kafka-compatible',
     category: 'platform',
-    version: '7.6',
-    description: 'Plataforma compatible amb Kafka. En aquest portal es prova pel camí Kafka i només amb protocols que tinguin suport real.',
-    tags: ['kafka-compatible', 'schema-registry', 'enterprise'],
+    description: 'Endpoint Kafka-compatible del clúster. El codi actual hi arriba amb brokerType=confluent, però el servei desplegat és Redpanda.',
+    tags: ['kafka-compatible', 'redpanda', 'streaming'],
   },
   {
     shortName: 'RabbitMQ',
@@ -163,47 +161,139 @@ export const CATALOG_SEED: CatalogComponent[] = [
   },
 ];
 
-/**
- * Check if the catalog index is empty and seed it if so.
- *
- * Called at service startup. Safe to call repeatedly: if the index already
- * contains documents we skip the seed, so an existing catalog is never
- * overwritten. The `refresh: 'wait_for'` on the bulk insert guarantees that
- * the first GET /components after seeding returns the data (no race with
- * Elasticsearch's async indexing).
- */
-export async function seedIfEmpty(es: Client, index: string): Promise<void> {
+export type CatalogSeedSyncResult = {
+  totalSeedComponents: number;
+  existingSeedComponents: number;
+  insertedSeedComponents: number;
+};
+
+function normalizeCatalogValue(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function buildCatalogSeedKey(component: Pick<CatalogComponent, 'category' | 'shortName' | 'name'>): string {
+  const stableName = component.shortName || component.name;
+  return `${component.category}:${normalizeCatalogValue(stableName)}`;
+}
+
+function buildCatalogNameKey(component: Pick<CatalogComponent, 'category' | 'name'>): string {
+  return `${component.category}:${normalizeCatalogValue(component.name)}`;
+}
+
+function buildSeedDocumentId(component: CatalogComponent): string {
+  const safeShortName = normalizeCatalogValue(component.shortName)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return `predefined-${component.category}-${safeShortName}`;
+}
+
+async function readExistingCatalogKeys(es: Client, index: string): Promise<Set<string>> {
+  const existingKeys = new Set<string>();
+
   try {
-    // Use a count with a tiny size=0 search. Cheaper than count() and avoids
-    // depending on the index existing yet (ES auto-creates on first write).
-    const existing = await es.count({ index }).catch(() => ({ count: 0 } as any));
-    const count = (existing as any).count ?? 0;
-    if (count > 0) {
-      console.log(`[catalog-service] seed skipped: ${count} components already present`);
-      return;
+    const response = await es.search({
+      index,
+      size: 1000,
+      _source: ['category', 'shortName', 'name'],
+      query: { match_all: {} },
+    });
+
+    for (const hit of response.hits.hits as any[]) {
+      const source = hit._source || {};
+      const category = String(source.category || '').trim();
+
+      if (!category) {
+        continue;
+      }
+
+      const shortName = String(source.shortName || '').trim();
+      const name = String(source.name || '').trim();
+
+      if (shortName) {
+        existingKeys.add(`${category}:${normalizeCatalogValue(shortName)}`);
+      }
+
+      if (name) {
+        existingKeys.add(`${category}:${normalizeCatalogValue(name)}`);
+      }
+    }
+  } catch {
+    // If the index does not exist yet, Elasticsearch will create it on first
+    // write. Returning an empty set keeps the startup path simple.
+  }
+
+  return existingKeys;
+}
+
+function componentAlreadyExists(existingKeys: Set<string>, component: CatalogComponent): boolean {
+  return (
+    existingKeys.has(buildCatalogSeedKey(component)) ||
+    existingKeys.has(buildCatalogNameKey(component))
+  );
+}
+
+/**
+ * Keep the predefined catalog rows aligned with the code.
+ *
+ * Older deployments can already have an `async-catalog` index created before a
+ * new predefined component was added. In that case the old "seed only when
+ * empty" behavior skipped the seed forever, so components such as SEA never
+ * appeared.
+ *
+ * This function is intentionally non-destructive: it only inserts missing
+ * predefined rows. Existing rows, even edited ones, are left untouched.
+ */
+export async function syncCatalogSeed(es: Client, index: string): Promise<CatalogSeedSyncResult> {
+  const result: CatalogSeedSyncResult = {
+    totalSeedComponents: CATALOG_SEED.length,
+    existingSeedComponents: 0,
+    insertedSeedComponents: 0,
+  };
+
+  try {
+    const existingKeys = await readExistingCatalogKeys(es, index);
+    const missingComponents = CATALOG_SEED.filter(component => !componentAlreadyExists(existingKeys, component));
+
+    result.existingSeedComponents = CATALOG_SEED.length - missingComponents.length;
+
+    if (missingComponents.length === 0) {
+      console.log(`[catalog-service] seed sync ok: ${CATALOG_SEED.length} predefined components already present`);
+      return result;
     }
 
-    console.log(`[catalog-service] seeding ${CATALOG_SEED.length} predefined components...`);
+    console.log(`[catalog-service] seed sync inserting ${missingComponents.length} missing predefined components...`);
+
     const now = new Date().toISOString();
-    // Build a bulk body. Each doc gets a fresh UUID so reseeding produces
-    // new IDs rather than trampling a previously-custom doc by accident.
     const body: any[] = [];
-    for (const c of CATALOG_SEED) {
-      body.push({ index: { _index: index, _id: uuidv4() } });
-      body.push({ ...c, predefined: true, createdAt: now, timestamp: now });
+
+    for (const component of missingComponents) {
+      body.push({ create: { _index: index, _id: buildSeedDocumentId(component) } });
+      body.push({ ...component, predefined: true, createdAt: now, timestamp: now });
     }
+
     const resp = await es.bulk({ refresh: 'wait_for', body });
-    const errors = (resp as any).errors;
-    if (errors) {
-      const items = (resp as any).items || [];
-      const failed = items.filter((i: any) => i.index?.error);
-      console.error(`[catalog-service] seed had ${failed.length} failures:`, failed.slice(0, 3));
-    } else {
-      console.log(`[catalog-service] seed ok: ${CATALOG_SEED.length} components indexed into ${index}`);
+    const items = (resp as any).items || [];
+
+    if ((resp as any).errors) {
+      const failed = items.filter((item: any) => item.create?.error && item.create?.status !== 409);
+      const conflicts = items.filter((item: any) => item.create?.status === 409);
+
+      if (failed.length > 0) {
+        console.error(`[catalog-service] seed sync had ${failed.length} failures:`, failed.slice(0, 3));
+      }
+
+      result.insertedSeedComponents = missingComponents.length - failed.length - conflicts.length;
+      return result;
     }
+
+    result.insertedSeedComponents = missingComponents.length;
+    console.log(`[catalog-service] seed sync ok: ${result.insertedSeedComponents} inserted into ${index}`);
+    return result;
   } catch (err: any) {
-    // Don't crash the service if seed fails — the GET endpoints still work,
-    // just return an empty list. Log loudly so ops can investigate.
-    console.error('[catalog-service] seed failed:', err.message);
+    // Do not crash the service if seed sync fails. The GET endpoints still
+    // work, but the log makes the data problem visible during deployment.
+    console.error('[catalog-service] seed sync failed:', err.message);
+    return result;
   }
 }

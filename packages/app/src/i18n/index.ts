@@ -177,6 +177,8 @@ export function translateRenderedText(value: string, lang: Locale = currentLangu
   let translatedCore = normalized;
   for (const [source, target] of RENDERED_TEXT_REPLACEMENTS[lang]) {
     if (source.length < 8 || !translatedCore.includes(source)) continue;
+    // Avoid replacement loops when the translated word contains the original word.
+    if (target !== source && target.includes(source)) continue;
     translatedCore = translatedCore.split(source).join(target);
   }
 

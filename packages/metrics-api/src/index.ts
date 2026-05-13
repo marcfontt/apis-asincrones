@@ -14,6 +14,8 @@ const wss = new WebSocketServer({ server: httpServer });
 
 const es = new Client({ node: process.env.ELASTICSEARCH_URL || 'http://elasticsearch:9200' });
 const INDEX = 'async-metrics';
+let metricsIndexInitialized = false;
+let metricsIndexInitPromise: Promise<void> | null = null;
 
 // ── Inicialitzacio de l'index a Elasticsearch ─────────────────────────────────
 // Per defecte ES limita els resultats d'una sola search a 10.000 documents
@@ -25,7 +27,7 @@ const INDEX = 'async-metrics';
 // actualitzar la configuracio. Si falla per qualsevol motiu (permisos,
 // version mismatch...), nomes registrem un avis: la API segueix funcionant
 // pero amb el limit per defecte, cosa que no trenca res.
-async function inicialitzarIndexMostres(): Promise<void> {
+async function initializeMetricsIndex(): Promise<void> {
   try {
     const existeix = await es.indices.exists({ index: INDEX });
     if (!existeix) {
@@ -41,9 +43,24 @@ async function inicialitzarIndexMostres(): Promise<void> {
       });
       console.log(`[metrics-api] index "${INDEX}" ja existia, max_result_window ajustat a 1.000.000`);
     }
+    metricsIndexInitialized = true;
   } catch (err: any) {
     console.warn(`[metrics-api] no s'ha pogut ajustar max_result_window: ${err?.message || err}`);
   }
+}
+
+async function ensureMetricsIndexInitialized(): Promise<void> {
+  if (metricsIndexInitialized) {
+    return;
+  }
+
+  if (!metricsIndexInitPromise) {
+    metricsIndexInitPromise = initializeMetricsIndex().finally(() => {
+      metricsIndexInitPromise = null;
+    });
+  }
+
+  await metricsIndexInitPromise;
 }
 
 // ── WebSocket: Live metrics per runId ─────────────────────────────────────────
@@ -325,6 +342,7 @@ app.get('/metrics/:id', async (req: Request, res: Response) => {
 // ── POST /metrics — ingestió + broadcast WebSocket ───────────────────────────
 app.post('/metrics', async (req: Request, res: Response) => {
   try {
+    await ensureMetricsIndexInitialized();
     const id = uuidv4();
     const body = {
       ...req.body,
@@ -405,5 +423,5 @@ httpServer.listen(PORT, async () => {
   // Cridem la inicialitzacio sense bloquejar l'arrencada del servidor.
   // Si Elasticsearch encara no esta llest, ja ho tornarem a intentar al
   // primer POST /metrics; aixi els clients no es queden penjats.
-  inicialitzarIndexMostres();
+  initializeMetricsIndex();
 });

@@ -73,3 +73,13 @@ El frontend parla amb els microserveis a través de `/api/proxy/...`:
 corepack yarn workspace app test
 npx tsc --noEmit
 ```
+
+| Fitxer | Què comprova |
+|--------|--------------|
+| `src/App.test.tsx` | Que l'app Backstage arrenca i renderitza la pantalla base sense trencar la navegació. |
+| `src/catalogSeed.test.ts` | Que el seed del catàleg inclou SEA i que la sincronització afegeix components que falten sense reemplaçar files existents. |
+| `src/historyMetrics.test.ts` | Que el resum històric calcula missatges i mostres a partir de les dades persistides. |
+| `src/liveMetrics.test.ts` | Que les mètriques en directe mantenen el `runId` correcte i no barregen execucions. |
+| `src/metricsQuery.test.ts` | Que les consultes a Elasticsearch filtren per camps exactes (`keyword`) i no barregen execucions. |
+| `src/historySummary.test.ts` | Que l'historial només inclou estats terminals o execucions antigues sense estat. |
+| `e2e-tests/app.test.ts` | Smoke test de navegador per comprovar que la pantalla principal carrega. |

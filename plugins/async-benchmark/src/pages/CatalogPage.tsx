@@ -75,7 +75,7 @@ const HIDDEN_LEGACY_COMPONENTS = ['pulsar', 'apache pulsar', 'sse', 'server-sent
 
 const PLATFORM_DISPLAY_LABELS: Record<string, string> = {
   Kafka: 'Apache Kafka',
-  Confluent: 'Confluent Platform',
+  Confluent: 'Redpanda / API Kafka-compatible',
   RabbitMQ: 'RabbitMQ',
   'NATS Server': 'NATS Server',
 };
@@ -83,7 +83,7 @@ const PLATFORM_DISPLAY_LABELS: Record<string, string> = {
 const COMPATIBILITY_NOTES: Record<string, string> = {
   Kafka: 'Referència per logs i streaming. Quan es combini amb protocols que no són Kafka, cal que l’escenari declari clarament el gateway o adaptador.',
   RabbitMQ: 'Fort en cues, ACKs i encaminament flexible. És la plataforma natural per AMQP i proves de treball en cua.',
-  Confluent: 'Variant Kafka-compatible per comparar comportament de streaming amb una distribució diferent del mateix ecosistema.',
+  Confluent: 'Endpoint Redpanda amb API Kafka. El valor intern Confluent es manté per compatibilitat amb escenaris creats abans.',
   'NATS Server': 'Molt lleuger per pub/sub i baixa latència. Per payloads grans cal verificar max_payload abans de llançar el benchmark.',
 };
 
@@ -169,12 +169,46 @@ const sanitizeCatalogComponent = (component: CatalogComponent): CatalogComponent
   const tags = Array.isArray(component.tags)
     ? component.tags.filter(tag => !hasCorruptVisibleText(tag))
     : component.tags;
+  const isKafkaCompatibleAlias =
+    normalizeText(component.shortName) === 'confluent' ||
+    normalizeText(component.name) === 'confluent platform';
+  const description = isKafkaCompatibleAlias
+    ? 'Endpoint Kafka-compatible del clúster. El codi actual hi arriba amb brokerType=confluent, però el servei desplegat és Redpanda.'
+    : hasCorruptVisibleText(component.description) ? '' : component.description;
 
   return {
     ...component,
-    description: hasCorruptVisibleText(component.description) ? '' : component.description,
-    tags,
+    ...(isKafkaCompatibleAlias
+      ? {
+          name: 'Redpanda / API Kafka-compatible',
+          version: undefined,
+          tags: ['kafka-compatible', 'redpanda', 'streaming'],
+        }
+      : {}),
+    description,
+    tags: isKafkaCompatibleAlias ? ['kafka-compatible', 'redpanda', 'streaming'] : tags,
   };
+};
+
+const catalogComponentKeys = (component: CatalogComponent): string[] => {
+  const category = String(component.category || '').trim().toLowerCase();
+  const names = [component.shortName, component.name]
+    .map(value => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
+
+  return names.map(name => `${category}:${name}`);
+};
+
+const mergeWithDefaultCatalogComponents = (componentsFromApi: CatalogComponent[]): CatalogComponent[] => {
+  const visibleKeys = new Set(componentsFromApi.flatMap(catalogComponentKeys));
+  const missingDefaults = DEFAULT_CATALOG_COMPONENTS.filter(defaultComponent =>
+    catalogComponentKeys(defaultComponent).every(key => !visibleKeys.has(key)),
+  );
+
+  return [
+    ...componentsFromApi,
+    ...missingDefaults.map(sanitizeCatalogComponent),
+  ];
 };
 
 const componentColor = (component: CatalogComponent): string =>
@@ -902,7 +936,7 @@ export const CatalogPage = () => {
       }
 
       const nextComponents = Array.isArray(data)
-        ? (data as CatalogComponent[]).map(sanitizeCatalogComponent)
+        ? mergeWithDefaultCatalogComponents((data as CatalogComponent[]).map(sanitizeCatalogComponent))
         : [];
       if (nextComponents.length === 0) {
         setComponents(DEFAULT_CATALOG_COMPONENTS.map(sanitizeCatalogComponent));

@@ -61,12 +61,12 @@ spec:
 
 ## Compatibilitat plataforma/arquitectura/protocol
 
-| Plataforma   | Arquitectures | Protocols         | Strimzi |
-|--------------|---------------|-------------------|---------|
-| Kafka        | EDA, EMA      | Kafka, AMQP       | Natiu   |
-| Confluent    | EDA, EMA      | Kafka, AMQP       | Compatible |
-| RabbitMQ     | QBA, EDA      | AMQP, MQTT        | No (pròximament) |
-| NATS Server  | EDA, SEA, LCA | NATS, WebSockets  | No (pròximament) |
+| Plataforma | Arquitectures | Protocols | Estat actual |
+|------------|---------------|-----------|--------------|
+| Kafka | EDA, LCA, SEA | Kafka | Natiu amb Strimzi |
+| Redpanda / API Kafka-compatible | EDA, LCA, SEA | Kafka | Servei separat al namespace `brokers` |
+| RabbitMQ | QBA, EDA | AMQP | Servei separat al namespace `brokers` |
+| NATS Server | EDA, SEA | NATS | Servei separat al namespace `brokers` |
 
 ## Versions
 - Strimzi Operator: 0.51.0

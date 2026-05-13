@@ -36,12 +36,12 @@ aquesta variable des de l'orquestrador.
 |----------|------------|
 | `RUN_ID` | Identificador únic del run. |
 | `SCENARIO_ID` | Escenari que s'està executant. |
-| `BROKER_TYPE` | `kafka`, `confluent`, `nats` o `rabbitmq`. |
+| `BROKER_TYPE` | `kafka`, `confluent`, `nats` o `rabbitmq`. El valor `confluent` usa el servei Redpanda/API Kafka-compatible actual. |
 | `ARCHITECTURE` | Arquitectura declarada a l'escenari. |
 | `PROTOCOL` | Protocol declarat a l'escenari. |
 | `PLATFORM` | Plataforma declarada a l'escenari. |
 | `DATA_FORMAT` | Format de dades de la prova. |
-| `KAFKA_BROKERS` | Bootstrap servers de Kafka o Confluent. |
+| `KAFKA_BROKERS` | Bootstrap servers de Kafka o d'un endpoint Kafka-compatible. |
 | `NATS_URL` | URL de NATS. |
 | `RABBITMQ_URL` | URL d'AMQP. |
 | `METRICS_API_URL` | Endpoint on es pugen les mostres. |
