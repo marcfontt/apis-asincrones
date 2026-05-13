@@ -36,7 +36,7 @@ aquesta variable des de l'orquestrador.
 |----------|------------|
 | `RUN_ID` | Identificador únic del run. |
 | `SCENARIO_ID` | Escenari que s'està executant. |
-| `BROKER_TYPE` | `kafka`, `confluent`, `nats` o `rabbitmq`. El valor `confluent` usa el servei Redpanda/API Kafka-compatible actual. |
+| `BROKER_TYPE` | `kafka`, `confluent`, `nats` o `rabbitmq`. El valor `confluent` usa el camí Kafka-compatible configurat per aquesta plataforma. |
 | `ARCHITECTURE` | Arquitectura declarada a l'escenari. |
 | `PROTOCOL` | Protocol declarat a l'escenari. |
 | `PLATFORM` | Plataforma declarada a l'escenari. |

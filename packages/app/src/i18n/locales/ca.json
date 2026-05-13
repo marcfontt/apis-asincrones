@@ -551,7 +551,7 @@
     "compatibilityNotes": {
       "Kafka": "Referència per logs i streaming. Quan es combini amb protocols que no són Kafka, cal que l'escenari declari clarament el gateway o adaptador.",
       "RabbitMQ": "Fort en cues, ACKs i encaminament flexible. És la plataforma natural per AMQP i proves de treball en cua.",
-      "Confluent": "Endpoint Redpanda amb API Kafka. El valor intern Confluent es manté per compatibilitat amb escenaris antics.",
+      "Confluent": "Confluent es prova pel camí Kafka-compatible del clúster. Aquesta prova no inclou Schema Registry, ksqlDB ni Control Center.",
       "NATS Server": "Molt lleuger per pub/sub i baixa latència. Per payloads grans cal verificar max_payload abans de llançar el benchmark."
     },
     "modal": {
@@ -857,7 +857,7 @@
           "desc": "AMQP sobre RabbitMQ amb format financer JSON compacte. Permet comparar latència i errors en transaccions curtes."
         },
         "confluent8kVideo": {
-          "name": "Kafka-compatible vídeo 8K",
+          "name": "Confluent vídeo 8K",
           "desc": "Escenari pesat per validar límits de payload i throughput. Només és recomanable si el broker accepta missatges de 2 MB."
         },
         "kafkaBaselineControl": {

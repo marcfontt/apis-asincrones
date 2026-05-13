@@ -551,7 +551,7 @@
     "compatibilityNotes": {
       "Kafka": "Reference for logs and streaming. When combined with non-Kafka protocols, the scenario must clearly declare the gateway or adapter.",
       "RabbitMQ": "Strong in queues, ACKs and flexible routing. The natural platform for AMQP and queue-work tests.",
-      "Confluent": "Redpanda endpoint with the Kafka API. The internal Confluent value is kept for compatibility with older scenarios.",
+      "Confluent": "Confluent is tested through the cluster Kafka-compatible path. This test does not include Schema Registry, ksqlDB, or Control Center.",
       "NATS Server": "Very lightweight for pub/sub and low latency. For large payloads, verify max_payload before launching the benchmark."
     },
     "modal": {
@@ -857,7 +857,7 @@
           "desc": "AMQP over RabbitMQ with a compact financial JSON format. It compares latency and errors in short transactions."
         },
         "confluent8kVideo": {
-          "name": "Kafka-compatible 8K video",
+          "name": "Confluent 8K video",
           "desc": "Heavy scenario for validating payload and throughput limits. Recommended only if the broker accepts 2 MB messages."
         },
         "kafkaBaselineControl": {

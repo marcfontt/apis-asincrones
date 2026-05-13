@@ -89,7 +89,7 @@ flowchart TB
         subgraph brokers["ns: brokers"]
             rabbit["RabbitMQ"]
             nats["NATS"]
-            redpanda["Redpanda / API Kafka-compatible"]
+            confluent["Confluent<br/>(camí Kafka-compatible)"]
         end
     end
 
@@ -101,7 +101,7 @@ flowchart TB
     loadgen --> kafkaBroker
     loadgen --> rabbit
     loadgen --> nats
-    loadgen --> redpanda
+    loadgen --> confluent
     loadgen --> metrics
     metrics --> es
 ```
@@ -145,7 +145,7 @@ apis-asincrones/
 | Backend | Node.js i Express als microserveis |
 | Dades | Elasticsearch |
 | Cluster | Azure Kubernetes Service |
-| Brokers | Kafka, RabbitMQ, NATS, Redpanda / API Kafka |
+| Brokers | Kafka, Confluent, RabbitMQ, NATS |
 | Observabilitat | Metrics API, WebSocket i Grafana |
 
 No s'han afegit dependències noves per als canvis recents de UI.
@@ -205,11 +205,11 @@ condicions i obtenir resultats comparables. Per això el catàleg explica
 versió, configuració, limitacions, variables que cal fixar i lectura del
 resultat.
 
-Nota important sobre el valor intern `Confluent`: el codi actual l'envia
-al servei `redpanda.brokers.svc.cluster.local:9093`, és a dir, un
-endpoint Kafka-compatible. Per això la UI no el presenta com a Confluent
-Platform 7.6. Si es vol defensar Confluent real, cal desplegar Confluent
-real i actualitzar el catàleg.
+Nota important sobre `Confluent`: dins del portal és una plataforma pròpia,
+però en aquesta fase s'executa pel camí Kafka-compatible del clúster. Això
+vol dir que la prova mesura publish/consume amb protocol Kafka i no serveis
+addicionals de Confluent com Schema Registry, ksqlDB o Control Center. Abans
+de defensar una versió concreta, cal verificar la imatge desplegada al clúster.
 
 ## Resultats i puntuació
 

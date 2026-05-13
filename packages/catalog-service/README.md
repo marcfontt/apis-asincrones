@@ -15,9 +15,9 @@ construir un escenari.
   i `QBA`.
 - Versions fixades al codi: Kafka `4.1.1`, RabbitMQ `3.13` i NATS
   Server `2.12.5`.
-- El valor intern `Confluent` apunta al servei Redpanda/Kafka-compatible
-  del clúster. No es mostra com a Confluent Platform perquè el repositori
-  no desplega Confluent real.
+- El valor intern `Confluent` es mostra com a plataforma Confluent. En
+  aquesta fase s'executa pel camí Kafka-compatible del clúster i no inclou
+  serveis extra com Schema Registry, ksqlDB o Control Center.
 
 ## API
 

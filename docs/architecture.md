@@ -12,7 +12,7 @@ El sistema s'organitza en **tres namespaces** dins del cluster AKS:
 |-----------|-----------|
 | `apis-asincrones` | Portal Backstage, microserveis i eines d'observabilitat |
 | `kafka-strimzi` | Cluster Kafka gestionat per l'operador Strimzi (KRaft mode) |
-| `brokers` | NATS, RabbitMQ i Redpanda |
+| `brokers` | NATS, RabbitMQ i Confluent pel camí Kafka-compatible |
 
 El flux principal és: **Usuari → Backstage → Orchestrator → Job (load-generator) → Broker → Metrics API → Elasticsearch**.
 
@@ -55,8 +55,8 @@ flowchart TB
             nats["nats<br/>:4222"]:::broker
             natsHl["nats-headless<br/>:4222 / :8222"]:::broker
             rabbit["rabbitmq<br/>:5672 / :15672"]:::broker
-            redpanda["redpanda<br/>:9644 / :8082 / :9093"]:::broker
-            redpandaExt["redpanda-external<br/>NodePort 9645:31644"]:::broker
+            confluent["confluent<br/>(camí Kafka-compatible)<br/>:9093"]:::broker
+            confluentExt["confluent-external<br/>NodePort per accés extern"]:::broker
         end
     end
 
@@ -77,7 +77,7 @@ flowchart TB
     loadgen -- "Kafka (TCP 9092)" --> kafkaBoot
     loadgen -- "AMQP (5672)" --> rabbit
     loadgen -- "NATS (4222)" --> nats
-    loadgen -- "Kafka API (9093)" --> redpanda
+    loadgen -- "Kafka API (9093)" --> confluent
 
     %% Mètriques
     loadgen -- "POST snapshots /5s" --> metrics
@@ -132,8 +132,8 @@ flowchart TB
 | `nats` | 4222 | NATS Server (protocol NATS) |
 | `nats-headless` | 4222, 8222 | Accés directe a pods + monitoratge HTTP |
 | `rabbitmq` | 5672, 15672 | Broker AMQP + consola de gestió |
-| `redpanda` | 9093, 8082, 9644 | Endpoint Kafka-compatible + REST proxy + admin |
-| `redpanda-external` | 9645:31644 | NodePort per a accés extern a Redpanda |
+| `confluent` | 9093 | Camí Kafka-compatible usat per la plataforma Confluent dins del portal |
+| `confluent-external` | NodePort | Accés extern si es necessita verificar el broker des de fora del clúster |
 
 ---
 
@@ -144,7 +144,7 @@ flowchart TB
 2. Backstage crida l'orchestrator: POST /runs
 3. L'orchestrator crea un Job de Kubernetes en un namespace efímer (sc-<slug>-<id>)
 4. El Job arrenca el load-generator:
-   - Es connecta al broker corresponent (Kafka, RabbitMQ, NATS o Redpanda)
+   - Es connecta al broker corresponent (Kafka, Confluent, RabbitMQ o NATS)
    - Envia missatges fire-and-forget amb payload determinista
    - Cada 5 s puja un snapshot de mètriques a metrics-api (POST /metrics)
 5. metrics-api indexa el snapshot a Elasticsearch

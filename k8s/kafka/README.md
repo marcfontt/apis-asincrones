@@ -64,7 +64,7 @@ spec:
 | Plataforma | Arquitectures | Protocols | Estat actual |
 |------------|---------------|-----------|--------------|
 | Kafka | EDA, LCA, SEA | Kafka | Natiu amb Strimzi |
-| Redpanda / API Kafka-compatible | EDA, LCA, SEA | Kafka | Servei separat al namespace `brokers` |
+| Confluent | EDA, LCA, SEA | Kafka | Camí Kafka-compatible al namespace `brokers` |
 | RabbitMQ | QBA, EDA | AMQP | Servei separat al namespace `brokers` |
 | NATS Server | EDA, SEA | NATS | Servei separat al namespace `brokers` |
 

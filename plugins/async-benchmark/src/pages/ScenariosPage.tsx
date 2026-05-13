@@ -195,7 +195,7 @@ const DEFAULTS_FORMAT: Record<string, { ratio: number; payloadBytes: number; hin
 
 const PLATFORM_LOAD_FACTORS: Record<string, { factor: number; hint: string }> = {
   'Kafka':       { factor: 0.95, hint: 'Kafka prioritza logs ordenats; baixem lleugerament la ràtio recomanada quan el payload és alt.' },
-  'Confluent':   { factor: 1.00, hint: 'L’endpoint Kafka-compatible es manté com a referència per streaming i logs.' },
+  'Confluent':   { factor: 1.00, hint: 'Confluent es prova pel camí Kafka-compatible del clúster.' },
   'RabbitMQ':    { factor: 0.85, hint: 'RabbitMQ treballa molt bé amb cues i ACKs; evitem sobrecarregar-lo amb ràtios extremes per defecte.' },
   'NATS Server': { factor: 1.15, hint: 'NATS encaixa amb missatges petits i alta freqüència; pot pujar la ràtio en IoT o payloads lleugers.' },
 };
@@ -391,7 +391,7 @@ const PREDEFINED_PRESETS = [
     color:        '#eab308',
   },
   {
-    name:         'Kafka-compatible vídeo 8K',
+    name:         'Confluent vídeo 8K',
     nameKey:      'scenarios.presets.items.confluent8kVideo.name',
     platform:     'Confluent',
     architecture: 'SEA',

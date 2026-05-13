@@ -138,10 +138,10 @@ export const CATALOG_SEED: CatalogComponent[] = [
   },
   {
     shortName: 'Confluent',
-    name: 'Redpanda / API Kafka-compatible',
+    name: 'Confluent',
     category: 'platform',
-    description: 'Endpoint Kafka-compatible del clúster. El codi actual hi arriba amb brokerType=confluent, però el servei desplegat és Redpanda.',
-    tags: ['kafka-compatible', 'redpanda', 'streaming'],
+    description: 'Plataforma Confluent dins del portal. En aquesta fase es prova pel camí Kafka-compatible del clúster, sense avaluar Schema Registry, ksqlDB ni Control Center.',
+    tags: ['kafka-compatible', 'confluent', 'streaming'],
   },
   {
     shortName: 'RabbitMQ',

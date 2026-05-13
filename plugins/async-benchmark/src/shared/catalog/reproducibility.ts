@@ -59,16 +59,16 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
     { label: 'Execució segura', value: 'Kafka és el camí principal per protocol Kafka i escenaris de log o streaming.' },
     { label: 'Vídeo 8K', value: 'Es pot provar si el topic i el productor accepten missatges de 2 MB. Cal mantenir el mateix límit en totes les repeticions.' },
   ],
-  'Redpanda / API Kafka-compatible': [
+  Confluent: [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
-    { label: 'Producte real', value: 'Redpanda exposant API Kafka. El valor intern "Confluent" només manté compatibilitat amb escenaris ja creats.' },
-    { label: 'Versió', value: 'No està fixada al repositori. Cal verificar la imatge del pod abans de defensar resultats.' },
-    { label: 'Instal·lació', value: 'Servei redpanda al namespace brokers, accessible pel port Kafka-compatible 9093' },
+    { label: 'Producte', value: 'Confluent com a plataforma del portal' },
+    { label: 'Versió', value: 'No fixada al repositori. Cal verificar la imatge desplegada abans de defensar una versió concreta.' },
+    { label: 'Com està connectat', value: 'El valor intern brokerType=confluent usa un endpoint Kafka-compatible del clúster.' },
     { label: 'Namespace', value: 'brokers' },
     { label: 'Port client', value: '9093 dins del clúster' },
-    { label: 'Topologia', value: 'single-node' },
-    { label: 'Execució segura', value: 'Aquest camí només és vàlid amb protocol Kafka. No valida cap component propi de Confluent Platform.' },
-    { label: 'Què cal escriure a la memòria', value: 'Indica que és un endpoint Kafka-compatible. Si vols parlar de Confluent Platform, cal desplegar Confluent real.' },
+    { label: 'Què mesura aquesta prova', value: 'Mesura publish/consume amb API Kafka. No mesura Schema Registry, ksqlDB, Control Center ni altres serveis de Confluent.' },
+    { label: 'Execució segura', value: 'Aquest camí només és vàlid amb protocol Kafka i escenaris de log o streaming.' },
+    { label: 'Què cal escriure a la memòria', value: 'Indica que Confluent s’ha provat pel camí Kafka-compatible i separa aquesta prova dels serveis extra de la plataforma.' },
   ],
   RabbitMQ: [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
@@ -99,8 +99,7 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
 
 const PLATFORM_REPRODUCIBILITY_ALIASES: Record<string, string> = {
   Kafka: 'Apache Kafka',
-  Confluent: 'Redpanda / API Kafka-compatible',
-  'Confluent Platform': 'Redpanda / API Kafka-compatible',
+  'Confluent Platform': 'Confluent',
   NATS: 'NATS Server',
 };
 
@@ -237,13 +236,14 @@ export const REPRODUCIBILITY_SNIPPETS: Record<string, ReproducibilitySnippet> = 
       'kubectl logs -n kafka-strimzi -l strimzi.io/name=kafka-cluster-kafka',
     ].join('\n'),
   },
-  'Redpanda / API Kafka-compatible': {
-    titol: 'Verificar el broker Kafka-compatible',
+  Confluent: {
+    titol: 'Verificar Confluent pel camí Kafka-compatible',
     codi: [
       'kubectl get pods -n brokers',
       'kubectl get svc -n brokers',
-      'kubectl logs -n brokers -l app.kubernetes.io/name=redpanda',
-      'kubectl get pod -n brokers -l app.kubernetes.io/name=redpanda -o jsonpath="{.items[0].spec.containers[0].image}"',
+      'kubectl get pod -n brokers -o wide',
+      'kubectl describe svc -n brokers <servei-kafka-compatible>',
+      'kubectl get pod -n brokers <pod-confluent-o-compatible> -o jsonpath="{.spec.containers[0].image}"',
     ].join('\n'),
   },
   RabbitMQ: {

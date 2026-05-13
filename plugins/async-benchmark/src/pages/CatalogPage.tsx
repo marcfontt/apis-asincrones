@@ -75,7 +75,7 @@ const HIDDEN_LEGACY_COMPONENTS = ['pulsar', 'apache pulsar', 'sse', 'server-sent
 
 const PLATFORM_DISPLAY_LABELS: Record<string, string> = {
   Kafka: 'Apache Kafka',
-  Confluent: 'Redpanda / API Kafka-compatible',
+  Confluent: 'Confluent',
   RabbitMQ: 'RabbitMQ',
   'NATS Server': 'NATS Server',
 };
@@ -83,7 +83,7 @@ const PLATFORM_DISPLAY_LABELS: Record<string, string> = {
 const COMPATIBILITY_NOTES: Record<string, string> = {
   Kafka: 'Referència per logs i streaming. Quan es combini amb protocols que no són Kafka, cal que l’escenari declari clarament el gateway o adaptador.',
   RabbitMQ: 'Fort en cues, ACKs i encaminament flexible. És la plataforma natural per AMQP i proves de treball en cua.',
-  Confluent: 'Endpoint Redpanda amb API Kafka. El valor intern Confluent es manté per compatibilitat amb escenaris creats abans.',
+  Confluent: 'Plataforma Confluent provada pel camí Kafka-compatible del clúster. No inclou serveis addicionals com Schema Registry o ksqlDB.',
   'NATS Server': 'Molt lleuger per pub/sub i baixa latència. Per payloads grans cal verificar max_payload abans de llançar el benchmark.',
 };
 
@@ -171,22 +171,23 @@ const sanitizeCatalogComponent = (component: CatalogComponent): CatalogComponent
     : component.tags;
   const isKafkaCompatibleAlias =
     normalizeText(component.shortName) === 'confluent' ||
-    normalizeText(component.name) === 'confluent platform';
+    normalizeText(component.name) === 'confluent platform' ||
+    normalizeText(component.name).includes('redpanda');
   const description = isKafkaCompatibleAlias
-    ? 'Endpoint Kafka-compatible del clúster. El codi actual hi arriba amb brokerType=confluent, però el servei desplegat és Redpanda.'
+    ? 'Plataforma Confluent dins del portal. En aquesta fase es prova pel camí Kafka-compatible del clúster, sense avaluar Schema Registry, ksqlDB ni Control Center.'
     : hasCorruptVisibleText(component.description) ? '' : component.description;
 
   return {
     ...component,
     ...(isKafkaCompatibleAlias
       ? {
-          name: 'Redpanda / API Kafka-compatible',
+          name: 'Confluent',
           version: undefined,
-          tags: ['kafka-compatible', 'redpanda', 'streaming'],
+          tags: ['kafka-compatible', 'confluent', 'streaming'],
         }
       : {}),
     description,
-    tags: isKafkaCompatibleAlias ? ['kafka-compatible', 'redpanda', 'streaming'] : tags,
+    tags: isKafkaCompatibleAlias ? ['kafka-compatible', 'confluent', 'streaming'] : tags,
   };
 };
 
