@@ -367,19 +367,19 @@
       "measures": "Recorded points"
     },
     "sections": {
-      "systemEyebrow": "System structure",
+      "systemEyebrow": "Step 2 · System pieces",
       "systemTitle": "From scenario to results",
       "systemDesc": "The flow is this: you define the test, the backend prepares it, AKS runs it, and Results shows the data. AKS means Azure Kubernetes Service: a group of cloud machines for running containers.",
-      "conceptsEyebrow": "Before looking at results",
+      "conceptsEyebrow": "Step 1 · Basic concepts",
       "conceptsTitle": "What are you actually comparing?",
       "conceptsDesc": "Before comparing, check what you are changing: broker, protocol, architecture, format, and load.",
       "brokerEyebrow": "Key concept",
       "brokerTitle": "How does a broker work?",
       "brokerDesc": "A broker receives messages from producers and delivers them to consumers. This lets each side work at its own pace.",
-      "executionEyebrow": "Execution",
+      "executionEyebrow": "Step 3 · Test lifecycle",
       "executionTitle": "What happens when you run a test?",
       "executionDesc": "Each execution follows the same path. This lets you compare results without mixing different cases.",
-      "pagesEyebrow": "Inner pages",
+      "pagesEyebrow": "Step 4 · Start using the portal",
       "pagesTitle": "Where each task continues",
       "metricsLabel": "Metrics you will read in Results"
     },

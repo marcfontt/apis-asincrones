@@ -367,19 +367,19 @@
       "measures": "Puntos registrados"
     },
     "sections": {
-      "systemEyebrow": "Estructura del sistema",
+      "systemEyebrow": "Paso 2 · Piezas del sistema",
       "systemTitle": "Del escenario a los resultados",
       "systemDesc": "El flujo es este: tú defines la prueba, el backend la prepara, AKS la ejecuta y Resultados muestra los datos. AKS significa Azure Kubernetes Service: un grupo de máquinas en la nube para ejecutar contenedores.",
-      "conceptsEyebrow": "Antes de mirar resultados",
+      "conceptsEyebrow": "Paso 1 · Conceptos básicos",
       "conceptsTitle": "¿Qué estás comparando realmente?",
       "conceptsDesc": "Antes de comparar, mira qué estás cambiando: broker, protocolo, arquitectura, formato y carga.",
       "brokerEyebrow": "Concepto clave",
       "brokerTitle": "¿Cómo funciona un bróker?",
       "brokerDesc": "Un bróker recibe mensajes de los productores y los entrega a los consumidores. Así cada parte trabaja a su ritmo.",
-      "executionEyebrow": "Ejecución",
+      "executionEyebrow": "Paso 3 · Ciclo de una prueba",
       "executionTitle": "¿Qué pasa cuando lanzas una prueba?",
       "executionDesc": "Cada ejecución sigue el mismo camino. Así puedes comparar resultados sin mezclar casos distintos.",
-      "pagesEyebrow": "Páginas interiores",
+      "pagesEyebrow": "Paso 4 · Empieza a usar el portal",
       "pagesTitle": "Dónde continúa cada tarea",
       "metricsLabel": "Métricas que leerás en Resultados"
     },

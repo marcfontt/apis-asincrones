@@ -367,19 +367,19 @@
       "measures": "Punts registrats"
     },
     "sections": {
-      "systemEyebrow": "Estructura del sistema",
+      "systemEyebrow": "Pas 2 · Peces del sistema",
       "systemTitle": "De l'escenari als resultats",
       "systemDesc": "El flux és aquest: tu defineixes la prova, el backend la prepara, AKS l'executa i Resultats mostra les dades. AKS vol dir Azure Kubernetes Service: un grup de màquines al núvol per executar contenidors.",
-      "conceptsEyebrow": "Abans de mirar resultats",
+      "conceptsEyebrow": "Pas 1 · Conceptes bàsics",
       "conceptsTitle": "Què estàs comparant realment?",
       "conceptsDesc": "Abans de comparar, mira què estàs canviant: broker, protocol, arquitectura, format i càrrega.",
       "brokerEyebrow": "Concepte clau",
       "brokerTitle": "Com funciona un bròker?",
       "brokerDesc": "Un bròker rep missatges dels productors i els entrega als consumidors. Això permet que cada part treballi al seu ritme.",
-      "executionEyebrow": "Execució",
+      "executionEyebrow": "Pas 3 · Cicle d'una prova",
       "executionTitle": "Què passa quan llances una prova?",
       "executionDesc": "Cada execució segueix el mateix camí. Així pots comparar resultats sense barrejar casos diferents.",
-      "pagesEyebrow": "Pàgines interiors",
+      "pagesEyebrow": "Pas 4 · Comença a usar el portal",
       "pagesTitle": "On continua cada tasca",
       "metricsLabel": "Mètriques que llegiràs a Resultats"
     },

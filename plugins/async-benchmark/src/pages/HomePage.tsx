@@ -166,7 +166,7 @@ const LOCALE_BY_LANGUAGE: Record<string, string> = {
 };
 
 const getLocale = (language: string) => LOCALE_BY_LANGUAGE[language] || 'ca-ES';
-const formatNumero = (valor: number, locale: string) => valor.toLocaleString(locale);
+const formatNumber = (value: number, locale: string) => value.toLocaleString(locale);
 
 const SectionHeader = ({
   eyebrow,
@@ -234,7 +234,7 @@ const HomeGuide = () => {
 export const HomePage = () => {
   const { t, language } = useTranslation();
   const locale = getLocale(language);
-  const [estadistiquesPortal, setEstadistiquesPortal] = useState({
+  const [portalStats, setPortalStats] = useState({
     loading: true,
     components: 0,
     scenarios: 0,
@@ -248,66 +248,68 @@ export const HomePage = () => {
   }, [t]);
 
   useEffect(() => {
-    let peticioCancelada = false;
+    let cancelled = false;
 
-    const carregarEstadistiquesPortal = async () => {
+    // Polling cada 30 s contra los cuatro microservicios. Si algún
+    // endpoint falla, se devuelve [] para no bloquear el resto.
+    const loadPortalStats = async () => {
       try {
-        const [respostaComponents, respostaEscenaris, respostaRunsActius, respostaResumMesures] = await Promise.all([
-          fetch(`${API_CATALOG}/components`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
-          fetch(`${API_SCENARIO}/scenarios`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
-          fetch(`${API_ORCHESTRATOR}/runs/active`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
-          fetch(`${API_METRICS}/metrics/summary`).then(resposta => (resposta.ok ? resposta.json() : [])).catch(() => []),
+        const [componentsResponse, scenariosResponse, activeRunsResponse, summaryResponse] = await Promise.all([
+          fetch(`${API_CATALOG}/components`).then(response => (response.ok ? response.json() : [])).catch(() => []),
+          fetch(`${API_SCENARIO}/scenarios`).then(response => (response.ok ? response.json() : [])).catch(() => []),
+          fetch(`${API_ORCHESTRATOR}/runs/active`).then(response => (response.ok ? response.json() : [])).catch(() => []),
+          fetch(`${API_METRICS}/metrics/summary`).then(response => (response.ok ? response.json() : [])).catch(() => []),
         ]);
 
-        if (peticioCancelada) return;
+        if (cancelled) return;
 
-        const totalComponentsVisibles = Array.isArray(respostaComponents)
-          ? respostaComponents.filter((component: any) => component.predefined !== false && component.category !== 'gateway').length
+        const visibleComponents = Array.isArray(componentsResponse)
+          ? componentsResponse.filter((component: any) => component.predefined !== false && component.category !== 'gateway').length
           : 0;
-        const totalEscenaris = Array.isArray(respostaEscenaris) ? respostaEscenaris.length : 0;
-        const totalRunsActius = Array.isArray(respostaRunsActius) ? respostaRunsActius.length : 0;
-        const resumMesures = Array.isArray(respostaResumMesures) ? respostaResumMesures : [];
-        const totalEscenarisAmbHistorial = new Set(resumMesures.map((resum: any) => resum.scenarioId).filter(Boolean)).size;
-        const totalMesures = resumMesures.reduce((suma: number, resum: any) =>
-          suma + (Number(resum.pointCount ?? resum.measureCount ?? 0) || 0), 0);
+        const totalScenarios = Array.isArray(scenariosResponse) ? scenariosResponse.length : 0;
+        const totalActiveRuns = Array.isArray(activeRunsResponse) ? activeRunsResponse.length : 0;
+        const summary = Array.isArray(summaryResponse) ? summaryResponse : [];
+        const totalScenariosWithHistory = new Set(summary.map((entry: any) => entry.scenarioId).filter(Boolean)).size;
+        const totalMeasures = summary.reduce((sum: number, entry: any) =>
+          sum + (Number(entry.pointCount ?? entry.measureCount ?? 0) || 0), 0);
 
-        setEstadistiquesPortal({
+        setPortalStats({
           loading: false,
-          components: totalComponentsVisibles,
-          scenarios: totalEscenaris,
-          activeRuns: totalRunsActius,
-          historicalScenarios: totalEscenarisAmbHistorial,
-          totalMeasures: totalMesures,
+          components: visibleComponents,
+          scenarios: totalScenarios,
+          activeRuns: totalActiveRuns,
+          historicalScenarios: totalScenariosWithHistory,
+          totalMeasures,
         });
       } catch {
-        if (!peticioCancelada) {
-          setEstadistiquesPortal(estadistiquesAnteriors => ({ ...estadistiquesAnteriors, loading: false }));
+        if (!cancelled) {
+          setPortalStats(previous => ({ ...previous, loading: false }));
         }
       }
     };
 
-    carregarEstadistiquesPortal();
-    const intervalActualitzacio = window.setInterval(carregarEstadistiquesPortal, 30000);
+    loadPortalStats();
+    const refreshInterval = window.setInterval(loadPortalStats, 30000);
     return () => {
-      peticioCancelada = true;
-      window.clearInterval(intervalActualitzacio);
+      cancelled = true;
+      window.clearInterval(refreshInterval);
     };
   }, []);
 
-  const paginesDelPortal = [
+  const portalPages = [
     { href: '/catalog', label: t('home.pages.0.label') , desc: t('home.pages.0.desc'), Icona: IconCataleg, color: '#f59e0b' },
     { href: '/escenaris', label: t('home.pages.1.label'), desc: t('home.pages.1.desc'), Icona: IconEscenaris, color: '#2563eb' },
     { href: '/execucions', label: t('home.pages.2.label'), desc: t('home.pages.2.desc'), Icona: IconExecucions, color: '#16a34a' },
     { href: '/resultats', label: t('home.pages.3.label'), desc: t('home.pages.3.desc'), Icona: IconResultats, color: '#dc2626' },
   ];
 
-  const metriquesPrincipals = [
+  const mainMetrics = [
     { title: t('home.metrics.0.title'), color: '#f59e0b', text: t('home.metrics.0.text') },
     { title: t('home.metrics.1.title'), color: '#16a34a', text: t('home.metrics.1.text') },
     { title: t('home.metrics.2.title'), color: '#dc2626', text: t('home.metrics.2.text') },
   ];
 
-  const passosExecucio = [
+  const executionSteps = [
     { n: '1', label: t('home.executionSteps.0.label'), sub: t('home.executionSteps.0.sub'), color: '#2563eb' },
     { n: '2', label: t('home.executionSteps.1.label'), sub: t('home.executionSteps.1.sub'), color: '#7c3aed' },
     { n: '3', label: t('home.executionSteps.2.label'), sub: t('home.executionSteps.2.sub'), color: '#0891b2' },
@@ -315,7 +317,7 @@ export const HomePage = () => {
     { n: '5', label: t('home.executionSteps.4.label'), sub: t('home.executionSteps.4.sub'), color: '#dc2626' },
   ];
 
-  const partsDelSistema = [
+  const systemParts = [
     { title: t('home.systemParts.0.title'), subtitle: t('home.systemParts.0.subtitle'), text: t('home.systemParts.0.text'), color: '#2563eb' },
     { title: t('home.systemParts.1.title'), subtitle: t('home.systemParts.1.subtitle'), text: t('home.systemParts.1.text'), color: '#7c3aed' },
     { title: t('home.systemParts.2.title'), subtitle: t('home.systemParts.2.subtitle'), text: t('home.systemParts.2.text'), color: '#0891b2' },
@@ -324,7 +326,7 @@ export const HomePage = () => {
     { title: t('home.systemParts.5.title'), subtitle: t('home.systemParts.5.subtitle'), text: t('home.systemParts.5.text'), color: '#dc2626' },
   ];
 
-  const conceptesClau = [
+  const keyConcepts = [
     { title: t('home.concepts.0.title'), color: '#2563eb', text: t('home.concepts.0.text') },
     { title: t('home.concepts.1.title'), color: '#7c3aed', text: t('home.concepts.1.text') },
     { title: t('home.concepts.2.title'), color: '#0891b2', text: t('home.concepts.2.text') },
@@ -332,11 +334,11 @@ export const HomePage = () => {
   ];
 
 
-  const estadistiques = [
-    { label: t('home.statsLabels.components'), value: estadistiquesPortal.components, color: '#f59e0b', desc: t('home.statsDesc.components') },
-    { label: t('home.statsLabels.scenarios'), value: estadistiquesPortal.scenarios, color: '#2563eb', desc: t('home.statsDesc.scenarios') },
-    { label: t('home.statsLabels.activeRuns'), value: estadistiquesPortal.activeRuns, color: '#16a34a', desc: t('home.statsDesc.activeRuns') },
-    { label: t('home.statsLabels.measures'), value: estadistiquesPortal.totalMeasures, color: '#dc2626', desc: t('home.statsDesc.measures') },
+  const heroStats = [
+    { label: t('home.statsLabels.components'), value: portalStats.components, color: '#f59e0b', desc: t('home.statsDesc.components') },
+    { label: t('home.statsLabels.scenarios'), value: portalStats.scenarios, color: '#2563eb', desc: t('home.statsDesc.scenarios') },
+    { label: t('home.statsLabels.activeRuns'), value: portalStats.activeRuns, color: '#16a34a', desc: t('home.statsDesc.activeRuns') },
+    { label: t('home.statsLabels.measures'), value: portalStats.totalMeasures, color: '#dc2626', desc: t('home.statsDesc.measures') },
   ];
 
   return (
@@ -399,11 +401,11 @@ export const HomePage = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            {estadistiques.map(stat => (
+            {heroStats.map(stat => (
               <div key={stat.label} style={{ border: `1px solid ${stat.color}24`, borderRadius: 10, padding: 14, background: 'var(--bg-card)' }}>
                 <div style={{ fontSize: 10, fontWeight: 900, color: stat.color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{stat.label}</div>
                 <div style={{ fontSize: 27, fontWeight: 900, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', letterSpacing: '-0.03em' }}>
-                  {estadistiquesPortal.loading ? '-' : formatNumero(stat.value, locale)}
+                  {portalStats.loading ? '-' : formatNumber(stat.value, locale)}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 5 }}>{stat.desc}</div>
               </div>
@@ -422,10 +424,10 @@ export const HomePage = () => {
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
-          {conceptesClau.map(concepte => (
-            <div key={concepte.title} style={miniCard(concepte.color)}>
-              <div style={{ fontSize: 13, fontWeight: 900, color: concepte.color, marginBottom: 8 }}>{concepte.title}</div>
-              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.62 }}>{concepte.text}</p>
+          {keyConcepts.map(concept => (
+            <div key={concept.title} style={miniCard(concept.color)}>
+              <div style={{ fontSize: 13, fontWeight: 900, color: concept.color, marginBottom: 8 }}>{concept.title}</div>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.62 }}>{concept.text}</p>
             </div>
           ))}
         </div>
@@ -439,7 +441,7 @@ export const HomePage = () => {
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, minmax(130px, 1fr))', gap: 10 }} className="async-responsive-grid">
-          {partsDelSistema.map((part, index) => (
+          {systemParts.map((part, index) => (
             <div
               key={part.title}
               className="home-flow-card"
@@ -474,7 +476,7 @@ export const HomePage = () => {
             {t('home.sections.metricsLabel')}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 12 }} className="async-responsive-grid">
-            {metriquesPrincipals.map(metric => (
+            {mainMetrics.map(metric => (
               <div key={metric.title} style={{ position: 'relative', border: `1px solid ${metric.color}24`, borderLeft: `3px solid ${metric.color}`, padding: '14px 16px', background: 'var(--bg-card)', borderRadius: 8, minHeight: 132, display: 'flex', flexDirection: 'column', boxShadow: 'var(--shadow-sm)' }}>
                 <div style={{ fontSize: 13, fontWeight: 900, color: metric.color, marginBottom: 6 }}>{metric.title}</div>
                 <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.62, flex: 1 }}>{metric.text}</p>
@@ -492,15 +494,15 @@ export const HomePage = () => {
         />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, minmax(140px, 1fr))', gap: 12 }} className="async-responsive-grid">
-          {passosExecucio.map((pas, index) => (
+          {executionSteps.map((step, index) => (
             <div
-              key={pas.n}
+              key={step.n}
               className="home-flow-card"
               tabIndex={0}
               style={{
-                ['--flow-color' as any]: pas.color,
+                ['--flow-color' as any]: step.color,
                 position: 'relative',
-                border: `1px solid ${pas.color}30`,
+                border: `1px solid ${step.color}30`,
                 borderRadius: 10,
                 background: 'var(--bg-subtle)',
                 padding: 15,
@@ -508,12 +510,12 @@ export const HomePage = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <div className={index === 2 ? 'home-pulse-dot' : undefined} style={{ width: 40, height: 40, borderRadius: 10, background: `${pas.color}16`, border: `1px solid ${pas.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: pas.color, fontWeight: 900, fontSize: 14, fontFamily: 'var(--font-mono)' }}>
-                  {pas.n}
+                <div className={index === 2 ? 'home-pulse-dot' : undefined} style={{ width: 40, height: 40, borderRadius: 10, background: `${step.color}16`, border: `1px solid ${step.color}35`, display: 'flex', alignItems: 'center', justifyContent: 'center', color: step.color, fontWeight: 900, fontSize: 14, fontFamily: 'var(--font-mono)' }}>
+                  {step.n}
                 </div>
               </div>
-              <div style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 6 }}>{pas.label}</div>
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{pas.sub}</p>
+              <div style={{ fontSize: 13.5, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 6 }}>{step.label}</div>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.55 }}>{step.sub}</p>
             </div>
           ))}
         </div>
@@ -523,7 +525,7 @@ export const HomePage = () => {
         <SectionHeader eyebrow={t('home.sections.pagesEyebrow')} title={t('home.sections.pagesTitle')} />
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
-          {paginesDelPortal.map(page => (
+          {portalPages.map(page => (
             <a key={page.href} href={page.href} style={{ ...S.card, textDecoration: 'none', borderTop: `3px solid ${page.color}`, display: 'flex', flexDirection: 'column', gap: 12, minHeight: 158 }} className="home-page-card">
               <div style={{ width: 40, height: 40, borderRadius: 9, background: `${page.color}14`, color: page.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <page.Icona />
