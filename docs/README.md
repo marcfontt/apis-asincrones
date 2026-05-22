@@ -9,6 +9,7 @@ serveix per ampliar arquitectura i decisions.
 | Document | Què conté |
 |----------|-----------|
 | [`architecture.md`](architecture.md) | Diagrama del sistema, serveis, ports i flux d'una execució. |
+| [`migracio-aks-azure-students.md`](migracio-aks-azure-students.md) | Pla de reconstrucció del clúster AKS quan la subscripció original queda deshabilitada o només lectura. |
 
 ## Recursos relacionats
 
