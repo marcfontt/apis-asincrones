@@ -13,6 +13,25 @@ pot utilitzar dins del namespace `brokers`.
 
 Kafka es desplega des de `k8s/kafka/` perquè necessita l'operador Strimzi.
 
+## Perfil de recursos comparable
+
+Per a les proves del PFG, els brokers es despleguen amb el mateix pressupost de
+recursos:
+
+| Broker | CPU | Memoria | QoS |
+|---|---:|---:|---|
+| Kafka | `300m` | `768Mi` | Guaranteed |
+| RabbitMQ | `300m` | `768Mi` | Guaranteed |
+| NATS | `300m` | `768Mi` | Guaranteed |
+
+La comparativa no exigeix que tots consumeixin el mateix, sino que tots tinguin
+el mateix sostre. Aixo permet mesurar quin rendiment treu cada broker del
+mateix pressupost.
+
+En el node `Standard_B2s_v2` d'Azure for Students no s'han de mantenir tots
+els brokers actius alhora durant una mesura. Les proves han de ser serials:
+un broker actiu, Grafana aturat si no s'esta capturant, i cap run paral.lel.
+
 ## Aplicacio
 
 ```bash
@@ -21,6 +40,27 @@ kubectl apply -f k8s/brokers/
 kubectl rollout status deployment/rabbitmq -n brokers --timeout=180s
 kubectl rollout status deployment/nats -n brokers --timeout=120s
 kubectl get pods,svc,endpoints -n brokers
+```
+
+Per preparar una prova RabbitMQ:
+
+```bash
+kubectl scale deployment/grafana -n apis-asincrones --replicas=0
+kubectl scale deployment/nats -n brokers --replicas=0
+kubectl apply -f k8s/brokers/rabbitmq.yaml
+kubectl rollout status deployment/rabbitmq -n brokers --timeout=240s
+kubectl get endpoints rabbitmq -n brokers
+```
+
+Per preparar una prova NATS:
+
+```bash
+kubectl scale deployment/grafana -n apis-asincrones --replicas=0
+kubectl scale deployment/rabbitmq -n brokers --replicas=0
+kubectl apply -f k8s/brokers/nats-config.yaml
+kubectl apply -f k8s/brokers/nats.yaml
+kubectl rollout status deployment/nats -n brokers --timeout=180s
+kubectl get endpoints nats nats-headless -n brokers
 ```
 
 ## Endpoints que espera el codi

@@ -23,6 +23,3 @@ spec:
       transaction.state.log.replication.factor: 1
       message.max.bytes: "4194304"
       replica.fetch.max.bytes: "4194304"
-  entityOperator:
-    topicOperator: {}
-    userOperator: {}

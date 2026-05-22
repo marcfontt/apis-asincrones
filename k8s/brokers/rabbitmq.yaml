@@ -51,15 +51,15 @@ spec:
             secretKeyRef:
               name: rabbitmq-admin
               key: password
-        - name: RABBITMQ_VM_MEMORY_HIGH_WATERMARK
-          value: "0.60"
+        - name: RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS
+          value: "+S 1:1 +sbwt none +sbwtdcpu none +sbwtdio none"
         resources:
           requests:
-            cpu: 150m
-            memory: 384Mi
+            cpu: 300m
+            memory: 768Mi
           limits:
-            cpu: 150m
-            memory: 384Mi
+            cpu: 300m
+            memory: 768Mi
         readinessProbe:
           exec:
             command: ["rabbitmq-diagnostics", "-q", "ping"]

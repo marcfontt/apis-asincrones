@@ -125,7 +125,53 @@ brokers/kafka-cluster-dual-role-0        Running si proves Kafka o Confluent
 Grafana pot estar a `0 replicas` quan no es fa observabilitat per alliberar
 recursos del node.
 
-## 5. Configurar la URL publica de Backstage
+## 5. Perfil comparable de brokers
+
+Per comparar rendiment, els brokers del repo fan servir el mateix sostre:
+
+| Broker | CPU | Memoria | QoS |
+|---|---:|---:|---|
+| Kafka | `300m` | `768Mi` | Guaranteed |
+| RabbitMQ | `300m` | `768Mi` | Guaranteed |
+| NATS | `300m` | `768Mi` | Guaranteed |
+
+Aixo no vol dir tenir-los tots actius alhora. En Azure for Students, les proves
+son serials: un broker objectiu actiu, Grafana aturat excepte quan cal captura,
+i cap run paral.lel.
+
+Preparar RabbitMQ:
+
+```powershell
+kubectl scale deployment/grafana -n $NS_APP --replicas=0
+kubectl scale deployment/nats -n $NS_BROKERS --replicas=0
+kubectl apply -f k8s/brokers/rabbitmq.yaml
+kubectl rollout status deployment/rabbitmq -n $NS_BROKERS --timeout=240s
+kubectl get endpoints rabbitmq -n $NS_BROKERS
+```
+
+Preparar NATS:
+
+```powershell
+kubectl scale deployment/grafana -n $NS_APP --replicas=0
+kubectl scale deployment/rabbitmq -n $NS_BROKERS --replicas=0
+kubectl apply -f k8s/brokers/nats-config.yaml
+kubectl apply -f k8s/brokers/nats.yaml
+kubectl rollout status deployment/nats -n $NS_BROKERS --timeout=180s
+kubectl get endpoints nats nats-headless -n $NS_BROKERS
+```
+
+Preparar Kafka:
+
+```powershell
+kubectl scale deployment/grafana -n $NS_APP --replicas=0
+kubectl scale deployment/nats -n $NS_BROKERS --replicas=0
+kubectl scale deployment/rabbitmq -n $NS_BROKERS --replicas=0
+kubectl apply -f k8s/kafka/
+kubectl wait kafka/kafka-cluster -n $NS_BROKERS --for=condition=Ready --timeout=600s
+kubectl get endpoints kafka-cluster-kafka-bootstrap -n $NS_BROKERS
+```
+
+## 6. Configurar la URL publica de Backstage
 
 ```powershell
 bash scripts/configure-backstage-public-url.sh
@@ -135,7 +181,7 @@ kubectl get svc backstage-service -n $NS_APP
 El script actualitza `APP_CONFIG_app_baseUrl`,
 `APP_CONFIG_backend_baseUrl` i CORS amb la IP del LoadBalancer.
 
-## 6. Build d'imatges
+## 7. Build d'imatges
 
 En Azure for Students, `az acr build` pot fallar amb `TasksOperationsNotAllowed`.
 El cami correcte es:
@@ -155,7 +201,7 @@ kubectl apply -f k8s/deployments/
 ./deploy-all.sh --restart-only
 ```
 
-## 7. Executar una prova i comprovar que genera mesures
+## 8. Executar una prova i comprovar que genera mesures
 
 1. Obre el portal Backstage.
 2. Ves a `Escenaris`.
@@ -208,7 +254,7 @@ Interpretacio rapida:
 | Job `Error` o `CrashLoopBackOff` | Fallada del load-generator | Revisa logs del namespace `sc-*`. |
 | Metrics API amb error ES | Elasticsearch no llest | Revisa `kubectl logs deployment/elasticsearch`. |
 
-## 8. Grafana pas a pas
+## 9. Grafana pas a pas
 
 Arrencar Grafana:
 
@@ -255,7 +301,7 @@ Quan acabis, si necessites recursos:
 kubectl scale deployment/grafana -n $NS_APP --replicas=0
 ```
 
-## 9. Apagar per reduir cost
+## 10. Apagar per reduir cost
 
 Abans d'apagar, atura execucions en curs des del portal o elimina namespaces
 efimers si han quedat penjats:
@@ -288,7 +334,7 @@ az aks show `
   -o table
 ```
 
-## 10. Captures per a la memoria i annex
+## 11. Captures per a la memoria i annex
 
 Captures recomanades:
 
