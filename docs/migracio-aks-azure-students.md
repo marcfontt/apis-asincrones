@@ -215,11 +215,11 @@ ACR attached: asyncpfg65454
 ```
 
 Com que aquest node te menys capacitat que l'entorn original de NTT, el portal
-Backstage s'ha ajustat amb requests mes baixos i els desplegaments propis fan
-servir estrategia `Recreate`. Aquesta configuracio serveix per recuperar una
-plataforma funcional i reproduible, pero les mesures finals s'han de defensar
-indicant explicitament la mida `Standard_B2s_v2` i evitant comparar-les
-directament amb execucions fetes sobre nodes mes grans.
+Backstage i els microserveis propis s'han ajustat amb requests de CPU baixos i
+els desplegaments fan servir estrategia `Recreate`. Aquesta configuracio serveix
+per recuperar una plataforma funcional i reproduible, pero les mesures finals
+s'han de defensar indicant explicitament la mida `Standard_B2s_v2` i evitant
+comparar-les directament amb execucions fetes sobre nodes mes grans.
 
 Validacio inicial:
 
