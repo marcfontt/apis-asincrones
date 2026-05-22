@@ -10,12 +10,12 @@ Els manifests actuals fan servir principalment:
 | Namespace | Funció |
 |-----------|--------|
 | `apis-asincrones` | Backstage, microserveis, Elasticsearch i Grafana. |
-| `kafka-strimzi` | Cluster Kafka gestionat per Strimzi. |
-| `brokers` | RabbitMQ, NATS i altres brokers de prova. |
+| `brokers` | Kafka gestionat per Strimzi, RabbitMQ, NATS i altres brokers de prova. |
+| `sc-*` | Namespaces efímers creats per l'orquestrador per a cada run. |
 
-Si el clúster real usa una altra grafia, cal canviar-ho de manera
-coherent a tots els manifests i variables abans de desplegar. No s'ha de
-barrejar una grafia al codi i una altra al clúster.
+Kafka comparteix namespace amb la resta de brokers perquè és una frontera
+operativa, no una frontera de mesura. La comparació es defensa amb recursos
+fixats, execució serial i perfils de càrrega iguals.
 
 ## Estructura
 
@@ -51,6 +51,15 @@ kubectl apply -f k8s/deployments/
 kubectl apply -f k8s/services/
 kubectl apply -f k8s/rbac/
 kubectl apply -f k8s/brokers/
+```
+
+Kafka necessita l'operador Strimzi abans d'aplicar `k8s/kafka/`:
+
+```bash
+kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
+kubectl create -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
+kubectl wait deployment/strimzi-cluster-operator -n brokers --for=condition=Available --timeout=120s
+kubectl apply -f k8s/kafka/
 ```
 
 Si només canvies Grafana:

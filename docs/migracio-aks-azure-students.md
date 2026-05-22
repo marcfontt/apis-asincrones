@@ -252,8 +252,8 @@ az acr update \
 ```
 
 Si el nom de l'ACR no esta disponible, triar un nom unic en minuscules i numeros.
-Despres cal substituir totes les aparicions de `asyncbenchmarkregistry` pel nou
-nom d'ACR al repositori abans de desplegar.
+En la reconstruccio del 22/05/2026 el registre creat ha estat
+`asyncpfg65454.azurecr.io`.
 
 ## Fase 2: crear AKS amb cost controlat
 
@@ -292,11 +292,12 @@ az aks show --resource-group "$RG" --name "$AKS" --query powerState -o table
 
 ## Fase 3: adaptar el repositori al nou ACR
 
-Si el nou ACR no es diu `asyncbenchmarkregistry`, substituir el nom antic.
+El repositori actual ja apunta a `asyncpfg65454.azurecr.io`. Si es crea un ACR
+diferent en una reconstruccio posterior, substituir el nom actual.
 
 ```bash
-OLD_ACR=asyncbenchmarkregistry
-NEW_ACR="$ACR"
+OLD_ACR=asyncpfg65454
+NEW_ACR="<nou-acr-sense-.azurecr.io>"
 
 grep -RIl "$OLD_ACR" deploy-all.sh k8s packages/benchmark-orchestrator \
   | xargs sed -i "s/$OLD_ACR/$NEW_ACR/g"
@@ -313,7 +314,6 @@ Revisar especialment:
 
 ```bash
 kubectl create namespace apis-asincrones --dry-run=client -o yaml | kubectl apply -f -
-kubectl create namespace kafka-strimzi --dry-run=client -o yaml | kubectl apply -f -
 kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
 
 kubectl create secret docker-registry acr-secret \
@@ -327,6 +327,14 @@ kubectl create secret docker-registry acr-secret \
 Si l'ACR esta adjuntat amb `--attach-acr`, el secret pot no ser necessari per als
 deployments base. En aquest projecte es mante perque l'orquestrador copia
 `acr-secret` als namespaces efimers dels Jobs.
+
+Kafka i la resta de brokers comparteixen `brokers`. Si durant la migracio s'ha
+creat `kafka-strimzi`, es pot eliminar quan estigui buit:
+
+```bash
+kubectl get all -n kafka-strimzi
+kubectl delete namespace kafka-strimzi
+```
 
 ## Fase 5: construir imatges i desplegar
 
@@ -347,24 +355,26 @@ kubectl apply -f k8s/brokers/
 
 kubectl rollout status deployment/backstage -n apis-asincrones --timeout=240s
 kubectl get pods -n apis-asincrones
+
+bash scripts/configure-backstage-public-url.sh
 ```
 
 ## Fase 6: desplegar Kafka amb Strimzi
 
 ```bash
-kubectl create namespace kafka-strimzi --dry-run=client -o yaml | kubectl apply -f -
-kubectl create -f 'https://strimzi.io/install/latest?namespace=kafka-strimzi' -n kafka-strimzi
+kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
+kubectl create -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
 
 kubectl wait deployment/strimzi-cluster-operator \
-  -n kafka-strimzi \
+  -n brokers \
   --for=condition=Available \
   --timeout=300s
 
 kubectl apply -f k8s/kafka/kafkanodepool.yaml
 kubectl apply -f k8s/kafka/kafka-cluster.yaml
 
-kubectl get pods -n kafka-strimzi
-kubectl get kafka -n kafka-strimzi
+kubectl get pods -n brokers
+kubectl get kafka -n brokers
 ```
 
 ## Fase 7: validacio minima

@@ -24,7 +24,7 @@ spec:
       - name: acr-secret
       containers:
       - name: catalog-service
-        image: asyncbenchmarkregistry.azurecr.io/catalog-service:latest
+        image: asyncpfg65454.azurecr.io/catalog-service:latest
         imagePullPolicy: Always
         env:
         - name: ELASTICSEARCH_URL
@@ -36,8 +36,8 @@ spec:
           protocol: TCP
         resources:
           limits:
-            cpu: 500m
-            memory: 256Mi
+            cpu: 250m
+            memory: 192Mi
           requests:
-            cpu: 100m
-            memory: 128Mi
+            cpu: 50m
+            memory: 96Mi

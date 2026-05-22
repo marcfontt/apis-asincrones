@@ -13,8 +13,8 @@ Tots els Serveis es desplegen al namespace `apis-asincrones`.
 | `backstage-service.yaml` | Backstage | LoadBalancer | 80/443 | Accés extern; IP pública AKS |
 | `catalog-service.yaml` | Catalog Service | ClusterIP | 3001 | Accés intern |
 | `scenario-service.yaml` | Scenario Service | ClusterIP | 3002 | Accés intern |
-| `metrics-api.yaml` | Metrics API | ClusterIP | 3003 | Accés intern (WebSocket + REST) |
-| `benchmark-orchestrator.yaml` | Orchestrator | ClusterIP | 8080 | Accés intern |
+| `metrics-api.yaml` | Metrics API | ClusterIP | 3004 | Accés intern (WebSocket + REST) |
+| `benchmark-orchestrator.yaml` | Orchestrator | ClusterIP | 3003 | Accés intern |
 | `elasticsearch.yaml` | Elasticsearch | ClusterIP | 9200/9300 | REST (9200) + node-to-node (9300) |
 | `grafana.yaml` | Grafana | ClusterIP | 3000 | Port accés intern |
 
@@ -35,7 +35,7 @@ http://<IP-PUBLICA-AKS>:80
 Obté la IP pública:
 ```bash
 kubectl get svc backstage-service -n apis-asincrones
-# Output: EXTERNAL-IP = 20.23.94.191
+# Output: EXTERNAL-IP = <IP-PUBLICA-AKS>
 ```
 
 #### Port-forward (temporalment)

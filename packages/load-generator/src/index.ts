@@ -30,7 +30,7 @@ const CONFIGURACION = {
   protocol: process.env.PROTOCOL || 'Kafka',
   platform: process.env.PLATFORM || '',
   dataFormat: process.env.DATA_FORMAT || 'default',   // BUG 2: ara es llegeix
-  kafkaBrokers: (process.env.KAFKA_BROKERS || 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092').split(','),
+  kafkaBrokers: (process.env.KAFKA_BROKERS || 'kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092').split(','),
   mqttBroker: process.env.MQTT_BROKER || 'mqtt://emqx.brokers.svc.cluster.local:1883',
   metricsApiUrl: process.env.METRICS_API_URL || 'http://metrics-api.apis-asincrones.svc.cluster.local:3004',
   durationSeconds: parseInt(process.env.TEST_DURATION_SECONDS || '60'),

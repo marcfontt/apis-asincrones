@@ -11,7 +11,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3002;
 const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenario-service:3002';
-const ACR_SERVER = process.env.ACR_SERVER || 'asyncbenchmarkregistry.azurecr.io';
+const ACR_SERVER = process.env.ACR_SERVER || 'asyncpfg65454.azurecr.io';
 const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
 const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincrones';
 // Used by DELETE /runs/:id to cascade-delete the run's metrics from
@@ -48,11 +48,11 @@ const DATA_FORMAT_CONFIG: Record<string, {
   memoryRequest: string;
   memoryLimit: string;
 }> = {
-  'default': { messageSizeBytes: 256, messagesPerSecond: 100, memoryRequest: '512Mi', memoryLimit: '512Mi' },
-  'video-4k': { messageSizeBytes: 500_000, messagesPerSecond: 10, memoryRequest: '1Gi', memoryLimit: '1Gi' },
-  'video-8k': { messageSizeBytes: 2_000_000, messagesPerSecond: 4, memoryRequest: '2Gi', memoryLimit: '2Gi' },
-  'financial': { messageSizeBytes: 512, messagesPerSecond: 200, memoryRequest: '512Mi', memoryLimit: '512Mi' },
-  'iot': { messageSizeBytes: 64, messagesPerSecond: 500, memoryRequest: '512Mi', memoryLimit: '512Mi' },
+  'default': { messageSizeBytes: 256, messagesPerSecond: 100, memoryRequest: '256Mi', memoryLimit: '256Mi' },
+  'video-4k': { messageSizeBytes: 500_000, messagesPerSecond: 10, memoryRequest: '512Mi', memoryLimit: '512Mi' },
+  'video-8k': { messageSizeBytes: 2_000_000, messagesPerSecond: 4, memoryRequest: '768Mi', memoryLimit: '768Mi' },
+  'financial': { messageSizeBytes: 512, messagesPerSecond: 200, memoryRequest: '256Mi', memoryLimit: '256Mi' },
+  'iot': { messageSizeBytes: 64, messagesPerSecond: 500, memoryRequest: '256Mi', memoryLimit: '256Mi' },
 };
 
 // ── FIX 3: Mapeig de protocol/plataforma → brokerType ──────────────────────
@@ -268,7 +268,7 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
             { name: 'DATA_FORMAT', value: formatoDatos },
             { name: 'KAFKA_BROKERS', value: tipoBroker === 'confluent'
               ? 'redpanda.brokers.svc.cluster.local:9093'
-              : 'kafka-cluster-kafka-bootstrap.kafka-strimzi.svc.cluster.local:9092' },
+              : 'kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092' },
             { name: 'NATS_URL', value: NATS_BROKER_URL },
             { name: 'RABBITMQ_URL', value: 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672' },
             { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
@@ -278,8 +278,8 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
             { name: 'MESSAGE_SIZE_BYTES', value: tamanoMensajeBytes },
           ],
           resources: {
-            requests: { cpu: '500m', memory: configuracionFormato.memoryRequest },
-            limits: { cpu: '500m', memory: configuracionFormato.memoryLimit },
+            requests: { cpu: '250m', memory: configuracionFormato.memoryRequest },
+            limits: { cpu: '250m', memory: configuracionFormato.memoryLimit },
           },
         }],
       },

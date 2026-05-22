@@ -51,7 +51,7 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
     { label: 'Producte', value: 'Apache Kafka' },
     { label: 'Versió usada', value: '4.1.1' },
     { label: 'Operador/chart', value: 'Strimzi amb KRaft i node pool dual-role' },
-    { label: 'Namespace', value: 'kafka-strimzi' },
+    { label: 'Namespace', value: 'brokers' },
     { label: 'Port client', value: '9092 dins del clúster' },
     { label: 'Topologia', value: '1 rèplica amb rol controller + broker' },
     { label: 'Particions', value: '1 partició per topic de run' },
@@ -230,10 +230,10 @@ export const REPRODUCIBILITY_SNIPPETS: Record<string, ReproducibilitySnippet> = 
   'Apache Kafka': {
     titol: 'Verificar Kafka via Strimzi al clúster',
     codi: [
-      'kubectl get pods -n kafka-strimzi',
-      'kubectl get kafka -n kafka-strimzi',
-      'kubectl get kafkanodepool -n kafka-strimzi',
-      'kubectl logs -n kafka-strimzi -l strimzi.io/name=kafka-cluster-kafka',
+      'kubectl get pods -n brokers',
+      'kubectl get kafka -n brokers',
+      'kubectl get kafkanodepool -n brokers',
+      'kubectl logs -n brokers -l strimzi.io/name=kafka-cluster-kafka',
     ].join('\n'),
   },
   Confluent: {

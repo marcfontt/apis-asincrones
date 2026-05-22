@@ -24,15 +24,17 @@ spec:
       - name: acr-secret
       containers:
       - name: backstage
-        image: asyncbenchmarkregistry.azurecr.io/backstage:latest
+        image: asyncpfg65454.azurecr.io/backstage:latest
         imagePullPolicy: Always
         env:
         - name: NODE_ENV
           value: production
         - name: APP_CONFIG_app_baseUrl
-          value: http://20.23.94.191
+          value: http://pending-backstage-service-ip
         - name: APP_CONFIG_backend_baseUrl
-          value: http://20.23.94.191
+          value: http://pending-backstage-service-ip
+        - name: APP_CONFIG_backend_cors_origin
+          value: http://pending-backstage-service-ip
         - name: APP_CONFIG_backend_csp_upgradeInsecureRequests
           value: "false"
         - name: APP_CONFIG_auth_environment
@@ -62,8 +64,8 @@ spec:
           timeoutSeconds: 1
         resources:
           limits:
-            cpu: 1500m
-            memory: 2Gi
+            cpu: "1"
+            memory: 1Gi
           requests:
             cpu: 250m
             memory: 512Mi

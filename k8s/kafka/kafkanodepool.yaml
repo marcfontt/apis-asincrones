@@ -2,7 +2,7 @@ apiVersion: kafka.strimzi.io/v1
 kind: KafkaNodePool
 metadata:
   name: dual-role
-  namespace: kafka-strimzi
+  namespace: brokers
   labels:
     strimzi.io/cluster: kafka-cluster
 spec:
@@ -17,8 +17,8 @@ spec:
     # Això vol dir que requests i limits són iguals, igual que volem fer amb la
     # resta de brokers quan el desplegament està controlat pel repo.
     limits:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 300m
+      memory: 768Mi
     requests:
-      cpu: 500m
-      memory: 1Gi
+      cpu: 300m
+      memory: 768Mi

@@ -42,7 +42,7 @@ parcials.
 | `PORT` | `3003` en Kubernetes. Si no es defineix, el codi local pot usar `3002`. |
 | `SCENARIO_SERVICE_URL` | `http://scenario-service:3002` |
 | `METRICS_API_URL` | `http://metrics-api:3004` |
-| `ACR_SERVER` | `asyncbenchmarkregistry.azurecr.io` |
+| `ACR_SERVER` | `asyncpfg65454.azurecr.io` |
 | `NAMESPACE` | `apis-asincrones` |
 
 En local, defineix `PORT=3003` si vols provar-lo darrere del mateix proxy

@@ -1,19 +1,19 @@
 app:
   title: APIs Asíncrones
-  baseUrl: http://20.23.94.191
+  baseUrl: http://pending-backstage-service-ip
 
 organization:
   name: APIs Asíncrones
 
 backend:
-  baseUrl: http://20.23.94.191
+  baseUrl: http://pending-backstage-service-ip
   listen:
     port: 7007
   csp:
     connect-src: ["'self'", 'http:', 'https:', 'ws:', 'wss:']
     upgradeInsecureRequests: false
   cors:
-    origin: http://20.23.94.191
+    origin: http://pending-backstage-service-ip
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
     credentials: true
   database:

@@ -63,9 +63,11 @@ Canvis més recents del portal:
 ## Arquitectura
 
 El sistema viu dins un clúster Azure Kubernetes Service. Els manifests
-actuals del repo fan servir el namespace `apis-asincrones` per a l'app,
-`kafka-strimzi` per a Kafka i `brokers` per a la resta de brokers. Si el
-clúster real usa una altra grafia, cal normalitzar-la abans de desplegar.
+actuals del repo fan servir el namespace `apis-asincrones` per a l'app i
+`brokers` per a Kafka, NATS, RabbitMQ i la resta de brokers. Els Jobs de
+benchmark es creen en namespaces efímers `sc-*` per aïllar cada execució.
+La comparació justa no depèn del namespace, sinó de recursos fixos,
+execució serial, warm-up i perfils de càrrega iguals.
 
 ```mermaid
 flowchart TB
@@ -82,11 +84,8 @@ flowchart TB
             loadgen["load-generator<br/>Job efímer"]
         end
 
-        subgraph kafka["ns: kafka-strimzi"]
-            kafkaBroker["Kafka Strimzi"]
-        end
-
         subgraph brokers["ns: brokers"]
+            kafkaBroker["Kafka Strimzi"]
             rabbit["RabbitMQ"]
             nats["NATS"]
             confluent["Confluent<br/>(camí Kafka-compatible)"]
@@ -249,17 +248,25 @@ no estava llest. Això fa més robusta la recollida de les primeres mostres.
 Aplicacio base:
 
 ```bash
+kubectl create namespace apis-asincrones --dry-run=client -o yaml | kubectl apply -f -
+kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
+
 kubectl apply -f k8s/storage/
 kubectl apply -f k8s/deployments/
 kubectl apply -f k8s/services/
 kubectl apply -f k8s/rbac/
 kubectl apply -f k8s/brokers/
+
+kubectl create -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
+kubectl wait deployment/strimzi-cluster-operator -n brokers --for=condition=Available --timeout=300s
+kubectl apply -f k8s/kafka/
 ```
 
 Build, push i restart:
 
 ```bash
 ./deploy-all.sh
+bash scripts/configure-backstage-public-url.sh
 ```
 
 El desplegament públic recomanat és AKS amb ingress nginx i cert-manager.

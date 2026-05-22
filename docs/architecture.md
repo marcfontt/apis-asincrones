@@ -6,13 +6,19 @@ Diagrama actualitzat amb els namespaces i serveis reals del cluster AKS.
 
 ## Visió general
 
-El sistema s'organitza en **tres namespaces** dins del cluster AKS:
+El sistema s'organitza en **dos namespaces persistents** dins del cluster AKS,
+mes els namespaces efímers `sc-*` que crea cada execució:
 
 | Namespace | Contingut |
 |-----------|-----------|
 | `apis-asincrones` | Portal Backstage, microserveis i eines d'observabilitat |
-| `kafka-strimzi` | Cluster Kafka gestionat per l'operador Strimzi (KRaft mode) |
-| `brokers` | NATS, RabbitMQ i Confluent pel camí Kafka-compatible |
+| `brokers` | Kafka gestionat per Strimzi, NATS, RabbitMQ i Confluent pel camí Kafka-compatible |
+| `sc-*` | Jobs efímers de benchmark, un namespace per run |
+
+Unificar els brokers en `brokers` simplifica la reconstrucció del cluster
+després del canvi de subscripció. La validesa de la comparació es defensa
+amb recursos fixats, execució serial, warm-up i càrrega iguals, no amb la
+separació física per namespace.
 
 El flux principal és: **Usuari → Backstage → Orchestrator → Job (load-generator) → Broker → Metrics API → Elasticsearch**.
 
@@ -32,26 +38,21 @@ flowchart TB
         %% Namespace: apis-asincrones
         subgraph nsApp["ns: apis-asincrones"]
             direction TB
-            backstage["backstage-service<br/>(plugin async-benchmark)<br/>LoadBalancer 80:30304<br/>ext: 20.23.94.191"]:::app
+            backstage["backstage-service<br/>(plugin async-benchmark)<br/>LoadBalancer 80:30304<br/>ext: assignada per AKS"]:::app
             catalog["catalog-service<br/>ClusterIP :3001"]:::app
             scenario["scenario-service<br/>ClusterIP :3002"]:::app
             orchestrator["benchmark-orchestrator<br/>ClusterIP :3003"]:::app
             metrics["metrics-api<br/>ClusterIP :3004<br/>(REST + WebSocket)"]:::app
             es[("elasticsearch<br/>ClusterIP :9200<br/>índex async-metrics")]:::data
-            grafana["grafana<br/>LoadBalancer 3000:31926<br/>ext: 98.64.47.155"]:::obs
+            grafana["grafana<br/>ClusterIP :3000<br/>port-forward si cal"]:::obs
             loadgen[/"load-generator<br/>(K8s Job efímer)"/]:::job
-        end
-
-        %% Namespace: kafka-strimzi
-        subgraph nsKafka["ns: kafka-strimzi"]
-            direction TB
-            kafkaBoot["kafka-cluster-kafka-bootstrap<br/>:9091 / :9092"]:::broker
-            kafkaBrokers["kafka-cluster-kafka-brokers<br/>(headless) :9090 / :9091"]:::broker
         end
 
         %% Namespace: brokers
         subgraph nsBrokers["ns: brokers"]
             direction TB
+            kafkaBoot["kafka-cluster-kafka-bootstrap<br/>:9091 / :9092"]:::broker
+            kafkaBrokers["kafka-cluster-kafka-brokers<br/>(headless) :9090 / :9091"]:::broker
             nats["nats<br/>:4222"]:::broker
             natsHl["nats-headless<br/>:4222 / :8222"]:::broker
             rabbit["rabbitmq<br/>:5672 / :15672"]:::broker
@@ -97,7 +98,6 @@ flowchart TB
 
     style cluster   fill:#f8fafc,stroke:#475569,stroke-width:2px
     style nsApp     fill:#eff6ff,stroke:#1d4ed8,stroke-width:1px
-    style nsKafka   fill:#fff1f2,stroke:#be123c,stroke-width:1px
     style nsBrokers fill:#fef2f2,stroke:#9f1239,stroke-width:1px
 ```
 
@@ -109,26 +109,21 @@ flowchart TB
 
 | Servei | Port | Exposició | Descripció |
 |--------|------|-----------|------------|
-| `backstage-service` | 80 → 30304 | LoadBalancer (`20.23.94.191`) | Portal Backstage amb el plugin `async-benchmark` |
+| `backstage-service` | 80 → 30304 | LoadBalancer assignat per AKS | Portal Backstage amb el plugin `async-benchmark` |
 | `catalog-service` | 3001 | ClusterIP | CRUD del catàleg de tecnologies |
 | `scenario-service` | 3002 | ClusterIP | CRUD d'escenaris de benchmark |
 | `benchmark-orchestrator` | 3003 | ClusterIP | Crea Jobs K8s per a cada execució |
 | `metrics-api` | 3004 | ClusterIP | REST + WebSocket sobre Elasticsearch |
 | `elasticsearch` | 9200 | ClusterIP | Índex `async-metrics` (sèries temporals) |
-| `grafana` | 3000 → 31926 | LoadBalancer (`98.64.47.155`) | Dashboards d'observabilitat |
+| `grafana` | 3000 | ClusterIP | Dashboards d'observabilitat via port-forward quan cal |
 | `load-generator` | — | Job efímer | Envia missatges al broker i puja snapshots cada 5 s |
-
-### Namespace `kafka-strimzi`
-
-| Servei | Ports | Descripció |
-|--------|-------|------------|
-| `kafka-cluster-kafka-bootstrap` | 9091, 9092 | Punt d'entrada per a clients Kafka |
-| `kafka-cluster-kafka-brokers` | 9090, 9091 | Servei headless per a coordinació interna |
 
 ### Namespace `brokers`
 
 | Servei | Ports | Descripció |
 |--------|-------|------------|
+| `kafka-cluster-kafka-bootstrap` | 9091, 9092 | Punt d'entrada per a clients Kafka |
+| `kafka-cluster-kafka-brokers` | 9090, 9091 | Servei headless per a coordinació interna |
 | `nats` | 4222 | NATS Server (protocol NATS) |
 | `nats-headless` | 4222, 8222 | Accés directe a pods + monitoratge HTTP |
 | `rabbitmq` | 5672, 15672 | Broker AMQP + consola de gestió |
