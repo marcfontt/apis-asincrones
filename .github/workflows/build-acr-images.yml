@@ -1,0 +1,56 @@
+name: Build ACR images
+
+on:
+  workflow_dispatch:
+
+env:
+  ACR_LOGIN_SERVER: asyncpfg65454.azurecr.io
+
+jobs:
+  build-and-push:
+    name: Build ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: backstage
+            dockerfile: packages/backend/Dockerfile
+            context: .
+          - image: catalog-service
+            dockerfile: packages/catalog-service/Dockerfile
+            context: packages/catalog-service
+          - image: scenario-service
+            dockerfile: packages/scenario-service/Dockerfile
+            context: packages/scenario-service
+          - image: benchmark-orchestrator
+            dockerfile: packages/benchmark-orchestrator/Dockerfile
+            context: packages/benchmark-orchestrator
+          - image: metrics-api
+            dockerfile: packages/metrics-api/Dockerfile
+            context: packages/metrics-api
+          - image: load-generator
+            dockerfile: packages/load-generator/Dockerfile
+            context: packages/load-generator
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ env.ACR_LOGIN_SERVER }}/${{ matrix.image }}:latest

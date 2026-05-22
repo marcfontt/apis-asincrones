@@ -95,6 +95,9 @@ fi
 if [[ $RESTART_ONLY -eq 0 ]]; then
   echo ""
   echo "--- Build i Push imatges (az acr build) ---"
+  echo "Si Azure retorna TasksOperationsNotAllowed, aquesta subscripcio no permet"
+  echo "ACR Tasks. En aquest cas usa el workflow manual de GitHub Actions"
+  echo "'Build ACR images' o construeix les imatges amb Docker local."
   cd "$REPO_DIR"
   for svc in "${BUILD_LIST[@]}"; do
     df="${DOCKERFILES[$svc]}"

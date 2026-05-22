@@ -344,6 +344,23 @@ Des de Cloud Shell, dins del repositori:
 ./deploy-all.sh --no-restart
 ```
 
+Si Azure retorna `TasksOperationsNotAllowed`, la subscripcio no permet ACR
+Tasks i `az acr build` no es pot usar. En aquest cas, construir i pujar les
+imatges amb el workflow manual de GitHub Actions `Build ACR images`.
+
+Secrets necessaris al repositori de GitHub:
+
+| Secret | Valor |
+|--------|-------|
+| `ACR_USERNAME` | sortida de `az acr credential show -n asyncpfg65454 --query username -o tsv` |
+| `ACR_PASSWORD` | sortida de `az acr credential show -n asyncpfg65454 --query passwords[0].value -o tsv` |
+
+Un cop el workflow acabi correctament, reiniciar els deployments:
+
+```bash
+./deploy-all.sh --restart-only
+```
+
 Despres aplicar storage, deployments, services i RBAC:
 
 ```bash

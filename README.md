@@ -269,6 +269,13 @@ Build, push i restart:
 bash scripts/configure-backstage-public-url.sh
 ```
 
+Si Azure for Students bloqueja `az acr build` amb `TasksOperationsNotAllowed`,
+usar el workflow manual de GitHub Actions `Build ACR images` i despres fer:
+
+```bash
+./deploy-all.sh --restart-only
+```
+
 El desplegament públic recomanat és AKS amb ingress nginx i cert-manager.
 Vercel queda descartat per aquest projecte: el backend necessita processos
 persistents, Jobs de Kubernetes i connexió amb brokers stateful.
