@@ -133,9 +133,10 @@ echo "--- Rollout restart ---"
 if [[ -n "$ONLY" ]]; then
   TARGETS=("$ONLY")
 else
-  # grafana + elasticsearch dont have images built here but still restart
-  # them so they pick up any config-map changes and new backend connections.
-  TARGETS=(backstage catalog-service scenario-service benchmark-orchestrator metrics-api grafana elasticsearch)
+  # Keep restarts focused on images built by this script. On the Azure for
+  # Students single-node cluster, restarting Grafana/Elasticsearch with every
+  # app deploy adds avoidable pressure and can block scheduling.
+  TARGETS=(backstage catalog-service scenario-service benchmark-orchestrator metrics-api)
 fi
 for svc in "${TARGETS[@]}"; do
   # load-generator runs as an on-demand Job, not a Deployment - skip rollout.
