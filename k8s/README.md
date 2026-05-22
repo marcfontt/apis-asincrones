@@ -41,7 +41,9 @@ k8s/
 | `metrics-api` | OK | REST i WebSocket sobre Elasticsearch. |
 | Elasticsearch | OK | Single-node amb PVC. |
 | Grafana | OK | Datasource d'Elasticsearch. |
-| NATS | Revisar per payload gran | Cal `max_payload` més alt per vídeo 8K. |
+| Kafka | OK condicionat a recursos | Strimzi al namespace `brokers`. |
+| RabbitMQ | OK | Manifest minim `k8s/brokers/rabbitmq.yaml`. |
+| NATS | OK | Manifest minim `k8s/brokers/nats.yaml` amb `max_payload=4MB`. |
 
 ## Aplicar canvis
 
@@ -57,9 +59,18 @@ Kafka necessita l'operador Strimzi abans d'aplicar `k8s/kafka/`:
 
 ```bash
 kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
-kubectl create -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
+kubectl apply -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
 kubectl wait deployment/strimzi-cluster-operator -n brokers --for=condition=Available --timeout=120s
 kubectl apply -f k8s/kafka/
+```
+
+Validacio minima dels brokers:
+
+```bash
+kubectl get pods,svc,endpoints -n brokers
+kubectl rollout status deployment/rabbitmq -n brokers --timeout=180s
+kubectl rollout status deployment/nats -n brokers --timeout=120s
+kubectl get kafka,kafkanodepool -n brokers
 ```
 
 Si només canvies Grafana:
@@ -87,4 +98,11 @@ kubectl port-forward -n apis-asincrones svc/grafana 3000:3000
 ```
 
 Grafana queda disponible a `http://localhost:3000` durant el
-port-forward. La contrasenya d'admin viu al Secret de Grafana.
+port-forward. La contrasenya d'admin viu al Secret de Grafana:
+
+```bash
+kubectl get secret grafana-admin -n apis-asincrones -o jsonpath="{.data.user}" | base64 -d
+echo
+kubectl get secret grafana-admin -n apis-asincrones -o jsonpath="{.data.password}" | base64 -d
+echo
+```

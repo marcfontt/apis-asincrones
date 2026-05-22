@@ -376,6 +376,8 @@ kubectl apply -f k8s/deployments/
 kubectl apply -f k8s/services/
 kubectl apply -f k8s/rbac/
 kubectl apply -f k8s/brokers/
+kubectl rollout status deployment/rabbitmq -n brokers --timeout=180s
+kubectl rollout status deployment/nats -n brokers --timeout=120s
 
 kubectl rollout status deployment/backstage -n apis-asincrones --timeout=240s
 kubectl get pods -n apis-asincrones
@@ -387,7 +389,7 @@ bash scripts/configure-backstage-public-url.sh
 
 ```bash
 kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
-kubectl create -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
+kubectl apply -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
 
 kubectl wait deployment/strimzi-cluster-operator \
   -n brokers \
@@ -398,7 +400,8 @@ kubectl apply -f k8s/kafka/kafkanodepool.yaml
 kubectl apply -f k8s/kafka/kafka-cluster.yaml
 
 kubectl get pods -n brokers
-kubectl get kafka -n brokers
+kubectl get kafka,kafkanodepool -n brokers
+kubectl get svc,endpoints -n brokers
 ```
 
 ## Fase 7: validacio minima
@@ -420,12 +423,16 @@ kubectl get svc backstage-service -n apis-asincrones
 Prova final minima:
 
 1. Entrar al portal.
-2. Crear o seleccionar un escenari Kafka basic.
+2. Crear o seleccionar un escenari petit segons el broker disponible:
+   `Kafka control base`, `RabbitMQ financer fiable` o `NATS telemetria IoT`.
 3. Executar una prova curta.
 4. Confirmar que es crea un namespace `sc-*`.
 5. Confirmar que el Job acaba.
 6. Confirmar que apareixen metriques a Resultats.
 7. Confirmar que Grafana pot llegir Elasticsearch.
+
+La guia pas a pas d'operativa diaria, arrencada, parada, Grafana i diagnostics
+viu a [`guia-operativa-aks-students.md`](guia-operativa-aks-students.md).
 
 ## Fase 8: que s'ha d'explicar a la memoria
 

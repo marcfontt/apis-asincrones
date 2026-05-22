@@ -25,7 +25,7 @@ constants, i no executar dos benchmarks alhora.
 ### 1. Crear namespace i instal·lar operador
 ```bash
 kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
-kubectl create -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
+kubectl apply -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
 kubectl wait deployment/strimzi-cluster-operator -n brokers \
   --for=condition=Available --timeout=120s
 ```

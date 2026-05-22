@@ -5,15 +5,11 @@
 #
 # It does two things:
 #   - Increases max_payload to 4 MB so video-8k (2 MB) messages are accepted.
-#   - Writes the PID file expected by the Helm reloader sidecar. Without this,
-#     the NATS container is healthy but the pod stays NotReady because the
-#     reloader crashes while looking for /var/run/nats/nats.pid.
+#   - Defines a minimal standalone NATS config for the benchmark pod.
 #
 # Important:
-#   - If NATS was installed with Helm, prefer the Helm command below. A ConfigMap
-#     by itself does nothing unless the workload mounts it as the active config.
-#   - If NATS was installed manually, apply this ConfigMap and restart the
-#     Deployment or StatefulSet that mounts it.
+#   - A ConfigMap by itself does nothing unless the workload mounts it as the
+#     active config. The local nats.yaml manifest does mount it.
 #
 # Apply with:
 #   kubectl apply -f k8s/brokers/nats-config.yaml
@@ -24,10 +20,8 @@
 #   helm get values nats -n brokers -o yaml > /tmp/nats-values.yaml
 #   # Make sure config.merge includes:
 #   #   max_payload: 4MB
-#   #   pid_file: "/var/run/nats/nats.pid"
 #   helm upgrade nats nats/nats -n brokers --reuse-values \
-#     --set-string config.merge.max_payload='4MB' \
-#     --set-string config.merge.pid_file='/var/run/nats/nats.pid'
+#     --set-string config.merge.max_payload='4MB'
 #
 # In this cluster the monitoring port 8222 is exposed by svc/nats-headless:
 #   kubectl port-forward -n brokers svc/nats-headless 8222:8222
@@ -47,12 +41,6 @@ data:
     # Allow messages up to 4 MB (default is 1 MB).
     # video-8k payloads are ~2 MB; 4 MB gives headroom for future formats.
     max_payload: 4MB
-
-    # Required by the nats-server-config-reloader sidecar.
-    pid_file: "/var/run/nats/nats.pid"
-
-    # JetStream enabled (matches existing -js flag used in prior deploy)
-    jetstream: enabled
 
     # HTTP monitoring port
     http_port: 8222

@@ -198,11 +198,30 @@ function postMetric(doc: object): Promise<void> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
         timeout: 5000,
-      }, (res) => { res.on('data', () => { }); res.on('end', resolve); });
-      req.on('error', () => resolve());
-      req.on('timeout', () => { req.destroy(); resolve(); });
+      }, (res) => {
+        let responseBody = '';
+        res.on('data', chunk => { responseBody += chunk; });
+        res.on('end', () => {
+          if ((res.statusCode || 0) >= 300) {
+            log(`WARN metrics-api POST failed with HTTP ${res.statusCode}: ${responseBody.slice(0, 300)}`);
+          }
+          resolve();
+        });
+      });
+      req.on('error', err => {
+        log(`WARN metrics-api POST error: ${err.message}`);
+        resolve();
+      });
+      req.on('timeout', () => {
+        log(`WARN metrics-api POST timeout after 5000ms`);
+        req.destroy();
+        resolve();
+      });
       req.write(body); req.end();
-    } catch { resolve(); }
+    } catch (err) {
+      log(`WARN metrics-api POST setup failed: ${(err as Error).message}`);
+      resolve();
+    }
   });
 }
 
@@ -591,6 +610,11 @@ async function runRabbitMQ() {
 (async () => {
   log(`[config] brokerType=${CONFIGURACION.brokerType}  dataFormat=${CONFIGURACION.dataFormat}  tamanoMensajeBytes=${CONFIGURACION.tamanoMensajeBytes}B  rate=${CONFIGURACION.mensajesPorSegundo}msg/s  duration=${CONFIGURACION.isIndefinite ? 'INDEFINITE' : CONFIGURACION.durationSeconds + 's'}`);
   try {
+    await postMetric({
+      ...snapshot(),
+      status: 'running',
+      event: 'load-generator-started',
+    });
     // Routing complet: abans nomes 'kafka' funcionava.
     if (CONFIGURACION.brokerType === 'kafka') { await runKafka(); }
     else if (CONFIGURACION.brokerType === 'confluent') { await runKafka(); } // Confluent usa el cami Kafka-compatible en aquesta fase.

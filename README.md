@@ -236,8 +236,11 @@ conservar dades parcials si el generador ja havia enviat mostres a
 `metrics-api`. Si no hi ha dades, la UI ha d'explicar si encara no han
 arribat, si l'execució ha fallat o si s'ha aturat massa aviat.
 
-El `load-generator` envia snapshots cada 5 segons i intenta enviar una
-mostra final quan acaba o rep senyal d'aturada.
+El `load-generator` envia una primera mostra de diagnosi quan arrenca,
+snapshots cada 5 segons i una mostra final quan acaba o rep senyal
+d'aturada. Si el broker no existeix o no te endpoints llestos,
+l'orquestrador marca el run com a fallit i envia una mostra amb
+`errorCode=BROKER_NOT_READY`; aixi Resultats no queda en blanc.
 
 `metrics-api` prepara l'índex `async-metrics` en arrencar i també ho
 torna a intentar abans del primer `POST /metrics` si Elasticsearch encara
@@ -257,9 +260,10 @@ kubectl apply -f k8s/services/
 kubectl apply -f k8s/rbac/
 kubectl apply -f k8s/brokers/
 
-kubectl create -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
+kubectl apply -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
 kubectl wait deployment/strimzi-cluster-operator -n brokers --for=condition=Available --timeout=300s
 kubectl apply -f k8s/kafka/
+kubectl get pods,svc,endpoints -n brokers
 ```
 
 Build, push i restart:

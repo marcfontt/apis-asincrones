@@ -1,86 +1,68 @@
-# `k8s/brokers/` — ConfigMaps per a Message Brokers
+# `k8s/brokers/` - Brokers de missatgeria
 
-Aquest directori conté configuracions personalitzades per a Message Brokers
-(NATS, RabbitMQ, etc.) desplegats al cluster.
-
-## Namespace
-Les ConfigMaps es desplegen al namespace `brokers`.
+Aquest directori conte els manifests dels brokers que el `load-generator`
+pot utilitzar dins del namespace `brokers`.
 
 ## Manifests
 
-| Manifest | Broker | Servei | Notas |
-|----------|--------|--------|-------|
-| `nats-config.yaml` | NATS Server | NATS | ConfigMap amb paràmetres de tuning |
+| Manifest | Broker | Servei intern | Notes |
+|---|---|---|---|
+| `nats-config.yaml` | NATS | ConfigMap | `max_payload=4MB` per acceptar payloads grans. |
+| `nats.yaml` | NATS | `nats`, `nats-headless` | Deployment minim usat pel benchmark. |
+| `rabbitmq.yaml` | RabbitMQ | `rabbitmq` | AMQP `5672` i consola `15672`. |
 
-## NATS Config (nats-config.yaml)
+Kafka es desplega des de `k8s/kafka/` perquè necessita l'operador Strimzi.
 
-### Paràmetres principals
-
-```yaml
-max_payload: 4M      # Màxim tamany de missatge (2 MB per vídeos 8K)
-max_connections: 1000
-max_pending_size: 256M
-```
-
-### Per què 4 MB?
-
-Els escenaris de vídeo 8K generen missatges de ~2 MB. Amb marge de seguretat,
-`max_payload: 4M` evita rebutjaments.
-
-### Aplicar configuració
+## Aplicacio
 
 ```bash
-# Crear/actualitzar ConfigMap
-kubectl apply -f k8s/brokers/nats-config.yaml
-
-# Verificar
-kubectl get cm -n brokers
-kubectl describe cm nats-config -n brokers
+kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f k8s/brokers/
+kubectl rollout status deployment/rabbitmq -n brokers --timeout=180s
+kubectl rollout status deployment/nats -n brokers --timeout=120s
+kubectl get pods,svc,endpoints -n brokers
 ```
 
-### Muntar a NATS Deployment
+## Endpoints que espera el codi
 
-El Deployment de NATS (si existeix) munta aquesta ConfigMap:
+| Broker logic | Endpoint |
+|---|---|
+| Kafka | `kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092` |
+| Confluent | Mateix endpoint Kafka-compatible si no es configura `CONFLUENT_BROKERS`. |
+| RabbitMQ / AMQP | `amqp://admin:<password>@rabbitmq.brokers.svc.cluster.local:5672` |
+| NATS | `nats://nats-headless.brokers.svc.cluster.local:4222` |
 
-```yaml
-volumeMounts:
-  - name: nats-config
-    mountPath: /etc/nats
-volumes:
-  - name: nats-config
-    configMap:
-      name: nats-config
-```
+## Credencials RabbitMQ
 
-I inicia NATS amb: `nats-server -c /etc/nats/server.conf`
-
-## Extensibilitat (Futur)
-
-Si s'afegixen altres brokers (RabbitMQ, Redis):
-
-```
-brokers/
-├── nats-config.yaml
-├── rabbitmq-config.yaml      # (futur)
-├── redis-config.yaml         # (futur)
-└── README.md
-```
-
-Cada uno amb la seva ConfigMap personalitzada.
-
-## Monitorar
+L'usuari per defecte del manifest es desa al Secret `rabbitmq-admin`.
+Per veure'l al Cloud Shell:
 
 ```bash
-# Veure ConfigMaps
-kubectl get cm -n brokers
-
-# Veure contingut de nats-config
-kubectl get cm nats-config -n brokers -o yaml | grep -A 50 'data:'
+kubectl get secret rabbitmq-admin -n brokers -o jsonpath="{.data.username}" | base64 -d
+echo
+kubectl get secret rabbitmq-admin -n brokers -o jsonpath="{.data.password}" | base64 -d
+echo
 ```
 
-## Notes
+Per obrir la consola:
 
-- Els ConfigMaps es creen sense Deployment/StatefulSet soci. Úsals
-  des de tus Deployments (mounts de volum).
-- Canvis a la ConfigMap NO recarreguen automàticament NATS.
-  Cal restart manual: `kubectl rollout restart deployment/nats -n brokers`
+```bash
+kubectl port-forward -n brokers svc/rabbitmq 15672:15672
+```
+
+Despres obre `http://127.0.0.1:15672`.
+
+## Validacio NATS
+
+```bash
+kubectl port-forward -n brokers svc/nats-headless 8222:8222
+curl http://127.0.0.1:8222/varz
+```
+
+El camp `max_payload` ha de ser com a minim `4194304`.
+
+## Nota de mesura
+
+En Azure for Students tots els brokers comparteixen un node petit. Aixo serveix
+per recuperar el flux funcional, pero les proves finals s'han de fer de manera
+serial i indicant sempre quins brokers estaven actius i quins recursos tenien.

@@ -13,7 +13,14 @@ const PORT = process.env.PORT || 3002;
 const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenario-service:3002';
 const ACR_SERVER = process.env.ACR_SERVER || 'asyncpfg65454.azurecr.io';
 const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
+const LOAD_GENERATOR_CPU = process.env.LOAD_GENERATOR_CPU || '100m';
 const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincrones';
+const BROKER_NAMESPACE = process.env.BROKER_NAMESPACE || 'brokers';
+const KAFKA_BROKERS = process.env.KAFKA_BROKERS || 'kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092';
+// In the student cluster, "Confluent" is a Kafka-compatible execution path.
+// It defaults to the same Strimzi bootstrap service unless a separate
+// Confluent-compatible endpoint is explicitly provided.
+const CONFLUENT_BROKERS = process.env.CONFLUENT_BROKERS || KAFKA_BROKERS;
 // Used by DELETE /runs/:id to cascade-delete the run's metrics from
 // Elasticsearch via metrics-api. Without this, deleting a run in the UI
 // only drops the orchestrator's in-memory record; the historical mostres
@@ -23,6 +30,7 @@ const METRICS_API_URL = process.env.METRICS_API_URL || 'http://metrics-api:3004'
 // reloader sidecar is unhealthy. The headless service still exposes nats-0 on
 // port 4222, so benchmark jobs must use it until the broker chart is cleaned.
 const NATS_BROKER_URL = process.env.NATS_BROKER_URL || 'nats://nats-headless.brokers.svc.cluster.local:4222';
+const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672';
 
 const kc = new k8s.KubeConfig();
 let k8sEnabled = false;
@@ -93,6 +101,81 @@ interface RunRecord {
   errorDetail?: string;
   namespace?: string;
   jobName?: string;
+}
+
+function brokerServiceCandidates(brokerType: string): string[] {
+  switch (brokerType) {
+    case 'kafka':
+    case 'confluent':
+      return ['kafka-cluster-kafka-bootstrap'];
+    case 'nats':
+      return ['nats-headless', 'nats'];
+    case 'rabbitmq':
+    case 'amqp':
+    case 'mqtt':
+      return ['rabbitmq'];
+    default:
+      return [];
+  }
+}
+
+async function serviceHasReadyEndpoints(serviceName: string): Promise<boolean> {
+  try {
+    await coreApi.readNamespacedService(serviceName, BROKER_NAMESPACE);
+    const endpoints = (await coreApi.readNamespacedEndpoints(serviceName, BROKER_NAMESPACE)).body;
+    return (endpoints.subsets || []).some(subset => (subset.addresses || []).length > 0);
+  } catch (_) {
+    return false;
+  }
+}
+
+async function resolveBrokerService(brokerType: string): Promise<string | null> {
+  for (const candidate of brokerServiceCandidates(brokerType)) {
+    if (await serviceHasReadyEndpoints(candidate)) return candidate;
+  }
+  return null;
+}
+
+async function postRunDiagnosticMetric(run: RunRecord, status: 'failed' | 'running', errorCode?: string, errorDetail?: string) {
+  const metric = {
+    runId: run.id,
+    scenarioId: run.scenarioId,
+    architecture: run.architecture,
+    protocol: run.protocol,
+    broker: getBrokerType(run.protocol, run.platform),
+    platform: run.platform,
+    dataFormat: run.dataFormat,
+    latency: 0,
+    p50_latency_ms: 0,
+    p95_latency_ms: 0,
+    p99_latency_ms: 0,
+    throughput: 0,
+    throughput_stable: 0,
+    errorRate: status === 'failed' ? 1 : 0,
+    messages_sent: 0,
+    messages_recv: 0,
+    messages_sent_stable: 0,
+    messages_recv_stable: 0,
+    errors: status === 'failed' ? 1 : 0,
+    elapsed_s: 0,
+    status,
+    errorCode,
+    errorDetail,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    const response = await fetch(`${METRICS_API_URL}/metrics`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(metric),
+    });
+    if (!response.ok) {
+      console.warn(`[orchestrator] diagnostic metric returned HTTP ${response.status}`);
+    }
+  } catch (e) {
+    console.warn(`[orchestrator] diagnostic metric failed: ${(e as Error).message}`);
+  }
 }
 const runs = new Map<string, RunRecord>();
 
@@ -187,6 +270,26 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
     return;
   }
 
+  const registroEjecucion = runs.get(runId);
+
+  // El broker real surt sobretot de la plataforma triada.
+  // Exemple: gRPC sobre Kafka continua connectant contra Kafka.
+  const tipoBroker = getBrokerType(registroEjecucion?.protocol || '', registroEjecucion?.platform || '');
+
+  const serveiBrokerPreparat = await resolveBrokerService(tipoBroker);
+  if (!serveiBrokerPreparat) {
+    const detall = `No hi ha cap endpoint llest per al broker "${tipoBroker}" al namespace "${BROKER_NAMESPACE}". Revisa kubectl get pods,svc,endpoints -n ${BROKER_NAMESPACE}.`;
+    if (registroEjecucion) {
+      registroEjecucion.status = 'failed';
+      registroEjecucion.completedAt = new Date().toISOString();
+      registroEjecucion.errorCode = 'BROKER_NOT_READY';
+      registroEjecucion.errorDetail = detall;
+      await postRunDiagnosticMetric(registroEjecucion, 'failed', 'BROKER_NOT_READY', detall);
+    }
+    throw new Error(detall);
+  }
+  console.log(`[orchestrator] brokerType=${tipoBroker} service=${serveiBrokerPreparat} ready`);
+
   try {
     await coreApi.createNamespace({
       apiVersion: 'v1', kind: 'Namespace',
@@ -218,12 +321,6 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
   }
 
   await copyAcrSecret(namespace);
-
-  const registroEjecucion = runs.get(runId);
-
-  // El broker real surt sobretot de la plataforma triada.
-  // Exemple: gRPC sobre Kafka continua connectant contra Kafka.
-  const tipoBroker = getBrokerType(registroEjecucion?.protocol || '', registroEjecucion?.platform || '');
 
   // Cada format té payload i ràtio per defecte. L'escenari pot sobreescriure
   // aquests valors, però si no ho fa usem la taula DATA_FORMAT_CONFIG.
@@ -266,11 +363,9 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
             { name: 'PROTOCOL', value: registroEjecucion?.protocol || 'Kafka' },
             { name: 'PLATFORM', value: registroEjecucion?.platform || '' },
             { name: 'DATA_FORMAT', value: formatoDatos },
-            { name: 'KAFKA_BROKERS', value: tipoBroker === 'confluent'
-              ? 'redpanda.brokers.svc.cluster.local:9093'
-              : 'kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092' },
+            { name: 'KAFKA_BROKERS', value: tipoBroker === 'confluent' ? CONFLUENT_BROKERS : KAFKA_BROKERS },
             { name: 'NATS_URL', value: NATS_BROKER_URL },
-            { name: 'RABBITMQ_URL', value: 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672' },
+            { name: 'RABBITMQ_URL', value: RABBITMQ_URL },
             { name: 'MQTT_BROKER', value: 'mqtt://emqx.brokers.svc.cluster.local:1883' },
             { name: 'METRICS_API_URL', value: `http://metrics-api.${ORCHESTRATOR_NAMESPACE}.svc.cluster.local:3004` },
             { name: 'TEST_DURATION_SECONDS', value: duracionEnSegundos },
@@ -278,8 +373,8 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
             { name: 'MESSAGE_SIZE_BYTES', value: tamanoMensajeBytes },
           ],
           resources: {
-            requests: { cpu: '250m', memory: configuracionFormato.memoryRequest },
-            limits: { cpu: '250m', memory: configuracionFormato.memoryLimit },
+            requests: { cpu: LOAD_GENERATOR_CPU, memory: configuracionFormato.memoryRequest },
+            limits: { cpu: LOAD_GENERATOR_CPU, memory: configuracionFormato.memoryLimit },
           },
         }],
       },
@@ -384,7 +479,8 @@ app.get('/runs/:id', (req, res) => {
 
 app.post('/runs', (req, res) => {
   // FIX 1: extreure dataFormat del body (abans s'ignorava completament)
-  const { scenarioId, scenarioName: providedName, dataFormat: providedDataFormat,
+  const { scenarioId, scenarioName: providedName, architecture: providedArchitecture,
+          protocol: providedProtocol, platform: providedPlatform, dataFormat: providedDataFormat,
           duration: providedDuration, rate: providedRate, payloadSize: providedPayloadSize } = req.body;
   if (!scenarioId) {
     res.status(400).json({ error: 'scenarioId required' });
@@ -398,7 +494,9 @@ app.post('/runs', (req, res) => {
   const run: RunRecord & { duration?: number | null; rate?: number | null; payloadSize?: number | null } = {
     id: runId, scenarioId,
     scenarioName: providedName || scenarioId,
-    architecture: '', protocol: '', platform: '',
+    architecture: providedArchitecture || '',
+    protocol: providedProtocol || '',
+    platform: providedPlatform || '',
     dataFormat: providedDataFormat || 'default',   // FIX 1: guardat al run
     status: 'running', startedAt: new Date().toISOString(),
     duration: providedDuration !== undefined ? providedDuration : undefined,

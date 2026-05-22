@@ -1,91 +1,35 @@
-# `k8s/rbac/` — Control d'accés (RBAC)
+# `k8s/rbac/` - Control d'acces
 
-Aquest directori conté configuracions de control d'accés (ServiceAccounts, Roles, RoleBindings)
-perquè els microserveis tinguin els permisos mínims necessaris.
+Aquest directori conte el ServiceAccount i els permisos que necessita
+`benchmark-orchestrator` per crear execucions al cluster.
 
-## Namespace
-Tots els recursos RBAC es desplegen al namespace `apis-asincrones`.
+## Recursos
 
-## Manifests
+| Manifest | Recursos | Servei |
+|---|---|---|
+| `benchmark-orchestrator-rbac.yaml` | ServiceAccount + ClusterRole + ClusterRoleBinding | `benchmark-orchestrator` |
 
-| Manifest | Recurs | Servei | Permisos |
-|----------|--------|--------|----------|
-| `benchmark-orchestrator-rbac.yaml` | ServiceAccount + Role + RoleBinding | Benchmark Orchestrator | Crear, llistar, veure Jobs i Pods |
+## Permisos actuals
 
-## benchmark-orchestrator-rbac.yaml
+L'orquestrador necessita:
 
-### ServiceAccount
-```yaml
-name: benchmark-orchestrator-sa
-namespace: apis-asincrones
-```
+- `namespaces`: crear i eliminar namespaces efimers `sc-*`.
+- `jobs.batch`: crear i consultar Jobs del `load-generator`.
+- `pods` i `pods/log`: consultar estat i logs de Jobs.
+- `services` i `endpoints`: verificar que el broker triat esta preparat abans de crear el Job.
+- `secrets`: copiar `acr-secret` al namespace efimer del run.
 
-Identifica l'orquestrador dins el cluster.
-
-### Role
-Permisos mínims per crear i gestionar Jobs:
-- `jobs.batch` (create, list, get, watch)
-- `pods.core` (get, list, watch, logs)
-
-### RoleBinding
-Connecta el ServiceAccount amb el Role:
-```yaml
-roleRef:
-  kind: Role
-  name: benchmark-orchestrator-role
-subjects:
-  - kind: ServiceAccount
-    name: benchmark-orchestrator-sa
-```
-
-El Deployment usa `serviceAccountName: benchmark-orchestrator-sa` per executar-se
-amb aquests permisos.
-
-## Per què RBAC?
-
-- **Seguretat**: El contenedor no té accés a la totalitat del cluster.
-- **Auditoria**: Kubernetes registra totes les accions sota el ServiceAccount.
-- **Aïllament**: Si l'orquestrador es compromet, l'atacant només pot crear Jobs, no veure secrets.
-
-## Aplicar canvis
+## Aplicar i verificar
 
 ```bash
-# Desplegar RBAC
 kubectl apply -f k8s/rbac/benchmark-orchestrator-rbac.yaml
-
-# Verificar
-kubectl get sa -n apis-asincrones
-kubectl get role -n apis-asincrones
-kubectl get rolebinding -n apis-asincrones
+kubectl describe sa benchmark-orchestrator -n apis-asincrones
+kubectl describe clusterrole benchmark-orchestrator-role
+kubectl describe clusterrolebinding benchmark-orchestrator-binding
 ```
 
-## Monitorar
+## Nota
 
-```bash
-# Veure SA
-kubectl describe sa benchmark-orchestrator-sa -n apis-asincrones
-
-# Veure Role
-kubectl describe role benchmark-orchestrator-role -n apis-asincrones
-
-# Veure qui està bound
-kubectl describe rolebinding benchmark-orchestrator-rolebinding -n apis-asincrones
-```
-
-## Afegir nous permisos
-
-Si l'orquestrador necessita més (ex. escalat d'HPA):
-
-```yaml
-rules:
-  - apiGroups: ["apps"]
-    resources: ["deployments/scale"]
-    verbs: ["get", "patch"]
-```
-
-Actualiza `benchmark-orchestrator-role` i redeplega.
-
-## Notes
-
-- Aquests són permisos **namespace-scoped**. Úsals amb Role + RoleBinding.
-- Per permisos globals: ClusterRole + ClusterRoleBinding (NO recomanat per a microserveis).
+S'utilitza `ClusterRole` perque l'orquestrador crea namespaces nous i copia
+secrets a namespaces efimers. Aixo s'ha de mantenir limitat a les accions
+necessaries; no donar permisos generals de `*`.

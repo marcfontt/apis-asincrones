@@ -56,8 +56,7 @@ flowchart TB
             nats["nats<br/>:4222"]:::broker
             natsHl["nats-headless<br/>:4222 / :8222"]:::broker
             rabbit["rabbitmq<br/>:5672 / :15672"]:::broker
-            confluent["confluent<br/>(camí Kafka-compatible)<br/>:9093"]:::broker
-            confluentExt["confluent-external<br/>NodePort per accés extern"]:::broker
+            confluent["Confluent logic<br/>(camí Kafka-compatible via Kafka)"]:::broker
         end
     end
 
@@ -78,7 +77,8 @@ flowchart TB
     loadgen -- "Kafka (TCP 9092)" --> kafkaBoot
     loadgen -- "AMQP (5672)" --> rabbit
     loadgen -- "NATS (4222)" --> nats
-    loadgen -- "Kafka API (9093)" --> confluent
+    loadgen -- "Confluent mode" --> confluent
+    confluent -. "Kafka API 9092" .-> kafkaBoot
 
     %% Mètriques
     loadgen -- "POST snapshots /5s" --> metrics
@@ -127,8 +127,7 @@ flowchart TB
 | `nats` | 4222 | NATS Server (protocol NATS) |
 | `nats-headless` | 4222, 8222 | Accés directe a pods + monitoratge HTTP |
 | `rabbitmq` | 5672, 15672 | Broker AMQP + consola de gestió |
-| `confluent` | 9093 | Camí Kafka-compatible usat per la plataforma Confluent dins del portal |
-| `confluent-external` | NodePort | Accés extern si es necessita verificar el broker des de fora del clúster |
+| Confluent logic | 9092 | En Azure for Students usa el mateix bootstrap Kafka-compatible de Strimzi si no es defineix `CONFLUENT_BROKERS`. |
 
 ---
 
