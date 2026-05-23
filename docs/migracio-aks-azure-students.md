@@ -236,10 +236,10 @@ s'ha d'etiquetar com a resultat del nou entorn Azure for Students.
 az account list -o table
 az account set --subscription "<SUBSCRIPCIO_AZURE_FOR_STUDENTS>"
 
-export LOCATION=westeurope
+export LOCATION=spaincentral
 export RG=rg-apis-asincrones-pfg
 export AKS=aks-apis-asincrones-pfg
-export ACR=asyncbenchmarkpfg
+export ACR=asyncpfg65454
 
 az group create \
   --name "$RG" \
@@ -274,7 +274,7 @@ az aks create \
   --location "$LOCATION" \
   --tier free \
   --node-count 1 \
-  --node-vm-size Standard_D2s_v5 \
+  --node-vm-size Standard_B2s_v2 \
   --enable-managed-identity \
   --attach-acr "$ACR" \
   --generate-ssh-keys
@@ -287,7 +287,22 @@ az aks get-credentials \
 kubectl get nodes -o wide
 ```
 
-Si el credit baixa massa rapid, aturar el cluster quan no s'utilitzi:
+Per a la demo final es va escalar el mateix node pool a tres nodes:
+
+```bash
+az aks scale \
+  --resource-group "$RG" \
+  --name "$AKS" \
+  --node-count 3
+
+kubectl get nodes -o wide
+```
+
+Aquest escalat millora l'estabilitat de la demo, però no substitueix el mode
+serial per a mesures finals: les comparacions acadèmiques s'han de repetir amb
+`MAX_CONCURRENT_RUNS=1`.
+
+Si el crèdit baixa massa ràpid, aturar el cluster quan no s'utilitzi:
 
 ```bash
 az aks stop --resource-group "$RG" --name "$AKS"
@@ -434,12 +449,12 @@ Prova final minima:
 La guia pas a pas d'operativa diaria, arrencada, parada, Grafana i diagnostics
 viu a [`guia-operativa-aks-students.md`](guia-operativa-aks-students.md).
 
-## Actualitzacio final del desplegament
+## Actualització final del desplegament
 
-Durant la validacio final es va ampliar el cluster d'1 a 3 nodes
-`Standard_B2s_v2`. El node unic servia per recuperar el flux funcional, pero no
+Durant la validació final es va ampliar el cluster d'1 a 3 nodes
+`Standard_B2s_v2`. El node únic servia per recuperar el flux funcional, però no
 per mantenir portal, Elasticsearch, Kafka, NATS, RabbitMQ i generadors de
-carrega alhora. Amb 3 nodes la plataforma queda mes estable per a la demo i
+carrega alhora. Amb 3 nodes la plataforma queda més estable per a la demo i
 permet provar les 16 combinacions sense saturar immediatament el planificador de
 Kubernetes.
 
@@ -455,27 +470,27 @@ També es van corregir tres punts que afectaven directament la validesa del
 benchmark:
 
 - Confluent no podia resoldre `redpanda.brokers.svc.cluster.local:9093`. En el
-  cluster final s'ha documentat com a cami Kafka-compatible i usa
+  cluster final s'ha documentat com a camí Kafka-compatible i usa
   `kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092`.
-- NATS deixava runs sense metriques quan el Job rebia l'endpoint antic. El valor
+- NATS deixava runs sense mètriques quan el Job rebia l'endpoint antic. El valor
   final és `nats://nats.brokers.svc.cluster.local:4222`.
-- Llançar 16 execucions simultanies creava mes pods dels que el node de carrega
-  podia programar. L'orquestrador ara te cua interna, estat `pending` i
+- Llançar 16 execucions simultànies creava més pods dels que el node de càrrega
+  podia programar. L'orquestrador ara té cua interna, estat `pending` i
   `MAX_CONCURRENT_RUNS`.
 
 El valor de `MAX_CONCURRENT_RUNS` queda a `3` per a la demo final. Si es volen
-resultats estrictes per a una taula de comparacio academica, cal baixar-lo a
-`1` abans de repetir les mesures, perque tres generadors compartint el mateix
+resultats estrictes per a una taula de comparació acadèmica, cal baixar-lo a
+`1` abans de repetir les mesures, perquè tres generadors compartint el mateix
 node poden introduir soroll.
 
 ## Cost actual estimat
 
-La subscripcio Azure for Students aporta 100 USD de credit durant 12 mesos i no
-demana targeta de credit. Aquest credit no fa que AKS sigui gratis: el pla de
-gestio d'AKS pot estar en nivell Free, pero els nodes, els discs, el registre
-d'imatges i el transit continuen consumint credit.
+La subscripció Azure for Students aporta 100 USD de crèdit durant 12 mesos i no
+demana targeta de crèdit. Aquest crèdit no fa que AKS sigui gratis: el pla de
+gestió d'AKS pot estar en nivell Free, però els nodes, els discs, el registre
+d'imatges i el trànsit continuen consumint crèdit.
 
-Estimacio feta el 23/05/2026 amb Azure Retail Prices API, regio `spaincentral`
+Estimació feta el 23/05/2026 amb Azure Retail Prices API, regió `spaincentral`
 i preus en USD:
 
 | Recurs | Quantitat | Preu unitari | Cost aproximat |
@@ -488,16 +503,16 @@ i preus en USD:
 
 Per tant, amb el cluster encès tot el mes, el cost principal serien els nodes:
 aproximadament 197 USD/mes només de comput. Amb Azure for Students, aquest cost
-es consumeix del credit de 100 USD i obliga a apagar AKS quan no es fa servir.
-Sense la versio d'estudiant, el mateix desplegament costaria aproximadament el
-mateix en tarifa Pay-As-You-Go, pero es facturaria directament al compte en lloc
-de consumir credit academic.
+es consumeix del crèdit de 100 USD i obliga a apagar AKS quan no es fa servir.
+Sense la versió d'estudiant, el mateix desplegament costaria aproximadament el
+mateix en tarifa Pay-As-You-Go, però es facturaria directament al compte en lloc
+de consumir crèdit acadèmic.
 
 Com a ordre de magnitud:
 
 - 1 node `Standard_B2s_v2` encès 720 h costa uns 65.7 USD/mes.
 - 3 nodes encès 8 h per dia durant 10 dies costen uns 21.9 USD de comput.
-- 3 nodes encès 24/7 durant un mes superen el credit estudiantil disponible.
+- 3 nodes encès 24/7 durant un mes superen el crèdit estudiantil disponible.
 
 Fonts utilitzades:
 
@@ -505,44 +520,44 @@ Fonts utilitzades:
 - AKS pricing tiers: https://learn.microsoft.com/azure/aks/free-standard-pricing-tiers
 - Azure Retail Prices API: https://learn.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices
 
-## Millores i aplicacio final
+## Millores i aplicació final
 
-La versio final de l'aplicacio queda repartida en tres blocs:
+La versió final de l'aplicació queda repartida en tres blocs:
 
-- Portal Backstage: Home, Cataleg, Escenaris, Execucions i Resultats.
+- Portal Backstage: Home, Catàleg, Escenaris, Execucions i Resultats.
 - Microserveis: `catalog-service`, `scenario-service`, `benchmark-orchestrator`,
   `metrics-api` i Elasticsearch.
-- Brokers: Kafka/Confluent pel cami Kafka-compatible, NATS i RabbitMQ.
+- Brokers: Kafka/Confluent pel camí Kafka-compatible, NATS i RabbitMQ.
 
-Les millores principals son:
+Les millores principals són:
 
-- Cua d'execucions per evitar que el portal llanci mes Jobs dels que AKS pot
+- Cua d'execucions per evitar que el portal llanci més Jobs dels que AKS pot
   programar.
 - Estat `pending` visible a Escenaris, Execucions i Resultats.
 - Resultats en directe separant runs en curs i pendents.
 - Filtres d'Execucions alineats visualment amb la resta de pantalles.
-- Cataleg amb sincronitzacio de components predefinits, inclosa `SEA`, i fitxes
-  amb versions i notes de reproduibilitat.
-- Tutorial mes explicit, indicant quin boto cal clicar per cada accio.
-- Home amb explicacio progressiva de productor, broker i consumidor.
+- Catàleg amb sincronització de components predefinits, inclosa `SEA`, i fitxes
+  amb versions i notes de reproduïbilitat.
+- Tutorial més explícit, indicant quin botó cal clicar per cada acció.
+- Home amb explicació progressiva de productor, broker i consumidor.
 
-El repartiment s'ha fet per mantenir el criteri academic del projecte: Backstage
-nomes presenta i guia; l'orquestracio viu al backend; les mesures les genera un
-Job efimer i les guarda `metrics-api`. Aquesta separacio fa que la demo sigui
-usable, pero tambe que el comportament important es pugui reproduir amb
+El repartiment s'ha fet per mantenir el criteri acadèmic del projecte: Backstage
+només presenta i guia; l'orquestració viu al backend; les mesures les genera un
+Job efímer i les guarda `metrics-api`. Aquesta separació fa que la demo sigui
+usable, però també que el comportament important es pugui reproduir amb
 comandes `kubectl` i manifests.
 
-## Fase 8: que s'ha d'explicar a la memoria
+## Fase 8: què s'ha d'explicar a la memòria
 
-La memoria ha d'explicar la incidencia sense convertir-la en excusa:
+La memòria ha d'explicar la incidència sense convertir-la en excusa:
 
-- El cluster original depenia d'una subscripcio empresarial externa al projecte.
-- El canvi administratiu de contracte va provocar la perdua efectiva de
-  capacitat d'escriptura sobre la subscripcio.
-- La solucio tecnica va ser reconstruir el desplegament en una subscripcio Azure
-  for Students amb credit limitat.
-- La reconstruccio valida la reproductibilitat del projecte: el repositori i els
+- El cluster original depenia d'una subscripció empresarial externa al projecte.
+- El canvi administratiu de contracte va provocar la pèrdua efectiva de
+  capacitat d'escriptura sobre la subscripció.
+- La solució tècnica va ser reconstruir el desplegament en una subscripció Azure
+  for Students amb crèdit limitat.
+- La reconstrucció valida la reproductibilitat del projecte: el repositori i els
   manifests permeten aixecar de nou la plataforma en un entorn diferent.
-- Les mesures obtingudes en l'entorn nou s'han de documentar amb la seva propia
-  configuracio i no barrejar-se amb mesures de l'entorn anterior si les
-  condicions de node no son equivalents.
+- Les mesures obtingudes en l'entorn nou s'han de documentar amb la seva pròpia
+  configuració i no barrejar-se amb mesures de l'entorn anterior si les
+  condicions de node no són equivalents.
