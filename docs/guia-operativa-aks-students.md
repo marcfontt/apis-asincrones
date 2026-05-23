@@ -153,6 +153,13 @@ kubectl apply -f k8s/deployments/benchmark-orchestrator.yaml
 kubectl rollout status deployment/benchmark-orchestrator -n $NS_APP --timeout=180s
 ```
 
+El manifest deixa `MAX_CONCURRENT_RUNS=1`: pots crear molts runs des del portal,
+pero l'orquestrador nomes desplega un Job de benchmark cada vegada. La resta
+queden en cua fins que el Job actiu acaba. No executis 16 Jobs simultanis al
+mateix node de carrega si vols resultats defensables; si apareixen pods
+`Pending` sense node assignat, no generaran metriques fins que Kubernetes els
+pugui programar.
+
 Abans de donar per valida una prova, comprova on ha caigut el Job:
 
 ```powershell

@@ -52,6 +52,7 @@ amb el container `load-generator`.
 | `NAMESPACE` | `apis-asincrones` |
 | `BROKER_NAMESPACE` | `brokers` |
 | `LOAD_GENERATOR_CPU` | `100m` en Azure for Students |
+| `MAX_CONCURRENT_RUNS` | `1` per serialitzar mesures al node de carrega |
 | `LOAD_GENERATOR_NODE_SELECTOR_KEY` | `benchmark-role`, si es vol fixar el node dels Jobs |
 | `LOAD_GENERATOR_NODE_SELECTOR_VALUE` | `loadgen`, si es vol fixar el node dels Jobs |
 | `KAFKA_BROKERS` | `kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092` |
@@ -65,6 +66,11 @@ usa Backstage.
 En el clúster Azure Students, fixar els Jobs de carrega a un node etiquetat
 evita que el generador caigui de manera diferent segons el broker mesurat. Aixo
 millora la comparabilitat dels resultats.
+
+El backend tambe serialitza els Jobs amb `MAX_CONCURRENT_RUNS=1`. Pots crear
+diversos runs des del portal, pero nomes un Job de mesura entra a Kubernetes a
+la vegada; la resta queden en cua a l'orquestrador. Aixo evita pods `Pending`
+per falta de capacitat i respecta l'aillament de les proves finals.
 
 ## Permisos
 

@@ -16,6 +16,7 @@ const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
 const LOAD_GENERATOR_CPU = process.env.LOAD_GENERATOR_CPU || '100m';
 const LOAD_GENERATOR_NODE_SELECTOR_KEY = process.env.LOAD_GENERATOR_NODE_SELECTOR_KEY || '';
 const LOAD_GENERATOR_NODE_SELECTOR_VALUE = process.env.LOAD_GENERATOR_NODE_SELECTOR_VALUE || '';
+const MAX_CONCURRENT_RUNS = Math.max(1, Number.parseInt(process.env.MAX_CONCURRENT_RUNS || '1', 10) || 1);
 const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincrones';
 const BROKER_NAMESPACE = process.env.BROKER_NAMESPACE || 'brokers';
 const KAFKA_BROKERS = process.env.KAFKA_BROKERS || 'kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092';
@@ -179,6 +180,7 @@ async function postRunDiagnosticMetric(run: RunRecord, status: 'failed' | 'runni
   }
 }
 const runs = new Map<string, RunRecord>();
+const runQueue: string[] = [];
 
 function sanitizeName(name: string): string {
   return name
@@ -207,6 +209,34 @@ function httpJson(url: string): Promise<any> {
       req.setTimeout(5000, () => { req.destroy(); resolve(null); });
     } catch { resolve(null); }
   });
+}
+
+function activeRunningCount(): number {
+  return Array.from(runs.values()).filter(run => run.status === 'running').length;
+}
+
+function enqueueRun(runId: string): void {
+  if (!runQueue.includes(runId)) {
+    runQueue.push(runId);
+    console.log(`[orchestrator] Run ${runId} queued (${runQueue.length} pending, maxConcurrentRuns=${MAX_CONCURRENT_RUNS})`);
+  }
+  processRunQueue();
+}
+
+function processRunQueue(): void {
+  while (activeRunningCount() < MAX_CONCURRENT_RUNS && runQueue.length > 0) {
+    const nextRunId = runQueue.shift();
+    if (!nextRunId) continue;
+
+    const run = runs.get(nextRunId);
+    if (!run || run.status !== 'pending') {
+      continue;
+    }
+
+    run.status = 'running';
+    console.log(`[orchestrator] Run ${nextRunId} starting (${activeRunningCount()}/${MAX_CONCURRENT_RUNS})`);
+    void startRun(nextRunId);
+  }
 }
 
 function httpPatch(url: string, body: object): Promise<void> {
@@ -428,18 +458,21 @@ async function monitorJob(
         await updateScenarioStatus(scenarioId, 'idle', null);
         try { await coreApi.deleteNamespace(namespace); } catch (_) { }
         console.log(`[orchestrator] Run ${runId} completed`);
+        processRunQueue();
       } else if (failed > limit) {
         run.status = 'failed'; run.completedAt = new Date().toISOString();
         run.errorCode = 'KUBERNETES_JOB_FAILED';
         run.errorDetail = `El Job ${jobName} ha superat el backoffLimit (${limit}).`;
         await updateScenarioStatus(scenarioId, 'idle', null);
         console.log(`[orchestrator] Run ${runId} failed`);
+        processRunQueue();
       } else if (maxAttempts !== null && attempts > maxAttempts) {
         run.status = 'failed'; run.completedAt = new Date().toISOString();
         run.errorCode = 'JOB_MONITOR_TIMEOUT';
         run.errorDetail = `El Job ${jobName} no ha informat d'èxit dins la finestra esperada. Revisa els logs del pod load-generator.`;
         await updateScenarioStatus(scenarioId, 'idle', null);
         console.log(`[orchestrator] Run ${runId} monitor timeout`);
+        processRunQueue();
       } else {
         setTimeout(poll, 10_000);
       }
@@ -451,6 +484,7 @@ async function monitorJob(
         run.errorCode = 'JOB_MONITOR_ERROR';
         run.errorDetail = `No s'ha pogut llegir l'estat del Job ${jobName}: ${(e as Error).message}`;
         await updateScenarioStatus(scenarioId, 'idle', null);
+        processRunQueue();
         return;
       }
       setTimeout(poll, 10_000);
@@ -459,10 +493,64 @@ async function monitorJob(
   setTimeout(poll, 10_000);
 }
 
+async function startRun(runId: string): Promise<void> {
+  const run = runs.get(runId) as (RunRecord & { duration?: number | null; rate?: number | null; payloadSize?: number | null }) | undefined;
+  if (!run || run.status !== 'running') {
+    processRunQueue();
+    return;
+  }
+
+  try {
+    const sc = await httpJson(`${SCENARIO_SERVICE_URL}/scenarios/${run.scenarioId}`);
+    if (sc) {
+      run.scenarioName = sc.name || sc.title || run.scenarioId;
+      run.architecture = run.architecture || sc.architecture || sc.type || '';
+      run.protocol = run.protocol || sc.protocol || '';
+      run.platform = run.platform || sc.platform || '';
+      if (!run.dataFormat || run.dataFormat === 'default') {
+        run.dataFormat = sc.dataFormat || run.dataFormat || 'default';
+      }
+      if (run.duration === undefined) run.duration = sc.duration ?? null;
+      if (run.rate === undefined) run.rate = sc.rate ?? null;
+      if (run.payloadSize === undefined) run.payloadSize = sc.payloadSize ?? null;
+    }
+  } catch (_) { }
+
+  await updateScenarioStatus(run.scenarioId, 'running', runId);
+
+  try {
+    await deployScenario(runId, run.scenarioId, run.scenarioName);
+    const registroDespuesDelDespliegue = runs.get(runId);
+    if (registroDespuesDelDespliegue && registroDespuesDelDespliegue.status === 'running' && registroDespuesDelDespliegue.namespace && registroDespuesDelDespliegue.jobName) {
+      monitorJob(runId, registroDespuesDelDespliegue.namespace, registroDespuesDelDespliegue.jobName, run.scenarioId, (registroDespuesDelDespliegue as any).duration);
+    } else {
+      processRunQueue();
+    }
+  } catch (e) {
+    console.error(`[orchestrator] Deploy failed: ${(e as Error).message}`);
+    const registroConError = runs.get(runId);
+    if (registroConError) {
+      registroConError.status = 'failed';
+      registroConError.completedAt = new Date().toISOString();
+      registroConError.errorCode = registroConError.errorCode || 'DEPLOY_FAILED';
+      registroConError.errorDetail = registroConError.errorDetail || (e as Error).message;
+    }
+    await updateScenarioStatus(run.scenarioId, 'idle', null);
+    processRunQueue();
+  }
+}
+
 // ---------- Routes ----------
 
 app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', k8sEnabled, image: LOAD_GENERATOR_IMAGE });
+  res.json({
+    status: 'ok',
+    k8sEnabled,
+    image: LOAD_GENERATOR_IMAGE,
+    maxConcurrentRuns: MAX_CONCURRENT_RUNS,
+    queuedRuns: runQueue.length,
+    runningRuns: activeRunningCount(),
+  });
 });
 
 app.get('/runs', (_req, res) => {
@@ -504,49 +592,15 @@ app.post('/runs', (req, res) => {
     protocol: providedProtocol || '',
     platform: providedPlatform || '',
     dataFormat: providedDataFormat || 'default',   // FIX 1: guardat al run
-    status: 'running', startedAt: new Date().toISOString(),
+    status: 'pending', startedAt: new Date().toISOString(),
     duration: providedDuration !== undefined ? providedDuration : undefined,
     rate: providedRate !== undefined ? providedRate : undefined,
     payloadSize: providedPayloadSize !== undefined ? providedPayloadSize : undefined,
   };
   runs.set(runId, run);
 
-  res.status(201).json({ id: runId, runId, scenarioId, status: 'running' });
-
-  setImmediate(async () => {
-    try {
-      const sc = await httpJson(`${SCENARIO_SERVICE_URL}/scenarios/${scenarioId}`);
-      if (sc) {
-        run.scenarioName = sc.name || sc.title || scenarioId;
-        run.architecture = sc.architecture || sc.type || '';
-        run.protocol = sc.protocol || '';
-        run.platform = sc.platform || '';
-        // FIX 1: si el body no tenia dataFormat, l'agafem del scenario-service
-        if (!providedDataFormat && sc.dataFormat) {
-          run.dataFormat = sc.dataFormat;
-        }
-        // Inherit duration/rate/payloadSize from scenario if not provided in body
-        if (run.duration === undefined) run.duration = sc.duration ?? null;
-        if (run.rate === undefined) run.rate = sc.rate ?? null;
-        if (run.payloadSize === undefined) run.payloadSize = sc.payloadSize ?? null;
-      }
-    } catch (_) { }
-
-    await updateScenarioStatus(scenarioId, 'running', runId);
-
-    try {
-      await deployScenario(runId, scenarioId, run.scenarioName);
-      const registroDespuesDelDespliegue = runs.get(runId);
-      if (registroDespuesDelDespliegue && registroDespuesDelDespliegue.status === 'running' && registroDespuesDelDespliegue.namespace && registroDespuesDelDespliegue.jobName) {
-        monitorJob(runId, registroDespuesDelDespliegue.namespace, registroDespuesDelDespliegue.jobName, scenarioId, (registroDespuesDelDespliegue as any).duration);
-      }
-    } catch (e) {
-      console.error(`[orchestrator] Deploy failed: ${(e as Error).message}`);
-      const registroConError = runs.get(runId);
-      if (registroConError) { registroConError.status = 'failed'; registroConError.completedAt = new Date().toISOString(); }
-      await updateScenarioStatus(scenarioId, 'idle', null);
-    }
-  });
+  res.status(201).json({ id: runId, runId, scenarioId, status: 'pending', queued: true, maxConcurrentRuns: MAX_CONCURRENT_RUNS });
+  enqueueRun(runId);
 });
 
 app.post('/runs/:id/cancel', async (req, res) => {
@@ -556,6 +610,10 @@ app.post('/runs/:id/cancel', async (req, res) => {
     return;
   }
   run.status = 'cancelled'; run.completedAt = new Date().toISOString();
+  const queuedIndex = runQueue.indexOf(run.id);
+  if (queuedIndex >= 0) {
+    runQueue.splice(queuedIndex, 1);
+  }
   await updateScenarioStatus(run.scenarioId, 'idle', null);
   // Respond to the client immediately so the UI doesn't hang on the flush.
   res.json({ ok: true });
@@ -569,7 +627,10 @@ app.post('/runs/:id/cancel', async (req, res) => {
     setTimeout(async () => {
       try { await coreApi.deleteNamespace(ns); }
       catch (e) { console.warn(`[orchestrator] delayed deleteNamespace failed: ${(e as Error).message}`); }
+      processRunQueue();
     }, 6000);
+  } else {
+    processRunQueue();
   }
 });
 
@@ -587,6 +648,7 @@ app.post('/runs/reset', async (_req, res) => {
     }
   }
   runs.clear();
+  runQueue.length = 0;
   // Fire-and-forget namespace teardown for any active runs. We don't await
   // the delete because the UI already got its synchronous "reset done" ack.
   if (k8sEnabled) {
@@ -631,5 +693,5 @@ app.delete('/runs/:id', async (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`[orchestrator] port=${PORT}  k8s=${k8sEnabled}  image=${LOAD_GENERATOR_IMAGE}`);
+  console.log(`[orchestrator] port=${PORT}  k8s=${k8sEnabled}  image=${LOAD_GENERATOR_IMAGE}  maxConcurrentRuns=${MAX_CONCURRENT_RUNS}`);
 });
