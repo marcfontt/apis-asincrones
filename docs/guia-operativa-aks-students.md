@@ -282,13 +282,19 @@ kubectl apply -f k8s/deployments/
 
 ## 8. Executar una prova i comprovar que genera mesures
 
-1. Obre el portal Backstage.
-2. Ves a `Escenaris`.
-3. Executa primer un escenari petit:
+1. Obre el portal Backstage i clica `Home`.
+2. Clica `Catàleg` i obre una fitxa per comprovar que versions i
+   reproductibilitat s'entenen sense mirar el codi.
+3. Clica `Escenaris`.
+4. Clica `Usar com a base` en un escenari petit:
    - RabbitMQ financer fiable, si `rabbitmq` esta `Running`.
    - Kafka control base, si Kafka esta `Ready`.
    - NATS telemetria IoT, si `nats` esta `Running`.
-4. Ves a `Resultats` -> `En directe`.
+5. Clica `Executar`.
+6. Clica `Execucions` i filtra per `Estat` -> `Pendent` o `En curs` per veure
+   si el run ja té torn.
+7. Clica `Resultats` -> `En directe` quan el run estigui en curs.
+8. Clica `Historial i comparatives` quan el run acabi.
 
 Comandes de verificacio mentre corre:
 
@@ -329,7 +335,7 @@ Interpretacio rapida:
 | Signe | Causa probable | Accio |
 |---|---|---|
 | `BROKER_NOT_READY` | Broker sense endpoints | Arrenca/aplica el broker corresponent. |
-| Job `Pending` | CPU/memoria insuficient | Escala Grafana a 0 i evita executar diversos brokers pesats alhora. |
+| Job `Pending` | CPU/memòria insuficient | Escala Grafana a 0 i evita executar diversos brokers pesats alhora. |
 | Job `Error` o `CrashLoopBackOff` | Fallada del load-generator | Revisa logs del namespace `sc-*`. |
 | Metrics API amb error ES | Elasticsearch no llest | Revisa `kubectl logs deployment/elasticsearch`. |
 
@@ -339,7 +345,7 @@ Aquesta llista deixa constancia dels canvis fets per estabilitzar l'entrega al
 cluster Azure for Students:
 
 - `benchmark-orchestrator` ara valida endpoints abans de crear Jobs, separa
-  `pending` i `running`, limita concurrencia amb `MAX_CONCURRENT_RUNS` i exposa
+  `pending` i `running`, limita concurrència amb `MAX_CONCURRENT_RUNS` i exposa
   `/health` amb `queuedRuns` i `runningRuns`.
 - Els Jobs efimers reben endpoints corregits: Confluent usa el bootstrap Kafka
   `:9092`, NATS usa `svc/nats:4222` i RabbitMQ usa `svc/rabbitmq:5672`.
@@ -355,6 +361,9 @@ cluster Azure for Students:
   l'arquitectura `SEA`, i documenta versions i limitacions de reproduibilitat.
 - La guia integrada i el tutorial indiquen on clicar per obrir fitxes, revisar
   compatibilitat, configurar escenaris i veure resultats.
+- Les guies finals separen el mode demo (`MAX_CONCURRENT_RUNS=3`) del mode de
+  mesura estricta (`MAX_CONCURRENT_RUNS=1`) per evitar barrejar comoditat de
+  presentació amb dades defensables.
 
 ## 10. Grafana pas a pas
 
@@ -436,7 +445,7 @@ az aks show `
   -o table
 ```
 
-## 12. Captures per a la memoria i annex
+## 12. Captures per a la memòria i annex
 
 Captures recomanades:
 
@@ -447,7 +456,7 @@ Captures recomanades:
 5. Cloud Shell: `kubectl get pods -n apis-asincrones`.
 6. Cloud Shell: `kubectl get pods,svc,endpoints -n brokers`.
 7. Backstage Home amb URL publica.
-8. Backstage Cataleg.
+8. Backstage Catàleg.
 9. Backstage Escenaris amb escenari petit seleccionat.
 10. Backstage Execucions amb un run completat.
 11. Backstage Resultats amb mostres visibles.

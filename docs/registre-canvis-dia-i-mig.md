@@ -61,14 +61,16 @@ del que s'ha modificat a ultima hora.
 - Execucions recupera els filtres i estats anteriors, incloent pendent.
 - Els filtres d'Execucions s'han alineat amb la resta de pantalles.
 - La guia integrada d'Escenaris explica què vol dir cada estat.
-- El tutorial indica accions concretes: quin boto clicar, on obrir fitxes, on
+- El tutorial indica accions concretes: quin botó clicar, on obrir fitxes, on
   revisar compatibilitat i on configurar el sistema.
+- El tutorial s'ha reescrit en forma de passos clicables: `Home`, `Catàleg`,
+  `Escenaris`, `Execucions`, `Resultats`, filtres, pestanyes i files.
 - Home explica millor el paper d'un broker amb una lectura progressiva:
   productor, broker, consumidor i mètrica.
 - Escenaris queda reduït a cinc presets finals: IoT, Vídeo 4K, Financer,
   Confluent i Kafka.
 
-## Cataleg i reproductibilitat
+## Catàleg i reproductibilitat
 
 - El cataleg sincronitza components predefinits que falten sense esborrar dades
   existents.
@@ -86,15 +88,17 @@ del que s'ha modificat a ultima hora.
 - La pestanya de reproductibilitat s'ha simplificat en targetes curtes per
   evitar repetir temps de prova, generador i payload a cada component.
 
-## Documentacio i memoria
+## Documentació i memòria
 
-- S'ha ampliat la guia operativa d'AKS amb cua, estats, concurrencia i
+- S'ha ampliat la guia operativa d'AKS amb cua, estats, concurrència i
   repartiment de nodes.
 - S'ha actualitzat la guia de migracio amb el desplegament final, costos
   estimats i explicacio de la decisio Azure for Students.
 - S'ha afegit el fragment `docs/memoria-actualitzacio-aks.tex` per enganxar o
-  adaptar a la memoria.
+  adaptar a la memòria.
 - S'ha afegit aquest registre per tenir una llista clara de canvis recents.
+- `docs/aplicar-canvis-finals.md` queda com a checklist curta per reconstruir
+  imatges, aplicar manifests, reiniciar serveis i validar la UI final.
 
 ## Nota per a futurs prompts
 
@@ -104,5 +108,5 @@ Quan es reprengui el projecte, cal assumir que el comportament correcte ja no é
 1. Crear tots els runs que calgui des del portal.
 2. Deixar que l'orquestrador en posi com a maxim 3 en execucio per a demo.
 3. Mostrar la resta com a pendents.
-4. Repetir amb `MAX_CONCURRENT_RUNS=1` qualsevol comparacio que hagi d'entrar a
-   la memoria com a dada estricta.
+4. Repetir amb `MAX_CONCURRENT_RUNS=1` qualsevol comparació que hagi d'entrar a
+   la memòria com a dada estricta.

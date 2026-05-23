@@ -97,11 +97,11 @@
     "home": {
       "step1": {
         "title": "Comença per Home",
-        "body": "La Home explica el camí complet: primer entens el concepte, després crees una prova i al final llegeixes dades.",
+        "body": "Clica \"Tutorial\" si vols tornar a obrir aquesta guia. A la Home, baixa per entendre productor, bròker, consumidor i mètriques abans de crear cap prova.",
         "details": [
-          "Backstage és la web que estàs fent servir.",
-          "AKS és el clúster d'Azure on corren els contenidors.",
-          "Resultats és on mires què ha passat."
+          "Clica \"Veure catàleg\" per saltar als components disponibles.",
+          "Clica \"Crear escenari\" quan ja entenguis el flux.",
+          "Clica \"Comparar resultats\" per anar directament a dades guardades."
         ]
       },
       "step2": {
@@ -114,26 +114,26 @@
       },
       "step3": {
         "title": "Crea l’escenari",
-        "body": "A Escenaris tries la combinació que vols provar: broker, arquitectura, protocol i format de dades.",
+        "body": "Clica \"Escenaris\" al menú superior o el botó \"Crear escenari\" de la Home per triar broker, arquitectura, protocol i format.",
         "details": [
-          "Tria broker, arquitectura, protocol i format.",
-          "El format canvia mida del missatge i càrrega recomanada."
+          "Clica els desplegables en ordre: Plataforma, Arquitectura, Protocol i Format de dades.",
+          "Clica \"Guardar\" quan la configuració sigui coherent."
         ]
       },
       "step4": {
         "title": "Segueix el run",
-        "body": "Execucions mostra si la prova està pendent, en curs, completada o fallida.",
+        "body": "Clica \"Execucions\" al menú superior per veure si la prova està pendent, en curs, completada o fallida.",
         "details": [
-          "Filtra per trobar el run ràpid.",
-          "Obre el detall si vols veure dades en directe."
+          "Clica el filtre \"Estat\" per trobar ràpidament un run pendent o en curs.",
+          "Clica una fila per obrir el detall i veure les accions disponibles."
         ]
       },
       "step5": {
         "title": "Llegeix Resultats",
-        "body": "Resultats compara les proves i explica la puntuació.",
+        "body": "Clica \"Resultats\" al menú superior per comparar proves i entendre la puntuació.",
         "details": [
-          "No miris només el número final.",
-          "Obre el detall per veure el càlcul i els errors."
+          "Clica la pestanya \"En directe\" si hi ha runs actius.",
+          "Clica una fila de la taula comparativa per veure el càlcul i els errors."
         ]
       }
     },
@@ -172,10 +172,10 @@
       },
       "step5": {
         "title": "Passa a Escenaris",
-        "body": "Quan el component encaixa, fes-lo servir com a base per configurar la prova.",
+        "body": "Quan el component encaixa, clica \"Utilitzar aquest component\" per obrir Escenaris amb aquesta base.",
         "details": [
-          "No cal memoritzar-ho tot.",
-          "El catàleg és el punt de partida."
+          "Clica \"Crear escenari\" si vols començar des de zero.",
+          "Torna al catàleg sempre que necessitis revisar versions o compatibilitat."
         ]
       }
     },
@@ -190,7 +190,7 @@
       },
       "step2": {
         "title": "Tria la composició",
-        "body": "Aquesta és la decisió important: broker, arquitectura i protocol.",
+        "body": "Clica els desplegables de composició per decidir broker, arquitectura i protocol.",
         "details": [
           "Clica primer el desplegable \"Plataforma\".",
           "Després clica \"Arquitectura\" i \"Protocol\"; el formulari només deixa opcions compatibles."
@@ -198,10 +198,10 @@
       },
       "step3": {
         "title": "Tria el format",
-        "body": "El format de dades canvia el payload, la ràtio i la lectura de la puntuació.",
+        "body": "Clica el desplegable \"Format de dades\" per canviar payload, ràtio i lectura de la puntuació.",
         "details": [
-          "IoT no pesa igual que vídeo.",
-          "Si canvies el payload a mà, revisa que el broker el suporti."
+          "Clica \"IoT\", \"Vídeo 4K\", \"Financer\" o \"Vídeo 8K\" segons el cas que vulguis provar.",
+          "Clica els camps de payload o ràtio només si vols sortir del valor recomanat."
         ]
       },
       "step4": {
@@ -222,10 +222,10 @@
       },
       "step6": {
         "title": "Ajusta durada i warm-up",
-        "body": "El warm-up deixa que el sistema s’estabilitzi abans de mesurar.",
+        "body": "Clica els camps \"Durada\" i \"Warm-up\" per definir quant temps s'executa la prova i quan comença a mesurar.",
         "details": [
-          "Evita runs massa curts.",
-          "Una prova estable dona resultats més útils."
+          "Clica una durada curta per demo i una durada més llarga per mesures defensables.",
+          "Mantén warm-up activat perquè el sistema s'estabilitzi abans de guardar dades."
         ]
       }
     },
@@ -250,13 +250,13 @@
         "title": "Mira el directe",
         "body": "Clica la pestanya \"En directe\" a Resultats per veure dades mentre el run està en curs.",
         "details": [
-          "Errors alts indiquen problemes.",
-          "Throughput estable és bona senyal."
+          "Clica una targeta de run actiu per veure només les seves mètriques.",
+          "Si surt pendent, espera que l'orquestrador li assigni torn o revisa el clúster."
         ]
       },
       "step4": {
         "title": "Atura si cal",
-        "body": "Pots aturar una prova si està mal configurada o carrega massa el clúster.",
+        "body": "Clica \"Atura\" a la fila d'un run si està mal configurat o carrega massa el clúster.",
         "details": [
           "Aturar conserva dades parcials si n’hi ha.",
           "Eliminar treu el run de la lectura."
@@ -264,10 +264,10 @@
       },
       "step5": {
         "title": "Passa a Resultats",
-        "body": "Quan el run acaba, les dades guardades apareixen a Resultats.",
+        "body": "Quan el run acaba, clica \"Resultats\" per veure les dades guardades.",
         "details": [
-          "No decideixis només amb el directe.",
-          "Espera a tenir dades persistides."
+          "Clica \"Historial i comparatives\" per revisar execucions completades.",
+          "No decideixis només amb el directe; espera a tenir dades persistides."
         ]
       }
     },
@@ -282,10 +282,10 @@
       },
       "step2": {
         "title": "Mira les mètriques",
-        "body": "Latència, throughput i errors expliquen què ha passat.",
+        "body": "Clica \"En directe\" per veure mètriques d'un run actiu o \"Historial i comparatives\" per veure resultats guardats.",
         "details": [
-          "Una puntuació alta amb errors no és fiable.",
-          "Mira el format abans de jutjar."
+          "Clica el filtre de format abans de jutjar perquè IoT i vídeo no tenen la mateixa càrrega.",
+          "Una puntuació alta amb errors no és fiable."
         ]
       },
       "step3": {
@@ -306,7 +306,7 @@
       },
       "step5": {
         "title": "Compara dos escenaris",
-        "body": "La comparativa és més útil quan només canvies una cosa.",
+        "body": "Clica els filtres de broker, plataforma o format per deixar visibles només els escenaris que vols comparar.",
         "details": [
           "Canvia un broker o un format, no tot alhora.",
           "Així la conclusió és més clara."

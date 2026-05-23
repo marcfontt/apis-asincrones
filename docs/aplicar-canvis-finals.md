@@ -85,14 +85,30 @@ kubectl get ns -o name |
 
 ## 5. Verificar des del portal
 
-1. Obre el portal Backstage.
-2. Ves a `Escenaris`.
-3. Llança els 16 escenaris si vols provar la cua.
-4. Ves a `Resultats`.
-5. Comprova que la fila principal mostra nomes els runs en curs.
-6. Comprova que els runs pendents surten com a indicador compacte de cua.
-7. Ves a `Execucions` i filtra per `Pendent`, `En curs`, `Completat`, `Aturat`
-   i `Fallit`.
+Segueix aquest ordre de clics. La idea és comprovar que la UI guia l'usuari i
+que els estats pendents no es confonen amb errors:
+
+1. Obre el portal Backstage i clica `Home`.
+2. Clica `Tutorial` per revisar la guia integrada.
+3. Clica `Catàleg`.
+4. Clica la fila `Streaming Events Architecture` o el badge `SEA` per comprovar
+   que l'arquitectura existeix al catàleg.
+5. Dins la fitxa, clica `Reproductibilitat` i després `Configuració`. Ha de
+   quedar clar què s'ha desplegat, amb quines versions i quines limitacions hi
+   ha per repetir la prova.
+6. Clica `Escenaris`.
+7. Clica `Usar com a base` en un dels cinc presets finals o clica `Nou escenari`
+   si vols crear-ne un manualment.
+8. Clica `Executar` a cada escenari. Si vols provar la cua, executa els 16.
+9. Clica `Execucions` i obre el filtre `Estat`. Comprova `Pendent`, `En curs`,
+   `Completat`, `Aturat` i `Fallit`.
+10. Clica una fila d'execució. El detall ha de mostrar l'estat i el botó
+    `Resultats` quan hi hagi dades.
+11. Clica `Resultats` i després la pestanya `En directe`. La fila principal ha
+    de mostrar només runs en curs.
+12. Comprova que els runs pendents surten com a indicador compacte de cua. Un
+    run pendent no ha de tenir mètriques fins que l'orquestrador li dona torn.
+13. Clica `Historial i comparatives` per revisar les dades persistides.
 
 Els cinc presets que han de quedar visibles a `Escenaris` són:
 
@@ -110,7 +126,7 @@ un resultat 8K per bo, comprova que el manifest de Kafka tingui
 `message.max.bytes`, `replica.fetch.max.bytes` i `socket.request.max.bytes`
 per sobre del payload.
 
-## 6. Mode estricte per a memoria
+## 6. Mode estricte per a memòria
 
 Per prendre dades finals mes defensables:
 
