@@ -52,6 +52,51 @@ const startTime = Date.now();
 let running = true;
 let terminalMetricPosted = false;
 
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isRecoverableBrokerStartupError(error: unknown): boolean {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return [
+    'enotfound',
+    'econnrefused',
+    'econnreset',
+    'etimedout',
+    'timeout',
+    'socket closed',
+    'connection closed',
+    'connection ended',
+  ].some(fragment => message.includes(fragment));
+}
+
+async function retryBrokerStartupStep<T>(
+  operation: () => Promise<T>,
+  options: { retries?: number; delayMs?: number; stepName?: string } = {},
+): Promise<T> {
+  const retries = options.retries ?? 8;
+  const delayMs = options.delayMs ?? 1000;
+  const stepName = options.stepName || 'broker startup';
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (!isRecoverableBrokerStartupError(error) || attempt === retries) {
+        throw error;
+      }
+      log(`${stepName} retry ${attempt}/${retries - 1}: ${error instanceof Error ? error.message : String(error)}`);
+      await sleep(delayMs);
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(`${stepName} failed after ${retries} attempts`);
+}
+
 // True after warm-up window has elapsed; from this point latency samples count.
 function isStableWindow(): boolean {
   return (Date.now() - startTime) / 1000 >= CONFIGURACION.warmupSeconds;
@@ -444,12 +489,16 @@ async function runNats() {
   log(`Format: ${CONFIGURACION.dataFormat}  |  MsgSize: ${CONFIGURACION.tamanoMensajeBytes}B  |  Rate: ${CONFIGURACION.mensajesPorSegundo} msg/s`);
 
   const natsUrl = process.env.NATS_URL || 'nats://nats.brokers.svc.cluster.local:4222';
-  const nc = await natsConnect({
+  const nc = await retryBrokerStartupStep(() => natsConnect({
     servers: natsUrl,
     name: `load-generator-${CONFIGURACION.runId}`,
     reconnect: false,
     maxReconnectAttempts: 0,
     timeout: 10_000,
+  }), {
+    retries: 10,
+    delayMs: 1500,
+    stepName: 'NATS connect',
   });
   const sc = StringCodec();
   const payloadError = getNatsPayloadPreflightError(CONFIGURACION.tamanoMensajeBytes, nc.info);
@@ -544,10 +593,21 @@ async function runRabbitMQ() {
   //             symmetric with NATS pub/sub and Kafka acks=0 / autoCommit=false.
   //   One connection with a single channel is enough; the broker already
   //   multiplexes producer and consumer on the same TCP connection.
-  const conn = await amqp.connect(amqpUrl);
-  const ch = await conn.createChannel();
-
-  await ch.assertQueue(queue, { durable: false, autoDelete: true, arguments: { 'x-expires': 3600000 } });
+  const { conn, ch } = await retryBrokerStartupStep(async () => {
+    const rabbitConnection = await amqp.connect(amqpUrl);
+    try {
+      const rabbitChannel = await rabbitConnection.createChannel();
+      await rabbitChannel.assertQueue(queue, { durable: false, autoDelete: true, arguments: { 'x-expires': 3600000 } });
+      return { conn: rabbitConnection, ch: rabbitChannel };
+    } catch (error) {
+      try { await rabbitConnection.close(); } catch (_) { }
+      throw error;
+    }
+  }, {
+    retries: 10,
+    delayMs: 1500,
+    stepName: 'RabbitMQ connect',
+  });
 
   ch.consume(queue, (msg: any) => {
     if (!msg || !running) return;
