@@ -145,7 +145,15 @@ broker en una prova i en una altra no, la comparativa queda contaminada. Per
 aixo el `benchmark-orchestrator` pot fixar tots els Jobs de carrega a un node
 amb l'etiqueta `benchmark-role=loadgen`.
 
-Exemple amb el node menys carregat:
+Repartiment final utilitzat durant la migracio:
+
+| Node AKS | Rol practic |
+|---|---|
+| `aks-nodepool1-10848180-vmss000001` | Kafka i Strimzi. |
+| `aks-nodepool1-10848180-vmss000002` | Orquestrador i Jobs `load-generator` amb `benchmark-role=loadgen`. |
+| `aks-nodepool1-10848180-vmss000003` | NATS i RabbitMQ quan estan aixecats. |
+
+Exemple per fixar el node de carrega:
 
 ```powershell
 kubectl label node aks-nodepool1-10848180-vmss000002 benchmark-role=loadgen --overwrite
@@ -153,12 +161,35 @@ kubectl apply -f k8s/deployments/benchmark-orchestrator.yaml
 kubectl rollout status deployment/benchmark-orchestrator -n $NS_APP --timeout=180s
 ```
 
-El manifest deixa `MAX_CONCURRENT_RUNS=1`: pots crear molts runs des del portal,
-pero l'orquestrador nomes desplega un Job de benchmark cada vegada. La resta
-queden en cua fins que el Job actiu acaba. No executis 16 Jobs simultanis al
-mateix node de carrega si vols resultats defensables; si apareixen pods
-`Pending` sense node assignat, no generaran metriques fins que Kubernetes els
-pugui programar.
+El manifest deixa `MAX_CONCURRENT_RUNS=3` per a la demo final. Pots crear molts
+runs des del portal, pero l'orquestrador nomes desplega tres Jobs de benchmark
+alhora. La resta queden en cua amb estat `pending` fins que un Job actiu acaba.
+Aixo evita crear 16 pods de cop al mateix node de carrega i evita que Kubernetes
+els deixi `Pending` sense metriques.
+
+Per obtenir una comparacio mes defensable, baixa temporalment el valor a `1`:
+
+```powershell
+kubectl set env deployment/benchmark-orchestrator -n $NS_APP MAX_CONCURRENT_RUNS=1
+kubectl rollout status deployment/benchmark-orchestrator -n $NS_APP --timeout=180s
+```
+
+Per tornar al mode rapid de demo:
+
+```powershell
+kubectl set env deployment/benchmark-orchestrator -n $NS_APP MAX_CONCURRENT_RUNS=3
+kubectl rollout status deployment/benchmark-orchestrator -n $NS_APP --timeout=180s
+```
+
+Estats que veuras al portal:
+
+| Estat | Que significa |
+|---|---|
+| `pending` / pendent | El run esta registrat i espera torn a la cua de l'orquestrador. Encara no ha creat Job ni ha d'enviar metriques. |
+| `running` / en execucio | El Job ja corre a Kubernetes i hauria d'enviar mostres cada pocs segons. |
+| `completed` / completat | La durada s'ha acabat i s'ha guardat una mostra final. |
+| `failed` / fallit | El broker no estava llest, el Job ha fallat o el generador ha acabat amb error. |
+| `cancelled` / aturat | L'usuari ha aturat el run abans que acabes. |
 
 Abans de donar per valida una prova, comprova on ha caigut el Job:
 
@@ -284,7 +315,30 @@ Interpretacio rapida:
 | Job `Error` o `CrashLoopBackOff` | Fallada del load-generator | Revisa logs del namespace `sc-*`. |
 | Metrics API amb error ES | Elasticsearch no llest | Revisa `kubectl logs deployment/elasticsearch`. |
 
-## 9. Grafana pas a pas
+## 9. Modificacions aplicades al codi
+
+Aquesta llista deixa constancia dels canvis fets per estabilitzar l'entrega al
+cluster Azure for Students:
+
+- `benchmark-orchestrator` ara valida endpoints abans de crear Jobs, separa
+  `pending` i `running`, limita concurrencia amb `MAX_CONCURRENT_RUNS` i exposa
+  `/health` amb `queuedRuns` i `runningRuns`.
+- Els Jobs efimers reben endpoints corregits: Confluent usa el bootstrap Kafka
+  `:9092`, NATS usa `svc/nats:4222` i RabbitMQ usa `svc/rabbitmq:5672`.
+- Els Jobs de carrega es fixen al node etiquetat `benchmark-role=loadgen` per
+  reduir variacions entre execucions.
+- `load-generator` publica mostres finals amb estat `completed`, `failed` o
+  `cancelled` i manté payload determinista per format.
+- La UI diferencia `pending`, `running`, `completed`, `failed` i `cancelled` a
+  Escenaris, Execucions i Resultats.
+- Resultats en directe mostra només runs en curs a la fila principal i mou els
+  pendents a una llista separada.
+- El cataleg sincronitza components predefinits que faltin, inclosa
+  l'arquitectura `SEA`, i documenta versions i limitacions de reproduibilitat.
+- La guia integrada i el tutorial indiquen on clicar per obrir fitxes, revisar
+  compatibilitat, configurar escenaris i veure resultats.
+
+## 10. Grafana pas a pas
 
 Arrencar Grafana:
 
@@ -331,7 +385,7 @@ Quan acabis, si necessites recursos:
 kubectl scale deployment/grafana -n $NS_APP --replicas=0
 ```
 
-## 10. Apagar per reduir cost
+## 11. Apagar per reduir cost
 
 Abans d'apagar, atura execucions en curs des del portal o elimina namespaces
 efimers si han quedat penjats:
@@ -364,7 +418,7 @@ az aks show `
   -o table
 ```
 
-## 11. Captures per a la memoria i annex
+## 12. Captures per a la memoria i annex
 
 Captures recomanades:
 

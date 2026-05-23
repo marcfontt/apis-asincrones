@@ -11,6 +11,8 @@ serveix per ampliar arquitectura, decisions i operativa.
 | [`architecture.md`](architecture.md) | Diagrama del sistema, serveis, ports i flux d'una execucio. |
 | [`migracio-aks-azure-students.md`](migracio-aks-azure-students.md) | Pla de reconstruccio del cluster AKS quan la subscripcio original queda deshabilitada o nomes lectura. |
 | [`guia-operativa-aks-students.md`](guia-operativa-aks-students.md) | Comandes pas a pas per arrencar, apagar, validar, executar proves i usar Grafana. |
+| [`memoria-actualitzacio-aks.tex`](memoria-actualitzacio-aks.tex) | Fragment LaTeX per explicar la migracio final, costos, nodes i estat de l'aplicacio a la memoria. |
+| [`registre-canvis-dia-i-mig.md`](registre-canvis-dia-i-mig.md) | Llista de canvis recents per mantenir el prompt i la documentacio alineats. |
 
 ## Recursos relacionats
 

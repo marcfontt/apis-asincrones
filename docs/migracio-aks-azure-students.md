@@ -434,6 +434,104 @@ Prova final minima:
 La guia pas a pas d'operativa diaria, arrencada, parada, Grafana i diagnostics
 viu a [`guia-operativa-aks-students.md`](guia-operativa-aks-students.md).
 
+## Actualitzacio final del desplegament
+
+Durant la validacio final es va ampliar el cluster d'1 a 3 nodes
+`Standard_B2s_v2`. El node unic servia per recuperar el flux funcional, pero no
+per mantenir portal, Elasticsearch, Kafka, NATS, RabbitMQ i generadors de
+carrega alhora. Amb 3 nodes la plataforma queda mes estable per a la demo i
+permet provar les 16 combinacions sense saturar immediatament el planificador de
+Kubernetes.
+
+El repartiment observat al cluster final va ser:
+
+| Node | Us principal |
+|---|---|
+| `aks-nodepool1-10848180-vmss000001` | Kafka gestionat per Strimzi i operador. |
+| `aks-nodepool1-10848180-vmss000002` | Orquestrador i Jobs `load-generator`, etiquetat com `benchmark-role=loadgen`. |
+| `aks-nodepool1-10848180-vmss000003` | NATS i RabbitMQ. |
+
+També es van corregir tres punts que afectaven directament la validesa del
+benchmark:
+
+- Confluent no podia resoldre `redpanda.brokers.svc.cluster.local:9093`. En el
+  cluster final s'ha documentat com a cami Kafka-compatible i usa
+  `kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092`.
+- NATS deixava runs sense metriques quan el Job rebia l'endpoint antic. El valor
+  final és `nats://nats.brokers.svc.cluster.local:4222`.
+- Llançar 16 execucions simultanies creava mes pods dels que el node de carrega
+  podia programar. L'orquestrador ara te cua interna, estat `pending` i
+  `MAX_CONCURRENT_RUNS`.
+
+El valor de `MAX_CONCURRENT_RUNS` queda a `3` per a la demo final. Si es volen
+resultats estrictes per a una taula de comparacio academica, cal baixar-lo a
+`1` abans de repetir les mesures, perque tres generadors compartint el mateix
+node poden introduir soroll.
+
+## Cost actual estimat
+
+La subscripcio Azure for Students aporta 100 USD de credit durant 12 mesos i no
+demana targeta de credit. Aquest credit no fa que AKS sigui gratis: el pla de
+gestio d'AKS pot estar en nivell Free, pero els nodes, els discs, el registre
+d'imatges i el transit continuen consumint credit.
+
+Estimacio feta el 23/05/2026 amb Azure Retail Prices API, regio `spaincentral`
+i preus en USD:
+
+| Recurs | Quantitat | Preu unitari | Cost aproximat |
+|---|---:|---:|---:|
+| VM `Standard_B2s_v2` Linux | 3 nodes | 0.0912 USD/h | 0.2736 USD/h |
+| VM `Standard_B2s_v2` Linux | 3 nodes, 720 h/mes | 0.0912 USD/h | 197.0 USD/mes |
+| ACR Basic | 1 registre | 0.1666 USD/dia | 5.0 USD/mes |
+| ACR storage | segons imatges | 0.10 USD/GB-mes | baix, depen del volum |
+| Discs Standard HDD | PVC petits | 1.536-5.888 USD/mes | depen de la mida arrodonida per Azure |
+
+Per tant, amb el cluster encès tot el mes, el cost principal serien els nodes:
+aproximadament 197 USD/mes només de comput. Amb Azure for Students, aquest cost
+es consumeix del credit de 100 USD i obliga a apagar AKS quan no es fa servir.
+Sense la versio d'estudiant, el mateix desplegament costaria aproximadament el
+mateix en tarifa Pay-As-You-Go, pero es facturaria directament al compte en lloc
+de consumir credit academic.
+
+Com a ordre de magnitud:
+
+- 1 node `Standard_B2s_v2` encès 720 h costa uns 65.7 USD/mes.
+- 3 nodes encès 8 h per dia durant 10 dies costen uns 21.9 USD de comput.
+- 3 nodes encès 24/7 durant un mes superen el credit estudiantil disponible.
+
+Fonts utilitzades:
+
+- Azure for Students: https://azure.microsoft.com/en-us/free/students
+- AKS pricing tiers: https://learn.microsoft.com/azure/aks/free-standard-pricing-tiers
+- Azure Retail Prices API: https://learn.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices
+
+## Millores i aplicacio final
+
+La versio final de l'aplicacio queda repartida en tres blocs:
+
+- Portal Backstage: Home, Cataleg, Escenaris, Execucions i Resultats.
+- Microserveis: `catalog-service`, `scenario-service`, `benchmark-orchestrator`,
+  `metrics-api` i Elasticsearch.
+- Brokers: Kafka/Confluent pel cami Kafka-compatible, NATS i RabbitMQ.
+
+Les millores principals son:
+
+- Cua d'execucions per evitar que el portal llanci mes Jobs dels que AKS pot
+  programar.
+- Estat `pending` visible a Escenaris, Execucions i Resultats.
+- Resultats en directe separant runs en curs i pendents.
+- Filtres d'Execucions alineats visualment amb la resta de pantalles.
+- Cataleg amb sincronitzacio de components predefinits, inclosa `SEA`, i fitxes
+  amb versions i notes de reproduibilitat.
+- Tutorial mes explicit, indicant quin boto cal clicar per cada accio.
+- Home amb explicacio progressiva de productor, broker i consumidor.
+
+El repartiment s'ha fet per mantenir el criteri academic del projecte: Backstage
+nomes presenta i guia; l'orquestracio viu al backend; les mesures les genera un
+Job efimer i les guarda `metrics-api`. Aquesta separacio fa que la demo sigui
+usable, pero tambe que el comportament important es pugui reproduir amb
+comandes `kubectl` i manifests.
+
 ## Fase 8: que s'ha d'explicar a la memoria
 
 La memoria ha d'explicar la incidencia sense convertir-la en excusa:

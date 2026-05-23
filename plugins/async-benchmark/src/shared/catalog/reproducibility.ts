@@ -62,10 +62,10 @@ export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> =
   Confluent: [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
     { label: 'Producte', value: 'Confluent com a plataforma del portal' },
-    { label: 'Versió', value: 'No fixada al repositori. Cal verificar la imatge desplegada abans de defensar una versió concreta.' },
-    { label: 'Com està connectat', value: 'El valor intern brokerType=confluent usa un endpoint Kafka-compatible del clúster.' },
+    { label: 'Versió usada al benchmark', value: 'Kafka-compatible 4.1.1. No s\'avalua una distribució completa de Confluent.' },
+    { label: 'Com està connectat', value: 'El valor intern brokerType=confluent usa el bootstrap Kafka-compatible kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local.' },
     { label: 'Namespace', value: 'brokers' },
-    { label: 'Port client', value: '9093 dins del clúster' },
+    { label: 'Port client', value: '9092 dins del clúster' },
     { label: 'Què mesura aquesta prova', value: 'Mesura publish/consume amb API Kafka. No mesura Schema Registry, ksqlDB, Control Center ni altres serveis de Confluent.' },
     { label: 'Execució segura', value: 'Aquest camí només és vàlid amb protocol Kafka i escenaris de log o streaming.' },
     { label: 'Què cal escriure a la memòria', value: 'Indica que Confluent s’ha provat pel camí Kafka-compatible i separa aquesta prova dels serveis extra de la plataforma.' },
@@ -412,8 +412,8 @@ export function getKnownComponentVersion(component: any): string {
   const shortName = normalizeComponentKey(component?.shortName);
   const componentName = normalizeComponentKey(component?.name);
 
-  if (shortName === 'confluent' || componentName === 'confluent platform') {
-    return '';
+  if (shortName === 'confluent' || componentName === 'confluent platform' || componentName === 'confluent') {
+    return 'Kafka-compatible 4.1.1';
   }
 
   if (componentName && KNOWN_COMPONENT_VERSIONS[componentName]) {

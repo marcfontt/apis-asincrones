@@ -106,10 +106,10 @@
       },
       "step2": {
         "title": "Mira el catàleg",
-        "body": "El catàleg t’ajuda a saber quins brokers, protocols i formats pots provar.",
+        "body": "Clica el botó \"Veure catàleg\" per saber quins brokers, protocols i formats pots provar.",
         "details": [
-          "Obre una fitxa si no tens clar què fa un component.",
-          "La compatibilitat evita combinacions sense sentit."
+          "Clica una fitxa del catàleg per veure què fa cada component.",
+          "Clica \"Mostra guia\" a compatibilitat per evitar combinacions sense sentit."
         ]
       },
       "step3": {
@@ -140,34 +140,34 @@
     "catalog": {
       "step1": {
         "title": "Filtra el catàleg",
-        "body": "Fes servir els filtres per trobar ràpidament brokers, protocols o formats.",
+        "body": "Clica el desplegable de categoria o escriu al cercador per trobar brokers, protocols o arquitectures.",
         "details": [
-          "Filtra abans de crear una prova.",
-          "La cerca ajuda quan no recordes el nom exacte."
+          "Clica \"Categoria\" per veure només plataformes, protocols o arquitectures.",
+          "Clica la X del cercador per netejar la cerca."
         ]
       },
       "step2": {
         "title": "Obre una fitxa",
-        "body": "Cada fitxa explica què és el component i quan té sentit usar-lo.",
+        "body": "Clica qualsevol fila del catàleg per obrir la fitxa del component.",
         "details": [
-          "Llegeix la descripció curta.",
-          "Mira si encaixa amb la prova que vols fer."
+          "Clica la pestanya \"Visió general\" per llegir la descripció curta.",
+          "Clica \"Utilitzar aquest component\" si vols crear un escenari amb aquest valor."
         ]
       },
       "step3": {
         "title": "Revisa compatibilitat",
-        "body": "No totes les combinacions tenen sentit. Aquesta zona t’ajuda a evitar errors.",
+        "body": "Clica \"Mostra guia\" dins de Combinacions compatibles per revisar què es pot executar.",
         "details": [
-          "Comprova broker, protocol i arquitectura.",
-          "Si cal un adaptador, ha de quedar clar."
+          "Llegeix la fila del broker que vols provar.",
+          "Comprova els badges d'arquitectura i protocol abans de clicar \"Crear escenari\"."
         ]
       },
       "step4": {
         "title": "Mira la configuració",
-        "body": "El detall separa informació general, configuració i reproduïbilitat.",
+        "body": "Dins d'una fitxa, clica \"Reproduïbilitat\" o \"Configuració\" per veure versions i snippets.",
         "details": [
-          "Revisa versions i ports.",
-          "Copia snippets només si els necessites."
+          "Clica \"Copiar\" només si vols executar el snippet a la terminal.",
+          "Tanca la fitxa amb la X quan acabis."
         ]
       },
       "step5": {
@@ -182,7 +182,7 @@
     "scenarios": {
       "step1": {
         "title": "Crea un escenari",
-        "body": "Clica Nou escenari per obrir el formulari.",
+        "body": "Clica el botó \"Nou escenari\" de dalt a la dreta per obrir el formulari.",
         "details": [
           "Posa un nom clar.",
           "El nom hauria de dir broker, format i objectiu."
@@ -192,8 +192,8 @@
         "title": "Tria la composició",
         "body": "Aquesta és la decisió important: broker, arquitectura i protocol.",
         "details": [
-          "Primer tria la plataforma.",
-          "Després comprova que protocol i arquitectura encaixin."
+          "Clica primer el desplegable \"Plataforma\".",
+          "Després clica \"Arquitectura\" i \"Protocol\"; el formulari només deixa opcions compatibles."
         ]
       },
       "step3": {
@@ -206,18 +206,18 @@
       },
       "step4": {
         "title": "Usa predefinits",
-        "body": "Els predefinits són exemples preparats. Van bé per començar ràpid.",
+        "body": "Clica una targeta de \"Escenaris predefinits\" per carregar una configuració preparada.",
         "details": [
-          "Usa’n un si vols una prova segura.",
-          "Després el pots ajustar."
+          "Clica \"Usar com a base\" dins de la targeta.",
+          "Després revisa durada, ràtio i payload abans de guardar."
         ]
       },
       "step5": {
         "title": "Executa o duplica",
-        "body": "A la llista pots executar, duplicar, editar o eliminar.",
+        "body": "A la taula, clica el botó verd \"Executar\" per llançar el run.",
         "details": [
-          "Duplica per canviar una sola variable.",
-          "Executa quan la configuració ja estigui clara."
+          "Clica la icona de duplicar si vols canviar una sola variable.",
+          "Clica la fila si vols obrir el detall abans d'executar."
         ]
       },
       "step6": {
@@ -232,23 +232,23 @@
     "execucions": {
       "step1": {
         "title": "Filtra execucions",
-        "body": "Els filtres t’ajuden a trobar el run que vols mirar.",
+        "body": "Clica els desplegables de filtres per estat, escenari, broker, protocol, arquitectura o format.",
         "details": [
-          "Filtra per estat si hi ha moltes proves.",
-          "Filtra per broker o format si estàs comparant una cosa concreta."
+          "Clica \"Estat\" per veure només pendent, en curs, completat, aturat o fallit.",
+          "Clica \"Neteja filtres\" per tornar a veure-ho tot."
         ]
       },
       "step2": {
         "title": "Obre el detall",
-        "body": "Clica una fila per veure la configuració i l’estat del run.",
+        "body": "Clica una fila de la taula d'execucions per obrir el detall lateral.",
         "details": [
-          "El detall no hauria de tancar-se sol.",
-          "Comprova durada, format i estat abans de llegir mètriques."
+          "Clica el botó \"Resultats\" per saltar a la lectura de mètriques.",
+          "Clica \"Atura\" si el run està mal configurat o sobrecarrega el clúster."
         ]
       },
       "step3": {
         "title": "Mira el directe",
-        "body": "Quan el run està en curs, aquí veus les dades que arriben.",
+        "body": "Clica la pestanya \"En directe\" a Resultats per veure dades mentre el run està en curs.",
         "details": [
           "Errors alts indiquen problemes.",
           "Throughput estable és bona senyal."
@@ -274,7 +274,7 @@
     "resultats": {
       "step1": {
         "title": "Filtra abans de comparar",
-        "body": "Els filtres decideixen quines proves entren a la comparació.",
+        "body": "Clica els filtres de Resultats abans de comparar perquè decideixen quines proves entren al rànquing.",
         "details": [
           "Compara coses semblants.",
           "Canviar filtres pot canviar la puntuació visible."
@@ -290,7 +290,7 @@
       },
       "step3": {
         "title": "Obre una fila",
-        "body": "Clica una fila per veure el detall de l’escenari.",
+        "body": "Clica una fila de l'historial per obrir el detall de l'escenari.",
         "details": [
           "Veus quins runs han contribuït.",
           "També veus missatges i mesures totals."
@@ -298,7 +298,7 @@
       },
       "step4": {
         "title": "Entén la puntuació",
-        "body": "La puntuació suma mètriques amb pesos. El detall mostra el càlcul.",
+        "body": "Dins del detall, clica la secció de desglossament per veure com es calcula la puntuació.",
         "details": [
           "Veus normalitzat per pes.",
           "També veus el descompte per errors."
@@ -692,7 +692,9 @@
       "pending": "Pendent",
       "running": "En execució",
       "completed": "Completat",
-      "error": "Error"
+      "failed": "Fallit",
+      "error": "Fallit",
+      "cancelled": "Aturat"
     },
     "dataFormatLabels": {
       "default": "Base controlada (256 B)",
@@ -818,6 +820,10 @@
           "title": "Mode sostingut",
           "desc": "El mode sostingut substitueix el vell mode indefinit: sempre queda limitat a una hora i aplica un ràtio i un payload recomanats segons format, plataforma, arquitectura i protocol."
         },
+        "status": {
+          "title": "Estats de la cua",
+          "desc": "Pendent vol dir que el run espera torn perquè el límit de concurrència està ple. En execució ja té pod i pot generar mostres. Completat i fallit són estats finals; aturat conserva dades parcials."
+        },
         "formats": {
           "title": "Formats de dades",
           "desc": "El format de dades simula càrregues reals. Base controlada: 256 B. Vídeo 4K: 500 KB. Vídeo 8K: 2 MB. Financer: missatges JSON petits. IoT: telemetria mínima d'alta freqüència."
@@ -940,7 +946,7 @@
       "items": [
         {
           "title": "Estats",
-          "text": "Pendent encara no ha començat. En execució està enviant càrrega. Completat ha arribat al final. Aturat s’ha cancel·lat manualment. Error vol dir que el run ha fallat."
+          "text": "Pendent encara no ha començat. En execució està enviant càrrega. Completat ha arribat al final. Aturat s’ha cancel·lat manualment. Fallit vol dir que el run ha acabat amb error."
         },
         {
           "title": "Detall d’un run",

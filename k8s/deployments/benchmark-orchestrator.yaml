@@ -42,7 +42,7 @@ spec:
         - name: LOAD_GENERATOR_CPU
           value: 100m
         - name: MAX_CONCURRENT_RUNS
-          value: "1"
+          value: "3"
         - name: LOAD_GENERATOR_NODE_SELECTOR_KEY
           value: benchmark-role
         - name: LOAD_GENERATOR_NODE_SELECTOR_VALUE

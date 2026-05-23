@@ -126,12 +126,44 @@ const RouteStep = ({
 
 export const BrokerFlowDiagram = () => {
   const { t } = useTranslation();
+  const progressiveSteps = [
+    {
+      n: '1',
+      title: 'El productor crea un missatge',
+      text: 'No espera una resposta immediata. Publica dades amb un format, una mida i un ritme concrets.',
+      color: '#2563eb',
+    },
+    {
+      n: '2',
+      title: 'El broker el rep i el gestiona',
+      text: 'Segons la plataforma, el missatge pot anar a una cua, un topic, un log o un subject.',
+      color: '#f59e0b',
+    },
+    {
+      n: '3',
+      title: 'El consumidor el llegeix',
+      text: 'La prova mesura quant triga a arribar, quants missatges es processen i si hi ha errors.',
+      color: '#16a34a',
+    },
+  ];
 
   return (
     <section style={{ ...S.card, padding: 22, overflow: 'hidden', minWidth: 0 }}>
       <DiagramHeader eyebrow={t('home.brokerFlow.eyebrow')} title={t('home.brokerFlow.title')}>
         {t('home.brokerFlow.description')}
       </DiagramHeader>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10, marginBottom: 18 }}>
+        {progressiveSteps.map(step => (
+          <div key={step.n} style={{ border: `1px solid ${step.color}30`, borderRadius: 9, padding: 12, background: `${step.color}0d` }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ width: 22, height: 22, borderRadius: 7, background: `${step.color}18`, color: step.color, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 900 }}>{step.n}</span>
+              <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 900 }}>{step.title}</span>
+            </div>
+            <p style={paragraphStyle}>{step.text}</p>
+          </div>
+        ))}
+      </div>
 
       <div className="async-flow-stage" style={{ display: 'grid', gridTemplateColumns: '1fr 64px 1.18fr 64px 1fr', gap: 0, alignItems: 'stretch' }}>
         <div style={flowBox('#2563eb')}>

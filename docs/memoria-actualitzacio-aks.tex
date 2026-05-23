@@ -1,0 +1,130 @@
+\section{Actualitzacio final de la infraestructura}
+
+La plataforma inicial del projecte estava desplegada en una subscripcio
+empresarial externa. Quan aquesta subscripcio va quedar deshabilitada o en mode
+nomes lectura, el cluster AKS original va deixar de ser operable. La solucio no
+ha estat reparar aquest entorn, sino reconstruir el desplegament en una
+subscripcio Azure for Students mantenint el mateix repositori, els mateixos
+manifests Kubernetes i el mateix flux d'execucio.
+
+Aquesta migracio es important per al projecte perque demostra que la plataforma
+no depen d'un cluster concret. Si es disposa d'una subscripcio activa, un ACR i
+un AKS compatible, el sistema es pot tornar a aixecar aplicant els manifests del
+repositori i reconstruint les imatges. Les mesures obtingudes despres de la
+migracio, pero, s'han d'interpretar com a resultats del nou entorn i no com una
+continuacio directa de l'entorn empresarial anterior.
+
+\subsection{Configuracio del cluster}
+
+El cluster final s'ha creat a la regio \texttt{spaincentral}, amb Kubernetes
+\texttt{1.34.7}, Azure CNI overlay i node pool \texttt{Standard\_B2s\_v2}. La
+fase inicial va funcionar amb un sol node, pero per a la demo final s'ha ampliat
+a tres nodes. El motiu es practic: amb un sol node no era estable mantenir
+Backstage, Elasticsearch, Kafka, NATS, RabbitMQ i els generadors de carrega al
+mateix temps.
+
+El repartiment final ha estat:
+
+\begin{itemize}
+  \item \texttt{aks-nodepool1-10848180-vmss000001}: Kafka i Strimzi.
+  \item \texttt{aks-nodepool1-10848180-vmss000002}: orquestrador i Jobs
+        \texttt{load-generator}, etiquetat amb \texttt{benchmark-role=loadgen}.
+  \item \texttt{aks-nodepool1-10848180-vmss000003}: NATS i RabbitMQ.
+\end{itemize}
+
+Aquest repartiment no converteix el cluster en un entorn de benchmarking
+perfecte, pero redueix el soroll mes greu: evita que els generadors de carrega
+caiguin de manera aleatoria sobre nodes diferents i separa, tant com permet la
+subscripcio d'estudiant, brokers i carrega.
+
+\subsection{Canvis aplicats durant la migracio}
+
+Durant la reconstruccio s'han detectat i corregit diversos problemes:
+
+\begin{itemize}
+  \item La prova Confluent intentava connectar-se a
+        \texttt{redpanda.brokers.svc.cluster.local:9093}. En el cluster final
+        Confluent es documenta com a cami Kafka-compatible i usa
+        \texttt{kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092}.
+  \item NATS s'ha estabilitzat amb \texttt{nats://nats.brokers.svc.cluster.local:4222}.
+        El servei \texttt{nats-headless} queda disponible per monitoratge i
+        comprovacions internes.
+  \item RabbitMQ s'ha mantingut via
+        \texttt{amqp://admin:<password>@rabbitmq.brokers.svc.cluster.local:5672}.
+  \item Els Jobs de benchmark ara es fixen al node
+        \texttt{benchmark-role=loadgen}.
+  \item L'orquestrador incorpora cua interna i diferencia els estats
+        \texttt{pending}, \texttt{running}, \texttt{completed},
+        \texttt{failed} i \texttt{cancelled}.
+  \item La pantalla de Resultats mostra els runs en curs a la fila principal i
+        mou els pendents a una llista separada.
+\end{itemize}
+
+\subsection{Concurrencia i qualitat de les dades}
+
+El valor \texttt{MAX\_CONCURRENT\_RUNS} controla quants Jobs poden entrar al
+cluster al mateix temps. Per a la demo final s'ha deixat a \texttt{3}, de manera
+que es poden crear 16 execucions des del portal sense que Kubernetes rebi 16
+pods simultanis al node de carrega. Els runs sobrants queden en estat
+\texttt{pending} fins que hi ha espai.
+
+Per a una taula final de benchmarking, el valor recomanat continua sent
+\texttt{1}. Amb tres runs simultanis s'obte una demo mes rapida, pero els tres
+generadors comparteixen node i poden introduir soroll en latencia i throughput.
+Per tant, els resultats de demo serveixen per validar el flux complet; els
+resultats que es defensin com a comparacio estricta s'han de repetir en mode
+serial o explicitar aquesta limitacio.
+
+\subsection{Cost de l'entorn}
+
+Azure for Students proporciona 100 USD de credit durant 12 mesos i no requereix
+targeta de credit. Aquest credit cobreix consum real, pero no elimina el cost
+dels recursos. AKS pot estar en nivell de gestio Free, pero els nodes, discs i
+registre d'imatges consumeixen credit.
+
+Segons Azure Retail Prices API consultada el 23/05/2026 per a
+\texttt{spaincentral}, una VM \texttt{Standard\_B2s\_v2} Linux costa
+aproximadament 0.0912 USD/h. Amb tres nodes:
+
+\[
+3 \times 0.0912 = 0.2736 \text{ USD/h}
+\]
+
+Si el cluster estigues encès 720 hores al mes:
+
+\[
+0.2736 \times 720 = 196.99 \text{ USD/mes}
+\]
+
+A aquesta xifra cal afegir aproximadament 5 USD/mes d'Azure Container Registry
+Basic, l'emmagatzematge d'imatges, els discs gestionats i possibles costos de
+transit. En consequencia, el cluster no s'ha de mantenir encès permanentment:
+amb tres nodes pot consumir el credit estudiantil en menys d'un mes si no
+s'apaga.
+
+Sense Azure for Students, el cost tecnic seria similar en tarifa Pay-As-You-Go,
+pero es facturaria directament. Amb Azure for Students, el mateix consum resta
+del credit academic disponible.
+
+\subsection{Estat final de l'aplicacio}
+
+L'aplicacio final queda organitzada en cinc pantalles principals. Home introdueix
+els conceptes de productor, broker i consumidor. Cataleg documenta
+arquitectures, protocols i plataformes amb versions i notes de reproduibilitat.
+Escenaris permet crear i executar combinacions. Execucions mostra l'historial i
+els estats. Resultats mostra les metriques en directe i l'historic.
+
+El cataleg final inclou 15 components predefinits, inclosa l'arquitectura
+\texttt{SEA}. Les fitxes documenten la versio coneguda dels brokers i deixen
+clar que Confluent s'avalua pel cami Kafka-compatible del cluster, no com una
+instal.lacio completa de Confluent Platform amb Schema Registry, ksqlDB o
+Control Center.
+
+Les fonts consultades per aquesta seccio son:
+\begin{itemize}
+  \item Azure for Students: \url{https://azure.microsoft.com/en-us/free/students}
+  \item AKS Free, Standard and Premium tiers:
+        \url{https://learn.microsoft.com/azure/aks/free-standard-pricing-tiers}
+  \item Azure Retail Prices API:
+        \url{https://learn.microsoft.com/rest/api/cost-management/retail-prices/azure-retail-prices}
+\end{itemize}

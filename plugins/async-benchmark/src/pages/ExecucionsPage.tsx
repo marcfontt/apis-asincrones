@@ -43,8 +43,8 @@ const STATUS_CONFIG: Record<string, { color: string; bg: string; label: string }
   running:   { color: '#3b82f6', bg: 'rgba(59,130,246,0.10)', label: 'En execució' },
   completed: { color: '#22c55e', bg: 'rgba(34,197,94,0.10)',  label: 'Completat' },
   cancelled: { color: '#f59e0b', bg: 'rgba(245,158,11,0.12)', label: 'Aturada' },
-  failed:    { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Error' },
-  error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Error' },
+  failed:    { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Fallit' },
+  error:     { color: '#ef4444', bg: 'rgba(239,68,68,0.16)',  label: 'Fallit' },
 };
 
 // L'API ha fet servir "failed" i "error" en moments diferents.
@@ -1518,62 +1518,60 @@ export const ExecucionsPage = () => {
             setFilterStatus([]);
           }}
         >
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
-            <FilterSelect
-              label={t('execucions.filters.status')}
-              value={filterStatus[0] || 'all'}
-              onChange={value => setFilterStatus(value === 'all' ? [] : [value])}
-              options={[
-                { value: 'all', label: t('execucions.filters.all') },
-                ...availableStatusFilters.map(item => ({ value: item.key, label: `${item.label} (${item.count})` })),
-              ]}
-            />
-            <FilterSelect
-              label={t('execucions.filters.scenario')}
-              value={filterScenario[0] || 'all'}
-              onChange={value => setFilterScenario(value === 'all' ? [] : [value])}
-              options={[
-                { value: 'all', label: t('execucions.filters.all') },
-                ...availableScenarioFilters,
-              ]}
-            />
-            <FilterSelect
-              label={t('execucions.filters.broker')}
-              value={filterPlatform[0] || 'all'}
-              onChange={value => setFilterPlatform(value === 'all' ? [] : [value])}
-              options={[
-                { value: 'all', label: t('execucions.filters.all') },
-                ...availablePlatforms.map(value => ({ value, label: value })),
-              ]}
-            />
-            <FilterSelect
-              label={t('execucions.filters.protocol')}
-              value={filterProtocol[0] || 'all'}
-              onChange={value => setFilterProtocol(value === 'all' ? [] : [value])}
-              options={[
-                { value: 'all', label: t('execucions.filters.all') },
-                ...availableProtocols.map(value => ({ value, label: value })),
-              ]}
-            />
-            <FilterSelect
-              label={t('execucions.filters.architecture')}
-              value={filterArchitecture[0] || 'all'}
-              onChange={value => setFilterArchitecture(value === 'all' ? [] : [value])}
-              options={[
-                { value: 'all', label: t('execucions.filters.all') },
-                ...availableArchitectures.map(value => ({ value, label: value })),
-              ]}
-            />
-            <FilterSelect
-              label={t('execucions.filters.format')}
-              value={filterDataFormat[0] || 'all'}
-              onChange={value => setFilterDataFormat(value === 'all' ? [] : [value])}
-              options={[
-                { value: 'all', label: t('execucions.filters.all') },
-                ...availableDataFormats.map(value => ({ value, label: DATA_FORMAT_LABELS[value] || value })),
-              ]}
-            />
-          </div>
+          <FilterSelect
+            label={t('execucions.filters.status')}
+            value={filterStatus[0] || 'all'}
+            onChange={value => setFilterStatus(value === 'all' ? [] : [value])}
+            options={[
+              { value: 'all', label: t('execucions.filters.all') },
+              ...availableStatusFilters.map(item => ({ value: item.key, label: `${item.label} (${item.count})` })),
+            ]}
+          />
+          <FilterSelect
+            label={t('execucions.filters.scenario')}
+            value={filterScenario[0] || 'all'}
+            onChange={value => setFilterScenario(value === 'all' ? [] : [value])}
+            options={[
+              { value: 'all', label: t('execucions.filters.all') },
+              ...availableScenarioFilters,
+            ]}
+          />
+          <FilterSelect
+            label={t('execucions.filters.broker')}
+            value={filterPlatform[0] || 'all'}
+            onChange={value => setFilterPlatform(value === 'all' ? [] : [value])}
+            options={[
+              { value: 'all', label: t('execucions.filters.all') },
+              ...availablePlatforms.map(value => ({ value, label: value })),
+            ]}
+          />
+          <FilterSelect
+            label={t('execucions.filters.protocol')}
+            value={filterProtocol[0] || 'all'}
+            onChange={value => setFilterProtocol(value === 'all' ? [] : [value])}
+            options={[
+              { value: 'all', label: t('execucions.filters.all') },
+              ...availableProtocols.map(value => ({ value, label: value })),
+            ]}
+          />
+          <FilterSelect
+            label={t('execucions.filters.architecture')}
+            value={filterArchitecture[0] || 'all'}
+            onChange={value => setFilterArchitecture(value === 'all' ? [] : [value])}
+            options={[
+              { value: 'all', label: t('execucions.filters.all') },
+              ...availableArchitectures.map(value => ({ value, label: value })),
+            ]}
+          />
+          <FilterSelect
+            label={t('execucions.filters.format')}
+            value={filterDataFormat[0] || 'all'}
+            onChange={value => setFilterDataFormat(value === 'all' ? [] : [value])}
+            options={[
+              { value: 'all', label: t('execucions.filters.all') },
+              ...availableDataFormats.map(value => ({ value, label: DATA_FORMAT_LABELS[value] || value })),
+            ]}
+          />
         </FilterPanel>
       )}
 

@@ -2142,22 +2142,26 @@ const LiveTab = () => {
       .join(' ');
     return haystack.includes(query);
   });
+  const runningRuns = activeRuns.filter((run: any) => run.status === 'running');
+  const visibleRunningRuns = visibleActiveRuns.filter((run: any) => run.status === 'running');
+  const visiblePendingRuns = visibleActiveRuns.filter((run: any) => run.status === 'pending');
 
   useEffect(() => {
-    if (!selectedRunId && visibleActiveRuns.length > 0) setSelectedRunId(visibleActiveRuns[0].id);
-  }, [visibleActiveRuns, selectedRunId]);
+    if (!selectedRunId && visibleRunningRuns.length > 0) setSelectedRunId(visibleRunningRuns[0].id);
+  }, [visibleRunningRuns, selectedRunId]);
 
   useEffect(() => {
     const runFinished = !!selectedRunId && !activeRuns.find((run: any) => run.id === selectedRunId);
     if (runFinished) return;
-    if (visibleActiveRuns.length > 0 && !visibleActiveRuns.find((run: any) => run.id === selectedRunId)) {
-      setSelectedRunId(visibleActiveRuns[0].id);
+    if (visibleRunningRuns.length > 0 && !visibleRunningRuns.find((run: any) => run.id === selectedRunId)) {
+      setSelectedRunId(visibleRunningRuns[0].id);
     }
-  }, [activeRuns, visibleActiveRuns, selectedRunId]);
+  }, [activeRuns, visibleRunningRuns, selectedRunId]);
 
   // True once the selected run has left activeRuns; drives the
   // "Finalitzat" banner and the grace-window polling behaviour.
   const selectedRunFinished = !!selectedRunId && !activeRuns.find(r => r.id === selectedRunId);
+  const hasNoRunnableSelection = !selectedRunId && !selectedRunFinished;
 
   // Metrics polling: resets and restarts when selectedRunId changes.
   // No defensive timestamp filter is needed because runId is unique per
@@ -2249,7 +2253,7 @@ const LiveTab = () => {
 
   return (
     <div>
-      {/* Scenario picker card - shows all active/pending runs */}
+      {/* Scenario picker card: main row only shows runs that are already running. */}
       <div style={{ ...S.card, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (visibleActiveRuns.length > 0 || selectedRunFinished) ? 14 : 0 }}>
           <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -2261,7 +2265,7 @@ const LiveTab = () => {
               - Grey static:   no run selected / no data → "Inactiu" */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {(() => {
-              const live = polling && activeRuns.length > 0 && !selectedRunFinished;
+              const live = polling && runningRuns.length > 0 && !selectedRunFinished;
               const finished = selectedRunFinished;
               const color = live ? '#22c55e' : finished ? '#f59e0b' : '#94a3b8';
               const label = live ? t('resultats.tabLive') : finished ? t('resultats.live.finishedBanner') : t('resultats.live.inactive');
@@ -2308,7 +2312,7 @@ const LiveTab = () => {
               )}
             </div>
             <span style={{ fontSize: 11, color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
-              {visibleActiveRuns.length} {t('resultats.history.of')} {activeRuns.length} {t('resultats.live.visible')}
+              {visibleRunningRuns.length} en curs · {visiblePendingRuns.length} pendents
             </span>
           </div>
         )}
@@ -2323,9 +2327,13 @@ const LiveTab = () => {
           <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>{t('resultats.live.empty')}</div>
         ) : activeRuns.length > 0 && visibleActiveRuns.length === 0 ? (
           <div style={{ color: 'var(--text-disabled)', fontSize: 14 }}>{t('resultats.live.emptySearch')}</div>
+        ) : visibleRunningRuns.length === 0 ? (
+          <div style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.55 }}>
+            Encara no hi ha cap execució corrent dins del filtre actual.
+          </div>
         ) : (
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-            {visibleActiveRuns.map(r => (
+            {visibleRunningRuns.map(r => (
               <RunCard
                 key={r.id}
                 run={r}
@@ -2356,6 +2364,22 @@ const LiveTab = () => {
           </div>
         )}
 
+        {visiblePendingRuns.length > 0 && (
+          <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.24)' }}>
+            <div style={{ fontSize: 11, fontWeight: 800, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
+              Pendents d'executar
+            </div>
+            <div style={{ display: 'grid', gap: 6 }}>
+              {visiblePendingRuns.map(run => (
+                <div key={run.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
+                  <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{run.scenarioName || run.id}</span>
+                  <span>esperant torn a la cua</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Error banner - shown when metrics fetch fails */}
         {pollError && (
           <div style={{ marginTop: 12, padding: '8px 12px', background: 'rgba(239,68,68,0.08)', border: '1px solid var(--error)', borderRadius: 6, fontSize: 12, color: 'var(--error)' }}>
@@ -2369,16 +2393,22 @@ const LiveTab = () => {
           empty state and render the full metrics layout so the user sees
           the frozen final numbers while the grace-window polling captures
           the load-generator's "status:completed" snapshot. */}
-      {activeRuns.length === 0 && !selectedRunFinished ? (
+      {hasNoRunnableSelection ? (
         <div style={{ ...S.card, textAlign: 'center', padding: 72 }}>
           <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}><IconSignal /></div>
-          <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 8 }}>{t('resultats.live.emptyTitle')}</div>
-          <div style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 380, margin: '0 auto 20px' }}>
-            {t('resultats.live.emptyDescription')}
+          <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 8 }}>
+            {activeRuns.length > 0 ? 'Execucions pendents' : t('resultats.live.emptyTitle')}
           </div>
-          <a href="/escenaris" style={{ ...S.btnPrimary as React.CSSProperties, textDecoration: 'none', display: 'inline-flex' }}>
-            {t('resultats.live.goScenarios')}
-          </a>
+          <div style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 380, margin: '0 auto 20px' }}>
+            {activeRuns.length > 0
+              ? 'Les proves encara no han començat perquè el límit de concurrència està ple. Quan una entri en execució, apareixerà a la fila superior i començaran les mostres.'
+              : t('resultats.live.emptyDescription')}
+          </div>
+          {activeRuns.length === 0 && (
+            <a href="/escenaris" style={{ ...S.btnPrimary as React.CSSProperties, textDecoration: 'none', display: 'inline-flex' }}>
+              {t('resultats.live.goScenarios')}
+            </a>
+          )}
         </div>
       ) : (
         <>

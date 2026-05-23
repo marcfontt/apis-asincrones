@@ -53,20 +53,20 @@ const CATEGORY_LABELS: Record<string, string> = {
 
 const CATEGORY_DESCRIPTIONS: Record<string, string> = {
   architecture:
-    "Patró que descriu com circulen els missatges dins d'un escenari: per esdeveniments, cues, logs o streaming.",
+    "Forma del sistema. Indica si el flux funciona amb esdeveniments, cues, logs o streaming.",
   protocol:
-    "Regles de comunicació que indiquen com s'envien i es reben els missatges entre productor, broker i consumidor.",
+    "Idioma de comunicació. Explica com productor, broker i consumidor s'envien els missatges.",
   platform:
-    "Broker o plataforma real desplegada al clúster. És la peça que processa missatges i condiciona els resultats.",
+    "Broker real desplegat a AKS. És la peça que mou els missatges i fa variar els resultats.",
 };
 
 const CATEGORY_IMPACTS: Record<string, string> = {
   architecture:
-    'Canvia la forma del flux i, per tant, pot afectar latència, desacoblament i capacitat de consum.',
+    "Tria-la primer per entendre quin patró vols provar: pub/sub, cua, log o streaming.",
   protocol:
-    "Canvia el transport i les confirmacions. Pot afectar compatibilitat, errors, latència i pèrdua de missatges.",
+    "Ha de ser compatible amb el broker. Si el protocol necessita gateway, cal deixar-ho escrit.",
   platform:
-    'Canvia la implementació que corre a AKS. Aquí és on versions, ports, topologia i límits importen per replicar.',
+    "És el que es desplega o es connecta al clúster. Revisa versió, port, namespace i límits abans de comparar.",
 };
 
 const CATEGORY_ORDER: CategoryFilter[] = ['all', 'platform', 'protocol', 'architecture'];
@@ -458,6 +458,21 @@ const CompatibilitySummary = () => {
       hideLabel={t('scenarios.guide.hide')}
       marginBottom={20}
     >
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10, marginTop: 16 }}>
+        {[
+          { n: '1', title: 'Tria la plataforma', text: 'Primer mira quin broker vols provar: Kafka, Confluent, RabbitMQ o NATS Server.' },
+          { n: '2', title: 'Revisa compatibilitat', text: 'Després comprova quines arquitectures i protocols pot executar aquest broker al portal.' },
+          { n: '3', title: 'Obre la fitxa', text: 'Clica una fila del catàleg per veure versió, port, namespace, límits i com reproduir la prova.' },
+        ].map(step => (
+          <div key={step.n} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: 12, background: 'var(--bg-subtle)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <span style={{ width: 22, height: 22, borderRadius: 999, background: 'var(--accent-soft)', color: 'var(--accent)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 850 }}>{step.n}</span>
+              <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 850 }}>{step.title}</span>
+            </div>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.55 }}>{step.text}</p>
+          </div>
+        ))}
+      </div>
       <div style={{ marginTop: 16, overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
           <thead>

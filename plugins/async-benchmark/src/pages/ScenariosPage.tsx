@@ -75,6 +75,11 @@ type Scenario = {
   createdAt?: string;
 };
 
+type ActiveRunInfo = {
+  runId: string;
+  status: string;
+};
+
 type SustainedLoadPlan = {
   durationSeconds: number;
   ratio: number;
@@ -305,7 +310,9 @@ const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }
   pending:   { color: '#f59e0b', label: 'Pendent',     bg: 'rgba(245,158,11,0.1)'  }, // ambre: esperant inici al cluster
   running:   { color: '#3b82f6', label: 'En execució', bg: 'rgba(59,130,246,0.1)'  }, // blau: execució activa
   completed: { color: '#22c55e', label: 'Completat',   bg: 'rgba(34,197,94,0.1)'   }, // verd fort: finalitzat correctament
-  error:     { color: '#ef4444', label: 'Error',       bg: 'rgba(239,68,68,0.1)'   }, // vermell: ha fallat
+  failed:    { color: '#ef4444', label: 'Fallit',      bg: 'rgba(239,68,68,0.1)'   }, // vermell: ha fallat
+  error:     { color: '#ef4444', label: 'Fallit',      bg: 'rgba(239,68,68,0.1)'   }, // compatibilitat amb dades antigues
+  cancelled: { color: '#f59e0b', label: 'Aturat',      bg: 'rgba(245,158,11,0.12)' }, // ambre: aturat manualment
 };
 
 const SK_STYLE = {
@@ -1072,11 +1079,14 @@ const Toast = ({ message, type, onClose }: { message: string; type: 'success' | 
 };
 
 // Detall d'escenari (modal overlay)
-const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete, onDuplicate, isRunning }: {
+const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete, onDuplicate, activeRun }: {
   scenario: Scenario; onClose: () => void; onExecute: () => void; onStop: () => void;
-  onEdit: () => void; onDelete: () => void; onDuplicate: () => void; isRunning: boolean;
+  onEdit: () => void; onDelete: () => void; onDuplicate: () => void; activeRun?: ActiveRunInfo;
 }) => {
-  const status    = STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle;
+  const status    = activeRun ? (STATUS_CONFIG[activeRun.status] || STATUS_CONFIG.running) : (STATUS_CONFIG[scenario.status || 'idle'] || STATUS_CONFIG.idle);
+  const isRunning = activeRun?.status === 'running';
+  const isPending = activeRun?.status === 'pending';
+  const isActive  = Boolean(activeRun);
   const dfColor   = DATA_FORMAT_COLORS[scenario.dataFormat || 'default'] || DATA_FORMAT_COLORS['default'];
   const dfLabel   = DATA_FORMAT_LABELS[scenario.dataFormat || 'default'] || 'Per defecte';
   const platName  = normalizePlatform(scenario.platform || scenario.broker);
@@ -1111,9 +1121,10 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
         <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' as const }}>
-              <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : status.bg, color: isRunning ? '#3b82f6' : status.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ background: status.bg, color: status.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                 {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
-                {isRunning ? 'En execució' : status.label}
+                {isPending && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f59e0b' }} />}
+                {status.label}
               </span>
               {isSustained && (
                 <span style={{ background: 'rgba(37,99,235,0.1)', color: 'var(--accent)', padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -1185,10 +1196,10 @@ const ScenarioDetail = ({ scenario, onClose, onExecute, onStop, onEdit, onDelete
           <button onClick={onEdit}      style={{ ...S.btn, fontSize: 13 }}><EditIcon /> Editar</button>
           <button onClick={onDelete}    style={{ ...S.btn, fontSize: 13, color: 'var(--error)', borderColor: 'var(--error)' }}><TrashIcon /> Eliminar</button>
           <div style={{ flex: 1 }} />
-          {isRunning ? (
+          {isActive ? (
             <button onClick={() => { onStop(); onClose(); }}
               style={{ ...S.btn, fontSize: 13, background: 'rgba(239,68,68,0.1)', borderColor: 'var(--error)', color: 'var(--error)' }}>
-              <StopIcon /> Aturar execució
+              <StopIcon /> {isPending ? 'Treure de la cua' : 'Aturar execució'}
             </button>
           ) : (
             // Boto principal del detall: verd brillant per ressaltar l'accio.
@@ -1252,6 +1263,14 @@ const GUIDE_ITEMS = [
     descKey: 'scenarios.guide.items.sustained.desc',
     title: 'Mode sostingut',
     desc: 'El mode sostingut substitueix el vell mode indefinit: sempre queda limitat a 1 hora i aplica una ràtio i un payload recomanats segons format, plataforma, arquitectura i protocol.',
+  },
+  {
+    color: '#f59e0b',
+    icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+    titleKey: 'scenarios.guide.items.status.title',
+    descKey: 'scenarios.guide.items.status.desc',
+    title: 'Estats de la cua',
+    desc: 'Pendent vol dir que el run està a la cua perquè el límit de concurrència està ple. En execució ja té pod i pot generar mostres. Completat i fallit són finals; aturat conserva les mostres parcials.',
   },
   {
     color: '#7c3aed',
@@ -1361,7 +1380,7 @@ export const ScenariosPage = () => {
   // runningMap: clau=scenarioId, valor=runId de l'execució activa.
   // S'usa per saber quins escenaris estan corrent ara mateix sense
   // haver de consultar el scenario-service (que no te aquesta info).
-  const [runningMap,       setRunningMap]       = useState<Record<string, string>>({});
+  const [runningMap,       setRunningMap]       = useState<Record<string, ActiveRunInfo>>({});
   const [sortKey,          setSortKey]          = useState<string | null>('createdAt');
   const [sortDir,          setSortDir]          = useState<SortDir | null>('desc');
   // selectedIds: set per a execució en lot. Nomes escenaris no en execució.
@@ -1380,7 +1399,7 @@ export const ScenariosPage = () => {
   /**
    * Carrega el mapa d'execucións actives des de l'orquestrador.
    * Filtra nomes els runs amb status 'running' o 'pending' i construeix
-   * un mapa scenarioId -> runId per poder identificar rapidament quins
+   * un mapa scenarioId -> { runId, status } per poder identificar rapidament quins
    * escenaris estan en execució sense fer N peticions individuals.
    *
    * S'executa en muntar el component i cada 6s (polling lleuger).
@@ -1392,9 +1411,9 @@ export const ScenariosPage = () => {
       .then(r => r.json())
       .then(data => {
         if (Array.isArray(data)) {
-          const map: Record<string, string> = {};
+          const map: Record<string, ActiveRunInfo> = {};
           data.filter(r => r.status === 'running' || r.status === 'pending')
-              .forEach(r => { if (r.scenarioId) map[r.scenarioId] = r.id; });
+              .forEach(r => { if (r.scenarioId) map[r.scenarioId] = { runId: r.id, status: r.status }; });
           setRunningMap(map);
         }
       })
@@ -1513,7 +1532,7 @@ export const ScenariosPage = () => {
   };
 
   const handleStopScenario = async (scenario: Scenario) => {
-    const runId = runningMap[scenario.id!];
+    const runId = runningMap[scenario.id!]?.runId;
     if (!runId) return;
     try {
       await fetch(`${ORCHESTRATOR}/runs/${runId}/cancel`, { method: 'POST' });
@@ -1532,7 +1551,7 @@ export const ScenariosPage = () => {
    * per assegurar consistencia si hi ha delays de Kubernetes.
    */
   const handleScenarioStarted = (scenarioId: string, runId: string) => {
-    setRunningMap(prev => ({ ...prev, [scenarioId]: runId }));
+    setRunningMap(prev => ({ ...prev, [scenarioId]: { runId, status: 'pending' } }));
     setTimeout(fetchRunningMap, 2000); // confirma despres del primer heartbeat
     setTimeout(fetchRunningMap, 5000); // reconfirma quan el pod esta arrencat
   };
@@ -1681,6 +1700,10 @@ export const ScenariosPage = () => {
   const modalMode = editScenario?.id && !editScenario._prefill ? 'edit' : 'create';
 
   const activeFiltersCount = [filterArch, filterProto, filterPlatform, filterDataFormat].filter(f => f !== 'all').length + (searchQuery.trim() ? 1 : 0);
+  const activeRunEntries = Object.values(runningMap);
+  const runningCount = activeRunEntries.filter(run => run.status === 'running').length;
+  const pendingCount = activeRunEntries.filter(run => run.status === 'pending').length;
+  const activeRunCount = activeRunEntries.length;
 
   const FILTER_DEFS = [
     {
@@ -1753,7 +1776,8 @@ export const ScenariosPage = () => {
         <div style={{ display: 'flex', gap: 12, marginBottom: 24, flexWrap: 'wrap' }}>
           {[
             { label: t('scenarios.stats.total'), value: scenarios.length,              color: 'var(--text-secondary)', bg: 'var(--bg-card)' },
-            { label: t('scenarios.stats.running'), value: Object.keys(runningMap).length, color: '#3b82f6',               bg: 'rgba(59,130,246,0.08)' },
+            { label: t('scenarios.stats.running'), value: runningCount, color: '#3b82f6', bg: 'rgba(59,130,246,0.08)' },
+            { label: 'Pendents', value: pendingCount, color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
           ].map(s => (
             <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '10px 20px', display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 22, fontWeight: 800, fontFamily: 'var(--font-mono)', color: s.color, letterSpacing: '-0.02em' }}>{s.value}</span>
@@ -1887,10 +1911,10 @@ export const ScenariosPage = () => {
                   de {scenarios.length} totals
                 </span>
               )}
-              {Object.keys(runningMap).length > 0 && (
+              {activeRunCount > 0 && (
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#3b82f6', background: 'rgba(59,130,246,0.1)', padding: '2px 10px', borderRadius: 20, fontWeight: 700 }}>
                   <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', display: 'inline-block', animation: 'pulseDot 1.5s ease infinite' }} />
-                  {Object.keys(runningMap).length} en execució
+                  {runningCount} en execució · {pendingCount} pendents
                 </span>
               )}
             </div>
@@ -1971,8 +1995,11 @@ export const ScenariosPage = () => {
                     </td>
                   </tr>
                 ) : sortedFiltered.map((s, i) => {
-                  const st         = STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle;
-                  const isRunning  = !!runningMap[s.id!];
+                  const activeRun  = s.id ? runningMap[s.id] : undefined;
+                  const isRunning  = activeRun?.status === 'running';
+                  const isPending  = activeRun?.status === 'pending';
+                  const isActive   = Boolean(activeRun);
+                  const st         = activeRun ? (STATUS_CONFIG[activeRun.status] || STATUS_CONFIG.running) : (STATUS_CONFIG[s.status || 'idle'] || STATUS_CONFIG.idle);
                   const dfColor    = DATA_FORMAT_COLORS[s.dataFormat || 'default'] || '#6b7280';
                   const dfLabel    = DATA_FORMAT_LABELS[s.dataFormat || 'default'] || 'Base';
                   const platName   = normalizePlatform(s.platform || s.broker);
@@ -1993,7 +2020,7 @@ export const ScenariosPage = () => {
                     >
                       {/* Checkbox */}
                       <td style={{ ...S.td, width: 40, paddingLeft: 12, paddingRight: 4, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                        {!isRunning && s.id && (
+                        {!isActive && s.id && (
                           <button
                             onClick={() => toggleSelect(s.id!)}
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -2008,6 +2035,7 @@ export const ScenariosPage = () => {
                       <td style={{ ...S.td, fontWeight: 700 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
                           {isRunning && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#3b82f6', flexShrink: 0, animation: 'pulseDot 1.5s ease infinite' }} />}
+                          {isPending && <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />}
                           {s.name || '-'}
                         </div>
                       </td>
@@ -2028,9 +2056,10 @@ export const ScenariosPage = () => {
                         </span>
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }}>
-                        <span style={{ background: isRunning ? 'rgba(59,130,246,0.1)' : st.bg, color: isRunning ? '#3b82f6' : st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ background: st.bg, color: st.color, padding: '3px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                           {isRunning && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#3b82f6', animation: 'pulseDot 1.5s ease infinite' }} />}
-                          {isRunning ? t('scenarios.stats.running') : st.label}
+                          {isPending && <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#f59e0b' }} />}
+                          {st.label}
                         </span>
                       </td>
                       <td style={{ ...S.td, textAlign: 'right', fontSize: 12, color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
@@ -2038,8 +2067,8 @@ export const ScenariosPage = () => {
                       </td>
                       <td style={{ ...S.td, textAlign: 'center' }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: 'flex', gap: 4, justifyContent: 'center' }}>
-                          {isRunning ? (
-                            <button title="Aturar execució" aria-label={`Aturar execució de ${s.name}`} onClick={() => handleStopScenario(s)}
+                          {isActive ? (
+                            <button title={isPending ? 'Treure de la cua' : 'Aturar execució'} aria-label={`${isPending ? 'Treure de la cua' : 'Aturar execució'} de ${s.name}`} onClick={() => handleStopScenario(s)}
                               style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid var(--error)', borderRadius: 6, padding: '4px 7px', cursor: 'pointer', display: 'flex', color: 'var(--error)' }}>
                               <StopIcon />
                             </button>
@@ -2076,7 +2105,7 @@ export const ScenariosPage = () => {
         {selectedScenario && (
           <ScenarioDetail
             scenario={selectedScenario}
-            isRunning={!!runningMap[selectedScenario.id!]}
+            activeRun={selectedScenario.id ? runningMap[selectedScenario.id] : undefined}
             onClose={() => setSelectedScenario(null)}
             onExecute={() => setExecuteTarget(selectedScenario)}
             onStop={() => handleStopScenario(selectedScenario)}

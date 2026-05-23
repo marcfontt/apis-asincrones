@@ -317,6 +317,7 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
       registroEjecucion.errorDetail = detall;
       await postRunDiagnosticMetric(registroEjecucion, 'failed', 'BROKER_NOT_READY', detall);
     }
+    await updateScenarioStatus(scenarioId, 'failed', null);
     throw new Error(detall);
   }
   console.log(`[orchestrator] brokerType=${tipoBroker} service=${serveiBrokerPreparat} ready`);
@@ -455,7 +456,7 @@ async function monitorJob(
       const limit = job.spec?.backoffLimit ?? 1;
       if (succeeded > 0) {
         run.status = 'completed'; run.completedAt = new Date().toISOString();
-        await updateScenarioStatus(scenarioId, 'idle', null);
+        await updateScenarioStatus(scenarioId, 'completed', null);
         try { await coreApi.deleteNamespace(namespace); } catch (_) { }
         console.log(`[orchestrator] Run ${runId} completed`);
         processRunQueue();
@@ -463,14 +464,14 @@ async function monitorJob(
         run.status = 'failed'; run.completedAt = new Date().toISOString();
         run.errorCode = 'KUBERNETES_JOB_FAILED';
         run.errorDetail = `El Job ${jobName} ha superat el backoffLimit (${limit}).`;
-        await updateScenarioStatus(scenarioId, 'idle', null);
+        await updateScenarioStatus(scenarioId, 'failed', null);
         console.log(`[orchestrator] Run ${runId} failed`);
         processRunQueue();
       } else if (maxAttempts !== null && attempts > maxAttempts) {
         run.status = 'failed'; run.completedAt = new Date().toISOString();
         run.errorCode = 'JOB_MONITOR_TIMEOUT';
         run.errorDetail = `El Job ${jobName} no ha informat d'èxit dins la finestra esperada. Revisa els logs del pod load-generator.`;
-        await updateScenarioStatus(scenarioId, 'idle', null);
+        await updateScenarioStatus(scenarioId, 'failed', null);
         console.log(`[orchestrator] Run ${runId} monitor timeout`);
         processRunQueue();
       } else {
@@ -483,7 +484,7 @@ async function monitorJob(
         run.completedAt = new Date().toISOString();
         run.errorCode = 'JOB_MONITOR_ERROR';
         run.errorDetail = `No s'ha pogut llegir l'estat del Job ${jobName}: ${(e as Error).message}`;
-        await updateScenarioStatus(scenarioId, 'idle', null);
+        await updateScenarioStatus(scenarioId, 'failed', null);
         processRunQueue();
         return;
       }
@@ -535,7 +536,7 @@ async function startRun(runId: string): Promise<void> {
       registroConError.errorCode = registroConError.errorCode || 'DEPLOY_FAILED';
       registroConError.errorDetail = registroConError.errorDetail || (e as Error).message;
     }
-    await updateScenarioStatus(run.scenarioId, 'idle', null);
+    await updateScenarioStatus(run.scenarioId, 'failed', null);
     processRunQueue();
   }
 }
@@ -571,7 +572,7 @@ app.get('/runs/:id', (req, res) => {
   res.json(run);
 });
 
-app.post('/runs', (req, res) => {
+app.post('/runs', async (req, res) => {
   // FIX 1: extreure dataFormat del body (abans s'ignorava completament)
   const { scenarioId, scenarioName: providedName, architecture: providedArchitecture,
           protocol: providedProtocol, platform: providedPlatform, dataFormat: providedDataFormat,
@@ -599,6 +600,10 @@ app.post('/runs', (req, res) => {
   };
   runs.set(runId, run);
 
+  // Si la concurrencia esta plena, el run queda a la cua. Escrivim
+  // l'estat pendent al scenario-service perque la UI ho pugui explicar.
+  await updateScenarioStatus(scenarioId, 'pending', runId);
+
   res.status(201).json({ id: runId, runId, scenarioId, status: 'pending', queued: true, maxConcurrentRuns: MAX_CONCURRENT_RUNS });
   enqueueRun(runId);
 });
@@ -614,7 +619,7 @@ app.post('/runs/:id/cancel', async (req, res) => {
   if (queuedIndex >= 0) {
     runQueue.splice(queuedIndex, 1);
   }
-  await updateScenarioStatus(run.scenarioId, 'idle', null);
+  await updateScenarioStatus(run.scenarioId, 'cancelled', null);
   // Respond to the client immediately so the UI doesn't hang on the flush.
   res.json({ ok: true });
   if (k8sEnabled && run.namespace) {
