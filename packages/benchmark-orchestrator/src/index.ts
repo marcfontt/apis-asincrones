@@ -28,10 +28,9 @@ const CONFLUENT_BROKERS = process.env.CONFLUENT_BROKERS || KAFKA_BROKERS;
 // only drops the orchestrator's in-memory record; the historical mostres
 // stay in ES forever and keep polluting the Historial view.
 const METRICS_API_URL = process.env.METRICS_API_URL || 'http://metrics-api:3004';
-// The regular NATS service currently has no ready endpoints when the Helm
-// reloader sidecar is unhealthy. The headless service still exposes nats-0 on
-// port 4222, so benchmark jobs must use it until the broker chart is cleaned.
-const NATS_BROKER_URL = process.env.NATS_BROKER_URL || 'nats://nats-headless.brokers.svc.cluster.local:4222';
+// Use the stable ClusterIP service for benchmark jobs. The headless service can
+// return no DNS record while the NATS pod is restarting and has no ready endpoint.
+const NATS_BROKER_URL = process.env.NATS_BROKER_URL || 'nats://nats.brokers.svc.cluster.local:4222';
 const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://admin:BenchmarkAdmin2024@rabbitmq.brokers.svc.cluster.local:5672';
 
 const kc = new k8s.KubeConfig();
@@ -111,7 +110,7 @@ function brokerServiceCandidates(brokerType: string): string[] {
     case 'confluent':
       return ['kafka-cluster-kafka-bootstrap'];
     case 'nats':
-      return ['nats-headless', 'nats'];
+      return ['nats', 'nats-headless'];
     case 'rabbitmq':
     case 'amqp':
     case 'mqtt':

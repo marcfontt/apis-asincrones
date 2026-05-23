@@ -70,7 +70,7 @@ kubectl get endpoints nats nats-headless -n brokers
 | Kafka | `kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092` |
 | Confluent | Mateix endpoint Kafka-compatible si no es configura `CONFLUENT_BROKERS`. |
 | RabbitMQ / AMQP | `amqp://admin:<password>@rabbitmq.brokers.svc.cluster.local:5672` |
-| NATS | `nats://nats-headless.brokers.svc.cluster.local:4222` |
+| NATS | `nats://nats.brokers.svc.cluster.local:4222` |
 
 ## Credencials RabbitMQ
 

@@ -38,7 +38,7 @@ amb el container `load-generator`.
 |---|---|---|
 | `kafka` | `kafka-cluster-kafka-bootstrap` | `KAFKA_BROKERS` |
 | `confluent` | `kafka-cluster-kafka-bootstrap` | `CONFLUENT_BROKERS`, per defecte igual que Kafka |
-| `nats` | `nats-headless` o `nats` | `NATS_BROKER_URL` |
+| `nats` | `nats` o `nats-headless` | `NATS_BROKER_URL` |
 | `rabbitmq` / `amqp` / `mqtt` | `rabbitmq` | `RABBITMQ_URL` |
 
 ## Entorn
@@ -56,7 +56,7 @@ amb el container `load-generator`.
 | `LOAD_GENERATOR_NODE_SELECTOR_VALUE` | `loadgen`, si es vol fixar el node dels Jobs |
 | `KAFKA_BROKERS` | `kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092` |
 | `CONFLUENT_BROKERS` | Per defecte igual que `KAFKA_BROKERS` |
-| `NATS_BROKER_URL` | `nats://nats-headless.brokers.svc.cluster.local:4222` |
+| `NATS_BROKER_URL` | `nats://nats.brokers.svc.cluster.local:4222` |
 | `RABBITMQ_URL` | `amqp://admin:<password>@rabbitmq.brokers.svc.cluster.local:5672` |
 
 En local, defineix `PORT=3003` si vols provar-lo darrere del mateix proxy que

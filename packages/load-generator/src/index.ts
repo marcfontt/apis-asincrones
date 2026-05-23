@@ -443,7 +443,7 @@ async function runNats() {
   log(`=== Load Generator (NATS) ===`);
   log(`Format: ${CONFIGURACION.dataFormat}  |  MsgSize: ${CONFIGURACION.tamanoMensajeBytes}B  |  Rate: ${CONFIGURACION.mensajesPorSegundo} msg/s`);
 
-  const natsUrl = process.env.NATS_URL || 'nats://nats-headless.brokers.svc.cluster.local:4222';
+  const natsUrl = process.env.NATS_URL || 'nats://nats.brokers.svc.cluster.local:4222';
   const nc = await natsConnect({
     servers: natsUrl,
     name: `load-generator-${CONFIGURACION.runId}`,
