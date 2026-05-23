@@ -2145,6 +2145,7 @@ const LiveTab = () => {
   const runningRuns = activeRuns.filter((run: any) => run.status === 'running');
   const visibleRunningRuns = visibleActiveRuns.filter((run: any) => run.status === 'running');
   const visiblePendingRuns = visibleActiveRuns.filter((run: any) => run.status === 'pending');
+  const pendingPreviewRuns = visiblePendingRuns.slice(0, 4);
 
   useEffect(() => {
     if (!selectedRunId && visibleRunningRuns.length > 0) setSelectedRunId(visibleRunningRuns[0].id);
@@ -2365,18 +2366,16 @@ const LiveTab = () => {
         )}
 
         {visiblePendingRuns.length > 0 && (
-          <div style={{ marginTop: 12, padding: '10px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.24)' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#d97706', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
-              Pendents d'executar
-            </div>
-            <div style={{ display: 'grid', gap: 6 }}>
-              {visiblePendingRuns.map(run => (
-                <div key={run.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, fontSize: 12, color: 'var(--text-secondary)' }}>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{run.scenarioName || run.id}</span>
-                  <span>esperant torn a la cua</span>
-                </div>
-              ))}
-            </div>
+          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', fontSize: 11.5, color: 'var(--text-secondary)' }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+            <strong style={{ color: 'var(--text-primary)' }}>{visiblePendingRuns.length} pendents a la cua</strong>
+            <span>Entraran automàticament quan quedi lloc.</span>
+            {pendingPreviewRuns.length > 0 && (
+              <span style={{ color: 'var(--text-disabled)' }}>
+                {pendingPreviewRuns.map(run => run.scenarioName || run.id).join(' · ')}
+                {visiblePendingRuns.length > pendingPreviewRuns.length ? ` · +${visiblePendingRuns.length - pendingPreviewRuns.length}` : ''}
+              </span>
+            )}
           </div>
         )}
 
@@ -2394,16 +2393,30 @@ const LiveTab = () => {
           the frozen final numbers while the grace-window polling captures
           the load-generator's "status:completed" snapshot. */}
       {hasNoRunnableSelection ? (
-        <div style={{ ...S.card, textAlign: 'center', padding: 72 }}>
+        <div style={{ ...S.card, textAlign: 'center', padding: activeRuns.length > 0 ? 28 : 72 }}>
           <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}><IconSignal /></div>
           <div style={{ fontSize: 16, color: 'var(--text-primary)', fontWeight: 700, marginBottom: 8 }}>
-            {activeRuns.length > 0 ? 'Execucions pendents' : t('resultats.live.emptyTitle')}
+            {activeRuns.length > 0 ? 'Execucions a la cua' : t('resultats.live.emptyTitle')}
           </div>
           <div style={{ fontSize: 14, color: 'var(--text-secondary)', maxWidth: 380, margin: '0 auto 20px' }}>
             {activeRuns.length > 0
-              ? 'Les proves encara no han començat perquè el límit de concurrència està ple. Quan una entri en execució, apareixerà a la fila superior i començaran les mostres.'
+              ? 'El límit de concurrència està ple. Quan quedi lloc, el primer run entrarà en execució i començarà a publicar mostres.'
               : t('resultats.live.emptyDescription')}
           </div>
+          {activeRuns.length > 0 && pendingPreviewRuns.length > 0 && (
+            <div style={{ display: 'inline-flex', flexWrap: 'wrap', justifyContent: 'center', gap: 6, maxWidth: 560 }}>
+              {pendingPreviewRuns.map(run => (
+                <span key={run.id} style={{ ...S.chip(false, '#f59e0b'), fontSize: 11, padding: '4px 8px' }}>
+                  {run.scenarioName || run.id}
+                </span>
+              ))}
+              {visiblePendingRuns.length > pendingPreviewRuns.length && (
+                <span style={{ ...S.chip(false, '#f59e0b'), fontSize: 11, padding: '4px 8px' }}>
+                  +{visiblePendingRuns.length - pendingPreviewRuns.length}
+                </span>
+              )}
+            </div>
+          )}
           {activeRuns.length === 0 && (
             <a href="/escenaris" style={{ ...S.btnPrimary as React.CSSProperties, textDecoration: 'none', display: 'inline-flex' }}>
               {t('resultats.live.goScenarios')}

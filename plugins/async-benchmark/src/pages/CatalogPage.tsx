@@ -212,6 +212,13 @@ const mergeWithDefaultCatalogComponents = (componentsFromApi: CatalogComponent[]
   ];
 };
 
+const countMissingDefaultCatalogComponents = (componentsFromApi: CatalogComponent[]): number => {
+  const visibleKeys = new Set(componentsFromApi.flatMap(catalogComponentKeys));
+  return DEFAULT_CATALOG_COMPONENTS.filter(defaultComponent =>
+    catalogComponentKeys(defaultComponent).every(key => !visibleKeys.has(key)),
+  ).length;
+};
+
 const componentColor = (component: CatalogComponent): string =>
   CATEGORY_COLORS[component.category || ''] || 'var(--accent)';
 
@@ -820,9 +827,25 @@ const ComponentDetailModal = ({
             )}
 
             {reproducibilityRows ? (
-              <div style={{ borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 10 }}>
                 {reproducibilityRows.map(row => (
-                  <DetailRow key={row.label} label={row.label} value={row.value} />
+                  <div
+                    key={row.label}
+                    style={{
+                      border: '1px solid var(--border)',
+                      borderRadius: 8,
+                      background: 'var(--bg-subtle)',
+                      padding: '10px 12px',
+                      minHeight: 92,
+                    }}
+                  >
+                    <div style={{ fontSize: 11, fontWeight: 850, color, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 6 }}>
+                      {row.label}
+                    </div>
+                    <p style={{ margin: 0, fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                      {row.value}
+                    </p>
+                  </div>
                 ))}
               </div>
             ) : (
@@ -951,9 +974,32 @@ export const CatalogPage = () => {
         throw new Error('El catalog-service no ha retornat JSON vàlid');
       }
 
-      const nextComponents = Array.isArray(data)
-        ? mergeWithDefaultCatalogComponents((data as CatalogComponent[]).map(sanitizeCatalogComponent))
+      const apiComponents = Array.isArray(data)
+        ? (data as CatalogComponent[]).map(sanitizeCatalogComponent)
         : [];
+      const missingDefaultCount = countMissingDefaultCatalogComponents(apiComponents);
+      let nextComponents = mergeWithDefaultCatalogComponents(apiComponents);
+
+      if (missingDefaultCount > 0) {
+        try {
+          const seedResponse = await fetch(`${API_BASE}/components/seed`, { method: 'POST' });
+          if (seedResponse.ok) {
+            const refreshedResponse = await fetch(`${API_BASE}/components`);
+            if (refreshedResponse.ok) {
+              const refreshedData = await refreshedResponse.json();
+              if (Array.isArray(refreshedData)) {
+                nextComponents = mergeWithDefaultCatalogComponents(
+                  (refreshedData as CatalogComponent[]).map(sanitizeCatalogComponent),
+                );
+              }
+            }
+          }
+        } catch {
+          // If the service cannot sync yet, the local fallback still keeps
+          // every base component visible, including SEA.
+        }
+        setCatalogNotice("El catàleg base s'ha completat amb components locals mentre se sincronitza el servei.");
+      }
       if (nextComponents.length === 0) {
         setComponents(DEFAULT_CATALOG_COMPONENTS.map(sanitizeCatalogComponent));
         setCatalogNotice('El catalog-service ha respost sense components. Es mostra el catàleg base local per poder treballar igualment.');
@@ -1317,6 +1363,23 @@ const tableCardStyle: CSSProperties = {
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {component.name || '-'}
                           </span>
+                          {component.shortName && (
+                            <code
+                              style={{
+                                flexShrink: 0,
+                                border: `1px solid ${color}30`,
+                                background: `${color}10`,
+                                color,
+                                borderRadius: 6,
+                                padding: '2px 6px',
+                                fontSize: 10.5,
+                                fontWeight: 850,
+                                fontFamily: 'var(--font-mono)',
+                              }}
+                            >
+                              {component.shortName}
+                            </code>
+                          )}
                         </div>
                       </td>
                       <td style={S.td}>

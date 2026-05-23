@@ -40,10 +40,12 @@ git pull origin main
 kubectl apply -f k8s/deployments/
 kubectl apply -f k8s/services/
 kubectl apply -f k8s/rbac/
+kubectl apply -f k8s/kafka/
 
 kubectl rollout restart deployment/backstage deployment/benchmark-orchestrator -n $NS_APP
 kubectl rollout status deployment/backstage -n $NS_APP --timeout=240s
 kubectl rollout status deployment/benchmark-orchestrator -n $NS_APP --timeout=180s
+kubectl wait kafka/kafka-cluster -n brokers --for=condition=Ready --timeout=600s
 ```
 
 ## 3. Comprovar configuracio
@@ -88,9 +90,25 @@ kubectl get ns -o name |
 3. Llança els 16 escenaris si vols provar la cua.
 4. Ves a `Resultats`.
 5. Comprova que la fila principal mostra nomes els runs en curs.
-6. Comprova que els runs pendents surten a la llista `Pendents d'executar`.
+6. Comprova que els runs pendents surten com a indicador compacte de cua.
 7. Ves a `Execucions` i filtra per `Pendent`, `En curs`, `Completat`, `Aturat`
    i `Fallit`.
+
+Els cinc presets que han de quedar visibles a `Escenaris` són:
+
+| Cas final | Preset |
+|---|---|
+| IoT | `NATS telemetria IoT` |
+| Vídeo 4K | `Kafka streaming 4K` |
+| Financer | `RabbitMQ financer fiable` |
+| Confluent | `Confluent streaming 4K` |
+| Kafka | `Kafka control base` |
+
+El format `Vídeo 8K` continua disponible al formulari, però no és el preset
+principal perquè força payloads de 2 MB. Per Kafka i Confluent, abans de donar
+un resultat 8K per bo, comprova que el manifest de Kafka tingui
+`message.max.bytes`, `replica.fetch.max.bytes` i `socket.request.max.bytes`
+per sobre del payload.
 
 ## 6. Mode estricte per a memoria
 

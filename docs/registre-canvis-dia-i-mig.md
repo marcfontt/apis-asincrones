@@ -42,15 +42,20 @@ del que s'ha modificat a ultima hora.
 ## Load generator
 
 - El generador s'ha mantingut simple i determinista.
-- Kafka i Confluent comparteixen cami Kafka-compatible.
+- Kafka i Confluent comparteixen camí Kafka-compatible.
 - NATS i RabbitMQ publiquen i consumeixen directament contra els serveis finals.
 - Les mostres finals inclouen `status` perquè la UI pugui tancar correctament
   la lectura del run.
+- Per payloads de `video-8k`, el camí Kafka ara ajusta topic
+  `max.message.bytes` i fetch del consumidor. El manifest de Kafka també fixa
+  `socket.request.max.bytes` per no castigar Kafka/Confluent per un límit de
+  configuració.
 
 ## Interficie
 
 - Resultats en directe mostra a la fila principal només runs en curs.
-- Els runs pendents apareixen en una llista separada amb el text d'espera.
+- Els runs pendents apareixen com a indicador compacte de cua perquè no tapin
+  les mètriques principals.
 - Escenaris mostra si un scenario esta pendent, en execucio, completat, fallit
   o aturat.
 - Execucions recupera els filtres i estats anteriors, incloent pendent.
@@ -59,7 +64,9 @@ del que s'ha modificat a ultima hora.
 - El tutorial indica accions concretes: quin boto clicar, on obrir fitxes, on
   revisar compatibilitat i on configurar el sistema.
 - Home explica millor el paper d'un broker amb una lectura progressiva:
-  productor, broker i consumidor.
+  productor, broker, consumidor i mètrica.
+- Escenaris queda reduït a cinc presets finals: IoT, Vídeo 4K, Financer,
+  Confluent i Kafka.
 
 ## Cataleg i reproductibilitat
 
@@ -67,6 +74,8 @@ del que s'ha modificat a ultima hora.
   existents.
 - `SEA` queda inclosa com a arquitectura predefinida; el cataleg final suma 15
   components.
+- La pàgina del catàleg força una sincronització del seed si detecta que
+  Elasticsearch encara no conté algun component base com `SEA`.
 - Les categories arquitectura, protocol i plataforma s'han simplificat per ser
   mes entenedores.
 - Les fitxes documenten versions i limitacions:
@@ -74,6 +83,8 @@ del que s'ha modificat a ultima hora.
   - RabbitMQ `3.13`.
   - NATS Server `2.12.5`.
   - Confluent com a cami Kafka-compatible, no com a plataforma completa.
+- La pestanya de reproductibilitat s'ha simplificat en targetes curtes per
+  evitar repetir temps de prova, generador i payload a cada component.
 
 ## Documentacio i memoria
 

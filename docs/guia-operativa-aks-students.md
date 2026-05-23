@@ -191,6 +191,24 @@ Estats que veuras al portal:
 | `failed` / fallit | El broker no estava llest, el Job ha fallat o el generador ha acabat amb error. |
 | `cancelled` / aturat | L'usuari ha aturat el run abans que acabes. |
 
+Escenaris finals recomanats per a la demo i per deixar exemples clars a la
+memòria:
+
+| Cas | Broker / plataforma | Arquitectura | Protocol | Format |
+|---|---|---|---|---|
+| IoT | NATS Server | EDA | NATS | IoT |
+| Vídeo 4K | Kafka | SEA | Kafka | Vídeo 4K |
+| Financer | RabbitMQ | QBA | AMQP | Financer |
+| Confluent | Confluent pel camí Kafka-compatible | SEA | Kafka | Vídeo 4K |
+| Kafka | Kafka | EDA | Kafka | Base controlada |
+
+El format `Vídeo 8K` queda disponible, però s'ha de tractar com una prova de
+payload gran. Si Kafka o Confluent donen pitjors resultats amb 8K, comprova
+primer la configuració abans d'atribuir-ho al broker: `message.max.bytes`,
+`replica.fetch.max.bytes`, `socket.request.max.bytes`, i el `maxBytes` del
+consumer han d'estar per sobre dels 2 MB del missatge. Amb el cluster petit
+d'Azure for Students, també pot aparèixer backpressure per CPU o xarxa.
+
 Abans de donar per valida una prova, comprova on ha caigut el Job:
 
 ```powershell

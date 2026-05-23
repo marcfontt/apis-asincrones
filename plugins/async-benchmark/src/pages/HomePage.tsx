@@ -333,6 +333,33 @@ export const HomePage = () => {
     { title: t('home.concepts.3.title'), color: '#f59e0b', text: t('home.concepts.3.text') },
   ];
 
+  const brokerLearningSteps = [
+    {
+      n: '1',
+      title: 'El productor publica',
+      text: 'Una aplicació envia un missatge: una lectura IoT, una transacció o un fragment de vídeo.',
+      color: '#2563eb',
+    },
+    {
+      n: '2',
+      title: 'El bròker el guarda o l’encua',
+      text: 'Kafka el deixa en un topic, RabbitMQ en una cua i NATS en un subject. Aquesta és la peça que comparem.',
+      color: '#f59e0b',
+    },
+    {
+      n: '3',
+      title: 'El consumidor el rep',
+      text: 'El consumidor llegeix el missatge quan pot. Si s’endarrereix, la latència puja o queda cua pendent.',
+      color: '#16a34a',
+    },
+    {
+      n: '4',
+      title: 'El portal mesura',
+      text: 'Cada run registra missatges rebuts, latència, P50, P95, P99, throughput i errors.',
+      color: '#dc2626',
+    },
+  ];
+
 
   const heroStats = [
     { label: t('home.statsLabels.components'), value: portalStats.components, color: '#f59e0b', desc: t('home.statsDesc.components') },
@@ -470,6 +497,33 @@ export const HomePage = () => {
       </section>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 18, marginBottom: 18 }}>
+        <section style={{ ...S.card, padding: 22 }}>
+          <SectionHeader
+            eyebrow="Pas 2.5 · Bròker explicat per parts"
+            title="Què fa exactament el bròker?"
+            description="La prova no compara pàgines ni botons: compara com cada bròker accepta, conserva i entrega missatges sota la mateixa càrrega."
+          />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(160px, 1fr))', gap: 12 }} className="async-responsive-grid">
+            {brokerLearningSteps.map(step => (
+              <div
+                key={step.n}
+                style={{
+                  border: `1px solid ${step.color}2e`,
+                  borderRadius: 10,
+                  background: 'var(--bg-subtle)',
+                  padding: 14,
+                  minHeight: 144,
+                }}
+              >
+                <div style={{ width: 34, height: 34, borderRadius: 9, background: `${step.color}16`, border: `1px solid ${step.color}35`, color: step.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontFamily: 'var(--font-mono)', marginBottom: 10 }}>
+                  {step.n}
+                </div>
+                <div style={{ fontSize: 13, fontWeight: 900, color: 'var(--text-primary)', marginBottom: 6 }}>{step.title}</div>
+                <p style={{ margin: 0, fontSize: 12.2, color: 'var(--text-secondary)', lineHeight: 1.58 }}>{step.text}</p>
+              </div>
+            ))}
+          </div>
+        </section>
         <BrokerFlowDiagram />
         <section style={{ padding: '4px 0 0' }}>
           <div style={{ fontSize: 11, fontWeight: 850, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>

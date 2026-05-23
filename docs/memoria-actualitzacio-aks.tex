@@ -109,7 +109,8 @@ del credit academic disponible.
 \subsection{Estat final de l'aplicacio}
 
 L'aplicacio final queda organitzada en cinc pantalles principals. Home introdueix
-els conceptes de productor, broker i consumidor. Cataleg documenta
+els conceptes de productor, broker, consumidor i metrica amb una lectura pas a
+pas. Cataleg documenta
 arquitectures, protocols i plataformes amb versions i notes de reproduibilitat.
 Escenaris permet crear i executar combinacions. Execucions mostra l'historial i
 els estats. Resultats mostra les metriques en directe i l'historic.
@@ -119,6 +120,16 @@ El cataleg final inclou 15 components predefinits, inclosa l'arquitectura
 clar que Confluent s'avalua pel cami Kafka-compatible del cluster, no com una
 instal.lacio completa de Confluent Platform amb Schema Registry, ksqlDB o
 Control Center.
+
+Per a la demo final s'han deixat cinc escenaris predefinits: telemetria IoT amb
+NATS, streaming de video 4K amb Kafka, cas financer amb RabbitMQ, streaming 4K
+pel cami Confluent compatible amb Kafka i un control base de Kafka. El format de
+video 8K continua disponible, pero es tracta com una prova de payload gran:
+abans d'usar-lo com a dada comparativa cal validar els limits de Kafka
+\texttt{message.max.bytes}, \texttt{replica.fetch.max.bytes},
+\texttt{socket.request.max.bytes} i la mida de fetch del consumidor. Aquesta
+precaucio evita interpretar com a rendiment dolent el que en realitat seria una
+limitacio de configuracio en missatges de 2 MB.
 
 Les fonts consultades per aquesta seccio son:
 \begin{itemize}

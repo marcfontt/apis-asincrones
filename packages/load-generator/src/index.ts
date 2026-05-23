@@ -111,6 +111,14 @@ function deliveryModel(): 'pull' | 'push' {
   return 'push'; // nats, rabbitmq, mqtt, amqp
 }
 
+function kafkaMaxMessageBytes(): number {
+  return Math.max(4_194_304, CONFIGURACION.tamanoMensajeBytes * 2);
+}
+
+function kafkaMaxFetchBytes(): number {
+  return Math.max(10_485_760, CONFIGURACION.tamanoMensajeBytes * 6);
+}
+
 // Aturada ordenada: Kubernetes envia SIGTERM abans de SIGKILL.
 async function gracefulShutdown() {
   if (!running) return;
@@ -300,7 +308,7 @@ async function prepareKafkaTopic(admin: any, topic: string): Promise<void> {
         topic, numPartitions: 1, replicationFactor: 1,
         configEntries: [
           { name: 'retention.ms', value: '3600000' },
-          { name: 'max.message.bytes', value: '4194304' },
+          { name: 'max.message.bytes', value: String(kafkaMaxMessageBytes()) },
         ],
       }],
       waitForLeaders: true,
@@ -395,6 +403,7 @@ async function runKafka() {
     brokers: CONFIGURACION.kafkaBrokers,
     logLevel: logLevel.WARN,
     connectionTimeout: 15000,
+    requestTimeout: 30000,
     retry: { retries: 8, initialRetryTime: 1000 },
   });
 
@@ -420,7 +429,13 @@ async function runKafka() {
     heartbeatInterval: 3000,
     maxWaitTimeInMs: 1,
     minBytes: 1,
+    maxBytesPerPartition: kafkaMaxMessageBytes(),
+    maxBytes: kafkaMaxFetchBytes(),
   });
+
+  if (CONFIGURACION.tamanoMensajeBytes >= 1_000_000) {
+    log(`Kafka large-payload mode: topic.max.message.bytes=${kafkaMaxMessageBytes()} consumer.maxBytes=${kafkaMaxFetchBytes()}`);
+  }
 
   await prepareKafkaTopic(admin, topic);
   log(`Topic ${topic} created and stabilized`);

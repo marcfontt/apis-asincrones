@@ -116,11 +116,10 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 // Formats de dades disponibles per simular casos d'us reals.
 // Cada format ajusta automaticament el payload i ratio en mode sostingut.
-// 'video-8k' usa payloads de 2MB: IMPORTANT - Kafka broker per defecte
-// te un limit de 1MB per missatge (message.max.bytes). Els escenaris
-// video-8k amb Kafka o endpoint Kafka-compatible pot mostrar 0ms latencia i 0 throughput
-// per aixo (el broker rebutja silenciosament els missatges).
-// Per habilitar-los caldria configurar message.max.bytes > 2MB al broker.
+// 'video-8k' usa payloads de 2 MB. Kafka i Confluent poden executar-lo, però
+// només si broker, topic, productor i consumidor tenen límits coherents
+// (message.max.bytes, socket.request.max.bytes i fetch suficient). Si no,
+// els resultats poden sortir molt pitjors per configuració, no pel protocol.
 const DATA_FORMATS = [
   { value: 'default',   label: 'Base controlada (256 B)' },
   { value: 'video-4k',  label: 'Streaming vídeo 4K (500 KB)' },
@@ -182,7 +181,7 @@ const DEFAULTS_FORMAT: Record<string, { ratio: number; payloadBytes: number; hin
     ratio: 4,
     payloadBytes: 2_000_000,
     hint: 'Payload molt gran; només és defensable si el broker accepta missatges de 2 MB.',
-    effect: 'Estressa límits de payload. NATS necessita max_payload >= 4 MB i Kafka/compatibles necessiten límits de missatge coherents.',
+    effect: 'Estressa límits de payload. NATS necessita max_payload >= 4 MB i Kafka/compatibles necessiten message.max.bytes i fetch coherent.',
   },
   'financial': {
     ratio: 200,
@@ -328,14 +327,10 @@ const SK_STYLE = {
 // el formulari de creacio quan l'usuari fa clic a "Usar com a base".
 // Aixo permet al usuari partir d'una configuracio recomanada i ajustar-la.
 
-// Cadascun representa una combinacio real:
-//   - Finances: AMQP + RabbitMQ -- missatgeria garantida, zero perdua
-//   - IoT:      NATS + NATS Server -- throughput maxim, payload minim
-//   - Video 4K: Kafka o endpoint Kafka-compatible -- alt throughput, tolera latencia
-//   - Ultra-low latency: gRPC + Kafka -- processat rapid, sincronic
-//   - Video 8K: Kafka o endpoint Kafka-compatible -- carrega maxima (NOTA: pot mostrar
-//               0ms/0 throughput si Kafka no esta configurat per a
-//               missatges >1MB. Veure comentari a DATA_FORMATS.)
+// Els cinc presets finals cobreixen els casos que s'explicaran a la memòria:
+// IoT, Vídeo 4K, Financer, Confluent i Kafka. Vídeo 8K queda disponible al
+// formulari, però no es posa com a preset principal perquè necessita validar
+// límits de payload i recursos abans de comparar-lo.
 const PREDEFINED_PRESETS = [
   {
     name:         'RabbitMQ financer fiable',
@@ -383,33 +378,18 @@ const PREDEFINED_PRESETS = [
     color:        '#7c3aed',
   },
   {
-    name:         'RabbitMQ transaccions financeres',
-    nameKey:      'scenarios.presets.items.rabbitmqFinancialTransactions.name',
-    platform:     'RabbitMQ',
-    architecture: 'EDA',
-    protocol:     'AMQP',
-    dataFormat:   'financial',
-    duration:     '360',
-    warmup:       '120',
-    rate:         '300',
-    payloadSize:  '256',
-    descKey:      'scenarios.presets.items.rabbitmqFinancialTransactions.desc',
-    desc:         'AMQP sobre RabbitMQ amb format financer JSON compacte. Permet comparar latència i errors en transaccions curtes.',
-    color:        '#eab308',
-  },
-  {
-    name:         'Confluent vídeo 8K',
-    nameKey:      'scenarios.presets.items.confluent8kVideo.name',
+    name:         'Confluent streaming 4K',
+    nameKey:      'scenarios.presets.items.confluent4kStreaming.name',
     platform:     'Confluent',
     architecture: 'SEA',
     protocol:     'Kafka',
-    dataFormat:   'video-8k',
+    dataFormat:   'video-4k',
     duration:     '360',
     warmup:       '120',
-    rate:         '4',
-    payloadSize:  '2000000',
-    descKey:      'scenarios.presets.items.confluent8kVideo.desc',
-    desc:         'Escenari pesat per validar límits de payload i throughput. Només és recomanable si el broker accepta missatges de 2 MB.',
+    rate:         '8',
+    payloadSize:  '500000',
+    descKey:      'scenarios.presets.items.confluent4kStreaming.desc',
+    desc:         'Mateix model SEA i protocol Kafka que el preset de Kafka, per comparar el camí Confluent-compatible sense forçar 8K.',
     color:        '#9333ea',
   },
   {

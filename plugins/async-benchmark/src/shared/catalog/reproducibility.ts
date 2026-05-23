@@ -29,71 +29,47 @@ export const KNOWN_COMPONENT_VERSIONS: Record<string, string> = {
 // Text visible al modal del Catàleg.
 // Explica que cal repetir per comparar brokers sense canviar les condicions.
 const COMMON_BROKER_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Què es repeteix', value: "La mateixa prova s'ha de llançar amb el mateix broker, productor, consumidor, format, ritme, warm-up i durada." },
-  { label: 'Mateix generador de càrrega', value: 'El load-generator és el mateix per a totes les plataformes. Així el canvi principal és el broker, no la manera de crear missatges.' },
-  { label: 'Temps de prova', value: "El warm-up i la durada surten de l'escenari. Si canvies aquests valors, la comparació ja no és la mateixa." },
-  { label: 'Missatge i ritme', value: "El format fixa la mida del missatge i la ràtio recomanada. Si els canvies a mà, cal deixar-ho escrit." },
-  { label: 'Canal de l’execució', value: 'Cada execució ha de tenir topic, cua, subject o group-id propi. Això evita barrejar dades amb una prova anterior.' },
-  { label: 'Recursos', value: 'Quan el manifest és nostre, CPU i memòria han de quedar fixats. Si Kubernetes canvia recursos durant la prova, el resultat és menys fiable.' },
+  { label: 'Mateixa prova', value: "Repeteix broker, protocol, format, rate, payload, warm-up i durada. Si canvies un d'aquests valors, ja és un altre cas." },
+  { label: 'Canal net', value: 'Cada run crea el seu topic, cua, subject o group-id. Això evita barrejar missatges amb execucions anteriors.' },
+  { label: 'Concurrència', value: 'Per la memòria final, executa en sèrie o amb recursos dedicats. El mode paral·lel serveix per fer demos més ràpides.' },
 ];
 
 // Text comu per arquitectures i protocols.
 // Marca els paràmetres que l'usuari ha de deixar igual abans de comparar.
 const COMMON_DECISION_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Què ha de quedar igual', value: 'La combinació provada ha de sortir del document Scenario: broker, arquitectura, protocol, format, rate, payload, warm-up i durada.' },
-  { label: 'Comparació justa', value: "Compara només execucions amb la mateixa càrrega. Si canvies format, ràtio, payload, warm-up o durada, estàs mesurant un cas diferent." },
-  { label: 'Canal propi', value: "Cada execució necessita topic, cua, subject, group-id o client-id propi. Això evita heretar dades d'una prova anterior." },
+  { label: 'Contracte', value: 'La combinació ha de sortir del document Scenario: arquitectura, broker, protocol, format, rate, payload, warm-up i durada.' },
+  { label: 'Comparació', value: 'Compara només execucions amb la mateixa càrrega. Si canvies format o ritme, mesura-ho com un cas nou.' },
+  { label: 'Aïllament', value: 'Cada execució necessita canal propi i runId propi per no heretar dades antigues.' },
 ];
 
 export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> = {
   'Apache Kafka': [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
-    { label: 'Producte', value: 'Apache Kafka' },
-    { label: 'Versió usada', value: '4.1.1' },
-    { label: 'Operador/chart', value: 'Strimzi amb KRaft i node pool dual-role' },
-    { label: 'Namespace', value: 'brokers' },
-    { label: 'Port client', value: '9092 dins del clúster' },
-    { label: 'Topologia', value: '1 rèplica amb rol controller + broker' },
-    { label: 'Particions', value: '1 partició per topic de run' },
-    { label: 'Replicació', value: 'factor 1 per mantenir un cost comparable amb la resta' },
-    { label: 'Execució segura', value: 'Kafka és el camí principal per protocol Kafka i escenaris de log o streaming.' },
-    { label: 'Vídeo 8K', value: 'Es pot provar si el topic i el productor accepten missatges de 2 MB. Cal mantenir el mateix límit en totes les repeticions.' },
+    { label: 'Versió', value: 'Apache Kafka 4.1.1 sobre Strimzi amb KRaft.' },
+    { label: 'Endpoint', value: 'kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092.' },
+    { label: 'Ús recomanat', value: 'Streaming i logs amb topics efímers per run.' },
+    { label: 'Payload gran', value: 'Per 8K cal mantenir topic.max.message.bytes, fetch i socket request per sobre de 2 MB.' },
   ],
   Confluent: [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
-    { label: 'Producte', value: 'Confluent com a plataforma del portal' },
-    { label: 'Versió usada al benchmark', value: 'Kafka-compatible 4.1.1. No s\'avalua una distribució completa de Confluent.' },
-    { label: 'Com està connectat', value: 'El valor intern brokerType=confluent usa el bootstrap Kafka-compatible kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local.' },
-    { label: 'Namespace', value: 'brokers' },
-    { label: 'Port client', value: '9092 dins del clúster' },
-    { label: 'Què mesura aquesta prova', value: 'Mesura publish/consume amb API Kafka. No mesura Schema Registry, ksqlDB, Control Center ni altres serveis de Confluent.' },
-    { label: 'Execució segura', value: 'Aquest camí només és vàlid amb protocol Kafka i escenaris de log o streaming.' },
-    { label: 'Què cal escriure a la memòria', value: 'Indica que Confluent s’ha provat pel camí Kafka-compatible i separa aquesta prova dels serveis extra de la plataforma.' },
+    { label: 'Versió', value: 'Camí Kafka-compatible 4.1.1 dins del clúster.' },
+    { label: 'Endpoint', value: 'Utilitza el mateix bootstrap Kafka-compatible que Kafka, però queda etiquetat com a plataforma Confluent.' },
+    { label: 'Què mesura', value: 'Publish/consume amb API Kafka. No inclou Schema Registry, ksqlDB ni Control Center.' },
+    { label: 'Ús recomanat', value: 'Comparar el camí compatible amb Kafka en escenaris SEA.' },
   ],
   RabbitMQ: [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
-    { label: 'Producte', value: 'RabbitMQ Management' },
-    { label: 'Versió usada', value: '3.13' },
-    { label: 'Imatge/chart', value: 'rabbitmq:3.13-management o Bitnami RabbitMQ equivalent' },
-    { label: 'Namespace', value: 'brokers' },
-    { label: 'Port client', value: '5672' },
-    { label: 'Port monitoratge', value: '15672' },
-    { label: 'Cues', value: 'classic queues efímeres per run' },
-    { label: 'Execució segura', value: 'RabbitMQ és el camí principal per cues i protocol AMQP.' },
-    { label: 'Vídeo 8K', value: 'Requereix revisar límits de mida i memòria abans de provar. No s’ha de marcar com a verd per defecte.' },
+    { label: 'Versió', value: 'RabbitMQ 3.13 amb port AMQP 5672.' },
+    { label: 'Endpoint', value: 'rabbitmq.brokers.svc.cluster.local:5672.' },
+    { label: 'Ús recomanat', value: 'Cues AMQP i casos financers curts, amb cues efímeres per run.' },
+    { label: 'Vigila', value: 'Payloads molt grans poden consumir memòria de cua i no són el cas ideal de RabbitMQ.' },
   ],
   'NATS Server': [
     ...COMMON_BROKER_REPRODUCIBILITY_ROWS,
-    { label: 'Producte', value: 'NATS Server' },
-    { label: 'Versió usada', value: '2.12.5 segons logs del pod nats-0' },
-    { label: 'Instal·lació', value: 'Helm chart oficial nats/nats' },
-    { label: 'Namespace', value: 'brokers' },
-    { label: 'Port client', value: '4222' },
-    { label: 'Port monitoratge', value: '8222 via svc/nats-headless' },
-    { label: 'Topologia', value: 'single-node + JetStream quan el chart el desplega' },
-    { label: 'Payload màxim', value: '4 MB / 4194304 bytes' },
-    { label: 'Execució segura', value: 'NATS Server es prova pel protocol NATS. WebSocket o gRPC necessiten un gateway que aquí no es dona per fet.' },
-    { label: 'Vídeo 8K', value: 'Requereix que /varz mostri "max_payload": 4194304 o superior. Sense això, el run pot fallar abans de publicar mètriques útils.' },
+    { label: 'Versió', value: 'NATS Server 2.12.5 amb port 4222.' },
+    { label: 'Endpoint', value: 'nats.brokers.svc.cluster.local:4222.' },
+    { label: 'Ús recomanat', value: 'Telemetria IoT i pub/sub lleuger amb subject efímer per run.' },
+    { label: 'Payload màxim', value: 'Comprova /varz: max_payload ha de ser 4194304 o superior abans de provar missatges grans.' },
   ],
 };
 

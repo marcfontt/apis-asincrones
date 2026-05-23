@@ -856,13 +856,9 @@
           "name": "Kafka streaming 4K",
           "desc": "Log de streaming con payload de 500 KB. Sirve para medir volumen sostenido sin llegar al límite de 8K."
         },
-        "rabbitmqFinancialTransactions": {
-          "name": "RabbitMQ transacciones financieras",
-          "desc": "AMQP sobre RabbitMQ con formato financiero JSON compacto. Permite comparar latencia y errores en transacciones cortas."
-        },
-        "confluent8kVideo": {
-          "name": "Confluent vídeo 8K",
-          "desc": "Escenario pesado para validar límites de payload y throughput. Solo es recomendable si el broker acepta mensajes de 2 MB."
+        "confluent4kStreaming": {
+          "name": "Confluent streaming 4K",
+          "desc": "El mismo modelo SEA y protocolo Kafka que el preset de Kafka, para comparar la ruta compatible de Confluent sin forzar 8K."
         },
         "kafkaBaselineControl": {
           "name": "Kafka control base",
