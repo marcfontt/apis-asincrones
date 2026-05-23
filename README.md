@@ -58,6 +58,8 @@ Canvis més recents del portal:
 
 | Commit | Resum |
 |--------|-------|
+| `6d102a9` | Concreta el tutorial i les guies finals amb passos clicables. |
+| `90fb337` | Afegeix SEA visible, cinc presets finals, Resultats més compacte i ajustos Kafka 8K. |
 | `ae93b89` | Ajusta cua, estats, UI de resultats, documentació final i `MAX_CONCURRENT_RUNS=3`. |
 | `93f8aed` | Afegeix cua de runs i límit de concurrència a l'orquestrador. |
 | `9fac4dc` | Millora l'arrencada i reintent de connexió de NATS i RabbitMQ. |
@@ -91,7 +93,6 @@ flowchart TB
             orchestrator["benchmark-orchestrator :3003"]
             metrics["metrics-api :3004"]
             es[("Elasticsearch")]
-            loadgen["load-generator<br/>Job efímer"]
         end
 
         subgraph brokers["ns: brokers"]
@@ -99,6 +100,10 @@ flowchart TB
             rabbit["RabbitMQ"]
             nats["NATS"]
             confluent["Confluent<br/>(camí Kafka-compatible)"]
+        end
+
+        subgraph runs["ns: sc-*"]
+            loadgen["load-generator<br/>Job efímer"]
         end
     end
 
@@ -121,9 +126,29 @@ Flux d'una prova:
 2. El portal envia la petició al backend de Backstage.
 3. El backend fa proxy cap al `benchmark-orchestrator`.
 4. L'orquestrador deixa el run en `pending` si el límit de concurrència està ple.
-5. Quan hi ha espai, crea un Job de Kubernetes amb el `load-generator`.
+5. Quan hi ha espai, crea un namespace efímer `sc-*` i un Job de Kubernetes amb el `load-generator`.
 6. El generador envia missatges al broker triat i puja mesures a `metrics-api`.
 7. `metrics-api` desa les mostres a Elasticsearch i les mostra al portal.
+
+Estats operatius:
+
+| Estat | Lectura |
+|-------|---------|
+| `pending` | El run espera torn. Encara no ha creat Job ni mètriques. |
+| `running` | El Job existeix i publica snapshots cada 5 segons. |
+| `completed` | La prova ha acabat i la mostra final s'ha guardat. |
+| `failed` | Ha fallat broker, endpoint o generador de càrrega. |
+| `cancelled` | L'usuari ha aturat el run. |
+
+Escenaris finals de mostra:
+
+| Cas | Preset |
+|-----|--------|
+| IoT | `NATS telemetria IoT` |
+| Vídeo 4K | `Kafka streaming 4K` |
+| Financer | `RabbitMQ financer fiable` |
+| Confluent | `Confluent streaming 4K` |
+| Kafka | `Kafka control base` |
 
 ## Estructura del repositori
 
@@ -135,12 +160,12 @@ apis-asincrones/
 │   ├── catalog-service/            # Catàleg de components
 │   ├── scenario-service/           # CRUD d'escenaris
 │   ├── benchmark-orchestrator/     # Crea Jobs de Kubernetes
-│   ├── load-generator/             # Envia carrega al broker
+│   ├── load-generator/             # Envia càrrega al broker
 │   └── metrics-api/                # REST + WebSocket de mètriques
 ├── plugins/
 │   └── async-benchmark/            # Plugin visible del portal
 ├── k8s/                            # Manifests AKS
-├── docs/                           # Documentacio tecnica
+├── docs/                           # Documentació tècnica
 ├── scripts/                        # Scripts auxiliars
 ├── deploy-all.sh                   # Build, push i restart a AKS
 └── app-config.yaml                 # Configuració Backstage local
@@ -286,7 +311,7 @@ bash scripts/configure-backstage-public-url.sh
 ```
 
 Si Azure for Students bloqueja `az acr build` amb `TasksOperationsNotAllowed`,
-usar el workflow manual de GitHub Actions `Build ACR images` i despres fer:
+usar el workflow manual de GitHub Actions `Build ACR images` i després fer:
 
 ```bash
 ./deploy-all.sh --restart-only
@@ -296,7 +321,7 @@ El desplegament públic recomanat és AKS amb ingress nginx i cert-manager.
 Vercel queda descartat per aquest projecte: el backend necessita processos
 persistents, Jobs de Kubernetes i connexió amb brokers stateful.
 
-## Documentacio addicional
+## Documentació addicional
 
 - [`docs/architecture.md`](docs/architecture.md): arquitectura i flux.
 - [`plugins/README.md`](plugins/README.md): plugin Backstage.

@@ -45,7 +45,6 @@ flowchart TB
             metrics["metrics-api<br/>ClusterIP :3004<br/>(REST + WebSocket)"]:::app
             es[("elasticsearch<br/>ClusterIP :9200<br/>índex async-metrics")]:::data
             grafana["grafana<br/>ClusterIP :3000<br/>port-forward si cal"]:::obs
-            loadgen[/"load-generator<br/>(K8s Job efímer)"/]:::job
         end
 
         %% Namespace: brokers
@@ -57,6 +56,12 @@ flowchart TB
             natsHl["nats-headless<br/>:4222 / :8222"]:::broker
             rabbit["rabbitmq<br/>:5672 / :15672"]:::broker
             confluent["Confluent logic<br/>(camí Kafka-compatible via Kafka)"]:::broker
+        end
+
+        %% Namespaces efímers: sc-*
+        subgraph nsRuns["ns: sc-*"]
+            direction TB
+            loadgen[/"load-generator<br/>(K8s Job efímer)"/]:::job
         end
     end
 
@@ -99,6 +104,7 @@ flowchart TB
     style cluster   fill:#f8fafc,stroke:#475569,stroke-width:2px
     style nsApp     fill:#eff6ff,stroke:#1d4ed8,stroke-width:1px
     style nsBrokers fill:#fef2f2,stroke:#9f1239,stroke-width:1px
+    style nsRuns    fill:#fffbeb,stroke:#b45309,stroke-width:1px
 ```
 
 ---
@@ -116,7 +122,6 @@ flowchart TB
 | `metrics-api` | 3004 | ClusterIP | REST + WebSocket sobre Elasticsearch |
 | `elasticsearch` | 9200 | ClusterIP | Índex `async-metrics` (sèries temporals) |
 | `grafana` | 3000 | ClusterIP | Dashboards d'observabilitat via port-forward quan cal |
-| `load-generator` | — | Job efímer | Envia missatges al broker i puja snapshots cada 5 s |
 
 ### Namespace `brokers`
 
@@ -128,6 +133,13 @@ flowchart TB
 | `nats-headless` | 4222, 8222 | Accés directe a pods + monitoratge HTTP |
 | `rabbitmq` | 5672, 15672 | Broker AMQP + consola de gestió |
 | Confluent logic | 9092 | En Azure for Students usa el mateix bootstrap Kafka-compatible de Strimzi si no es defineix `CONFLUENT_BROKERS`. |
+
+### Namespaces `sc-*`
+
+| Component | Vida | Descripció |
+|-----------|------|------------|
+| `load-generator` | Un Job per run | Envia càrrega al broker triat i puja snapshots cada 5 s a `metrics-api`. |
+| Namespace `sc-<run>` | Efímer | Aïlla logs, variables d'entorn i cicle de vida de cada execució. |
 
 ---
 
@@ -146,3 +158,38 @@ flowchart TB
 7. El portal rep les mètriques via WebSocket en temps real
 8. Quan l'execució finalitza, el Job es marca com "completed" i el namespace efímer s'esborra
 ```
+
+## Concurrència i lectura dels estats
+
+L'orquestrador no crea tots els Jobs alhora. Primer registra la petició i decideix
+si pot entrar a Kubernetes:
+
+| Estat | Significat |
+|-------|------------|
+| `pending` | El run està a la cua. Encara no hi ha Job ni mètriques. |
+| `running` | El Job existeix i el generador està enviant mostres. |
+| `completed` | La prova ha acabat i la mostra final s'ha guardat. |
+| `failed` | El broker, el Job o el generador han fallat abans d'acabar. |
+| `cancelled` | L'usuari ha aturat la prova manualment. |
+
+Per a demo, `MAX_CONCURRENT_RUNS=3` permet avançar més ràpid sense saturar el
+node de càrrega. Per a dades finals de memòria, el mode defensable és
+`MAX_CONCURRENT_RUNS=1`, perquè evita que dues proves competeixin pels mateixos
+recursos mentre es mesuren.
+
+## Escenaris finals de mostra
+
+La demo queda centrada en cinc presets, un per cada cas que es vol explicar:
+
+| Cas | Preset | Broker / plataforma | Arquitectura | Protocol | Format |
+|-----|--------|---------------------|--------------|----------|--------|
+| IoT | `NATS telemetria IoT` | NATS Server | EDA | NATS | IoT |
+| Vídeo 4K | `Kafka streaming 4K` | Kafka | SEA | Kafka | Vídeo 4K |
+| Financer | `RabbitMQ financer fiable` | RabbitMQ | QBA | AMQP | Financer |
+| Confluent | `Confluent streaming 4K` | Confluent pel camí Kafka-compatible | SEA | Kafka | Vídeo 4K |
+| Kafka | `Kafka control base` | Kafka | EDA | Kafka | Base controlada |
+
+El format `Vídeo 8K` continua disponible per provar payloads grans, però no és
+el preset principal. Abans d'usar-lo com a resultat comparatiu cal validar
+`message.max.bytes`, `replica.fetch.max.bytes`, `socket.request.max.bytes` i els
+límits de fetch del consumidor.
