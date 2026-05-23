@@ -17,8 +17,8 @@ mes els namespaces efímers `sc-*` que crea cada execució:
 
 Unificar els brokers en `brokers` simplifica la reconstrucció del cluster
 després del canvi de subscripció. La validesa de la comparació es defensa
-amb recursos fixats, execució serial, warm-up i càrrega iguals, no amb la
-separació física per namespace.
+amb recursos fixats, control de concurrència, warm-up i càrrega iguals, no amb
+la separació física per namespace.
 
 El flux principal és: **Usuari → Backstage → Orchestrator → Job (load-generator) → Broker → Metrics API → Elasticsearch**.
 
@@ -112,7 +112,7 @@ flowchart TB
 | `backstage-service` | 80 → 30304 | LoadBalancer assignat per AKS | Portal Backstage amb el plugin `async-benchmark` |
 | `catalog-service` | 3001 | ClusterIP | CRUD del catàleg de tecnologies |
 | `scenario-service` | 3002 | ClusterIP | CRUD d'escenaris de benchmark |
-| `benchmark-orchestrator` | 3003 | ClusterIP | Crea Jobs K8s per a cada execució |
+| `benchmark-orchestrator` | 3003 | ClusterIP | Encola execucions i crea Jobs K8s respectant `MAX_CONCURRENT_RUNS` |
 | `metrics-api` | 3004 | ClusterIP | REST + WebSocket sobre Elasticsearch |
 | `elasticsearch` | 9200 | ClusterIP | Índex `async-metrics` (sèries temporals) |
 | `grafana` | 3000 | ClusterIP | Dashboards d'observabilitat via port-forward quan cal |
@@ -136,12 +136,13 @@ flowchart TB
 ```
 1. Usuari crea un escenari al portal (Backstage)
 2. Backstage crida l'orchestrator: POST /runs
-3. L'orchestrator crea un Job de Kubernetes en un namespace efímer (sc-<slug>-<id>)
-4. El Job arrenca el load-generator:
+3. L'orchestrator deixa el run en `pending` si el límit de concurrència està ple.
+4. Quan hi ha espai, crea un Job de Kubernetes en un namespace efímer (sc-<slug>-<id>).
+5. El Job arrenca el load-generator:
    - Es connecta al broker corresponent (Kafka, Confluent, RabbitMQ o NATS)
    - Envia missatges fire-and-forget amb payload determinista
    - Cada 5 s puja un snapshot de mètriques a metrics-api (POST /metrics)
-5. metrics-api indexa el snapshot a Elasticsearch
-6. El portal rep les mètriques via WebSocket en temps real
-7. Quan l'execució finalitza, el Job es marca com "completed" i el namespace efímer s'esborra
+6. metrics-api indexa el snapshot a Elasticsearch
+7. El portal rep les mètriques via WebSocket en temps real
+8. Quan l'execució finalitza, el Job es marca com "completed" i el namespace efímer s'esborra
 ```

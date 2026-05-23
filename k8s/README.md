@@ -15,7 +15,9 @@ Els manifests actuals fan servir principalment:
 
 Kafka comparteix namespace amb la resta de brokers perquè és una frontera
 operativa, no una frontera de mesura. La comparació es defensa amb recursos
-fixats, execució serial i perfils de càrrega iguals.
+fixats, perfils de càrrega iguals, warm-up i control de concurrència. Per a demo
+el manifest deixa `MAX_CONCURRENT_RUNS=3`; per a mesures estrictes es pot
+baixar temporalment a `1`.
 
 ## Estructura
 
@@ -37,7 +39,7 @@ k8s/
 | Backstage portal | OK | UI principal. |
 | `catalog-service` | OK | Catàleg de components i seed inicial. |
 | `scenario-service` | OK | Escenaris persistits a Elasticsearch. |
-| `benchmark-orchestrator` | OK | Crea Jobs del `load-generator`. |
+| `benchmark-orchestrator` | OK | Encola runs i crea Jobs del `load-generator` respectant `MAX_CONCURRENT_RUNS`. |
 | `metrics-api` | OK | REST i WebSocket sobre Elasticsearch. |
 | Elasticsearch | OK | Single-node amb PVC. |
 | Grafana | OK | Datasource d'Elasticsearch. |

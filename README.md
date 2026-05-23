@@ -48,17 +48,25 @@ Canvis més recents del portal:
 - Execucions amb detall estable mentre arriben refrescos.
 - Execucions amb resum superior simplificat: la taula i els filtres porten la resta del context.
 - Resultats amb `Detall de l'escenari`, missatges més clars quan falten mostres i càlcul de puntuació més traçable.
+- Cua d'execucions al `benchmark-orchestrator`: els runs poden quedar `pending`
+  abans d'entrar a Kubernetes.
+- Resultats en directe separa les execucions en curs de les pendents.
+- Documentació final de migració a Azure for Students, costos, nodes i estat de
+  l'aplicació.
 
 ## Últims commits rellevants
 
 | Commit | Resum |
 |--------|-------|
+| `ae93b89` | Ajusta cua, estats, UI de resultats, documentació final i `MAX_CONCURRENT_RUNS=3`. |
+| `93f8aed` | Afegeix cua de runs i límit de concurrència a l'orquestrador. |
+| `9fac4dc` | Millora l'arrencada i reintent de connexió de NATS i RabbitMQ. |
+| `e199b72` | Usa el servei estable de NATS per als Jobs de benchmark. |
+| `4c48a44` | Fixa els Jobs de càrrega al node `benchmark-role=loadgen`. |
+| `583b3a1` | Alinea recursos de brokers per a proves comparables a Azure Students. |
 | `190157d` | Simplifica textos del portal, comentaris i etiquetes principals. |
 | `a84ae8d` | Unifica guies, filtres, compatibilitat i explicació de puntuació. |
 | `01a52ce` | Reordena guies i còpia visible de les pàgines principals. |
-| `eef958d` | Millora tutorials guiats i claredat del càlcul de resultats. |
-| `a4ef7e4` | Sincronitza idioma del tutorial i neteja Settings. |
-| `33d3882` | Elimina rastres d'eines d'assistent del repositori. |
 
 ## Arquitectura
 
@@ -67,7 +75,9 @@ actuals del repo fan servir el namespace `apis-asincrones` per a l'app i
 `brokers` per a Kafka, NATS, RabbitMQ i la resta de brokers. Els Jobs de
 benchmark es creen en namespaces efímers `sc-*` per aïllar cada execució.
 La comparació justa no depèn del namespace, sinó de recursos fixos,
-execució serial, warm-up i perfils de càrrega iguals.
+warm-up, perfils de càrrega iguals i control de concurrència. Per a demo el
+cluster usa `MAX_CONCURRENT_RUNS=3`; per a mesures estrictes de memòria es pot
+baixar temporalment a `1`.
 
 ```mermaid
 flowchart TB
@@ -110,9 +120,10 @@ Flux d'una prova:
 1. L'usuari crea o tria un escenari.
 2. El portal envia la petició al backend de Backstage.
 3. El backend fa proxy cap al `benchmark-orchestrator`.
-4. L'orquestrador crea un Job de Kubernetes amb el `load-generator`.
-5. El generador envia missatges al broker triat i puja mesures a `metrics-api`.
-6. `metrics-api` desa les mostres a Elasticsearch i les mostra al portal.
+4. L'orquestrador deixa el run en `pending` si el límit de concurrència està ple.
+5. Quan hi ha espai, crea un Job de Kubernetes amb el `load-generator`.
+6. El generador envia missatges al broker triat i puja mesures a `metrics-api`.
+7. `metrics-api` desa les mostres a Elasticsearch i les mostra al portal.
 
 ## Estructura del repositori
 
@@ -231,7 +242,8 @@ o pèrdua de missatges, i la puntuació final.
 
 ## Execucions aturades i mesures que falten
 
-Una execució aturada no es reprèn automàticament en aquesta fase. Pot
+Una execució pendent encara no ha creat Job de Kubernetes i no ha de tenir
+mètriques. Una execució aturada no es reprèn automàticament en aquesta fase. Pot
 conservar dades parcials si el generador ja havia enviat mostres a
 `metrics-api`. Si no hi ha dades, la UI ha d'explicar si encara no han
 arribat, si l'execució ha fallat o si s'ha aturat massa aviat.
