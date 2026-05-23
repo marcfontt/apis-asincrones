@@ -41,6 +41,10 @@ spec:
           value: asyncpfg65454.azurecr.io
         - name: LOAD_GENERATOR_CPU
           value: 100m
+        - name: LOAD_GENERATOR_NODE_SELECTOR_KEY
+          value: benchmark-role
+        - name: LOAD_GENERATOR_NODE_SELECTOR_VALUE
+          value: loadgen
         - name: KAFKA_BROKERS
           value: kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092
         - name: CONFLUENT_BROKERS

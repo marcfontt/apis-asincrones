@@ -14,6 +14,8 @@ const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenari
 const ACR_SERVER = process.env.ACR_SERVER || 'asyncpfg65454.azurecr.io';
 const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
 const LOAD_GENERATOR_CPU = process.env.LOAD_GENERATOR_CPU || '100m';
+const LOAD_GENERATOR_NODE_SELECTOR_KEY = process.env.LOAD_GENERATOR_NODE_SELECTOR_KEY || '';
+const LOAD_GENERATOR_NODE_SELECTOR_VALUE = process.env.LOAD_GENERATOR_NODE_SELECTOR_VALUE || '';
 const ORCHESTRATOR_NAMESPACE = process.env.NAMESPACE || 'apis-asincrones';
 const BROKER_NAMESPACE = process.env.BROKER_NAMESPACE || 'brokers';
 const KAFKA_BROKERS = process.env.KAFKA_BROKERS || 'kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092';
@@ -380,6 +382,11 @@ async function deployScenario(runId: string, scenarioId: string, scenarioName: s
       },
     },
   };
+  if (LOAD_GENERATOR_NODE_SELECTOR_KEY && LOAD_GENERATOR_NODE_SELECTOR_VALUE) {
+    jobSpec.template.spec.nodeSelector = {
+      [LOAD_GENERATOR_NODE_SELECTOR_KEY]: LOAD_GENERATOR_NODE_SELECTOR_VALUE,
+    };
+  }
   // Els runs finits tenen marge per tancar connexions i enviar la mostra final.
   if (!esDuracionIndefinida) {
     const duracionNumerica = Number(duracionEscenario);

@@ -135,9 +135,32 @@ Per comparar rendiment, els brokers del repo fan servir el mateix sostre:
 | RabbitMQ | `300m` | `768Mi` | Guaranteed |
 | NATS | `300m` | `768Mi` | Guaranteed |
 
-Aixo no vol dir tenir-los tots actius alhora. En Azure for Students, les proves
-son serials: un broker objectiu actiu, Grafana aturat excepte quan cal captura,
-i cap run paral.lel.
+Aixo no vol dir que les mesures finals hagin de llançar runs paral.lels. Amb
+tres nodes es pot tenir Kafka, RabbitMQ i NATS aixecats alhora per demo i
+validacio, pero les proves finals continuen sent serials: un run cada vegada,
+Grafana aturat excepte quan cal captura, mateixa carrega i mateix warm-up.
+
+El `load-generator` tambe s'ha de controlar. Si cau aleatoriament al node del
+broker en una prova i en una altra no, la comparativa queda contaminada. Per
+aixo el `benchmark-orchestrator` pot fixar tots els Jobs de carrega a un node
+amb l'etiqueta `benchmark-role=loadgen`.
+
+Exemple amb el node menys carregat:
+
+```powershell
+kubectl label node aks-nodepool1-10848180-vmss000002 benchmark-role=loadgen --overwrite
+kubectl apply -f k8s/deployments/benchmark-orchestrator.yaml
+kubectl rollout status deployment/benchmark-orchestrator -n $NS_APP --timeout=180s
+```
+
+Abans de donar per valida una prova, comprova on ha caigut el Job:
+
+```powershell
+kubectl get pods -A -o wide | Select-String "benchmark|load-generator|sc-"
+```
+
+Si el `load-generator` no esta al node etiquetat, aquell run no s'ha de fer
+servir com a resultat final.
 
 Preparar RabbitMQ:
 

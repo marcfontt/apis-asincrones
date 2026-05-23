@@ -52,6 +52,8 @@ amb el container `load-generator`.
 | `NAMESPACE` | `apis-asincrones` |
 | `BROKER_NAMESPACE` | `brokers` |
 | `LOAD_GENERATOR_CPU` | `100m` en Azure for Students |
+| `LOAD_GENERATOR_NODE_SELECTOR_KEY` | `benchmark-role`, si es vol fixar el node dels Jobs |
+| `LOAD_GENERATOR_NODE_SELECTOR_VALUE` | `loadgen`, si es vol fixar el node dels Jobs |
 | `KAFKA_BROKERS` | `kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092` |
 | `CONFLUENT_BROKERS` | Per defecte igual que `KAFKA_BROKERS` |
 | `NATS_BROKER_URL` | `nats://nats-headless.brokers.svc.cluster.local:4222` |
@@ -59,6 +61,10 @@ amb el container `load-generator`.
 
 En local, defineix `PORT=3003` si vols provar-lo darrere del mateix proxy que
 usa Backstage.
+
+En el clúster Azure Students, fixar els Jobs de carrega a un node etiquetat
+evita que el generador caigui de manera diferent segons el broker mesurat. Aixo
+millora la comparabilitat dels resultats.
 
 ## Permisos
 
