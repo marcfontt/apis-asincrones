@@ -340,7 +340,9 @@
           "title": "Acaba llegint dades",
           "text": "Clica \"Execucions\" per veure l'estat del run i \"Resultats\" per interpretar mesures, puntuació i comparatives."
         }
-      }
+      },
+      "tutorialHintTitle": "Si és el primer cop:",
+      "tutorialHintText": "clica el botó Tutorial de dalt per veure la guia guiada. Cada pas diu exactament quin botó o pestanya has de clicar abans de passar a la següent pantalla."
     },
     "btnCreateScenario": "Crear escenari",
     "btnViewCatalog": "Veure catàleg",
@@ -599,7 +601,15 @@
         "Repeteix la mateixa combinació: broker, arquitectura, protocol i format.",
         "Mantén iguals payload, ràtio, warm-up i durada.",
         "Crea un canal propi per al run: topic, cua, subject o group-id."
-      ]
+      ],
+      "workflow": {
+        "role": "Rol dins del portal",
+        "scenarioField": "Camp que omple",
+        "replicate": "Com replicar-ho"
+      },
+      "configDescription": "Aquesta pestanya no és teoria: és la comprovació pràctica que faria servir algú per verificar que el component està desplegat o que el contracte de l’escenari és repetible.",
+      "configHintTitle": "Com s’ha d’usar:",
+      "configHintText": "executa el snippet només com a verificació. La comparació continua depenent de mantenir iguals format, payload, ràtio, warm-up, durada i concurrència."
     },
     "compatTable": {
       "heading": "Combinacions compatibles",

@@ -340,7 +340,9 @@
           "title": "Finish with data",
           "text": "Click \"Executions\" to inspect run state and \"Results\" to interpret measures, score, and comparisons."
         }
-      }
+      },
+      "tutorialHintTitle": "First time here:",
+      "tutorialHintText": "click the Tutorial button above to open the guided walkthrough. Each step says exactly which button or tab to click before moving to the next screen."
     },
     "btnCreateScenario": "Create scenario",
     "btnViewCatalog": "View catalog",
@@ -599,7 +601,15 @@
         "Repeat the same combination: broker, architecture, protocol and format.",
         "Keep payload, rate, warm-up and duration unchanged.",
         "Create a dedicated run channel: topic, queue, subject or group-id."
-      ]
+      ],
+      "workflow": {
+        "role": "Role in the portal",
+        "scenarioField": "Field it fills",
+        "replicate": "How to replicate it"
+      },
+      "configDescription": "This tab is not theory: it is the practical check someone would use to verify that the component is deployed or that the scenario contract is repeatable.",
+      "configHintTitle": "How to use it:",
+      "configHintText": "run the snippet only as a verification step. The comparison still depends on keeping format, payload, rate, warm-up, duration and concurrency unchanged."
     },
     "compatTable": {
       "heading": "Compatible combinations",

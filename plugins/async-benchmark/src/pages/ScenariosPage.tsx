@@ -1406,11 +1406,12 @@ export const ScenariosPage = () => {
         name: params.get('name') || '', architecture: params.get('architecture') || '',
         protocol: params.get('protocol') || '', platform: params.get('platform') || '',
         duration: params.get('duration') || '', rate: params.get('rate') || '',
-        payloadSize: params.get('payloadSize') || '', dataFormat: '',
+        payloadSize: params.get('payloadSize') || '', dataFormat: params.get('dataFormat') || '',
       };
       // _prefill: flag intern per indicar que es un formulari pre-omplert
       // sense ID, aixi el modal sap que es crear (no editar)
-      if (prefill.name) setEditScenario({ ...prefill, _prefill: true });
+      const hasPrefill = Object.values(prefill).some(Boolean);
+      if (hasPrefill) setEditScenario({ ...prefill, _prefill: true });
       window.history.replaceState({}, '', '/escenaris'); // neteja URL
     }
   }, []);

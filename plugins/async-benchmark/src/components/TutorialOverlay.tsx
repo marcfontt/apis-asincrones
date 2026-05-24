@@ -59,7 +59,7 @@ const TUTORIAL_STEPS: Record<TutorialPage, TutorialStepConfig[]> = {
 };
 
 export const DEMO_SCENARIO_URL =
-  '/escenaris?create=true&platform=Kafka&architecture=EDA&protocol=Kafka&duration=360&rate=20000&payloadSize=500&dataFormat=default';
+  '/escenaris?create=true&name=Kafka%20v%C3%ADdeo%204K%20log-centric&platform=Kafka&architecture=LCA&protocol=Kafka&duration=360&rate=10&payloadSize=500000&dataFormat=video-4k';
 
 // Ruta real de cada página dentro del portal. Cada paso del tutorial usa
 // esta tabla para saber a dónde navegar cuando el usuario decide ver la

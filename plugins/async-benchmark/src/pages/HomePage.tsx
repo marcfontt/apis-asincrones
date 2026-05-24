@@ -227,6 +227,10 @@ const HomeGuide = () => {
           <GuideItemCard key={item.title} title={item.title} text={item.text} color={item.color} />
         ))}
       </div>
+      <div style={{ marginTop: 12, padding: '12px 14px', borderRadius: 10, border: '1px solid rgba(37,99,235,0.25)', background: 'rgba(37,99,235,0.07)', color: 'var(--text-secondary)', fontSize: 12.5, lineHeight: 1.6 }}>
+        <strong style={{ color: 'var(--text-primary)' }}>{t('home.guide.tutorialHintTitle')}</strong>{' '}
+        {t('home.guide.tutorialHintText')}
+      </div>
     </GuidePanel>
   );
 };

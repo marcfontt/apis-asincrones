@@ -340,7 +340,9 @@
           "title": "Termina leyendo datos",
           "text": "Haz clic en \"Ejecuciones\" para ver el estado del run y en \"Resultados\" para interpretar medidas, puntuación y comparativas."
         }
-      }
+      },
+      "tutorialHintTitle": "Si es la primera vez:",
+      "tutorialHintText": "haz clic en el botón Tutorial de arriba para ver la guía guiada. Cada paso dice exactamente qué botón o pestaña debes pulsar antes de pasar a la pantalla siguiente."
     },
     "btnCreateScenario": "Crear escenario",
     "btnViewCatalog": "Ver catálogo",
@@ -599,7 +601,15 @@
         "Repite la misma combinación: broker, arquitectura, protocolo y formato.",
         "Mantén iguales payload, ratio, warm-up y duración.",
         "Crea un canal propio para el run: topic, cola, subject o group-id."
-      ]
+      ],
+      "workflow": {
+        "role": "Rol dentro del portal",
+        "scenarioField": "Campo que rellena",
+        "replicate": "Cómo replicarlo"
+      },
+      "configDescription": "Esta pestaña no es teoría: es la comprobación práctica que usaría alguien para verificar que el componente está desplegado o que el contrato del escenario es repetible.",
+      "configHintTitle": "Cómo debe usarse:",
+      "configHintText": "ejecuta el snippet solo como verificación. La comparación sigue dependiendo de mantener iguales formato, payload, ratio, warm-up, duración y concurrencia."
     },
     "compatTable": {
       "heading": "Combinaciones compatibles",

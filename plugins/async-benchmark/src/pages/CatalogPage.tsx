@@ -572,6 +572,47 @@ const DetailRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
+const componentScenarioField = (component: CatalogComponent): string => {
+  const value = component.shortName || component.name || '-';
+
+  if (component.category === 'platform') {
+    return `Plataforma = ${value}`;
+  }
+  if (component.category === 'protocol') {
+    return `Protocol = ${value}`;
+  }
+  if (component.category === 'architecture') {
+    return `Arquitectura = ${value}`;
+  }
+  return value;
+};
+
+const componentPortalRole = (component: CatalogComponent): string => {
+  if (component.category === 'platform') {
+    return 'És la plataforma que rep, desa o encamina els missatges durant el run.';
+  }
+  if (component.category === 'protocol') {
+    return 'Defineix com viatgen els missatges entre productor, plataforma i consumidor.';
+  }
+  if (component.category === 'architecture') {
+    return 'Defineix el patró del flux: esdeveniments, cues, logs, malla o funcions serverless.';
+  }
+  return "Forma part del contracte de l'escenari i s'ha de deixar documentat.";
+};
+
+const componentReplicationHint = (component: CatalogComponent): string => {
+  if (component.category === 'platform') {
+    return 'Replica-ho mantenint versió, endpoint, namespace, recursos i concurrència.';
+  }
+  if (component.category === 'protocol') {
+    return 'Replica-ho mantenint port, canal per run i semàntica de consum declarada.';
+  }
+  if (component.category === 'architecture') {
+    return 'Replica-ho mantenint la mateixa composició i la mateixa càrrega de prova.';
+  }
+  return 'Replica-ho mantenint el mateix valor dins del document d’escenari.';
+};
+
 const ComponentCompatibilityDetails = ({ component }: { component: CatalogComponent }) => {
   const { t } = useTranslation();
   const details = getCompatibilityDetails(component, {
@@ -798,15 +839,29 @@ const ComponentDetailModal = ({
             <div style={{ fontSize: 11, color: 'var(--text-disabled)', fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
               {t('catalog.modal.sectionCard')}
             </div>
-            <DetailRow label={t('catalog.modal.labelCategory')} value={label} />
-            <DetailRow label={t('catalog.modal.labelShortName')} value={component.shortName || '-'} />
-            {overviewFields.map(field => (
-              <DetailRow key={field.label} label={field.label} value={field.value} />
-            ))}
-            <DetailRow label={t('catalog.modal.labelRepro')} value={getReproducibilityStatus(component)} />
-            {component.createdAt && (
-              <DetailRow label={t('catalog.modal.labelCreatedAt')} value={new Date(component.createdAt).toLocaleDateString(locale)} />
-            )}
+            <div style={{ display: 'grid', gap: 9 }}>
+              {[
+                { label: t('catalog.modal.workflow.role'), value: componentPortalRole(component) },
+                { label: t('catalog.modal.workflow.scenarioField'), value: componentScenarioField(component) },
+                { label: t('catalog.modal.workflow.replicate'), value: componentReplicationHint(component) },
+              ].map(row => (
+                <div key={row.label} style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-subtle)', padding: '9px 10px' }}>
+                  <div style={{ fontSize: 10, color: color, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{row.label}</div>
+                  <div style={{ fontSize: 12.5, color: 'var(--text-primary)', lineHeight: 1.5 }}>{row.value}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ marginTop: 12, paddingTop: 10, borderTop: '1px solid var(--border)' }}>
+              <DetailRow label={t('catalog.modal.labelCategory')} value={label} />
+              <DetailRow label={t('catalog.modal.labelShortName')} value={component.shortName || '-'} />
+              {overviewFields.map(field => (
+                <DetailRow key={field.label} label={field.label} value={field.value} />
+              ))}
+              <DetailRow label={t('catalog.modal.labelRepro')} value={getReproducibilityStatus(component)} />
+              {component.createdAt && (
+                <DetailRow label={t('catalog.modal.labelCreatedAt')} value={new Date(component.createdAt).toLocaleDateString(locale)} />
+              )}
+            </div>
           </section>
         </div>
 
@@ -875,6 +930,14 @@ const ComponentDetailModal = ({
 
         {activeTab === 'config' && (
           <section style={{ ...S.card, boxShadow: 'none', marginTop: 16 }}>
+            <div style={{ marginBottom: 12 }}>
+              <div style={{ fontSize: 11, color, fontWeight: 850, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {t('catalog.modal.tabs.config')}
+              </div>
+              <p style={{ margin: '5px 0 0', fontSize: 12.5, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                {t('catalog.modal.configDescription')}
+              </p>
+            </div>
             {snippet ? (
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 8 }}>
@@ -904,6 +967,10 @@ const ComponentDetailModal = ({
                 >
                   {snippet.codi}
                 </pre>
+                <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: `${color}0d`, border: `1px solid ${color}24`, fontSize: 12.2, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                  <strong style={{ color: 'var(--text-primary)' }}>{t('catalog.modal.configHintTitle')}</strong>{' '}
+                  {t('catalog.modal.configHintText')}
+                </div>
               </div>
             ) : (
               <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: 13 }}>{t('catalog.modal.noConfigSnippet')}</p>
