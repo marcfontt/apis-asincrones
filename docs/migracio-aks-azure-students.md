@@ -461,11 +461,18 @@ Kubernetes.
 
 El repartiment observat al cluster final va ser:
 
-| Node | Us principal |
+| Rol | Us principal |
 |---|---|
-| `aks-nodepool1-10848180-vmss000001` | Kafka gestionat per Strimzi i operador. |
-| `aks-nodepool1-10848180-vmss000002` | Orquestrador i Jobs `load-generator`, etiquetat com `benchmark-role=loadgen`. |
-| `aks-nodepool1-10848180-vmss000003` | NATS i RabbitMQ. |
+| Nodes del node pool AKS | Brokers, serveis del portal i Elasticsearch segons el planificador. |
+| Node(s) amb `benchmark-role=loadgen` | Jobs `load-generator` creats per l'orquestrador. |
+
+En AKS els noms concrets dels nodes no són una dada estable: si Azure recrea el
+node pool poden passar de `vmss000002` a `vmss000005`, per exemple. Per això la
+part important del disseny no és el nom del node, sinó mantenir l'etiqueta
+`benchmark-role=loadgen` en almenys un node disponible abans d'executar proves.
+Si aquesta etiqueta desapareix, els Jobs queden en `Pending` amb motiu
+`Unschedulable` i Resultats no pot mostrar mètriques perquè encara no hi ha cap
+contenidor publicant mostres.
 
 També es van corregir tres punts que afectaven directament la validesa del
 benchmark:

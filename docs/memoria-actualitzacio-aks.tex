@@ -23,14 +23,22 @@ a tres nodes. El motiu és pràctic: amb un sol node no era estable mantenir
 Backstage, Elasticsearch, Kafka, NATS, RabbitMQ i els generadors de càrrega al
 mateix temps.
 
-El repartiment final ha estat:
+El repartiment final s'ha definit per rols, no per noms fixos de node:
 
 \begin{itemize}
-  \item \texttt{aks-nodepool1-10848180-vmss000001}: Kafka i Strimzi.
-  \item \texttt{aks-nodepool1-10848180-vmss000002}: orquestrador i Jobs
-        \texttt{load-generator}, etiquetat amb \texttt{benchmark-role=loadgen}.
-  \item \texttt{aks-nodepool1-10848180-vmss000003}: NATS i RabbitMQ.
+  \item Brokers i serveis del portal: desplegats sobre el node pool AKS segons
+        els recursos disponibles.
+  \item Jobs \texttt{load-generator}: programats només en nodes etiquetats amb
+        \texttt{benchmark-role=loadgen}.
 \end{itemize}
+
+El nom concret dels nodes no es considera part del contracte experimental,
+perquè AKS pot recrear-los durant la vida del clúster. Durant les proves es va
+detectar aquest cas: els Jobs van quedar en estat \texttt{Pending} perquè els
+nodes nous ja no conservaven l'etiqueta \texttt{benchmark-role=loadgen}. La
+solució operativa és comprovar \texttt{kubectl get nodes -L benchmark-role}
+abans de la demo i tornar a etiquetar almenys un node si la columna apareix
+buida.
 
 Aquest repartiment no converteix el clúster en un entorn de benchmarking
 perfecte, però redueix el soroll més greu: evita que els generadors de càrrega

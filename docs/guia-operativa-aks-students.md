@@ -147,19 +147,47 @@ amb l'etiqueta `benchmark-role=loadgen`.
 
 Repartiment final utilitzat durant la migracio:
 
-| Node AKS | Rol practic |
+| Rol practic | Criteri |
 |---|---|
-| `aks-nodepool1-10848180-vmss000001` | Kafka i Strimzi. |
-| `aks-nodepool1-10848180-vmss000002` | Orquestrador i Jobs `load-generator` amb `benchmark-role=loadgen`. |
-| `aks-nodepool1-10848180-vmss000003` | NATS i RabbitMQ quan estan aixecats. |
+| Kafka i Strimzi | Poden quedar en qualsevol node amb recursos suficients. |
+| Orquestrador i Jobs `load-generator` | Els Jobs demanen `benchmark-role=loadgen`. |
+| NATS i RabbitMQ | Poden quedar en qualsevol node amb recursos suficients. |
 
-Exemple per fixar el node de carrega:
+Els noms dels nodes AKS poden canviar quan Azure recrea el node pool. Per això
+no s'ha de copiar un nom antic com si fos estable. Abans de llançar proves,
+comprova si existeix algun node etiquetat:
 
 ```powershell
-kubectl label node aks-nodepool1-10848180-vmss000002 benchmark-role=loadgen --overwrite
+kubectl get nodes -L benchmark-role
+```
+
+Si la columna `BENCHMARK-ROLE` surt buida, etiqueta un node actual:
+
+```powershell
+$LOAD_NODE = (kubectl get nodes --no-headers | Select-Object -First 1).ToString().Trim().Split()[0]
+kubectl label node $LOAD_NODE benchmark-role=loadgen --overwrite
+kubectl get nodes -L benchmark-role
+```
+
+Per desbloquejar una demo amb tres execucions en paral·lel, també pots etiquetar
+tots els nodes actuals:
+
+```powershell
+kubectl get nodes --no-headers |
+  ForEach-Object { ($_ -split '\s+')[0] } |
+  ForEach-Object { kubectl label node $_ benchmark-role=loadgen --overwrite }
+```
+
+Després reaplica o reinicia l'orquestrador si has canviat el manifest:
+
+```powershell
 kubectl apply -f k8s/deployments/benchmark-orchestrator.yaml
 kubectl rollout status deployment/benchmark-orchestrator -n $NS_APP --timeout=180s
 ```
+
+Si un run queda a `Resultats` sense mostres i el diagnòstic diu
+`Unschedulable` amb `didn't match Pod's node affinity/selector`, el problema és
+aquesta etiqueta, no el broker ni la pantalla de Resultats.
 
 El manifest deixa `MAX_CONCURRENT_RUNS=3` per a la demo final. Pots crear molts
 runs des del portal, pero l'orquestrador nomes desplega tres Jobs de benchmark

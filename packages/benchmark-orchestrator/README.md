@@ -67,6 +67,24 @@ En el clúster Azure Students, fixar els Jobs de carrega a un node etiquetat
 evita que el generador caigui de manera diferent segons el broker mesurat. Aixo
 millora la comparabilitat dels resultats.
 
+Important: els noms dels nodes AKS no són estables. Si el node pool es recrea,
+el label pot desaparèixer encara que el manifest continuï demanant
+`benchmark-role=loadgen`. Abans d'executar una tanda, comprova:
+
+```powershell
+kubectl get nodes -L benchmark-role
+```
+
+Si no hi ha cap node amb `loadgen`, etiqueta un node actual:
+
+```powershell
+$LOAD_NODE = (kubectl get nodes --no-headers | Select-Object -First 1).ToString().Trim().Split()[0]
+kubectl label node $LOAD_NODE benchmark-role=loadgen --overwrite
+```
+
+Si falta aquest label, els Jobs queden `Pending` amb motiu `Unschedulable` i no
+apareixen mostres a Resultats en directe.
+
 El backend limita quants Jobs entren a Kubernetes amb `MAX_CONCURRENT_RUNS`.
 En el cluster final s'ha deixat a `3` per poder executar els 16 escenaris sense
 omplir el node de pods `Pending`. Els runs sobrants queden en estat `pending`
