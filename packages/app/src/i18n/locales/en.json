@@ -97,7 +97,7 @@
     "home": {
       "step1": {
         "title": "Start on Home",
-        "body": "Home explains the full path: first understand the idea, then create a test, and finally read the data.",
+        "body": "Click \"Tutorial\" whenever you need context. On Home, scroll down to understand what an asynchronous API is, what a broker does, and which path a test follows.",
         "details": [
           "Backstage is the web app.",
           "AKS is the Azure cluster where tests run.",
@@ -148,7 +148,7 @@
       },
       "step2": {
         "title": "Open a card",
-        "body": "Each card explains what the component is and when it makes sense.",
+        "body": "Click any catalog row to open the component sheet. Inside it, click \"Reproducibility\" to see how to repeat the test and \"Configuration\" for useful commands.",
         "details": [
           "Read the short description.",
           "Check if it fits the test you want to run."
@@ -232,7 +232,7 @@
     "execucions": {
       "step1": {
         "title": "Filter executions",
-        "body": "Filters help you find the run you want to inspect.",
+        "body": "Click the state, platform, protocol, architecture, format, or scenario filters. Scenario is last because state and platform are usually the first filters you need.",
         "details": [
           "Filter by status when there are many tests.",
           "Filter by broker or format when comparing one thing."
@@ -274,7 +274,7 @@
     "resultats": {
       "step1": {
         "title": "Filter before comparing",
-        "body": "Filters decide which tests enter the comparison.",
+        "body": "Click the data format filter first. It is the cleanest comparison because IoT, financial, and video use different loads.",
         "details": [
           "Compare similar things.",
           "Changing filters can change the visible score."
@@ -318,27 +318,27 @@
     "title": "Async APIs",
     "portalLabel": "Test portal",
     "subtitle": "Comparable tests, clear results",
-    "description": "Compare systems that send messages without waiting for an immediate answer. First choose the components, then run a test, and finally read the data.",
+    "description": "This portal explains and compares asynchronous APIs with real benchmark runs. Start here: learn the concepts, review the catalog, create scenarios, execute runs, and read the results.",
     "heroSubtitle": "Backstage is the portal screen. AKS is the Azure cluster where the test containers run.",
     "guide": {
-      "title": "Home quick guide",
-      "subtitle": "What to look at first and the path each test follows.",
+      "title": "Quick orientation guide",
+      "subtitle": "Home gives the context: what an asynchronous API is, what a broker does, which pages exist, and where to click first.",
       "items": {
         "map": {
-        "title": "Where to start",
-        "text": "First understand the flow: choose components, create a scenario, run the test, and read the results."
+          "title": "Where to start",
+          "text": "Read the blocks in order: concepts, system parts, message flow, test cycle, and portal pages."
         },
         "catalog": {
           "title": "Start with components",
-          "text": "The catalog shows which brokers, protocols and formats you can combine in the portal."
+          "text": "Click \"View catalog\" or \"Catalog\" in the top navigation to see components, versions, compatibility, and reproducibility."
         },
         "scenarios": {
           "title": "Then create the test",
-          "text": "In Scenarios you choose broker, architecture, protocol, format, duration and load."
+          "text": "Click \"Create scenario\" or \"Scenarios\" to choose platform, architecture, protocol, data format, and load."
         },
         "results": {
           "title": "Finish with data",
-          "text": "Executions shows the run status. Results explains latency, errors, throughput and score."
+          "text": "Click \"Executions\" to inspect run state and \"Results\" to interpret measures, score, and comparisons."
         }
       }
     },
@@ -373,10 +373,10 @@
     "sections": {
       "systemEyebrow": "Step 2 · System pieces",
       "systemTitle": "From scenario to results",
-      "systemDesc": "The flow is this: you define the test, the backend prepares it, AKS runs it, and Results shows the data. AKS means Azure Kubernetes Service: a group of cloud machines for running containers.",
+      "systemDesc": "The flow is: you define the test, the orchestrator prepares it, AKS runs the load-generator, and Results shows the data. AKS is the Azure cluster where the containers run.",
       "conceptsEyebrow": "Step 1 · Basic concepts",
       "conceptsTitle": "What are you actually comparing?",
-      "conceptsDesc": "Before comparing, check what you are changing: broker, protocol, architecture, format, and load.",
+      "conceptsDesc": "Before comparing, identify what you are changing: platform, protocol, architecture, data format, and load.",
       "brokerEyebrow": "Key concept",
       "brokerTitle": "How does a broker work?",
       "brokerDesc": "A broker receives messages from producers and delivers them to consumers. This lets each side work at its own pace.",
@@ -578,12 +578,12 @@
       "copied": "Copied",
       "overviewFallback": "Component used by the test portal.",
       "impactFallback": "Its impact depends on how it is combined inside the scenario.",
-      "reproDescription": "Reproducibility means repeating a test with the same conditions and getting comparable results. Keep the version, configuration, load, and run channel unchanged.",
+      "reproDescription": "This tab explains how someone else would repeat the test: which versions to keep, which channel the run creates, which parameters must not change, and which commands help verify it.",
       "noReproRows": "This component does not yet have structured reproducibility data.",
       "noConfigSnippet": "This component does not yet have a configuration snippet.",
       "useDescription": "Open the scenario form with this value preselected when possible.",
       "sectionWhat": "What it is and when to use it",
-      "sectionCard": "Quick card",
+      "sectionCard": "How it is applied in the portal",
       "labelCategory": "Category",
       "labelShortName": "Short name",
       "labelVersion": "Version",
@@ -841,7 +841,7 @@
       "btnBulkExecuting": "Executing..."
     },
     "presets": {
-      "heading": "Recommended predefined scenarios",
+      "heading": "Four recommended final scenarios",
       "btnUse": "Use as base",
       "items": {
         "rabbitmqFinancialReliable": {
@@ -853,16 +853,12 @@
           "desc": "Lightweight pub/sub with minimal payload. This is the recommended NATS case before testing heavy loads."
         },
         "kafka4kStreaming": {
-          "name": "Kafka serverless 4K",
-          "desc": "Kafka acts as the event source for a SEA route with a 500 KB payload. Useful for observing on-demand activation without reaching the 8K limit."
+          "name": "Kafka 4K video log-centric",
+          "desc": "Ordered log with an ephemeral topic per run. This is Kafka’s natural case for sustained throughput without forcing the 8K limit."
         },
         "confluent4kStreaming": {
-          "name": "Confluent serverless 4K",
-          "desc": "Same SEA model: Confluent acts as a Kafka-compatible event source to compare the route without forcing 8K."
-        },
-        "kafkaBaselineControl": {
-          "name": "Kafka baseline control",
-          "desc": "Short preset to verify the producer-broker-consumer path before heavier tests."
+          "name": "Confluent 4K video Kafka-compatible",
+          "desc": "Same profile as Kafka but labelled as Confluent. It compares the Kafka-compatible path with the same payload and rate."
         }
       }
     },
@@ -890,7 +886,7 @@
     "filters": {
       "status": "Status",
       "scenario": "Scenario",
-      "broker": "Broker",
+      "broker": "Platform",
       "platform": "Platform",
       "protocol": "Protocol",
       "architecture": "Architecture",
@@ -936,11 +932,11 @@
       "items": [
         {
           "title": "Statuses",
-          "text": "Pending has not started yet. Running is sending load. Completed reached the end. Stopped was cancelled manually. Error means the run failed."
+          "text": "Pending is waiting for a slot. Running is sending load. Completed reached the end. Stopped was cancelled manually. Failed means the run ended with an error."
         },
         {
           "title": "Run detail",
-          "text": "Click a row to see configuration, timing, sent messages, received messages and stored measurements."
+          "text": "Click a row to see configuration, timing, sent messages, received messages, stored measures, and diagnostics."
         },
         {
           "title": "Actions",
@@ -1071,7 +1067,7 @@
     "heading": "Results",
     "subtitle": "Live metrics and comparisons for async architectures.",
     "beforeCompareTitle": "Before comparing",
-    "beforeCompareText": "The score only ranks the visible results. If you change filters, it can change. Also check latency, throughput, and errors.",
+    "beforeCompareText": "First filter by data format to compare equivalent cases. The score only ranks visible results: if you change filters, it can change. Also inspect latency, throughput, and errors.",
     "tabsAria": "Result views",
     "tabLive": "Live",
     "tabHistory": "History and comparisons",
@@ -1111,7 +1107,7 @@
       "emptyDescription": "Start a scenario from the Scenarios page. You will see latency, throughput, P50, and P99 here when samples arrive.",
       "goScenarios": "Go to Scenarios",
       "metricsIntro": "The top counter shows accumulated messages for the selected run. Charts and table show samples published by the load-generator every 5 seconds; the screen polls the API every 3 seconds. When you switch execution, counters belong only to that run.",
-      "noSamplesYet": "This run does not have saved samples yet. It may be waiting for resources, the broker may have no endpoints, or the Job may have failed before starting. Check Executions and the sc-* namespace logs.",
+      "noSamplesYet": "This run does not have stored samples yet. It may be waiting for resources, have a pending pod, use an older load-generator image, or metrics-api may be rejecting POST requests.",
       "messagesReceived": "Messages received",
       "avgLatency": "Average latency (ms)",
       "avgThroughput": "Average throughput",

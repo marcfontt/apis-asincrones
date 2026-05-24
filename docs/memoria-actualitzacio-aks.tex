@@ -121,10 +121,12 @@ clar que Confluent s'avalua pel camí Kafka-compatible del clúster, no com una
 instal·lació completa de Confluent Platform amb Schema Registry, ksqlDB o
 Control Center.
 
-Per a la demo final s'han deixat cinc escenaris predefinits: telemetria IoT amb
-NATS, streaming de vídeo 4K amb Kafka, cas financer amb RabbitMQ, streaming 4K
-pel camí Confluent compatible amb Kafka i un control base de Kafka. El format de
-vídeo 8K continua disponible, però es tracta com una prova de payload gran:
+Per a la demo final s'han deixat quatre escenaris predefinits: telemetria IoT
+amb NATS, cas financer amb RabbitMQ, streaming de vídeo 4K amb Kafka i streaming
+4K pel camí Confluent compatible amb Kafka. Aquesta selecció deixa una prova
+representativa per plataforma i evita barrejar un control base addicional amb
+els resultats finals. El format de vídeo 8K continua disponible, però es tracta
+com una prova de payload gran:
 abans d'usar-lo com a dada comparativa cal validar els límits de Kafka
 \texttt{message.max.bytes}, \texttt{replica.fetch.max.bytes},
 \texttt{socket.request.max.bytes} i la mida de fetch del consumidor. Aquesta

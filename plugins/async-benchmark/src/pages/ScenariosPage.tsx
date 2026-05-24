@@ -327,10 +327,10 @@ const SK_STYLE = {
 // el formulari de creacio quan l'usuari fa clic a "Usar com a base".
 // Aixo permet al usuari partir d'una configuracio recomanada i ajustar-la.
 
-// Els cinc presets finals cobreixen els casos que s'explicaran a la memòria:
-// IoT, Vídeo 4K, Financer, Confluent i Kafka. Vídeo 8K queda disponible al
-// formulari, però no es posa com a preset principal perquè necessita validar
-// límits de payload i recursos abans de comparar-lo.
+// Els quatre presets finals cobreixen una plataforma per cas d'estudi.
+// La comparació final és més neta si no barregem cinc objectius diferents:
+// RabbitMQ es prova amb cues financeres, NATS amb telemetria IoT, i Kafka /
+// Confluent amb el mateix perfil de vídeo 4K sobre protocol Kafka.
 const PREDEFINED_PRESETS = [
   {
     name:         'RabbitMQ financer fiable',
@@ -363,10 +363,10 @@ const PREDEFINED_PRESETS = [
     color:        '#16a34a',
   },
   {
-    name:         'Kafka serverless 4K',
+    name:         'Kafka vídeo 4K log-centric',
     nameKey:      'scenarios.presets.items.kafka4kStreaming.name',
     platform:     'Kafka',
-    architecture: 'SEA',
+    architecture: 'LCA',
     protocol:     'Kafka',
     dataFormat:   'video-4k',
     duration:     '360',
@@ -374,38 +374,23 @@ const PREDEFINED_PRESETS = [
     rate:         '10',
     payloadSize:  '500000',
     descKey:      'scenarios.presets.items.kafka4kStreaming.desc',
-    desc:         "Kafka fa de font d'esdeveniments per a una ruta SEA amb payload de 500 KB. Serveix per observar activació sota demanda sense arribar al límit de 8K.",
+    desc:         'Log ordenat amb topic efímer per run. És el cas natural de Kafka per veure throughput sostingut sense forçar el límit de 8K.',
     color:        '#7c3aed',
   },
   {
-    name:         'Confluent serverless 4K',
+    name:         'Confluent vídeo 4K Kafka-compatible',
     nameKey:      'scenarios.presets.items.confluent4kStreaming.name',
     platform:     'Confluent',
-    architecture: 'SEA',
+    architecture: 'LCA',
     protocol:     'Kafka',
     dataFormat:   'video-4k',
     duration:     '360',
     warmup:       '120',
-    rate:         '8',
+    rate:         '10',
     payloadSize:  '500000',
     descKey:      'scenarios.presets.items.confluent4kStreaming.desc',
-    desc:         "Mateix model SEA: Confluent actua com a font d'esdeveniments Kafka-compatible per comparar la ruta sense forçar 8K.",
+    desc:         'Mateix perfil que Kafka però etiquetat com a Confluent. Serveix per comparar el camí Kafka-compatible amb el mateix payload i la mateixa ràtio.',
     color:        '#9333ea',
-  },
-  {
-    name:         'Kafka control base',
-    nameKey:      'scenarios.presets.items.kafkaBaselineControl.name',
-    platform:     'Kafka',
-    architecture: 'EDA',
-    protocol:     'Kafka',
-    dataFormat:   'default',
-    duration:     '360',
-    warmup:       '120',
-    rate:         '100',
-    payloadSize:  '256',
-    descKey:      'scenarios.presets.items.kafkaBaselineControl.desc',
-    desc:         'Preset curt per comprovar que la ruta productor-broker-consumidor funciona abans de fer proves fortes.',
-    color:        '#ef4444',
   },
 ];
 
@@ -1597,6 +1582,7 @@ export const ScenariosPage = () => {
   };
 
   const openEdit = (s: Scenario) => {
+    setSelectedScenario(null);
     setEditScenario({
       id: s.id, createdAt: s.createdAt,
       name: s.name || '', architecture: s.architecture || '',

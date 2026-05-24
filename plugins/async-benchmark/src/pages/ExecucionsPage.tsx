@@ -1522,24 +1522,17 @@ export const ExecucionsPage = () => {
             label={t('execucions.filters.status')}
             value={filterStatus[0] || 'all'}
             onChange={value => setFilterStatus(value === 'all' ? [] : [value])}
+            minWidth={128}
             options={[
               { value: 'all', label: t('execucions.filters.all') },
               ...availableStatusFilters.map(item => ({ value: item.key, label: `${item.label} (${item.count})` })),
             ]}
           />
           <FilterSelect
-            label={t('execucions.filters.scenario')}
-            value={filterScenario[0] || 'all'}
-            onChange={value => setFilterScenario(value === 'all' ? [] : [value])}
-            options={[
-              { value: 'all', label: t('execucions.filters.all') },
-              ...availableScenarioFilters,
-            ]}
-          />
-          <FilterSelect
-            label={t('execucions.filters.broker')}
+            label={t('execucions.filters.platform')}
             value={filterPlatform[0] || 'all'}
             onChange={value => setFilterPlatform(value === 'all' ? [] : [value])}
+            minWidth={138}
             options={[
               { value: 'all', label: t('execucions.filters.all') },
               ...availablePlatforms.map(value => ({ value, label: value })),
@@ -1549,6 +1542,7 @@ export const ExecucionsPage = () => {
             label={t('execucions.filters.protocol')}
             value={filterProtocol[0] || 'all'}
             onChange={value => setFilterProtocol(value === 'all' ? [] : [value])}
+            minWidth={128}
             options={[
               { value: 'all', label: t('execucions.filters.all') },
               ...availableProtocols.map(value => ({ value, label: value })),
@@ -1558,6 +1552,7 @@ export const ExecucionsPage = () => {
             label={t('execucions.filters.architecture')}
             value={filterArchitecture[0] || 'all'}
             onChange={value => setFilterArchitecture(value === 'all' ? [] : [value])}
+            minWidth={128}
             options={[
               { value: 'all', label: t('execucions.filters.all') },
               ...availableArchitectures.map(value => ({ value, label: value })),
@@ -1567,9 +1562,20 @@ export const ExecucionsPage = () => {
             label={t('execucions.filters.format')}
             value={filterDataFormat[0] || 'all'}
             onChange={value => setFilterDataFormat(value === 'all' ? [] : [value])}
+            minWidth={128}
             options={[
               { value: 'all', label: t('execucions.filters.all') },
               ...availableDataFormats.map(value => ({ value, label: DATA_FORMAT_LABELS[value] || value })),
+            ]}
+          />
+          <FilterSelect
+            label={t('execucions.filters.scenario')}
+            value={filterScenario[0] || 'all'}
+            onChange={value => setFilterScenario(value === 'all' ? [] : [value])}
+            minWidth={170}
+            options={[
+              { value: 'all', label: t('execucions.filters.all') },
+              ...availableScenarioFilters,
             ]}
           />
         </FilterPanel>

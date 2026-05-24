@@ -29,17 +29,17 @@ export const KNOWN_COMPONENT_VERSIONS: Record<string, string> = {
 // Text visible al modal del Catàleg.
 // Explica que cal repetir per comparar brokers sense canviar les condicions.
 const COMMON_BROKER_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Mateixa prova', value: "Repeteix broker, protocol, format, rate, payload, warm-up i durada. Si canvies un d'aquests valors, ja és un altre cas." },
-  { label: 'Canal net', value: 'Cada run crea el seu topic, cua, subject o group-id. Això evita barrejar missatges amb execucions anteriors.' },
-  { label: 'Concurrència', value: 'Per la memòria final, executa en sèrie o amb recursos dedicats. El mode paral·lel serveix per fer demos més ràpides.' },
+  { label: 'Què has de repetir', value: "Mateixa plataforma, protocol, format, rate, payload, warm-up i durada. Si canvies una peça, ja és una prova diferent." },
+  { label: 'Canal per run', value: 'El load-generator crea un topic, cua, subject o group-id propi amb el runId. Així no barreja missatges antics.' },
+  { label: 'Concurrència', value: 'Per dades finals, executa pocs runs alhora o usa node pool dedicat. El paral·lelisme és útil per demo, no per defensar números.' },
 ];
 
 // Text comu per arquitectures i protocols.
 // Marca els paràmetres que l'usuari ha de deixar igual abans de comparar.
 const COMMON_DECISION_REPRODUCIBILITY_ROWS: ReproducibilityRow[] = [
-  { label: 'Contracte', value: 'La combinació ha de sortir del document Scenario: arquitectura, broker, protocol, format, rate, payload, warm-up i durada.' },
-  { label: 'Comparació', value: 'Compara només execucions amb la mateixa càrrega. Si canvies format o ritme, mesura-ho com un cas nou.' },
-  { label: 'Aïllament', value: 'Cada execució necessita canal propi i runId propi per no heretar dades antigues.' },
+  { label: 'On entra al codi', value: "L'escenari desa arquitectura, plataforma, protocol i format; l'orquestrador ho passa al load-generator com a variables d'entorn." },
+  { label: 'Què queda fix', value: 'Per comparar, mantén iguals format, rate, payload, warm-up, durada i concurrència.' },
+  { label: 'Aïllament', value: 'Cada execució té runId i canal propis perquè les mètriques no heretin dades anteriors.' },
 ];
 
 export const REPRODUCIBILITY_BY_PLATFORM: Record<string, ReproducibilityRow[]> = {
@@ -123,10 +123,9 @@ const EMA_ROWS: ReproducibilityRow[] = [
 
 const SEA_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
-  { label: 'Què comprova', value: "Una font d'esdeveniments activa funcions serverless mitjançant un disparador." },
-  { label: 'Com es reprodueix', value: "Declara font d'esdeveniments, regla de disparador, funció i límits de concurrència." },
-  { label: 'Paràmetres a fixar', value: 'Payload, ràtio, durada, warm-up, runtime, timeout, memòria i concurrència màxima.' },
-  { label: 'Com llegir el resultat', value: 'Cal mirar latència inicial, escalat sota demanda, errors i estabilitat quan hi ha pics.' },
+  { label: 'Què representa', value: "Serverless Event Architecture: una font genera un esdeveniment, un disparador invoca una funció i la plataforma escala sota demanda." },
+  { label: 'Com es portaria a producció', value: "Declara event source, trigger, runtime de funció, timeout, memòria i límit de concurrència. Sense això no és una SEA completa." },
+  { label: 'Com llegir-la aquí', value: "Al portal queda documentada com a patró arquitectònic. Si es vol mesurar de veritat, cal afegir funcions serverless al flux executable." },
 ];
 
 const KAFKA_PROTOCOL_ROWS: ReproducibilityRow[] = [

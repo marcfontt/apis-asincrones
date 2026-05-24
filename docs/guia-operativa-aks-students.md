@@ -288,7 +288,7 @@ kubectl apply -f k8s/deployments/
 3. Clica `Escenaris`.
 4. Clica `Usar com a base` en un escenari petit:
    - RabbitMQ financer fiable, si `rabbitmq` esta `Running`.
-   - Kafka control base, si Kafka esta `Ready`.
+   - Kafka vídeo 4K log-centric, si Kafka esta `Ready`.
    - NATS telemetria IoT, si `nats` esta `Running`.
 5. Clica `Executar`.
 6. Clica `Execucions` i filtra per `Estat` -> `Pendent` o `En curs` per veure

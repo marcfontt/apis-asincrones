@@ -2085,6 +2085,7 @@ const LiveTab = () => {
   // Applies ONLY to the chart rendering and summary stat cards. The raw
   // metrics table at the bottom still shows all samples.
   const [chartWindow, setChartWindow] = useState<number | 'all'>(100);
+  const [liveGuideOpen, setLiveGuideOpen] = useState(false);
   const liveDataFormatLabel = (format?: string): string => {
     const normalized = format || 'default';
     const key = `resultats.dataFormatLabels.${normalized}`;
@@ -2163,6 +2164,22 @@ const LiveTab = () => {
   // "Finalitzat" banner and the grace-window polling behaviour.
   const selectedRunFinished = !!selectedRunId && !activeRuns.find(r => r.id === selectedRunId);
   const hasNoRunnableSelection = !selectedRunId && !selectedRunFinished;
+  const selectedRun = activeRuns.find((run: any) => run.id === selectedRunId);
+  const runtimeState = selectedRun?.runtimeState || {};
+  const runtimeDiagnosticRows = selectedRun ? [
+    { label: 'RunId', value: selectedRun.id },
+    { label: 'Namespace', value: selectedRun.namespace || '-' },
+    { label: 'Job', value: selectedRun.jobName || '-' },
+    { label: 'Pod', value: runtimeState.podName || runtimeState.podPhase || 'encara no creat' },
+    { label: 'Fase pod', value: runtimeState.podPhase || '-' },
+    { label: 'Node', value: runtimeState.nodeName || '-' },
+    { label: 'Ready', value: runtimeState.podReady === true ? 'sí' : runtimeState.podReady === false ? 'no' : '-' },
+    { label: 'Motiu', value: runtimeState.waitingReason || runtimeState.scheduleReason || runtimeState.terminatedReason || '-' },
+  ] : [];
+  const runtimeDiagnosticMessage =
+    runtimeState.waitingMessage ||
+    runtimeState.scheduleMessage ||
+    '';
 
   // Metrics polling: resets and restarts when selectedRunId changes.
   // No defensive timestamp filter is needed because runId is unique per
@@ -2254,6 +2271,39 @@ const LiveTab = () => {
 
   return (
     <div>
+      <GuidePanel
+        title="Guia de Resultats en directe"
+        subtitle="Què cal clicar i com llegir una execució mentre encara està corrent."
+        open={liveGuideOpen}
+        onToggle={() => setLiveGuideOpen(value => !value)}
+        showLabel={t('scenarios.guide.show')}
+        hideLabel={t('scenarios.guide.hide')}
+        marginBottom={16}
+      >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
+          <GuideItemCard
+            title="1. Clica una targeta en curs"
+            text="La fila de targetes només mostra execucions realment en curs. Clica una targeta per veure només el seu runId i evitar barrejar dades."
+            color="#3b82f6"
+          />
+          <GuideItemCard
+            title="2. Mira els comptadors"
+            text="Missatges rebuts, latència, throughput i errors són del run seleccionat. Si canvies de targeta, els comptadors canvien de context."
+            color="#22c55e"
+          />
+          <GuideItemCard
+            title="3. Ajusta la finestra"
+            text="Clica Últimes 50, 100, 200, 500 o Totes per veure una finestra recent o tot l'historial de mostres del run."
+            color="#7c3aed"
+          />
+          <GuideItemCard
+            title="4. Si no hi ha dades"
+            text="Revisa el diagnòstic: namespace, job, pod, fase i node. Si el pod està Pending, encara no hi ha generador publicant a metrics-api."
+            color="#f59e0b"
+          />
+        </div>
+      </GuidePanel>
+
       {/* Scenario picker card: main row only shows runs that are already running. */}
       <div style={{ ...S.card, marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: (visibleActiveRuns.length > 0 || selectedRunFinished) ? 14 : 0 }}>
@@ -2431,7 +2481,32 @@ const LiveTab = () => {
 
           {selectedRunId && filteredMetrics.length === 0 && (
             <div style={{ ...S.card, marginBottom: 16, background: 'var(--bg-subtle)', borderStyle: 'dashed', fontSize: 13, color: 'var(--text-secondary)', lineHeight: 1.55 }}>
-              {t('resultats.live.noSamplesYet')}
+              <div style={{ fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
+                Encara no hi ha mostres per a aquest run.
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                {t('resultats.live.noSamplesYet')} Si el pod surt com a <strong>Pending</strong>, no és un problema de Resultats: encara no hi ha cap load-generator escrivint a metrics-api.
+              </div>
+              {runtimeDiagnosticRows.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 8 }}>
+                  {runtimeDiagnosticRows.map(row => (
+                    <div key={row.label} style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg-card)', padding: '8px 10px' }}>
+                      <div style={{ fontSize: 10, color: 'var(--text-disabled)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 800 }}>{row.label}</div>
+                      <div style={{ marginTop: 3, fontSize: 12, color: 'var(--text-primary)', fontFamily: 'var(--font-mono)', overflowWrap: 'anywhere' }}>{String(row.value || '-')}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {runtimeDiagnosticMessage && (
+                <div style={{ marginTop: 10, padding: 10, borderRadius: 8, background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.35)', color: '#92400e', overflowWrap: 'anywhere' }}>
+                  {runtimeDiagnosticMessage}
+                </div>
+              )}
+              {selectedRun?.namespace && selectedRun?.jobName && (
+                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text-disabled)' }}>
+                  Per confirmar-ho a Cloud Shell: <code>kubectl logs -n {selectedRun.namespace} job/{selectedRun.jobName} --tail=80</code>
+                </div>
+              )}
             </div>
           )}
 

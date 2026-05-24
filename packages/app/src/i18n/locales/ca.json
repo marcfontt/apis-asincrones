@@ -97,7 +97,7 @@
     "home": {
       "step1": {
         "title": "Comença per Home",
-        "body": "Clica \"Tutorial\" si vols tornar a obrir aquesta guia. A la Home, baixa per entendre productor, bròker, consumidor i mètriques abans de crear cap prova.",
+        "body": "Clica \"Tutorial\" sempre que necessitis context. A la Home, baixa per entendre què és una API asíncrona, què fa un bròker i quin camí segueix una prova.",
         "details": [
           "Clica \"Veure catàleg\" per saltar als components disponibles.",
           "Clica \"Crear escenari\" quan ja entenguis el flux.",
@@ -148,7 +148,7 @@
       },
       "step2": {
         "title": "Obre una fitxa",
-        "body": "Clica qualsevol fila del catàleg per obrir la fitxa del component.",
+        "body": "Clica qualsevol fila del catàleg per obrir la fitxa. Dins la fitxa, clica \"Reproductibilitat\" per veure com es podria repetir la prova i \"Configuració\" per veure comandos útils.",
         "details": [
           "Clica la pestanya \"Visió general\" per llegir la descripció curta.",
           "Clica \"Utilitzar aquest component\" si vols crear un escenari amb aquest valor."
@@ -232,7 +232,7 @@
     "execucions": {
       "step1": {
         "title": "Filtra execucions",
-        "body": "Clica els desplegables de filtres per estat, escenari, broker, protocol, arquitectura o format.",
+        "body": "Clica els desplegables d'estat, plataforma, protocol, arquitectura, format o escenari. L'escenari queda al final perquè normalment primer interessa filtrar per estat i plataforma.",
         "details": [
           "Clica \"Estat\" per veure només pendent, en curs, completat, aturat o fallit.",
           "Clica \"Neteja filtres\" per tornar a veure-ho tot."
@@ -274,7 +274,7 @@
     "resultats": {
       "step1": {
         "title": "Filtra abans de comparar",
-        "body": "Clica els filtres de Resultats abans de comparar perquè decideixen quines proves entren al rànquing.",
+        "body": "Clica primer el filtre de format de dades. És la manera més neta de comparar perquè IoT, financer i vídeo tenen càrregues diferents.",
         "details": [
           "Compara coses semblants.",
           "Canviar filtres pot canviar la puntuació visible."
@@ -318,27 +318,27 @@
     "title": "APIs Asíncrones",
     "portalLabel": "Portal de proves",
     "subtitle": "Proves comparables, resultats clars",
-    "description": "Compara sistemes que envien missatges sense esperar una resposta immediata. Primer tries els components, després llances una prova i finalment mires les dades.",
+    "description": "Aquest portal serveix per entendre i comparar APIs asíncrones amb proves reals. Comença per aquí: primer entén els conceptes, després revisa el catàleg, crea escenaris, executa runs i llegeix resultats.",
     "heroSubtitle": "Backstage és la pantalla del portal. AKS és el clúster d'Azure on corren els contenidors de la prova.",
     "guide": {
-      "title": "Guia ràpida de la Home",
-      "subtitle": "Què mirar primer i quin camí segueix una prova.",
+      "title": "Guia ràpida per situar-se",
+      "subtitle": "La Home dona el context: què és una API asíncrona, què fa un bròker, quines pàgines hi ha i què has de clicar per començar.",
       "items": {
         "map": {
-        "title": "Per on començar",
-        "text": "Primer entén el flux general: tries components, crees un escenari, executes la prova i llegeixes resultats."
+          "title": "Per on començar",
+          "text": "Llegeix els blocs en ordre: conceptes, peces del sistema, flux del missatge, cicle d'una prova i pàgines del portal."
         },
         "catalog": {
           "title": "Primer mira components",
-          "text": "El catàleg diu quins brokers, protocols i formats pots combinar sense sortir del portal."
+          "text": "Clica \"Veure catàleg\" o \"Catàleg\" a la navegació superior per veure components, versions, compatibilitat i reproductibilitat."
         },
         "scenarios": {
           "title": "Després crea la prova",
-          "text": "A Escenaris tries broker, arquitectura, protocol, format, durada i càrrega."
+          "text": "Clica \"Crear escenari\" o \"Escenaris\" per triar plataforma, arquitectura, protocol, format i càrrega."
         },
         "results": {
           "title": "Acaba llegint dades",
-          "text": "Execucions mostra l'estat del run. Resultats explica latència, errors, throughput i puntuació."
+          "text": "Clica \"Execucions\" per veure l'estat del run i \"Resultats\" per interpretar mesures, puntuació i comparatives."
         }
       }
     },
@@ -373,10 +373,10 @@
     "sections": {
       "systemEyebrow": "Pas 2 · Peces del sistema",
       "systemTitle": "De l'escenari als resultats",
-      "systemDesc": "El flux és aquest: tu defineixes la prova, el backend la prepara, AKS l'executa i Resultats mostra les dades. AKS vol dir Azure Kubernetes Service: un grup de màquines al núvol per executar contenidors.",
+      "systemDesc": "El flux és aquest: tu defineixes la prova, l'orquestrador la prepara, AKS executa el load-generator i Resultats mostra les dades. AKS és el clúster d'Azure on corren els contenidors.",
       "conceptsEyebrow": "Pas 1 · Conceptes bàsics",
       "conceptsTitle": "Què estàs comparant realment?",
-      "conceptsDesc": "Abans de comparar, mira què estàs canviant: broker, protocol, arquitectura, format i càrrega.",
+      "conceptsDesc": "Abans de comparar, identifica què estàs canviant: plataforma, protocol, arquitectura, format i càrrega.",
       "brokerEyebrow": "Concepte clau",
       "brokerTitle": "Com funciona un bròker?",
       "brokerDesc": "Un bròker rep missatges dels productors i els entrega als consumidors. Això permet que cada part treballi al seu ritme.",
@@ -578,12 +578,12 @@
       "copied": "Copiat",
       "overviewFallback": "Component utilitzat pel portal de proves.",
       "impactFallback": "El seu impacte depèn de com es combina dins de l'escenari.",
-      "reproDescription": "Reproduïbilitat vol dir repetir una prova amb les mateixes condicions i obtenir resultats comparables. Mantén igual la versió, la configuració, la càrrega i el canal de cada run.",
+      "reproDescription": "Aquesta pestanya explica com repetiria la prova una altra persona: quines versions cal mantenir, quin canal crea el run, quins paràmetres no s'han de canviar i quins comandos ajuden a verificar-ho.",
       "noReproRows": "Aquest component encara no té dades de reproduïbilitat estructurades.",
       "noConfigSnippet": "Aquest component encara no té cap snippet de configuració.",
       "useDescription": "Obre el formulari d'escenaris amb aquest valor preseleccionat quan sigui possible.",
       "sectionWhat": "Què és i quan s'utilitza",
-      "sectionCard": "Fitxa ràpida",
+      "sectionCard": "Com s'aplica al portal",
       "labelCategory": "Categoria",
       "labelShortName": "Nom curt",
       "labelVersion": "Versió",
@@ -847,7 +847,7 @@
       "btnBulkExecuting": "Executant..."
     },
     "presets": {
-      "heading": "Escenaris predefinits recomanats",
+      "heading": "Quatre escenaris finals recomanats",
       "btnUse": "Usar com a base",
       "items": {
         "rabbitmqFinancialReliable": {
@@ -859,16 +859,12 @@
           "desc": "Pub/sub lleuger amb payload mínim. És el cas recomanat per NATS abans de provar càrregues pesades."
         },
         "kafka4kStreaming": {
-          "name": "Kafka serverless 4K",
-          "desc": "Kafka fa de font d'esdeveniments per a una ruta SEA amb payload de 500 KB. Serveix per observar activació sota demanda sense arribar al límit de 8K."
+          "name": "Kafka vídeo 4K log-centric",
+          "desc": "Log ordenat amb topic efímer per run. És el cas natural de Kafka per veure throughput sostingut sense forçar el límit de 8K."
         },
         "confluent4kStreaming": {
-          "name": "Confluent serverless 4K",
-          "desc": "Mateix model SEA: Confluent actua com a font d'esdeveniments Kafka-compatible per comparar la ruta sense forçar 8K."
-        },
-        "kafkaBaselineControl": {
-          "name": "Kafka control base",
-          "desc": "Preset curt per comprovar que la ruta productor-broker-consumidor funciona abans de fer proves fortes."
+          "name": "Confluent vídeo 4K Kafka-compatible",
+          "desc": "Mateix perfil que Kafka però etiquetat com a Confluent. Serveix per comparar el camí Kafka-compatible amb el mateix payload i la mateixa ràtio."
         }
       }
     },
@@ -896,7 +892,7 @@
     "filters": {
       "status": "Estat",
       "scenario": "Escenari",
-      "broker": "Bròker",
+      "broker": "Plataforma",
       "platform": "Plataforma",
       "protocol": "Protocol",
       "architecture": "Arquitectura",
@@ -942,11 +938,11 @@
       "items": [
         {
           "title": "Estats",
-          "text": "Pendent encara no ha començat. En execució està enviant càrrega. Completat ha arribat al final. Aturat s’ha cancel·lat manualment. Fallit vol dir que el run ha acabat amb error."
+          "text": "Pendent encara espera torn. En execució envia càrrega. Completat ha arribat al final. Aturat s'ha cancel·lat manualment. Fallit vol dir que el run ha acabat amb error."
         },
         {
           "title": "Detall d’un run",
-          "text": "Clica una fila per veure configuració, temps, missatges enviats, missatges rebuts i mesures registrades."
+          "text": "Clica una fila per veure configuració, temps, missatges enviats, missatges rebuts, mesures registrades i diagnòstic."
         },
         {
           "title": "Accions",
@@ -1077,7 +1073,7 @@
     "heading": "Resultats",
     "subtitle": "Mètriques en directe i comparatives d'arquitectures asíncrones.",
     "beforeCompareTitle": "Abans de comparar",
-    "beforeCompareText": "La puntuació només ordena els resultats visibles. Si canvies filtres, pot canviar. Mira també latència, throughput i errors.",
+    "beforeCompareText": "Primer filtra per format de dades per comparar casos equivalents. La puntuació només ordena els resultats visibles: si canvies filtres, pot canviar. Mira també latència, throughput i errors.",
     "tabsAria": "Vistes de resultats",
     "tabLive": "En directe",
     "tabHistory": "Historial i comparatives",
@@ -1117,7 +1113,7 @@
       "emptyDescription": "Inicia un escenari des de la pàgina Escenaris. Aquí veuràs latència, throughput, P50 i P99 quan arribin mostres.",
       "goScenarios": "Anar a Escenaris",
       "metricsIntro": "El comptador superior mostra missatges acumulats del run seleccionat. Els gràfics i la taula mostren mostres publicades pel load-generator cada 5 segons; la pantalla consulta l'API cada 3 segons. Quan canvies d'execució, els comptadors corresponen només a aquell run.",
-      "noSamplesYet": "Aquest run encara no té mostres guardades. Pot estar esperant recursos, el broker pot no tenir endpoints o el Job pot haver fallat abans d'arrencar. Revisa Execucions i els logs del namespace sc-*.",
+      "noSamplesYet": "Aquest run encara no té mostres guardades. Pot estar esperant recursos, pot tenir el pod pendent, la imatge del load-generator pot no ser l'última o metrics-api pot estar rebutjant els POST.",
       "messagesReceived": "Missatges rebuts",
       "avgLatency": "Latència mitjana (ms)",
       "avgThroughput": "Throughput mitjà",

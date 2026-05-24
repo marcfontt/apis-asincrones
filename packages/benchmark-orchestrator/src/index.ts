@@ -103,6 +103,22 @@ interface RunRecord {
   errorDetail?: string;
   namespace?: string;
   jobName?: string;
+  runtimeState?: RunRuntimeState;
+}
+
+interface RunRuntimeState {
+  jobActive?: number;
+  jobSucceeded?: number;
+  jobFailed?: number;
+  podName?: string;
+  podPhase?: string;
+  podReady?: boolean;
+  nodeName?: string;
+  waitingReason?: string;
+  waitingMessage?: string;
+  terminatedReason?: string;
+  scheduleReason?: string;
+  scheduleMessage?: string;
 }
 
 function brokerServiceCandidates(brokerType: string): string[] {
@@ -213,6 +229,73 @@ function httpJson(url: string): Promise<any> {
 
 function activeRunningCount(): number {
   return Array.from(runs.values()).filter(run => run.status === 'running').length;
+}
+
+async function readRunRuntimeState(run: RunRecord): Promise<RunRuntimeState | undefined> {
+  if (!k8sEnabled || !run.namespace || !run.jobName || run.status !== 'running') {
+    return undefined;
+  }
+
+  const runtimeState: RunRuntimeState = {};
+
+  try {
+    const job = (await batchApi.readNamespacedJob(run.jobName, run.namespace)).body;
+    runtimeState.jobActive = job.status?.active || 0;
+    runtimeState.jobSucceeded = job.status?.succeeded || 0;
+    runtimeState.jobFailed = job.status?.failed || 0;
+  } catch (e) {
+    runtimeState.waitingReason = 'JOB_STATUS_UNAVAILABLE';
+    runtimeState.waitingMessage = (e as Error).message;
+  }
+
+  try {
+    const pods = (await coreApi.listNamespacedPod(
+      run.namespace,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      `run-id=${run.id}`,
+    )).body.items;
+    const pod = pods[0];
+
+    if (!pod) {
+      runtimeState.podPhase = 'WaitingForPod';
+      return runtimeState;
+    }
+
+    runtimeState.podName = pod.metadata?.name;
+    runtimeState.podPhase = pod.status?.phase;
+    runtimeState.nodeName = pod.spec?.nodeName;
+    runtimeState.podReady = Boolean(pod.status?.containerStatuses?.some(status => status.ready));
+
+    const containerState = pod.status?.containerStatuses?.[0]?.state;
+    if (containerState?.waiting) {
+      runtimeState.waitingReason = containerState.waiting.reason;
+      runtimeState.waitingMessage = containerState.waiting.message;
+    }
+    if (containerState?.terminated) {
+      runtimeState.terminatedReason = containerState.terminated.reason;
+    }
+
+    const scheduledCondition = pod.status?.conditions?.find(condition => condition.type === 'PodScheduled');
+    if (scheduledCondition && scheduledCondition.status === 'False') {
+      runtimeState.scheduleReason = scheduledCondition.reason;
+      runtimeState.scheduleMessage = scheduledCondition.message;
+    }
+  } catch (e) {
+    runtimeState.waitingReason = runtimeState.waitingReason || 'POD_STATUS_UNAVAILABLE';
+    runtimeState.waitingMessage = runtimeState.waitingMessage || (e as Error).message;
+  }
+
+  return runtimeState;
+}
+
+async function enrichRunsWithRuntimeState(records: RunRecord[]): Promise<RunRecord[]> {
+  return Promise.all(records.map(async run => ({
+    ...run,
+    runtimeState: await readRunRuntimeState(run),
+  })));
 }
 
 function enqueueRun(runId: string): void {
@@ -554,13 +637,15 @@ app.get('/health', (_req, res) => {
   });
 });
 
-app.get('/runs', (_req, res) => {
-  res.json(Array.from(runs.values())
-    .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime()));
+app.get('/runs', async (_req, res) => {
+  const sortedRuns = Array.from(runs.values())
+    .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+  res.json(await enrichRunsWithRuntimeState(sortedRuns));
 });
 
-app.get('/runs/active', (_req, res) => {
-  res.json(Array.from(runs.values()).filter(r => r.status === 'running' || r.status === 'pending'));
+app.get('/runs/active', async (_req, res) => {
+  const activeRuns = Array.from(runs.values()).filter(r => r.status === 'running' || r.status === 'pending');
+  res.json(await enrichRunsWithRuntimeState(activeRuns));
 });
 
 app.get('/runs/:id', (req, res) => {

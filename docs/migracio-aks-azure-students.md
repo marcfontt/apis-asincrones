@@ -439,7 +439,8 @@ Prova final minima:
 
 1. Entrar al portal.
 2. Crear o seleccionar un escenari petit segons el broker disponible:
-   `Kafka control base`, `RabbitMQ financer fiable` o `NATS telemetria IoT`.
+   `Kafka vídeo 4K log-centric`, `RabbitMQ financer fiable` o
+   `NATS telemetria IoT`.
 3. Executar una prova curta.
 4. Confirmar que es crea un namespace `sc-*`.
 5. Confirmar que el Job acaba.

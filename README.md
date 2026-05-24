@@ -59,7 +59,7 @@ Canvis més recents del portal:
 | Commit | Resum |
 |--------|-------|
 | `6d102a9` | Concreta el tutorial i les guies finals amb passos clicables. |
-| `90fb337` | Afegeix SEA visible, cinc presets finals, Resultats més compacte i ajustos Kafka 8K. |
+| `90fb337` | Afegeix SEA visible, quatre presets finals, Resultats més compacte i ajustos Kafka 8K. |
 | `ae93b89` | Ajusta cua, estats, UI de resultats, documentació final i `MAX_CONCURRENT_RUNS=3`. |
 | `93f8aed` | Afegeix cua de runs i límit de concurrència a l'orquestrador. |
 | `9fac4dc` | Millora l'arrencada i reintent de connexió de NATS i RabbitMQ. |
@@ -145,10 +145,9 @@ Escenaris finals de mostra:
 | Cas | Preset |
 |-----|--------|
 | IoT | `NATS telemetria IoT` |
-| Vídeo 4K | `Kafka serverless 4K` |
 | Financer | `RabbitMQ financer fiable` |
-| Confluent | `Confluent serverless 4K` |
-| Kafka | `Kafka control base` |
+| Kafka | `Kafka vídeo 4K log-centric` |
+| Confluent | `Confluent vídeo 4K Kafka-compatible` |
 
 ## Estructura del repositori
 

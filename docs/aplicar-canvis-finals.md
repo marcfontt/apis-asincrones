@@ -97,7 +97,7 @@ que els estats pendents no es confonen amb errors:
    quedar clar què s'ha desplegat, amb quines versions i quines limitacions hi
    ha per repetir la prova.
 6. Clica `Escenaris`.
-7. Clica `Usar com a base` en un dels cinc presets finals o clica `Nou escenari`
+7. Clica `Usar com a base` en un dels quatre presets finals o clica `Nou escenari`
    si vols crear-ne un manualment.
 8. Clica `Executar` a cada escenari. Si vols provar la cua, executa els 16.
 9. Clica `Execucions` i obre el filtre `Estat`. Comprova `Pendent`, `En curs`,
@@ -110,15 +110,14 @@ que els estats pendents no es confonen amb errors:
     run pendent no ha de tenir mètriques fins que l'orquestrador li dona torn.
 13. Clica `Historial i comparatives` per revisar les dades persistides.
 
-Els cinc presets que han de quedar visibles a `Escenaris` són:
+Els quatre presets finals que han de quedar visibles a `Escenaris` són:
 
 | Cas final | Preset |
 |---|---|
 | IoT | `NATS telemetria IoT` |
-| Vídeo 4K | `Kafka serverless 4K` |
 | Financer | `RabbitMQ financer fiable` |
-| Confluent | `Confluent serverless 4K` |
-| Kafka | `Kafka control base` |
+| Kafka | `Kafka vídeo 4K log-centric` |
+| Confluent | `Confluent vídeo 4K Kafka-compatible` |
 
 El format `Vídeo 8K` continua disponible al formulari, però no és el preset
 principal perquè força payloads de 2 MB. Per Kafka i Confluent, abans de donar

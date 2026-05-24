@@ -97,7 +97,7 @@
     "home": {
       "step1": {
         "title": "Empieza por Home",
-        "body": "Home explica el camino completo: primero entiendes el concepto, después creas una prueba y al final lees datos.",
+        "body": "Haz clic en \"Tutorial\" siempre que necesites contexto. En Home, baja para entender qué es una API asíncrona, qué hace un bróker y qué camino sigue una prueba.",
         "details": [
           "Backstage es la web.",
           "AKS es el clúster de Azure donde corren las pruebas.",
@@ -148,7 +148,7 @@
       },
       "step2": {
         "title": "Abre una ficha",
-        "body": "Cada ficha explica qué es el componente y cuándo tiene sentido usarlo.",
+        "body": "Haz clic en cualquier fila del catálogo para abrir la ficha. Dentro, haz clic en \"Reproducibilidad\" para ver cómo repetir la prueba y en \"Configuración\" para ver comandos útiles.",
         "details": [
           "Lee la descripción corta.",
           "Mira si encaja con la prueba que quieres hacer."
@@ -232,7 +232,7 @@
     "execucions": {
       "step1": {
         "title": "Filtra ejecuciones",
-        "body": "Los filtros te ayudan a encontrar el run que quieres mirar.",
+        "body": "Haz clic en los desplegables de estado, plataforma, protocolo, arquitectura, formato o escenario. El escenario queda al final porque normalmente primero interesa filtrar por estado y plataforma.",
         "details": [
           "Filtra por estado si hay muchas pruebas.",
           "Filtra por broker o formato si estás comparando algo concreto."
@@ -274,7 +274,7 @@
     "resultats": {
       "step1": {
         "title": "Filtra antes de comparar",
-        "body": "Los filtros deciden qué pruebas entran en la comparación.",
+        "body": "Haz clic primero en el filtro de formato de datos. Es la forma más limpia de comparar porque IoT, financiero y vídeo tienen cargas distintas.",
         "details": [
           "Compara cosas parecidas.",
           "Cambiar filtros puede cambiar la puntuación visible."
@@ -318,27 +318,27 @@
     "title": "APIs Asíncronas",
     "portalLabel": "Portal de pruebas",
     "subtitle": "Pruebas comparables, resultados claros",
-    "description": "Compara sistemas que envían mensajes sin esperar una respuesta inmediata. Primero eliges los componentes, después lanzas una prueba y al final miras los datos.",
+    "description": "Este portal sirve para entender y comparar APIs asíncronas con pruebas reales. Empieza aquí: primero entiende los conceptos, después revisa el catálogo, crea escenarios, ejecuta runs y lee resultados.",
     "heroSubtitle": "Backstage es la pantalla del portal. AKS es el clúster de Azure donde corren los contenedores de la prueba.",
     "guide": {
-      "title": "Guía rápida de Home",
-      "subtitle": "Qué mirar primero y qué camino sigue una prueba.",
+      "title": "Guía rápida para situarse",
+      "subtitle": "La Home da el contexto: qué es una API asíncrona, qué hace un bróker, qué páginas hay y dónde hacer clic para empezar.",
       "items": {
         "map": {
-        "title": "Por dónde empezar",
-        "text": "Primero entiende el flujo general: eliges componentes, creas un escenario, ejecutas la prueba y lees resultados."
+          "title": "Por dónde empezar",
+          "text": "Lee los bloques en orden: conceptos, piezas del sistema, flujo del mensaje, ciclo de una prueba y páginas del portal."
         },
         "catalog": {
           "title": "Primero mira componentes",
-          "text": "El catálogo dice qué brokers, protocolos y formatos puedes combinar dentro del portal."
+          "text": "Haz clic en \"Ver catálogo\" o \"Catálogo\" en la navegación superior para ver componentes, versiones, compatibilidad y reproducibilidad."
         },
         "scenarios": {
           "title": "Después crea la prueba",
-          "text": "En Escenarios eliges broker, arquitectura, protocolo, formato, duración y carga."
+          "text": "Haz clic en \"Crear escenario\" o \"Escenarios\" para elegir plataforma, arquitectura, protocolo, formato y carga."
         },
         "results": {
           "title": "Termina leyendo datos",
-          "text": "Ejecuciones muestra el estado del run. Resultados explica latencia, errores, throughput y puntuación."
+          "text": "Haz clic en \"Ejecuciones\" para ver el estado del run y en \"Resultados\" para interpretar medidas, puntuación y comparativas."
         }
       }
     },
@@ -373,10 +373,10 @@
     "sections": {
       "systemEyebrow": "Paso 2 · Piezas del sistema",
       "systemTitle": "Del escenario a los resultados",
-      "systemDesc": "El flujo es este: tú defines la prueba, el backend la prepara, AKS la ejecuta y Resultados muestra los datos. AKS significa Azure Kubernetes Service: un grupo de máquinas en la nube para ejecutar contenedores.",
+      "systemDesc": "El flujo es este: defines la prueba, el orquestador la prepara, AKS ejecuta el load-generator y Resultados muestra los datos. AKS es el clúster de Azure donde corren los contenedores.",
       "conceptsEyebrow": "Paso 1 · Conceptos básicos",
       "conceptsTitle": "¿Qué estás comparando realmente?",
-      "conceptsDesc": "Antes de comparar, mira qué estás cambiando: broker, protocolo, arquitectura, formato y carga.",
+      "conceptsDesc": "Antes de comparar, identifica qué estás cambiando: plataforma, protocolo, arquitectura, formato y carga.",
       "brokerEyebrow": "Concepto clave",
       "brokerTitle": "¿Cómo funciona un bróker?",
       "brokerDesc": "Un bróker recibe mensajes de los productores y los entrega a los consumidores. Así cada parte trabaja a su ritmo.",
@@ -578,12 +578,12 @@
       "copied": "Copiado",
       "overviewFallback": "Componente utilizado por el portal de pruebas.",
       "impactFallback": "Su impacto depende de cómo se combina dentro del escenario.",
-      "reproDescription": "Reproducibilidad significa repetir una prueba con las mismas condiciones y obtener resultados comparables. Mantén igual la versión, la configuración, la carga y el canal de cada run.",
+      "reproDescription": "Esta pestaña explica cómo repetiría la prueba otra persona: qué versiones mantener, qué canal crea el run, qué parámetros no cambiar y qué comandos ayudan a verificarlo.",
       "noReproRows": "Este componente todavía no tiene datos de reproducibilidad estructurados.",
       "noConfigSnippet": "Este componente todavía no tiene ningún snippet de configuración.",
       "useDescription": "Abre el formulario de escenarios con este valor preseleccionado cuando sea posible.",
       "sectionWhat": "Qué es y cuándo se usa",
-      "sectionCard": "Ficha rápida",
+      "sectionCard": "Cómo se aplica en el portal",
       "labelCategory": "Categoría",
       "labelShortName": "Nombre corto",
       "labelVersion": "Versión",
@@ -841,7 +841,7 @@
       "btnBulkExecuting": "Ejecutando..."
     },
     "presets": {
-      "heading": "Escenarios predefinidos recomendados",
+      "heading": "Cuatro escenarios finales recomendados",
       "btnUse": "Usar como base",
       "items": {
         "rabbitmqFinancialReliable": {
@@ -853,16 +853,12 @@
           "desc": "Pub/sub ligero con payload mínimo. Es el caso recomendado para NATS antes de probar cargas pesadas."
         },
         "kafka4kStreaming": {
-          "name": "Kafka serverless 4K",
-          "desc": "Kafka actúa como fuente de eventos para una ruta SEA con payload de 500 KB. Sirve para observar activación bajo demanda sin llegar al límite de 8K."
+          "name": "Kafka vídeo 4K log-centric",
+          "desc": "Log ordenado con topic efímero por run. Es el caso natural de Kafka para ver throughput sostenido sin forzar el límite de 8K."
         },
         "confluent4kStreaming": {
-          "name": "Confluent serverless 4K",
-          "desc": "El mismo modelo SEA: Confluent actúa como fuente de eventos compatible con Kafka para comparar la ruta sin forzar 8K."
-        },
-        "kafkaBaselineControl": {
-          "name": "Kafka control base",
-          "desc": "Preset corto para comprobar que la ruta productor-broker-consumidor funciona antes de hacer pruebas fuertes."
+          "name": "Confluent vídeo 4K Kafka-compatible",
+          "desc": "Mismo perfil que Kafka pero etiquetado como Confluent. Sirve para comparar el camino Kafka-compatible con el mismo payload y la misma tasa."
         }
       }
     },
@@ -890,7 +886,7 @@
     "filters": {
       "status": "Estado",
       "scenario": "Escenario",
-      "broker": "Bróker",
+      "broker": "Plataforma",
       "platform": "Plataforma",
       "protocol": "Protocolo",
       "architecture": "Arquitectura",
@@ -936,11 +932,11 @@
       "items": [
         {
           "title": "Estados",
-          "text": "Pendiente aún no ha empezado. En ejecución está enviando carga. Completado ha llegado al final. Parado se ha cancelado manualmente. Error significa que el run ha fallado."
+          "text": "Pendiente todavía espera turno. En ejecución envía carga. Completado llegó al final. Detenido se canceló manualmente. Fallido significa que el run acabó con error."
         },
         {
           "title": "Detalle de un run",
-          "text": "Haz clic en una fila para ver configuración, tiempos, mensajes enviados, mensajes recibidos y medidas registradas."
+          "text": "Haz clic en una fila para ver configuración, tiempos, mensajes enviados, mensajes recibidos, medidas registradas y diagnóstico."
         },
         {
           "title": "Acciones",
@@ -1071,7 +1067,7 @@
     "heading": "Resultados",
     "subtitle": "Métricas en directo y comparativas de arquitecturas asíncronas.",
     "beforeCompareTitle": "Antes de comparar",
-    "beforeCompareText": "La puntuación solo ordena los resultados visibles. Si cambias filtros, puede cambiar. Mira también latencia, throughput y errores.",
+    "beforeCompareText": "Primero filtra por formato de datos para comparar casos equivalentes. La puntuación solo ordena los resultados visibles: si cambias filtros, puede cambiar. Mira también latencia, throughput y errores.",
     "tabsAria": "Vistas de resultados",
     "tabLive": "En directo",
     "tabHistory": "Historial y comparativas",
@@ -1111,7 +1107,7 @@
       "emptyDescription": "Inicia un escenario desde la página Escenarios. Aquí verás latencia, throughput, P50 y P99 cuando lleguen muestras.",
       "goScenarios": "Ir a Escenarios",
       "metricsIntro": "El contador superior muestra mensajes acumulados del run seleccionado. Los gráficos y la tabla muestran muestras publicadas por el load-generator cada 5 segundos; la pantalla consulta la API cada 3 segundos. Cuando cambias de ejecución, los contadores corresponden solo a ese run.",
-      "noSamplesYet": "Este run todavía no tiene muestras guardadas. Puede estar esperando recursos, el broker puede no tener endpoints o el Job puede haber fallado antes de arrancar. Revisa Ejecuciones y los logs del namespace sc-*.",
+      "noSamplesYet": "Este run todavía no tiene muestras guardadas. Puede estar esperando recursos, tener el pod pendiente, no usar la última imagen del load-generator o metrics-api puede estar rechazando los POST.",
       "messagesReceived": "Mensajes recibidos",
       "avgLatency": "Latencia media (ms)",
       "avgThroughput": "Throughput medio",

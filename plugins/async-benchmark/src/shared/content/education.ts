@@ -114,7 +114,7 @@ export const EDUCATION = {
   resultsGuide: {
     title: 'Guia de mesures, mètriques i puntuació',
     intro:
-      'A Resultats conviuen missatges i mesures. Separar-los evita la confusió principal: els missatges són la càrrega processada; les mesures són els punts de telemetria que resumeixen el run.',
+      'A Resultats conviuen missatges i mesures. Separa primer per format de dades abans de comparar: IoT, financer i vídeo no tenen la mateixa mida ni la mateixa ràtio. Després mira missatges, latència, throughput i errors.',
     terminology: [
       {
         title: 'Missatges',
@@ -181,6 +181,7 @@ export const EDUCATION = {
     ],
     scoringPrinciples: [
       'La puntuació sempre és relativa als escenaris visibles amb els filtres actuals.',
+      'El filtre més important és el format de dades: compara IoT amb IoT, vídeo amb vídeo i financer amb financer.',
       'Cada format aplica pesos diferents: financer prioritza errors, vídeo prioritza throughput i IoT prioritza volum amb payload petit.',
       "Si la taxa d'error supera el llindar del format, s'aplica un descompte encara que la resta de mètriques siguin bones.",
     ],

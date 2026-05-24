@@ -337,14 +337,20 @@ export const HomePage = () => {
     {
       n: '1',
       title: 'El productor publica',
-      text: 'Una aplicació envia un missatge: una lectura IoT, una transacció o un fragment de vídeo.',
+      text: 'El load-generator envia un missatge amb un format concret: IoT, financer, vídeo 4K, vídeo 8K o base controlada.',
       color: '#2563eb',
     },
     {
       n: '2',
       title: 'El bròker el guarda o l’encua',
-      text: 'Kafka el deixa en un topic, RabbitMQ en una cua i NATS en un subject. Aquesta és la peça que comparem.',
+      text: 'Kafka el posa en un topic, RabbitMQ en una cua i NATS en un subject. Aquesta és la plataforma que comparem.',
       color: '#f59e0b',
+    },
+    {
+      n: '2.5',
+      title: 'L’arquitectura dona forma al flux',
+      text: 'EDA, QBA, LCA, EMA o SEA expliquen com s’organitzen productor, plataforma, protocol, consumidors i possibles disparadors.',
+      color: '#7c3aed',
     },
     {
       n: '3',
@@ -499,11 +505,11 @@ export const HomePage = () => {
       <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 18, marginBottom: 18 }}>
         <section style={{ ...S.card, padding: 22 }}>
           <SectionHeader
-            eyebrow="Pas 2.5 · Bròker explicat per parts"
-            title="Què fa exactament el bròker?"
-            description="La prova no compara pàgines ni botons: compara com cada bròker accepta, conserva i entrega missatges sota la mateixa càrrega."
+            eyebrow="Pas 2.5 · Flux del missatge"
+            title="Com encaixen plataforma, protocol i arquitectura?"
+            description="La prova no compara pantalles: compara com una plataforma accepta missatges, com el protocol els transporta i com l'arquitectura ordena el flux."
           />
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(160px, 1fr))', gap: 12 }} className="async-responsive-grid">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }} className="async-responsive-grid">
             {brokerLearningSteps.map(step => (
               <div
                 key={step.n}

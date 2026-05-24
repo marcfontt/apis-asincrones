@@ -179,17 +179,22 @@ recursos mentre es mesuren.
 
 ## Escenaris finals de mostra
 
-La demo queda centrada en cinc presets, un per cada cas que es vol explicar:
+La demo queda centrada en quatre presets finals, un per cada plataforma que es
+vol comparar amb dades:
 
 | Cas | Preset | Broker / plataforma | Arquitectura | Protocol | Format |
 |-----|--------|---------------------|--------------|----------|--------|
 | IoT | `NATS telemetria IoT` | NATS Server | EDA | NATS | IoT |
-| Vídeo 4K | `Kafka serverless 4K` | Kafka | SEA (Serverless Event) | Kafka | Vídeo 4K |
 | Financer | `RabbitMQ financer fiable` | RabbitMQ | QBA | AMQP | Financer |
-| Confluent | `Confluent serverless 4K` | Confluent pel camí Kafka-compatible | SEA (Serverless Event) | Kafka | Vídeo 4K |
-| Kafka | `Kafka control base` | Kafka | EDA | Kafka | Base controlada |
+| Kafka | `Kafka vídeo 4K log-centric` | Kafka | LCA | Kafka | Vídeo 4K |
+| Confluent | `Confluent vídeo 4K Kafka-compatible` | Confluent pel camí Kafka-compatible | LCA | Kafka | Vídeo 4K |
 
 El format `Vídeo 8K` continua disponible per provar payloads grans, però no és
 el preset principal. Abans d'usar-lo com a resultat comparatiu cal validar
 `message.max.bytes`, `replica.fetch.max.bytes`, `socket.request.max.bytes` i els
 límits de fetch del consumidor.
+
+L'arquitectura SEA queda documentada al catàleg com a Serverless Event
+Architecture. No es fa servir com a preset final perquè, en aquesta iteració, el
+portal desplega Jobs de Kubernetes i brokers persistents, no funcions serverless
+invocades sota demanda.

@@ -644,12 +644,9 @@ const ComponentDetailModal = ({
     ? typedComponent.useCases.join(', ')
     : typedComponent.useCases || (Array.isArray(component.tags) ? component.tags.join(', ') : '-');
   const overviewFields = [
-    { label: t('catalog.modal.fields.version'), value: version || '-' },
-    { label: t('catalog.modal.fields.license'), value: typedComponent.license || '-' },
-    { label: t('catalog.modal.fields.language'), value: typedComponent.language || '-' },
-    { label: t('catalog.modal.fields.maintainer'), value: typedComponent.maintainer || '-' },
-    { label: t('catalog.modal.fields.useCases'), value: useCases },
-  ];
+    { label: t('catalog.modal.fields.version'), value: version || '' },
+    { label: t('catalog.modal.fields.useCases'), value: useCases === '-' ? '' : useCases },
+  ].filter(field => field.value);
   const tabs: { key: 'overview' | 'repro' | 'config'; label: string }[] = [
     { key: 'overview', label: t('catalog.modal.tabs.overview') },
     { key: 'repro', label: t('catalog.modal.tabs.repro') },

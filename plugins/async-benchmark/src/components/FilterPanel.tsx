@@ -122,7 +122,7 @@ export const FilterPanel = ({
       </div>
 
       {children && (
-        <div style={{ marginTop: 14, display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ marginTop: 14, display: 'flex', gap: 12, flexWrap: 'nowrap', alignItems: 'flex-end', overflowX: 'auto', paddingBottom: 2 }}>
           {children}
         </div>
       )}
