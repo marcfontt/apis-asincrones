@@ -337,4 +337,6 @@ persistents, Jobs de Kubernetes i connexió amb brokers stateful.
 | Jerónimo Hernández González | Tutor UdG |
 | David Teres Carrillo | Tutor empresa |
 
-Llicència: pendent d'afegir al fitxer `LICENSE`.
+Llicència: repositori acadèmic sense llicència pública definida. Qualsevol
+reutilització fora del PFG s'hauria d'autoritzar explícitament amb l'autor i
+els tutors.
