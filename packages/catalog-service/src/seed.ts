@@ -69,7 +69,7 @@ export const CATALOG_SEED: CatalogComponent[] = [
     shortName: 'SEA',
     name: 'Streaming Events Architecture',
     category: 'architecture',
-    description: 'Pipelines de streaming d\'alt volum on events es processen en finestres contínues (p. ex. Kafka Streams).',
+    description: 'Pipelines de streaming d\'alt volum amb finestres contínues i consum sostingut (p. ex. Kafka Streams).',
     tags: ['streaming', 'finestres', 'alt-volum'],
   },
 
