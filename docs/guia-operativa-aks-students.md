@@ -197,9 +197,9 @@ memòria:
 | Cas | Broker / plataforma | Arquitectura | Protocol | Format |
 |---|---|---|---|---|
 | IoT | NATS Server | EDA | NATS | IoT |
-| Vídeo 4K | Kafka | SEA | Kafka | Vídeo 4K |
+| Vídeo 4K | Kafka | SEA (Serverless Event) | Kafka | Vídeo 4K |
 | Financer | RabbitMQ | QBA | AMQP | Financer |
-| Confluent | Confluent pel camí Kafka-compatible | SEA | Kafka | Vídeo 4K |
+| Confluent | Confluent pel camí Kafka-compatible | SEA (Serverless Event) | Kafka | Vídeo 4K |
 | Kafka | Kafka | EDA | Kafka | Base controlada |
 
 El format `Vídeo 8K` queda disponible, però s'ha de tractar com una prova de

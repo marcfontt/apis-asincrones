@@ -859,12 +859,12 @@
           "desc": "Pub/sub lleuger amb payload mínim. És el cas recomanat per NATS abans de provar càrregues pesades."
         },
         "kafka4kStreaming": {
-          "name": "Kafka streaming 4K",
-          "desc": "Log de streaming amb payload de 500 KB. Serveix per mesurar volum sostingut sense arribar al límit de 8K."
+          "name": "Kafka serverless 4K",
+          "desc": "Kafka fa de font d'esdeveniments per a una ruta SEA amb payload de 500 KB. Serveix per observar activació sota demanda sense arribar al límit de 8K."
         },
         "confluent4kStreaming": {
-          "name": "Confluent streaming 4K",
-          "desc": "Mateix model SEA i protocol Kafka que el preset de Kafka, per comparar el camí Confluent-compatible sense forçar 8K."
+          "name": "Confluent serverless 4K",
+          "desc": "Mateix model SEA: Confluent actua com a font d'esdeveniments Kafka-compatible per comparar la ruta sense forçar 8K."
         },
         "kafkaBaselineControl": {
           "name": "Kafka control base",

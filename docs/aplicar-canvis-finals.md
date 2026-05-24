@@ -91,7 +91,7 @@ que els estats pendents no es confonen amb errors:
 1. Obre el portal Backstage i clica `Home`.
 2. Clica `Tutorial` per revisar la guia integrada.
 3. Clica `Catàleg`.
-4. Clica la fila `Streaming Events Architecture` o el badge `SEA` per comprovar
+4. Clica la fila `Serverless Event Architecture` o el badge `SEA` per comprovar
    que l'arquitectura existeix al catàleg.
 5. Dins la fitxa, clica `Reproductibilitat` i després `Configuració`. Ha de
    quedar clar què s'ha desplegat, amb quines versions i quines limitacions hi
@@ -115,9 +115,9 @@ Els cinc presets que han de quedar visibles a `Escenaris` són:
 | Cas final | Preset |
 |---|---|
 | IoT | `NATS telemetria IoT` |
-| Vídeo 4K | `Kafka streaming 4K` |
+| Vídeo 4K | `Kafka serverless 4K` |
 | Financer | `RabbitMQ financer fiable` |
-| Confluent | `Confluent streaming 4K` |
+| Confluent | `Confluent serverless 4K` |
 | Kafka | `Kafka control base` |
 
 El format `Vídeo 8K` continua disponible al formulari, però no és el preset

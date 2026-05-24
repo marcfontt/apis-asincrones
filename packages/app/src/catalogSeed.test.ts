@@ -26,7 +26,7 @@ describe('catalog seed sync', () => {
       const bulkBody = elasticsearchMock.bulk.mock.calls[0][0].body;
 
       expect(result.insertedSeedComponents).toBe(1);
-      expect(JSON.stringify(bulkBody)).toContain('Streaming Events Architecture');
+      expect(JSON.stringify(bulkBody)).toContain('Serverless Event Architecture');
     } finally {
       consoleLogSpy.mockRestore();
     }

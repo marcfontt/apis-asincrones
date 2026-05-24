@@ -47,10 +47,10 @@ export const DEFAULT_CATALOG_COMPONENTS: DefaultCatalogComponent[] = [
   },
   {
     shortName: 'SEA',
-    name: 'Streaming Events Architecture',
+    name: 'Serverless Event Architecture',
     category: 'architecture',
-    description: 'Flux continu d’esdeveniments orientat a streaming, finestres i processament sostingut.',
-    tags: ['streaming', 'finestres', 'alt-volum'],
+    description: 'Funcions serverless activades per esdeveniments, amb disparadors i escalat sota demanda.',
+    tags: ['serverless', 'funcions', 'disparador'],
     predefined: true,
   },
   {

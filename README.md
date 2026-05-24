@@ -145,9 +145,9 @@ Escenaris finals de mostra:
 | Cas | Preset |
 |-----|--------|
 | IoT | `NATS telemetria IoT` |
-| Vídeo 4K | `Kafka streaming 4K` |
+| Vídeo 4K | `Kafka serverless 4K` |
 | Financer | `RabbitMQ financer fiable` |
-| Confluent | `Confluent streaming 4K` |
+| Confluent | `Confluent serverless 4K` |
 | Kafka | `Kafka control base` |
 
 ## Estructura del repositori

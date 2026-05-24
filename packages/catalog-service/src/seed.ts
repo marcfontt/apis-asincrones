@@ -67,10 +67,10 @@ export const CATALOG_SEED: CatalogComponent[] = [
   },
   {
     shortName: 'SEA',
-    name: 'Streaming Events Architecture',
+    name: 'Serverless Event Architecture',
     category: 'architecture',
-    description: 'Pipelines de streaming d\'alt volum amb finestres contínues i consum sostingut (p. ex. Kafka Streams).',
-    tags: ['streaming', 'finestres', 'alt-volum'],
+    description: 'Funcions serverless activades per esdeveniments: una font genera l\'esdeveniment, un disparador invoca la funció i la plataforma escala sota demanda.',
+    tags: ['serverless', 'funcions', 'disparador'],
   },
 
   // ── Protocols ──────────────────────────────────────────────────────────────

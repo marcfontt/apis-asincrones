@@ -184,9 +184,9 @@ La demo queda centrada en cinc presets, un per cada cas que es vol explicar:
 | Cas | Preset | Broker / plataforma | Arquitectura | Protocol | Format |
 |-----|--------|---------------------|--------------|----------|--------|
 | IoT | `NATS telemetria IoT` | NATS Server | EDA | NATS | IoT |
-| Vídeo 4K | `Kafka streaming 4K` | Kafka | SEA | Kafka | Vídeo 4K |
+| Vídeo 4K | `Kafka serverless 4K` | Kafka | SEA (Serverless Event) | Kafka | Vídeo 4K |
 | Financer | `RabbitMQ financer fiable` | RabbitMQ | QBA | AMQP | Financer |
-| Confluent | `Confluent streaming 4K` | Confluent pel camí Kafka-compatible | SEA | Kafka | Vídeo 4K |
+| Confluent | `Confluent serverless 4K` | Confluent pel camí Kafka-compatible | SEA (Serverless Event) | Kafka | Vídeo 4K |
 | Kafka | `Kafka control base` | Kafka | EDA | Kafka | Base controlada |
 
 El format `Vídeo 8K` continua disponible per provar payloads grans, però no és

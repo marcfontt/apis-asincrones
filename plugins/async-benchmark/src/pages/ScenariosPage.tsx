@@ -209,7 +209,7 @@ const ARCHITECTURE_LOAD_FACTORS: Record<string, { factor: number; hint: string }
   'QBA': { factor: 0.90, hint: 'QBA introdueix cua i confirmació; es redueix una mica la pressió inicial.' },
   'LCA': { factor: 0.95, hint: 'LCA és adequada per fluxos ordenats i conserva gairebé tota la ràtio base.' },
   'EMA': { factor: 0.75, hint: 'EMA representa més salts lògics; fem una càrrega més prudent.' },
-  'SEA': { factor: 0.85, hint: 'SEA prioritza flux continu; en payloads grans es redueix la freqüència.' },
+  'SEA': { factor: 0.85, hint: 'SEA activa funcions serverless sota demanda; la càrrega recomanada és prudent per evitar pics artificials.' },
 };
 
 const PROTOCOL_LOAD_FACTORS: Record<string, { factor: number; hint: string }> = {
@@ -363,7 +363,7 @@ const PREDEFINED_PRESETS = [
     color:        '#16a34a',
   },
   {
-    name:         'Kafka streaming 4K',
+    name:         'Kafka serverless 4K',
     nameKey:      'scenarios.presets.items.kafka4kStreaming.name',
     platform:     'Kafka',
     architecture: 'SEA',
@@ -374,11 +374,11 @@ const PREDEFINED_PRESETS = [
     rate:         '10',
     payloadSize:  '500000',
     descKey:      'scenarios.presets.items.kafka4kStreaming.desc',
-    desc:         'Log de streaming amb payload de 500 KB. Serveix per mesurar volum sostingut sense arribar al límit de 8K.',
+    desc:         "Kafka fa de font d'esdeveniments per a una ruta SEA amb payload de 500 KB. Serveix per observar activació sota demanda sense arribar al límit de 8K.",
     color:        '#7c3aed',
   },
   {
-    name:         'Confluent streaming 4K',
+    name:         'Confluent serverless 4K',
     nameKey:      'scenarios.presets.items.confluent4kStreaming.name',
     platform:     'Confluent',
     architecture: 'SEA',
@@ -389,7 +389,7 @@ const PREDEFINED_PRESETS = [
     rate:         '8',
     payloadSize:  '500000',
     descKey:      'scenarios.presets.items.confluent4kStreaming.desc',
-    desc:         'Mateix model SEA i protocol Kafka que el preset de Kafka, per comparar el camí Confluent-compatible sense forçar 8K.',
+    desc:         "Mateix model SEA: Confluent actua com a font d'esdeveniments Kafka-compatible per comparar la ruta sense forçar 8K.",
     color:        '#9333ea',
   },
   {

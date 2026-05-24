@@ -180,7 +180,7 @@ const isVisibleHistoricalItem = (item: any): boolean => {
 
 /**
  * Brand colors for each asynchronous architecture pattern.
- * EDA=Event-Driven, QBA=Queue-Based, LCA=Log-Centric, EMA=Event Mesh, SEA=Streaming.
+ * EDA=Event-Driven, QBA=Queue-Based, LCA=Log-Centric, EMA=Event Mesh, SEA=Serverless Event.
  */
 const ARCHITECTURE_COLORS: Record<string, string> = {
   'EDA': '#2563eb',

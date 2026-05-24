@@ -84,7 +84,7 @@ const COMPONENT_SNIPPET_ALIASES: Record<string, string> = {
   QBA: 'Queue-Based Architecture',
   LCA: 'Log-Centric Architecture',
   EMA: 'Event-Mesh Architecture',
-  SEA: 'Streaming Events Architecture',
+  SEA: 'Serverless Event Architecture',
   Kafka: 'Kafka Protocol',
   NATS: 'NATS Protocol',
 };
@@ -123,10 +123,10 @@ const EMA_ROWS: ReproducibilityRow[] = [
 
 const SEA_ROWS: ReproducibilityRow[] = [
   ...COMMON_DECISION_REPRODUCIBILITY_ROWS,
-  { label: 'Què comprova', value: "Un flux continu d'esdeveniments amb consum sostingut i lectura incremental." },
-  { label: 'Com es reprodueix', value: 'Crea stream, topic o subject per run i inicia el consumidor abans de començar la mesura.' },
-  { label: 'Paràmetres a fixar', value: 'Payload, ràtio, durada, warm-up, mida de batch si aplica i retenció.' },
-  { label: 'Com llegir el resultat', value: 'És útil per comparar throughput i estabilitat en fluxos llargs.' },
+  { label: 'Què comprova', value: "Una font d'esdeveniments activa funcions serverless mitjançant un disparador." },
+  { label: 'Com es reprodueix', value: "Declara font d'esdeveniments, regla de disparador, funció i límits de concurrència." },
+  { label: 'Paràmetres a fixar', value: 'Payload, ràtio, durada, warm-up, runtime, timeout, memòria i concurrència màxima.' },
+  { label: 'Com llegir el resultat', value: 'Cal mirar latència inicial, escalat sota demanda, errors i estabilitat quan hi ha pics.' },
 ];
 
 const KAFKA_PROTOCOL_ROWS: ReproducibilityRow[] = [
@@ -186,7 +186,7 @@ export const REPRODUCIBILITY_BY_COMPONENT_NAME: Record<string, ReproducibilityRo
   LCA: LCA_ROWS,
   'Event-Mesh Architecture': EMA_ROWS,
   EMA: EMA_ROWS,
-  'Streaming Events Architecture': SEA_ROWS,
+  'Serverless Event Architecture': SEA_ROWS,
   SEA: SEA_ROWS,
   'Kafka Protocol': KAFKA_PROTOCOL_ROWS,
   Kafka: KAFKA_PROTOCOL_ROWS,
@@ -278,14 +278,15 @@ export const REPRODUCIBILITY_SNIPPETS: Record<string, ReproducibilitySnippet> = 
       'gateway: enabled only when the selected protocol needs it',
     ].join('\n'),
   },
-  'Streaming Events Architecture': {
+  'Serverless Event Architecture': {
     titol: 'Contracte mínim per reproduir SEA',
     codi: [
       'architecture: SEA',
-      'stream: benchmark-${scenarioId}-${runId}',
-      'consumerStartsBeforeMeasurement: true',
-      'retention: short or ephemeral',
-      'load: continuous during the full benchmark duration',
+      'eventSource: <queue | topic | subject | storage event>',
+      'trigger: declared rule for the function',
+      'functionRuntime: declared runtime and version',
+      'timeoutSeconds: fixed value',
+      'concurrencyLimit: fixed value',
     ].join('\n'),
   },
   'Kafka Protocol': {
