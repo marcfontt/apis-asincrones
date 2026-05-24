@@ -145,6 +145,30 @@ const normalizeText = (value: unknown): string =>
     .toLowerCase()
     .trim();
 
+const normalizeWords = (value: unknown): string[] =>
+  normalizeText(value)
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+
+const hasHiddenLegacyTerm = (value: unknown): boolean => {
+  const words = normalizeWords(value);
+  if (words.length === 0) {
+    return false;
+  }
+
+  const phrase = ` ${words.join(' ')} `;
+  return HIDDEN_LEGACY_COMPONENTS.some(hidden => {
+    const hiddenWords = normalizeWords(hidden);
+    if (hiddenWords.length === 0) {
+      return false;
+    }
+    if (hiddenWords.length === 1) {
+      return words.includes(hiddenWords[0]);
+    }
+    return phrase.includes(` ${hiddenWords.join(' ')} `);
+  });
+};
+
 const hasCorruptVisibleText = (value: unknown): boolean => {
   const text = String(value || '').trim();
   const compact = text.replace(/\s+/g, '');
@@ -234,11 +258,9 @@ const isLegacyComponent = (component: CatalogComponent): boolean => {
     component.shortName,
     component.description,
     ...(Array.isArray(component.tags) ? component.tags : []),
-  ].map(normalizeText);
+  ];
 
-  return searchableValues.some(value =>
-    HIDDEN_LEGACY_COMPONENTS.some(hidden => value.includes(hidden)),
-  );
+  return searchableValues.some(hasHiddenLegacyTerm);
 };
 
 const buildScenarioUrl = (component: CatalogComponent): string => {
