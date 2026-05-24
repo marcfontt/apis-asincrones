@@ -189,11 +189,13 @@ Si un run queda a `Resultats` sense mostres i el diagnòstic diu
 `Unschedulable` amb `didn't match Pod's node affinity/selector`, el problema és
 aquesta etiqueta, no el broker ni la pantalla de Resultats.
 
-El manifest deixa `MAX_CONCURRENT_RUNS=3` per a la demo final. Pots crear molts
-runs des del portal, pero l'orquestrador nomes desplega tres Jobs de benchmark
-alhora. La resta queden en cua amb estat `pending` fins que un Job actiu acaba.
-Aixo evita crear 16 pods de cop al mateix node de carrega i evita que Kubernetes
-els deixi `Pending` sense metriques.
+El manifest deixa `MAX_CONCURRENT_RUNS=3` per a la demo final perquè el node
+pool té tres nodes. La lectura és senzilla: com a màxim es deixa entrar un Job
+actiu per node, mentre la resta de runs queden ordenats a la cua. Pots crear
+molts runs des del portal, però l'orquestrador només desplega tres Jobs de
+benchmark alhora. La resta queden en cua amb estat `pending` fins que un Job
+actiu acaba. Això evita crear 16 pods de cop, redueix la competència per CPU i
+memòria i impedeix que Kubernetes deixi execucions `Pending` sense mètriques.
 
 Per obtenir una comparacio mes defensable, baixa temporalment el valor a `1`:
 
@@ -220,22 +222,27 @@ Estats que veuras al portal:
 | `cancelled` / aturat | L'usuari ha aturat el run abans que acabes. |
 
 Escenaris finals recomanats per a la demo i per deixar exemples clars a la
-memòria:
+memòria. S'han triat quatre casos, un per plataforma, perquè la comparativa
+sigui fàcil d'explicar i cobreixi els formats que realment es volen ensenyar:
+Financer, IoT, Vídeo 4K i Vídeo 8K.
 
 | Cas | Broker / plataforma | Arquitectura | Protocol | Format |
 |---|---|---|---|---|
-| IoT | NATS Server | EDA | NATS | IoT |
-| Vídeo 4K | Kafka | SEA (Serverless Event) | Kafka | Vídeo 4K |
 | Financer | RabbitMQ | QBA | AMQP | Financer |
-| Confluent | Confluent pel camí Kafka-compatible | SEA (Serverless Event) | Kafka | Vídeo 4K |
-| Kafka | Kafka | EDA | Kafka | Base controlada |
+| IoT | NATS Server | EDA | NATS | IoT |
+| Vídeo 4K | Kafka | LCA | Kafka | Vídeo 4K |
+| Vídeo 8K | Confluent pel camí Kafka-compatible | LCA | Kafka | Vídeo 8K |
 
-El format `Vídeo 8K` queda disponible, però s'ha de tractar com una prova de
-payload gran. Si Kafka o Confluent donen pitjors resultats amb 8K, comprova
-primer la configuració abans d'atribuir-ho al broker: `message.max.bytes`,
-`replica.fetch.max.bytes`, `socket.request.max.bytes`, i el `maxBytes` del
-consumer han d'estar per sobre dels 2 MB del missatge. Amb el cluster petit
-d'Azure for Students, també pot aparèixer backpressure per CPU o xarxa.
+La decisió és intencionada. RabbitMQ queda associat al cas financer perquè AMQP
+i les cues amb confirmació encaixen amb transaccions curtes. NATS queda associat
+a IoT perquè treballa molt bé amb missatges petits i freqüents. Kafka queda com
+a referència natural de log ordenat amb vídeo 4K, i Confluent queda com a cas
+Kafka-compatible amb vídeo 8K per documentar el límit de payload gran. Si Kafka
+o Confluent donen pitjors resultats amb 8K, comprova primer la configuració
+abans d'atribuir-ho al broker: `message.max.bytes`, `replica.fetch.max.bytes`,
+`socket.request.max.bytes`, i el `maxBytes` del consumer han d'estar per sobre
+dels 2 MB del missatge. Amb el cluster petit d'Azure for Students, també pot
+aparèixer backpressure per CPU o xarxa.
 
 Abans de donar per valida una prova, comprova on ha caigut el Job:
 

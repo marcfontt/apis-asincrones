@@ -129,17 +129,18 @@ clar que Confluent s'avalua pel camí Kafka-compatible del clúster, no com una
 instal·lació completa de Confluent Platform amb Schema Registry, ksqlDB o
 Control Center.
 
-Per a la demo final s'han deixat quatre escenaris predefinits: telemetria IoT
-amb NATS, cas financer amb RabbitMQ, streaming de vídeo 4K amb Kafka i streaming
-4K pel camí Confluent compatible amb Kafka. Aquesta selecció deixa una prova
-representativa per plataforma i evita barrejar un control base addicional amb
-els resultats finals. El format de vídeo 8K continua disponible, però es tracta
-com una prova de payload gran:
-abans d'usar-lo com a dada comparativa cal validar els límits de Kafka
-\texttt{message.max.bytes}, \texttt{replica.fetch.max.bytes},
-\texttt{socket.request.max.bytes} i la mida de fetch del consumidor. Aquesta
-precaució evita interpretar com a rendiment dolent el que en realitat seria una
-limitació de configuració en missatges de 2 MB.
+Per a la demo final s'han deixat quatre escenaris predefinits: cas financer
+amb RabbitMQ, telemetria IoT amb NATS, streaming de vídeo 4K amb Kafka i
+streaming de vídeo 8K pel camí Confluent compatible amb Kafka. Aquesta selecció
+deixa una prova representativa per plataforma, cobreix els formats finals
+(\emph{financial}, \emph{iot}, \emph{video-4k} i \emph{video-8k}) i evita
+barrejar un control base addicional amb els resultats finals. El cas 8K es
+manté com a prova de payload gran: abans d'usar-lo com a dada comparativa cal
+validar els límits de Kafka \texttt{message.max.bytes},
+\texttt{replica.fetch.max.bytes}, \texttt{socket.request.max.bytes} i la mida
+de fetch del consumidor. Aquesta precaució evita interpretar com a rendiment
+dolent el que en realitat seria una limitació de configuració en missatges de
+2 MB.
 
 Les fonts consultades per aquesta secció són:
 \begin{itemize}

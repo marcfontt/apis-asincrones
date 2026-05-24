@@ -832,7 +832,7 @@
         },
         "status": {
           "title": "Estats de la cua",
-          "desc": "Pendent vol dir que el run espera torn perquè el límit de concurrència està ple. En execució ja té pod i pot generar mostres. Completat i fallit són estats finals; aturat conserva dades parcials."
+          "desc": "Pendent vol dir que el run espera torn perquè el límit de concurrència està ple. A la demo hi ha 3 nodes i, per coherència, només entren 3 Jobs alhora; la resta esperen per no contaminar mètriques. En execució ja té pod i pot generar mostres."
         },
         "formats": {
           "title": "Formats de dades",
@@ -872,9 +872,9 @@
           "name": "Kafka vídeo 4K log-centric",
           "desc": "Log ordenat amb topic efímer per run. És el cas natural de Kafka per veure throughput sostingut sense forçar el límit de 8K."
         },
-        "confluent4kStreaming": {
-          "name": "Confluent vídeo 4K Kafka-compatible",
-          "desc": "Mateix perfil que Kafka però etiquetat com a Confluent. Serveix per comparar el camí Kafka-compatible amb el mateix payload i la mateixa ràtio."
+        "confluent8kStreaming": {
+          "name": "Confluent vídeo 8K Kafka-compatible",
+          "desc": "Payload de 2 MB pel camí Kafka-compatible. És el cas final d'estrès 8K per documentar límits de missatge, backpressure i estabilitat."
         }
       }
     },
@@ -948,7 +948,7 @@
       "items": [
         {
           "title": "Estats",
-          "text": "Pendent encara espera torn. En execució envia càrrega. Completat ha arribat al final. Aturat s'ha cancel·lat manualment. Fallit vol dir que el run ha acabat amb error."
+          "text": "Pendent encara espera torn a la cua. La demo limita a 3 execucions alhora perquè hi ha 3 nodes i volem evitar que els Jobs competeixin massa. En execució envia càrrega; completat, aturat i fallit són estats finals."
         },
         {
           "title": "Detall d’un run",

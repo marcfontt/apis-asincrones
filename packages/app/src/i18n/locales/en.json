@@ -828,6 +828,10 @@
           "title": "Sustained mode",
           "desc": "Sustained mode replaces the old indefinite mode: it is always capped at one hour and applies a recommended rate and payload based on format, platform, architecture and protocol."
         },
+        "status": {
+          "title": "Queue states",
+          "desc": "Pending means the run is waiting because the concurrency limit is full. The demo has 3 nodes, so only 3 benchmark Jobs enter at once; the rest wait to avoid contaminating metrics. Running means the pod exists and can send samples."
+        },
         "formats": {
           "title": "Data formats",
           "desc": "The data format simulates real loads. Controlled baseline: 256 B. 4K video: 500 KB. 8K video: 2 MB. Financial: small JSON messages. IoT: minimal high-frequency telemetry."
@@ -866,9 +870,9 @@
           "name": "Kafka 4K video log-centric",
           "desc": "Ordered log with an ephemeral topic per run. This is Kafka’s natural case for sustained throughput without forcing the 8K limit."
         },
-        "confluent4kStreaming": {
-          "name": "Confluent 4K video Kafka-compatible",
-          "desc": "Same profile as Kafka but labelled as Confluent. It compares the Kafka-compatible path with the same payload and rate."
+        "confluent8kStreaming": {
+          "name": "Confluent 8K video Kafka-compatible",
+          "desc": "2 MB payload through the Kafka-compatible path. This is the final 8K stress case for documenting message limits, backpressure and stability."
         }
       }
     },
@@ -942,7 +946,7 @@
       "items": [
         {
           "title": "Statuses",
-          "text": "Pending is waiting for a slot. Running is sending load. Completed reached the end. Stopped was cancelled manually. Failed means the run ended with an error."
+          "text": "Pending is waiting in the queue. The demo is limited to 3 concurrent executions because there are 3 nodes and we want to avoid too much Job contention. Running sends load; completed, stopped and failed are final states."
         },
         {
           "title": "Run detail",

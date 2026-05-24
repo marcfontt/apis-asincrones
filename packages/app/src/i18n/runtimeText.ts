@@ -38,7 +38,7 @@ export const RUNTIME_TEXT_TRANSLATIONS: RuntimeTextEntry[] = [
   { ca: 'Kafka vídeo 4K log-centric', es: 'Kafka vídeo 4K log-centric', en: 'Kafka 4K video log-centric' },
   { ca: 'RabbitMQ transaccions financeres', es: 'RabbitMQ transacciones financieras', en: 'RabbitMQ financial transactions' },
   { ca: 'Confluent vídeo 8K', es: 'Confluent vídeo 8K', en: 'Confluent 8K video' },
-  { ca: 'Confluent vídeo 4K Kafka-compatible', es: 'Confluent vídeo 4K Kafka-compatible', en: 'Confluent 4K video Kafka-compatible' },
+  { ca: 'Confluent vídeo 8K Kafka-compatible', es: 'Confluent vídeo 8K Kafka-compatible', en: 'Confluent 8K video Kafka-compatible' },
   { ca: 'Tanca el modal', es: 'Cerrar el modal', en: 'Close modal' },
   { ca: 'ex. MQTT-EDA-RabbitMQ-IoT', es: 'ej. MQTT-EDA-RabbitMQ-IoT', en: 'e.g. MQTT-EDA-RabbitMQ-IoT' },
   { ca: 'compatibles)', es: 'compatibles)', en: 'compatible)' },

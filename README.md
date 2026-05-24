@@ -147,7 +147,7 @@ Escenaris finals de mostra:
 | IoT | `NATS telemetria IoT` |
 | Financer | `RabbitMQ financer fiable` |
 | Kafka | `Kafka vídeo 4K log-centric` |
-| Confluent | `Confluent vídeo 4K Kafka-compatible` |
+| Confluent | `Confluent vídeo 8K Kafka-compatible` |
 
 ## Estructura del repositori
 

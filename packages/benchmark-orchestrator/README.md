@@ -63,9 +63,11 @@ amb el container `load-generator`.
 En local, defineix `PORT=3003` si vols provar-lo darrere del mateix proxy que
 usa Backstage.
 
-En el clúster Azure Students, fixar els Jobs de carrega a un node etiquetat
-evita que el generador caigui de manera diferent segons el broker mesurat. Aixo
-millora la comparabilitat dels resultats.
+En el clúster Azure Students, el selector `benchmark-role=loadgen` serveix per
+controlar on poden caure els Jobs de càrrega. Per a una mesura estricta pots
+etiquetar un sol node i executar amb `MAX_CONCURRENT_RUNS=1`. Per a demo ràpida
+pots etiquetar els tres nodes i mantenir `MAX_CONCURRENT_RUNS=3`, de manera que
+cap tanda intenti crear més Jobs actius que nodes disponibles.
 
 Important: els noms dels nodes AKS no són estables. Si el node pool es recrea,
 el label pot desaparèixer encara que el manifest continuï demanant
@@ -86,14 +88,13 @@ Si falta aquest label, els Jobs queden `Pending` amb motiu `Unschedulable` i no
 apareixen mostres a Resultats en directe.
 
 El backend limita quants Jobs entren a Kubernetes amb `MAX_CONCURRENT_RUNS`.
-En el cluster final s'ha deixat a `3` per poder executar els 16 escenaris sense
-omplir el node de pods `Pending`. Els runs sobrants queden en estat `pending`
-dins de l'orquestrador i no creen Job fins que hi ha espai.
+En el cluster final s'ha deixat a `3` perquè hi ha tres nodes i es pot avançar
+més ràpid sense llançar les 16 proves de cop. Els runs sobrants queden en estat
+`pending` dins de l'orquestrador i no creen Job fins que hi ha espai.
 
 Per a taules finals de benchmarking, baixa temporalment el valor a `1`. Amb
-`3` s'aconsegueix una demo molt mes rapida, pero els tres generadors comparteixen
-el node `benchmark-role=loadgen` i poden introduir soroll en latencia i
-throughput.
+`3` s'aconsegueix una demo molt mes rapida, pero hi ha més risc de soroll en
+latencia i throughput perquè diverses proves conviuen al mateix cluster.
 
 ## Permisos
 

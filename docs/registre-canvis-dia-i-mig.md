@@ -67,9 +67,9 @@ del que s'ha modificat a ultima hora.
   `Escenaris`, `Execucions`, `Resultats`, filtres, pestanyes i files.
 - Home explica millor el paper d'un broker amb una lectura progressiva:
   productor, broker, consumidor i mètrica.
-- Escenaris queda reduït a quatre presets finals: IoT amb NATS, financer amb
-  RabbitMQ, vídeo 4K amb Kafka i vídeo 4K pel camí Kafka-compatible de
-  Confluent.
+- Escenaris queda reduït a quatre presets finals: financer amb RabbitMQ, IoT
+  amb NATS, vídeo 4K amb Kafka i vídeo 8K pel camí Kafka-compatible de
+  Confluent. Així els exemples finals cobreixen també el format 8K.
 
 ## Catàleg i reproductibilitat
 

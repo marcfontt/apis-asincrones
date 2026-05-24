@@ -172,10 +172,11 @@ si pot entrar a Kubernetes:
 | `failed` | El broker, el Job o el generador han fallat abans d'acabar. |
 | `cancelled` | L'usuari ha aturat la prova manualment. |
 
-Per a demo, `MAX_CONCURRENT_RUNS=3` permet avançar més ràpid sense saturar el
-node de càrrega. Per a dades finals de memòria, el mode defensable és
-`MAX_CONCURRENT_RUNS=1`, perquè evita que dues proves competeixin pels mateixos
-recursos mentre es mesuren.
+Per a demo, `MAX_CONCURRENT_RUNS=3` permet avançar més ràpid perquè el clúster
+final té tres nodes i no convé crear més Jobs actius que nodes disponibles. Els
+runs sobrants queden `pending` i entren quan queda lloc. Per a dades finals de
+memòria, el mode defensable és `MAX_CONCURRENT_RUNS=1`, perquè evita que dues
+proves competeixin pels mateixos recursos mentre es mesuren.
 
 ## Escenaris finals de mostra
 
@@ -187,12 +188,12 @@ vol comparar amb dades:
 | IoT | `NATS telemetria IoT` | NATS Server | EDA | NATS | IoT |
 | Financer | `RabbitMQ financer fiable` | RabbitMQ | QBA | AMQP | Financer |
 | Kafka | `Kafka vídeo 4K log-centric` | Kafka | LCA | Kafka | Vídeo 4K |
-| Confluent | `Confluent vídeo 4K Kafka-compatible` | Confluent pel camí Kafka-compatible | LCA | Kafka | Vídeo 4K |
+| Confluent | `Confluent vídeo 8K Kafka-compatible` | Confluent pel camí Kafka-compatible | LCA | Kafka | Vídeo 8K |
 
-El format `Vídeo 8K` continua disponible per provar payloads grans, però no és
-el preset principal. Abans d'usar-lo com a resultat comparatiu cal validar
-`message.max.bytes`, `replica.fetch.max.bytes`, `socket.request.max.bytes` i els
-límits de fetch del consumidor.
+El format `Vídeo 8K` queda incorporat al preset de Confluent perquè la demo
+també cobreixi el cas de payload gran. Abans d'usar-lo com a resultat
+comparatiu cal validar `message.max.bytes`, `replica.fetch.max.bytes`,
+`socket.request.max.bytes` i els límits de fetch del consumidor.
 
 L'arquitectura SEA queda documentada al catàleg com a Serverless Event
 Architecture. No es fa servir com a preset final perquè, en aquesta iteració, el

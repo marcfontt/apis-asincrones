@@ -117,13 +117,12 @@ Els quatre presets finals que han de quedar visibles a `Escenaris` són:
 | IoT | `NATS telemetria IoT` |
 | Financer | `RabbitMQ financer fiable` |
 | Kafka | `Kafka vídeo 4K log-centric` |
-| Confluent | `Confluent vídeo 4K Kafka-compatible` |
+| Confluent | `Confluent vídeo 8K Kafka-compatible` |
 
-El format `Vídeo 8K` continua disponible al formulari, però no és el preset
-principal perquè força payloads de 2 MB. Per Kafka i Confluent, abans de donar
-un resultat 8K per bo, comprova que el manifest de Kafka tingui
-`message.max.bytes`, `replica.fetch.max.bytes` i `socket.request.max.bytes`
-per sobre del payload.
+El format `Vídeo 8K` queda al preset de Confluent perquè la demo final inclogui
+un cas de payload gran. Abans de donar un resultat 8K per bo, comprova que el
+manifest de Kafka tingui `message.max.bytes`, `replica.fetch.max.bytes` i
+`socket.request.max.bytes` per sobre del payload.
 
 ## 6. Mode estricte per a memòria
 

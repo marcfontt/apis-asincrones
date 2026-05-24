@@ -2283,7 +2283,7 @@ const LiveTab = () => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))', gap: 12 }}>
           <GuideItemCard
             title="1. Clica una targeta en curs"
-            text="La fila de targetes només mostra execucions realment en curs. Clica una targeta per veure només el seu runId i evitar barrejar dades."
+            text="La fila de targetes només mostra execucions realment en curs. Com que la demo limita a 3 Jobs alhora, els pendents surten a part i no tenen mètriques fins que entren."
             color="#3b82f6"
           />
           <GuideItemCard
@@ -2298,7 +2298,7 @@ const LiveTab = () => {
           />
           <GuideItemCard
             title="4. Si no hi ha dades"
-            text="Revisa el diagnòstic: namespace, job, pod, fase i node. Si el pod està Pending, encara no hi ha generador publicant a metrics-api."
+            text="Revisa el diagnòstic: namespace, job, pod, fase i node. Si el pod està Pending, comprova l'etiqueta benchmark-role=loadgen i el límit MAX_CONCURRENT_RUNS."
             color="#f59e0b"
           />
         </div>

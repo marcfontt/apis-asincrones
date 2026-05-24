@@ -329,8 +329,9 @@ const SK_STYLE = {
 
 // Els quatre presets finals cobreixen una plataforma per cas d'estudi.
 // La comparació final és més neta si no barregem cinc objectius diferents:
-// RabbitMQ es prova amb cues financeres, NATS amb telemetria IoT, i Kafka /
-// Confluent amb el mateix perfil de vídeo 4K sobre protocol Kafka.
+// RabbitMQ es prova amb cues financeres, NATS amb telemetria IoT, Kafka amb
+// streaming 4K estable i Confluent amb el cas 8K de payload gran pel camí
+// Kafka-compatible. Així la demo cobreix els quatre formats finals del document.
 const PREDEFINED_PRESETS = [
   {
     name:         'RabbitMQ financer fiable',
@@ -378,18 +379,18 @@ const PREDEFINED_PRESETS = [
     color:        '#7c3aed',
   },
   {
-    name:         'Confluent vídeo 4K Kafka-compatible',
-    nameKey:      'scenarios.presets.items.confluent4kStreaming.name',
+    name:         'Confluent vídeo 8K Kafka-compatible',
+    nameKey:      'scenarios.presets.items.confluent8kStreaming.name',
     platform:     'Confluent',
     architecture: 'LCA',
     protocol:     'Kafka',
-    dataFormat:   'video-4k',
+    dataFormat:   'video-8k',
     duration:     '360',
     warmup:       '120',
-    rate:         '10',
-    payloadSize:  '500000',
-    descKey:      'scenarios.presets.items.confluent4kStreaming.desc',
-    desc:         'Mateix perfil que Kafka però etiquetat com a Confluent. Serveix per comparar el camí Kafka-compatible amb el mateix payload i la mateixa ràtio.',
+    rate:         '4',
+    payloadSize:  '2000000',
+    descKey:      'scenarios.presets.items.confluent8kStreaming.desc',
+    desc:         'Payload de 2 MB pel camí Kafka-compatible. És el cas final d\'estrès 8K per documentar límits de missatge, backpressure i estabilitat.',
     color:        '#9333ea',
   },
 ];
@@ -1235,7 +1236,7 @@ const GUIDE_ITEMS = [
     titleKey: 'scenarios.guide.items.status.title',
     descKey: 'scenarios.guide.items.status.desc',
     title: 'Estats de la cua',
-    desc: 'Pendent vol dir que el run està a la cua perquè el límit de concurrència està ple. En execució ja té pod i pot generar mostres. Completat i fallit són finals; aturat conserva les mostres parcials.',
+    desc: 'Pendent vol dir que el run espera torn perquè el límit de concurrència està ple. A la demo hi ha 3 nodes i només entren 3 Jobs alhora; la resta esperen per no contaminar mètriques.',
   },
   {
     color: '#7c3aed',

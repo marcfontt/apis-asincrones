@@ -828,6 +828,10 @@
           "title": "Modo sostenido",
           "desc": "El modo sostenido sustituye el viejo modo indefinido: siempre queda limitado a una hora y aplica un ratio y un payload recomendados según formato, plataforma, arquitectura y protocolo."
         },
+        "status": {
+          "title": "Estados de la cola",
+          "desc": "Pendiente significa que el run espera turno porque el límite de concurrencia está lleno. En la demo hay 3 nodos, así que solo entran 3 Jobs de benchmark a la vez; el resto espera para no contaminar métricas. En ejecución significa que el pod ya existe y puede enviar muestras."
+        },
         "formats": {
           "title": "Formatos de datos",
           "desc": "El formato de datos simula cargas reales. Base controlada: 256 B. Vídeo 4K: 500 KB. Vídeo 8K: 2 MB. Financiero: mensajes JSON pequeños. IoT: telemetría mínima de alta frecuencia."
@@ -866,9 +870,9 @@
           "name": "Kafka vídeo 4K log-centric",
           "desc": "Log ordenado con topic efímero por run. Es el caso natural de Kafka para ver throughput sostenido sin forzar el límite de 8K."
         },
-        "confluent4kStreaming": {
-          "name": "Confluent vídeo 4K Kafka-compatible",
-          "desc": "Mismo perfil que Kafka pero etiquetado como Confluent. Sirve para comparar el camino Kafka-compatible con el mismo payload y la misma tasa."
+        "confluent8kStreaming": {
+          "name": "Confluent vídeo 8K Kafka-compatible",
+          "desc": "Payload de 2 MB por el camino Kafka-compatible. Es el caso final de estrés 8K para documentar límites de mensaje, backpressure y estabilidad."
         }
       }
     },
@@ -942,7 +946,7 @@
       "items": [
         {
           "title": "Estados",
-          "text": "Pendiente todavía espera turno. En ejecución envía carga. Completado llegó al final. Detenido se canceló manualmente. Fallido significa que el run acabó con error."
+          "text": "Pendiente todavía espera turno en la cola. La demo limita a 3 ejecuciones simultáneas porque hay 3 nodos y queremos evitar demasiada competencia entre Jobs. En ejecución envía carga; completado, detenido y fallido son estados finales."
         },
         {
           "title": "Detalle de un run",
