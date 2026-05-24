@@ -17,6 +17,11 @@ const INDEX = 'async-catalog';
 // GET /components - Llista tots els components
 app.get('/components', async (_req, res) => {
   try {
+    // Keep the catalog self-healing. If Elasticsearch already had old rows
+    // before a new predefined component was added, this read repairs the index
+    // before the UI renders the table.
+    await syncCatalogSeed(es, INDEX);
+
     const result = await es.search({
       index: INDEX,
       query: { match_all: {} },
