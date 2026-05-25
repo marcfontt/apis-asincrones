@@ -1,64 +1,71 @@
-# catalog-service
+# `catalog-service`
 
-Microservei que gestiona el **catàleg de components** del benchmark:
-arquitectures, protocols i plataformes que es poden combinar per
-construir un escenari.
+Microservei que gestiona el catàleg de components del benchmark: arquitectures, protocols i plataformes.
 
 ## Què fa
 
-- Persisteix els components a Elasticsearch (índex `async-catalog`).
-- Sincronitza l'índex amb el seed predefinit cada vegada que arrenca
-  (vegeu `src/seed.ts`). Només afegeix els components que falten; no
-  esborra ni sobreescriu files existents.
-- Exposa una API REST amb CRUD complet sobre `/components`.
-- El seed actual inclou cinc arquitectures: `SEA`, `LCA`, `EMA`, `EDA`
-  i `QBA`.
-- Versions fixades al codi: Kafka `4.1.1`, RabbitMQ `3.13` i NATS
-  Server `2.12.5`.
-- El valor intern `Confluent` es mostra com a plataforma Confluent. En
-  aquesta fase s'executa pel camí Kafka-compatible del clúster i no inclou
-  serveis extra com Schema Registry, ksqlDB o Control Center.
+- Persisteix components a Elasticsearch a l'índex `async-catalog`.
+- Sincronitza el seed predefinit cada vegada que arrenca.
+- Afegeix components que falten sense esborrar ni sobreescriure els existents.
+- Exposa CRUD sobre `/components`.
+- Bloqueja l'eliminació de components predefinits.
+
+## Seed actual
+
+| Categoria | Components |
+|---|---|
+| Arquitectura | EDA, QBA, LCA, EMA, SEA |
+| Protocol | Kafka, AMQP, MQTT, NATS, gRPC, WebSocket |
+| Plataforma | Apache Kafka, Confluent, RabbitMQ, NATS Server |
+
+SEA vol dir Serverless Event Architecture.
+
+Confluent apareix com a plataforma pròpia perquè és útil per a la comparació del portal, però en aquesta fase s'executa pel camí Kafka-compatible del clúster. No s'estan mesurant Schema Registry, ksqlDB ni Control Center.
 
 ## API
 
-| Mètode | Ruta                   | Descripció                          |
-|--------|------------------------|-------------------------------------|
-| GET    | `/health`              | Healthcheck                         |
-| GET    | `/components`          | Llista tots els components          |
-| GET    | `/components/:id`      | Detall d'un component               |
-| POST   | `/components`          | Crea un component                   |
-| PUT    | `/components/:id`      | Actualitza                          |
-| DELETE | `/components/:id`      | Elimina (només els no predefinits)  |
-| POST   | `/components/seed`     | Sincronitza components predefinits  |
+| Mètode | Ruta | Descripció |
+|---|---|---|
+| GET | `/health` | Healthcheck. |
+| GET | `/components` | Llista components. |
+| GET | `/components/:id` | Retorna un component. |
+| POST | `/components` | Crea un component. |
+| PUT | `/components/:id` | Actualitza un component. |
+| DELETE | `/components/:id` | Elimina components no predefinits. |
+| POST | `/components/seed` | Força la sincronització del seed. |
 
-## Model de dades
+## Model
 
 ```ts
 {
-  shortName: string,            // 'EDA', 'Kafka', 'MQTT', ...
-  name: string,                 // 'Event-Driven Architecture'
+  id: string,
+  shortName: string,
+  name: string,
   category: 'architecture' | 'protocol' | 'platform',
-  description: string,          // Descripció en català
-  version?: string,             // Versió coneguda (4.1.1, 0.9.1, ...)
-  tags?: string[],              // Etiquetes lliures
-  predefined?: boolean,         // true = ve del seed, no es pot esborrar
-  createdAt: string,            // ISO timestamp
+  description: string,
+  version?: string,
+  tags?: string[],
+  predefined?: boolean,
+  createdAt: string,
 }
 ```
 
 ## Entorn
 
-| Variable             | Defecte                        |
-|----------------------|--------------------------------|
-| `PORT`               | `3001`                         |
-| `ELASTICSEARCH_URL`  | `http://elasticsearch:9200`    |
+| Variable | Defecte |
+|---|---|
+| `PORT` | `3001` |
+| `ELASTICSEARCH_URL` | `http://elasticsearch:9200` |
 
-## Engegada en local
+## Engegada local
 
 ```bash
-yarn install
-yarn workspace catalog-service start
+corepack yarn workspace catalog-service build
+corepack yarn workspace catalog-service start
 ```
 
-Per defecte connecta a `http://localhost:9200` (canvia
-`ELASTICSEARCH_URL` si tens ES en un altre lloc).
+Per executar en mode desenvolupament:
+
+```bash
+corepack yarn workspace catalog-service dev
+```

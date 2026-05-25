@@ -1,36 +1,16 @@
-# `plugins/` - Plugins Backstage del portal
+# `plugins/` - Plugins Backstage
 
-Aquest directori conté el plugin propi `async-benchmark`. Tot el que
-l'usuari veu a Home, Catàleg, Escenaris, Execucions i Resultats surt
-d'aquest plugin.
+Aquest directori conté el plugin propi `async-benchmark`, que és la part visible del portal de proves.
 
-## Estructura
+## Plugin actual
 
-```text
-async-benchmark/
-├── src/
-│   ├── pages/
-│   │   ├── HomePage.tsx
-│   │   ├── CatalogPage.tsx
-│   │   ├── ScenariosPage.tsx
-│   │   ├── ExecucionsPage.tsx
-│   │   └── ResultatsPage.tsx
-│   ├── components/
-│   │   ├── FilterPanel.tsx
-│   │   ├── GuidePanel.tsx
-│   │   ├── TutorialOverlay.tsx
-│   │   └── CompatibilityMatrix.tsx
-│   ├── shared/
-│   ├── theme.ts
-│   ├── plugin.ts
-│   └── index.ts
-└── README.md
-```
+| Plugin | Funció |
+|---|---|
+| `async-benchmark/` | Home, Catàleg, Escenaris, Execucions i Resultats. |
 
-## Connexió amb el backend
+## Connexió amb serveis
 
-El plugin no crida directament els microserveis. Sempre passa pel proxy de
-Backstage configurat a `app-config.yaml`.
+El plugin no crida directament URLs internes del clúster. Sempre passa pel proxy de Backstage:
 
 ```text
 Plugin React
@@ -40,12 +20,13 @@ Plugin React
   -> /api/proxy/metrics-api
 ```
 
-Això evita CORS al navegador i manté les URLs internes fora del frontend.
+Aquest patró evita problemes de CORS i manté els endpoints interns fora del navegador.
 
 ## Convencions
 
-- Els textos visibles han d'estar traduïts a català, castellà i anglès.
+- Les guies de pàgina han d'usar `GuidePanel`.
 - Els filtres han d'usar `FilterPanel`.
-- Les guies han d'usar `GuidePanel`.
-- Els tutorials han d'usar `TutorialOverlay` i han de representar la pàgina real.
-- La compatibilitat ha de venir de `shared/catalog/compatibility.ts`.
+- Els tutorials han d'usar `TutorialOverlay`.
+- La compatibilitat ha de sortir de `shared/catalog/compatibility.ts`.
+- La reproduïbilitat del catàleg ha de sortir de `shared/catalog/reproducibility.ts`.
+- Els textos visibles han d'estar traduïts a català, castellà i anglès.

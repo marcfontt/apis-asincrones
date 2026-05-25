@@ -1,50 +1,61 @@
-# scenario-service
+# `scenario-service`
 
-Microservei que gestiona els **escenaris** del benchmark. Un escenari
-és una combinació concreta d'arquitectura + protocol + plataforma +
-format de dades, amb durada, ratio i mida de payload.
+Microservei que gestiona els escenaris del benchmark. Un escenari és una combinació d'arquitectura, protocol, plataforma, format de dades, durada, ràtio i payload.
 
 ## Què fa
 
-- Persisteix els escenaris a Elasticsearch (índex `async-scenarios`).
-- API REST CRUD sobre `/scenarios`.
-- Mantén l'estat (`idle`, `running`) que l'orquestrador actualitza
-  via PATCH quan llança o atura un run.
+- Persisteix escenaris a Elasticsearch a l'índex `async-scenarios`.
+- Exposa CRUD sobre `/scenarios`.
+- Desa l'estat funcional que veu la UI.
+- Permet que l'orquestrador actualitzi l'estat quan un run canvia.
+
+## Estats
+
+| Estat intern | Lectura al portal |
+|---|---|
+| `idle` | Llest. |
+| `pending` | Pendent d'executar. |
+| `running` | En execució. |
+| `completed` | Completat. |
+| `failed` | Fallit. |
+| `cancelled` | Cancel·lat. |
+
+Si un escenari queda pendent, encara no ha creat Job i no ha de tenir mètriques.
 
 ## API
 
-| Mètode | Ruta                  | Descripció                                  |
-|--------|-----------------------|---------------------------------------------|
-| GET    | `/health`             | Healthcheck                                 |
-| GET    | `/scenarios`          | Llista tots els escenaris                   |
-| GET    | `/scenarios/:id`      | Detall                                      |
-| POST   | `/scenarios`          | Crea (genera UUID, posa `status=idle`)      |
-| PUT    | `/scenarios/:id`      | Actualitza                                  |
-| PATCH  | `/scenarios/:id`      | Patch parcial (usat per l'orquestrador)     |
-| DELETE | `/scenarios/:id`      | Elimina                                     |
+| Mètode | Ruta | Descripció |
+|---|---|---|
+| GET | `/health` | Healthcheck. |
+| GET | `/scenarios` | Llista escenaris. |
+| GET | `/scenarios/:id` | Detall. |
+| POST | `/scenarios` | Crea un escenari. |
+| PUT | `/scenarios/:id` | Substitueix un escenari. |
+| PATCH | `/scenarios/:id` | Actualitza camps concrets. |
+| DELETE | `/scenarios/:id` | Elimina un escenari. |
 
 ## Model
 
 ```ts
 {
-  id: string,                   // UUID
-  name: string,                 // Nom triat per l'usuari
-  architecture: string,         // 'EDA', 'QBA', ...
-  protocol: string,             // 'Kafka', 'MQTT', ...
-  platform: string,             // 'Apache Kafka', 'NATS Server', ...
-  dataFormat: string,           // 'default', 'video-4k', 'iot', ...
-  duration: number | null,      // segons (0 o null = indefinit)
-  rate: number | null,          // missatges per segon
-  payloadSize: number | null,   // bytes
-  status: 'idle' | 'running',
-  currentRunId?: string,        // runId actiu (només si running)
+  id: string,
+  name: string,
+  architecture: string,
+  protocol: string,
+  platform: string,
+  dataFormat: string,
+  duration: number | null,
+  rate: number | null,
+  payloadSize: number | null,
+  status: string,
+  currentRunId?: string,
   createdAt: string,
 }
 ```
 
 ## Entorn
 
-| Variable             | Defecte                        |
-|----------------------|--------------------------------|
-| `PORT`               | `3002`                         |
-| `ELASTICSEARCH_URL`  | `http://elasticsearch:9200`    |
+| Variable | Defecte |
+|---|---|
+| `PORT` | `3002` |
+| `ELASTICSEARCH_URL` | `http://elasticsearch:9200` |

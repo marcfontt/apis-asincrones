@@ -1,74 +1,19 @@
-# backend
+# `packages/backend`
 
-Backend **Backstage** de la plataforma. Actua com a proxy centralitzat i
-carregador de plugins que proporcionen les funcionalitats base: auth, catalog,
-search, scaffolder, techdocs, signals, i permission control.
+Backend Backstage de la plataforma. En aquest projecte té una funció principal: servir l'app i centralitzar el proxy cap als microserveis del benchmark.
 
 ## Què fa
 
-- **Proxy**: reenvía requests a `/api/proxy/*` als serveis reals
-  (catalog-service, scenario-service, benchmark-orchestrator, metrics-api).
-- **Auth**: gestiona autenticació via Passport (guest provider por defecte).
-- **Catalog**: indexa components del catàleg.
-- **Search**: indexa i busca entitats del catàleg.
-- **Scaffolder**: crea projectes nova (templates de GitHub).
-- **TechDocs**: serveix documentació markdown.
-- **Signals**: WebSocket per notificacions en temps real.
-- **Permissions**: control d'accés basat en rols.
+- Serveix el frontend Backstage.
+- Exposa `/api/proxy/*` perquè el plugin React pugui parlar amb els serveis interns.
+- Manté el provider d'autenticació de desenvolupament.
+- Carrega els plugins base de Backstage necessaris perquè l'app arrenqui.
 
-## Plugins carregats
+La lògica de negoci del benchmark no viu aquí. Les responsabilitats específiques estan separades en `catalog-service`, `scenario-service`, `benchmark-orchestrator` i `metrics-api`.
 
-```ts
-// Core
-app-backend             // Serveix l'app frontend
-proxy-backend           // Proxy /api/proxy/*
+## Proxy
 
-// Auth
-auth-backend            // Passport + guest provider
-
-// Catalog
-catalog-backend         // Indexa entities
-catalog-module-logs     // Logs de errors
-
-// Search
-search-backend          // Motor de busca
-
-// Scaffolder
-scaffolder-backend      // Templates
-scaffolder-github       // GitHub module
-
-// TechDocs
-techdocs-backend        // Markdown → HTML
-
-// Permissions
-permission-backend      // Control d'accés
-permission-allow-all    // Policy permissiva (dev)
-
-// Kubernetes
-kubernetes-backend      // Info de clusters K8s
-
-// Signals
-signals-backend         // Notificacions WebSocket
-
-// Notifications
-notifications-backend   // Notificacions
-
-// Org
-org-backend             // Entitats org/teams
-```
-
-## Engegada en local
-
-```bash
-yarn install
-yarn workspace backend start
-```
-
-Arrenca a **http://localhost:7007** per defecte.
-
-## Proxy a serveis
-
-A `app-config.yaml`, configura les rutes proxy:
+Les rutes principals es configuren a `app-config.yaml`:
 
 ```yaml
 proxy:
@@ -82,56 +27,26 @@ proxy:
     target: 'http://localhost:3004'
 ```
 
-## Autenticació
+En Kubernetes, aquestes URLs apunten als Services interns del namespace `apis-asincrones`.
 
-Per defecte usa **guest provider** (sense logins). Per afegir GitHub:
-
-```ts
-backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
-```
-
-Configura a `app-config.yaml`:
-
-```yaml
-auth:
-  providers:
-    github:
-      development:
-        clientId: '...'
-        clientSecret: '...'
-```
-
-## Catalog & Search
-
-Usa Elasticsearch per indexar components. Configurar a `app-config.yaml`:
-
-```yaml
-catalog:
-  locations:
-    - type: url
-      target: http://localhost:3001/components
-
-search:
-  elasticsearch:
-    provider: pg   # o 'elasticsearch'
-```
-
-## Variables d'entorn
-
-| Variable | Defecte |
-|----------|---------|
-| `PORT` | `7007` |
-| `LOG_LEVEL` | `info` |
-| `ELASTICSEARCH_URL` | N/A (usa BD via plugin) |
-
-## Tests
+## Engegada local
 
 ```bash
-yarn workspace backend test
+corepack yarn install --immutable
+corepack yarn workspace backend start
 ```
 
-## Documentació
+El backend arrenca a `http://localhost:7007`.
 
-- [Backstage Backend System](https://backstage.io/docs/backend-system)
-- [Creating Backends](https://backstage.io/docs/backend-system/building-backends)
-- [Plugin Development](https://backstage.io/docs/plugins/structure-of-a-plugin)
+## Validació
+
+```bash
+corepack yarn workspace backend test
+corepack yarn workspace backend build
+```
+
+## Notes
+
+- El backend de Backstage no ha de crear Jobs de Kubernetes directament.
+- No s'hi ha d'afegir lògica de càlcul de resultats.
+- Si cal afegir una ruta nova per al portal, primer comprova si pertany a un microservei existent.

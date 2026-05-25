@@ -1,50 +1,46 @@
-# `packages/` - Microserveis i app Backstage
+# `packages/` - App i microserveis
 
-Aquest directori conté l'app Backstage i els serveis que fan funcionar el
-benchmark.
+Aquest directori conté el frontend de Backstage, el backend de Backstage i els microserveis que fan possible el benchmark.
 
 ## Mapa ràpid
 
-| Carpeta | Funció | Port |
-|---------|--------|------|
-| `app/` | Frontend Backstage | 3000 |
-| `backend/` | Backend Backstage i proxy | 7007 |
-| `catalog-service/` | Catàleg de components | 3001 |
-| `scenario-service/` | CRUD d'escenaris | 3002 |
-| `benchmark-orchestrator/` | Crea Jobs de Kubernetes | 3003 |
-| `metrics-api/` | Desa i serveix mètriques | 3004 |
-| `load-generator/` | Genera carrega dins un Job | Job |
+| Carpeta | Servei | Port | Responsabilitat |
+|---|---|---:|---|
+| `app/` | Backstage frontend | 3000 | Interfície web, tema, navegació i i18n. |
+| `backend/` | Backstage backend | 7007 | Serveix l'app i fa proxy cap als microserveis. |
+| `catalog-service/` | Catalog Service | 3001 | Components: arquitectures, protocols i plataformes. |
+| `scenario-service/` | Scenario Service | 3002 | Escenaris configurables i estat bàsic. |
+| `benchmark-orchestrator/` | Benchmark Orchestrator | 3003 | Cua, control de concurrència i Jobs de Kubernetes. |
+| `metrics-api/` | Metrics API | 3004 | Ingesta, WebSocket i consulta de mètriques. |
+| `load-generator/` | Load Generator | Job | Publica i consumeix missatges durant cada run. |
 
-## Com es connecten
+## Flux entre paquets
 
 ```text
 Navegador
   -> app
   -> backend Backstage
-  -> catalog-service
-  -> scenario-service
-  -> benchmark-orchestrator
-  -> metrics-api
+  -> /api/proxy/catalog-service
+  -> /api/proxy/scenario-service
+  -> /api/proxy/benchmark-orchestrator
+  -> /api/proxy/metrics-api
 ```
 
-Quan es llança una execució, `benchmark-orchestrator` crea un Job amb el
-`load-generator`. El Job envia mostres a `metrics-api`, i `metrics-api`
-les desa a Elasticsearch.
+Quan s'executa un escenari, el `benchmark-orchestrator` crea un Job amb el `load-generator`. El Job escriu snapshots a `metrics-api` i `metrics-api` els desa a Elasticsearch.
 
-## Execucio local
+## Execució local
 
 ```bash
 corepack yarn install --immutable
 corepack yarn start
 ```
 
-Els microserveis de benchmark normalment es despleguen a AKS amb Docker i
-Kubernetes. Vegeu `k8s/README.md` i `deploy-all.sh`.
+Els brokers i els Jobs de càrrega s'executen normalment a AKS. En local, el portal pot arrencar, però les proves reals necessiten serveis accessibles i les variables d'entorn configurades.
 
 ## Convencions
 
 - TypeScript a tot el monorepo.
-- Codi clar abans que expressions massa comprimides.
-- Comentaris curts quan expliquen una regla important.
-- Noms tècnics d'API en anglès si formen part del contracte.
-- Text visible del portal traduït al sistema d'i18n.
+- Codi clar i explícit, sense expressions compactes difícils de seguir.
+- Comentaris només quan expliquen una regla de negoci o una decisió operativa.
+- Noms tècnics en anglès quan formen part del contracte d'API.
+- Text visible del portal dins del sistema d'i18n.

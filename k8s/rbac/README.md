@@ -1,35 +1,33 @@
-# `k8s/rbac/` - Control d'acces
+# `k8s/rbac/` - Permisos de l'orquestrador
 
-Aquest directori conte el ServiceAccount i els permisos que necessita
-`benchmark-orchestrator` per crear execucions al cluster.
+Aquest directori conté el ServiceAccount i els permisos que necessita `benchmark-orchestrator` per crear i controlar execucions.
 
 ## Recursos
 
-| Manifest | Recursos | Servei |
-|---|---|---|
-| `benchmark-orchestrator-rbac.yaml` | ServiceAccount + ClusterRole + ClusterRoleBinding | `benchmark-orchestrator` |
+| Manifest | Recursos |
+|---|---|
+| `benchmark-orchestrator-rbac.yaml` | ServiceAccount, ClusterRole i ClusterRoleBinding. |
 
-## Permisos actuals
+## Permisos necessaris
 
 L'orquestrador necessita:
 
-- `namespaces`: crear i eliminar namespaces efimers `sc-*`.
-- `jobs.batch`: crear i consultar Jobs del `load-generator`.
-- `pods` i `pods/log`: consultar estat i logs de Jobs.
-- `services` i `endpoints`: verificar que el broker triat esta preparat abans de crear el Job.
-- `secrets`: copiar `acr-secret` al namespace efimer del run.
+- crear i eliminar namespaces efímers `sc-*`;
+- crear i consultar Jobs;
+- consultar Pods i logs;
+- llegir Services i Endpoints dels brokers;
+- copiar Secrets d'ACR al namespace efímer;
+- consultar events bàsics per diagnosticar pendents.
 
 ## Aplicar i verificar
 
 ```bash
 kubectl apply -f k8s/rbac/benchmark-orchestrator-rbac.yaml
-kubectl describe sa benchmark-orchestrator -n apis-asincrones
+kubectl describe serviceaccount benchmark-orchestrator -n apis-asincrones
 kubectl describe clusterrole benchmark-orchestrator-role
 kubectl describe clusterrolebinding benchmark-orchestrator-binding
 ```
 
-## Nota
+## Criteri
 
-S'utilitza `ClusterRole` perque l'orquestrador crea namespaces nous i copia
-secrets a namespaces efimers. Aixo s'ha de mantenir limitat a les accions
-necessaries; no donar permisos generals de `*`.
+S'utilitza `ClusterRole` perquè els runs creen namespaces nous. Tot i això, els permisos s'han de mantenir limitats a les accions que l'orquestrador necessita. No donar permisos generals de `*`.

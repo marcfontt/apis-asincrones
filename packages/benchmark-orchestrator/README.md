@@ -1,103 +1,79 @@
 # `benchmark-orchestrator`
 
-Microservei que llanca proves reals sobre Kubernetes. Quan l'usuari clica
-`Executar`, el portal envia una peticio a aquest servei i el servei crea un Job
-amb el container `load-generator`.
+Microservei que rep peticions d'execució i crea Jobs reals de Kubernetes amb el `load-generator`.
 
-## Que fa
+## Què fa
 
-- Rep `POST /runs` amb l'escenari i possibles canvis de durada, ratio o payload.
-- Llegeix l'escenari des de `scenario-service`.
-- Decideix quin broker tecnic s'ha d'usar: `kafka`, `confluent`, `nats` o `rabbitmq`.
-- Comprova que el broker tingui un Service amb endpoints llestos al namespace `brokers`.
-- Si el broker no esta preparat, marca el run com a `failed` i envia una mostra
-  de diagnosi a `metrics-api` amb `errorCode=BROKER_NOT_READY`.
-- Crea un namespace efimer per a la prova.
-- Copia el Secret d'ACR al namespace nou.
-- Crea el Job de Kubernetes amb les variables d'entorn necessaries.
-- Revisa l'estat del Job cada pocs segons.
-- Si l'usuari atura el run, deixa una finestra curta perque el generador enviï
-  l'ultima mostra.
+1. Rep `POST /runs`.
+2. Llegeix l'escenari a `scenario-service`.
+3. Decideix el broker tècnic: `kafka`, `confluent`, `nats` o `rabbitmq`.
+4. Verifica que el broker tingui endpoint llest al namespace `brokers`.
+5. Si no hi ha capacitat, deixa el run en estat `pending`.
+6. Quan hi ha espai, crea un namespace efímer `sc-*`.
+7. Copia el secret d'ACR si cal.
+8. Crea el Job de Kubernetes.
+9. Vigila l'estat del Job i actualitza el run.
+10. En cancel·lació, dona una finestra curta al generador per enviar l'última mostra.
+
+## Per què hi ha cua
+
+El clúster final té tres nodes, però les proves de memòria s'han de fer amb `MAX_CONCURRENT_RUNS=1` per no barrejar execucions. La cua permet seleccionar molts escenaris de cop sense crear tots els Jobs alhora. Els runs pendents no consumeixen recursos de Kubernetes i no generen mètriques fins que entren realment a execució.
+
+`MAX_CONCURRENT_RUNS=3` és útil per a demostració, no per a dades finals estrictes.
 
 ## API
 
-| Metode | Ruta | Descripcio |
+| Mètode | Ruta | Descripció |
 |---|---|---|
-| GET | `/health` | Healthcheck i estat de Kubernetes. |
-| GET | `/runs` | Llista runs en memoria, ordenats de mes nou a mes antic. |
-| GET | `/runs/active` | Llista runs pendents o en curs. |
+| GET | `/health` | Healthcheck, estat de Kubernetes i concurrència. |
+| GET | `/runs` | Runs en memòria, de més nou a més antic. |
+| GET | `/runs/active` | Runs pendents o en curs. |
 | GET | `/runs/:id` | Detall d'un run. |
-| POST | `/runs` | Llanca un run nou. |
-| POST | `/runs/:id/cancel` | Atura un run en curs. |
-| POST | `/runs/reset` | Esborra tots els runs i les metriques. |
-| DELETE | `/runs/:id` | Elimina un run i les seves metriques. |
+| POST | `/runs` | Llança un run o el posa a la cua. |
+| POST | `/runs/:id/cancel` | Atura un run. |
+| POST | `/runs/reset` | Neteja runs i mètriques. |
+| DELETE | `/runs/:id` | Elimina un run i les seves mètriques. |
 
 ## Endpoints de broker
 
-| Broker logic | Service comprovat | Endpoint passat al Job |
+| Broker lògic | Service comprovat | Variable passada al Job |
 |---|---|---|
 | `kafka` | `kafka-cluster-kafka-bootstrap` | `KAFKA_BROKERS` |
-| `confluent` | `kafka-cluster-kafka-bootstrap` | `CONFLUENT_BROKERS`, per defecte igual que Kafka |
+| `confluent` | `kafka-cluster-kafka-bootstrap` | `CONFLUENT_BROKERS` |
 | `nats` | `nats` o `nats-headless` | `NATS_BROKER_URL` |
-| `rabbitmq` / `amqp` / `mqtt` | `rabbitmq` | `RABBITMQ_URL` |
+| `rabbitmq` | `rabbitmq` | `RABBITMQ_URL` |
+
+Confluent usa el mateix endpoint Kafka-compatible si no es configura un endpoint propi.
 
 ## Entorn
 
 | Variable | Valor habitual |
 |---|---|
-| `PORT` | `3003` en Kubernetes. |
+| `PORT` | `3003` |
 | `SCENARIO_SERVICE_URL` | `http://scenario-service:3002` |
 | `METRICS_API_URL` | `http://metrics-api:3004` |
 | `ACR_SERVER` | `asyncpfg65454.azurecr.io` |
 | `NAMESPACE` | `apis-asincrones` |
 | `BROKER_NAMESPACE` | `brokers` |
-| `LOAD_GENERATOR_CPU` | `100m` en Azure for Students |
-| `MAX_CONCURRENT_RUNS` | `3` per a la demo final; posa `1` si vols una mesura estrictament serial |
-| `LOAD_GENERATOR_NODE_SELECTOR_KEY` | `benchmark-role`, si es vol fixar el node dels Jobs |
-| `LOAD_GENERATOR_NODE_SELECTOR_VALUE` | `loadgen`, si es vol fixar el node dels Jobs |
+| `LOAD_GENERATOR_CPU` | `100m` |
+| `MAX_CONCURRENT_RUNS` | `1` per mesures finals, `3` per demo |
+| `LOAD_GENERATOR_NODE_SELECTOR_KEY` | `benchmark-role` |
+| `LOAD_GENERATOR_NODE_SELECTOR_VALUE` | `loadgen` |
 | `KAFKA_BROKERS` | `kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092` |
-| `CONFLUENT_BROKERS` | Per defecte igual que `KAFKA_BROKERS` |
+| `CONFLUENT_BROKERS` | Per defecte igual que Kafka |
 | `NATS_BROKER_URL` | `nats://nats.brokers.svc.cluster.local:4222` |
 | `RABBITMQ_URL` | `amqp://admin:<password>@rabbitmq.brokers.svc.cluster.local:5672` |
 
-En local, defineix `PORT=3003` si vols provar-lo darrere del mateix proxy que
-usa Backstage.
-
-En el clúster Azure Students, el selector `benchmark-role=loadgen` serveix per
-controlar on poden caure els Jobs de càrrega. Per a una mesura estricta pots
-etiquetar un sol node i executar amb `MAX_CONCURRENT_RUNS=1`. Per a demo ràpida
-pots etiquetar els tres nodes i mantenir `MAX_CONCURRENT_RUNS=3`, de manera que
-cap tanda intenti crear més Jobs actius que nodes disponibles.
-
-Important: els noms dels nodes AKS no són estables. Si el node pool es recrea,
-el label pot desaparèixer encara que el manifest continuï demanant
-`benchmark-role=loadgen`. Abans d'executar una tanda, comprova:
+## Validació operativa
 
 ```powershell
+kubectl logs -n apis-asincrones deployment/benchmark-orchestrator --tail=40
 kubectl get nodes -L benchmark-role
+kubectl get pods -A -o wide | Select-String "benchmark-"
 ```
 
-Si no hi ha cap node amb `loadgen`, etiqueta un node actual:
-
-```powershell
-$LOAD_NODE = (kubectl get nodes --no-headers | Select-Object -First 1).ToString().Trim().Split()[0]
-kubectl label node $LOAD_NODE benchmark-role=loadgen --overwrite
-```
-
-Si falta aquest label, els Jobs queden `Pending` amb motiu `Unschedulable` i no
-apareixen mostres a Resultats en directe.
-
-El backend limita quants Jobs entren a Kubernetes amb `MAX_CONCURRENT_RUNS`.
-En el cluster final s'ha deixat a `3` perquè hi ha tres nodes i es pot avançar
-més ràpid sense llançar les 16 proves de cop. Els runs sobrants queden en estat
-`pending` dins de l'orquestrador i no creen Job fins que hi ha espai.
-
-Per a taules finals de benchmarking, baixa temporalment el valor a `1`. Amb
-`3` s'aconsegueix una demo molt mes rapida, pero hi ha més risc de soroll en
-latencia i throughput perquè diverses proves conviuen al mateix cluster.
+Si un Job queda `Pending` amb `Unschedulable`, revisa primer el label `benchmark-role=loadgen` als nodes.
 
 ## Permisos
 
-Necessita permisos per crear namespaces, Jobs i Secrets i per llegir Services i
-Endpoints dels brokers. La configuracio esta a
-`k8s/rbac/benchmark-orchestrator-rbac.yaml`.
+Els permisos estan a `k8s/rbac/benchmark-orchestrator-rbac.yaml`. L'orquestrador necessita crear namespaces, Jobs i Secrets, i llegir Services, Endpoints, Pods i logs.

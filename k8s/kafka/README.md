@@ -1,79 +1,58 @@
-# Kafka via Strimzi — Documentació TFG APIs Asíncrones
+# `k8s/kafka/` - Kafka amb Strimzi
 
-## Per què Strimzi?
+Kafka es desplega amb Strimzi al namespace `brokers`. El clúster és d'un sol node en mode KRaft perquè el pressupost d'Azure for Students és limitat.
 
-Després de provar 3 opcions (YAML pur, Helm, Strimzi):
-- **YAML pur**: KO — imatges Docker Hub bloquejades a AKS
-- **Helm Bitnami**: KO — imatges Docker Hub bloquejades + restricció imatges externes
-- **Strimzi**: OK — usa quay.io, és el que recomana Microsoft per AKS
+## Per què Strimzi
 
-## Arquitectura desplegada
-```
-brokers (namespace)
-├── strimzi-cluster-operator      # Operador que gestiona Kafka
-├── kafka-cluster-dual-role-0     # Broker + Controller (KRaft, sense Zookeeper)
-└── kafka-cluster-entity-operator # Gestiona KafkaTopic i KafkaUser
-```
+Es va triar Strimzi perquè permet gestionar Kafka amb recursos Kubernetes propis i evita dependències de charts que, en l'entorn d'AKS utilitzat, havien donat problemes d'imatges o de permisos. A més, deixa explícites la versió de Kafka, els recursos i la configuració de payload.
 
-Kafka viu al namespace `brokers` juntament amb la resta de brokers. Aquest
-canvi redueix passos operatius en el nou AKS d'Azure for Students. Per a la
-mesura, el que importa és mantenir recursos, durada, warm-up, payload i rate
-constants, i no executar dos benchmarks alhora.
+## Recursos
 
-## Instal·lació des de zero
+| Manifest | Recurs |
+|---|---|
+| `kafka-cluster.yaml` | Recurs `Kafka` amb versió `4.1.1`. |
+| `kafkanodepool.yaml` | Recurs `KafkaNodePool` amb un broker/controlador. |
 
-### 1. Crear namespace i instal·lar operador
+## Configuració principal
+
+- Kafka `4.1.1`.
+- Mode KRaft, sense ZooKeeper.
+- 1 replica.
+- Storage efímer.
+- Recursos del broker: `300m` CPU i `768Mi` memòria.
+- `message.max.bytes` i `replica.fetch.max.bytes` ajustats per acceptar payloads grans.
+
+## Instal·lació
+
 ```bash
 kubectl create namespace brokers --dry-run=client -o yaml | kubectl apply -f -
 kubectl apply -f 'https://strimzi.io/install/latest?namespace=brokers' -n brokers
-kubectl wait deployment/strimzi-cluster-operator -n brokers \
-  --for=condition=Available --timeout=120s
+kubectl wait deployment/strimzi-cluster-operator -n brokers --for=condition=Available --timeout=300s
+kubectl apply -f k8s/kafka/
+kubectl wait kafka/kafka-cluster -n brokers --for=condition=Ready --timeout=300s
 ```
 
-### 2. Desplegar el cluster Kafka
-```bash
-kubectl apply -f k8s/kafka/kafkanodepool.yaml
-kubectl apply -f k8s/kafka/kafka-cluster.yaml
-kubectl wait kafka/kafka-cluster -n brokers \
-  --for=condition=Ready --timeout=300s
-```
+## Bootstrap server
 
-### 3. Verificar
-```bash
-kubectl get pods -n brokers
-kubectl get kafka -n brokers
-# Expected: kafka-cluster Ready True, versió 4.1.1
-```
-
-## Bootstrap server (per producers/consumers)
-```
+```text
 kafka-cluster-kafka-bootstrap.brokers.svc.cluster.local:9092
 ```
 
-## Crear un tòpic dinàmicament
-```yaml
-apiVersion: kafka.strimzi.io/v1
-kind: KafkaTopic
-metadata:
-  name: NOM-TOPIC
-  namespace: brokers
-  labels:
-    strimzi.io/cluster: kafka-cluster
-spec:
-  partitions: 1
-  replicas: 1
+Aquest endpoint també s'utilitza com a camí Kafka-compatible per als escenaris marcats com a Confluent, si no es configura un endpoint Confluent propi.
+
+## Validació
+
+```bash
+kubectl get pods -n brokers
+kubectl get kafka,kafkanodepool -n brokers
+kubectl get endpoints kafka-cluster-kafka-bootstrap -n brokers
 ```
 
-## Compatibilitat plataforma/arquitectura/protocol
+## Compatibilitat al portal
 
-| Plataforma | Arquitectures | Protocols | Estat actual |
-|------------|---------------|-----------|--------------|
-| Kafka | EDA, LCA, SEA | Kafka | Natiu amb Strimzi |
-| Confluent | EDA, LCA, SEA | Kafka | Camí Kafka-compatible al namespace `brokers` |
-| RabbitMQ | QBA, EDA | AMQP | Servei separat al namespace `brokers` |
-| NATS Server | EDA, SEA | NATS | Servei separat al namespace `brokers` |
+| Plataforma declarada | Arquitectura habitual | Protocol | Execució actual |
+|---|---|---|---|
+| Apache Kafka | LCA | Kafka | Kafka Strimzi. |
+| Confluent | LCA | Kafka | Mateix camí Kafka-compatible. |
 
-## Versions
-- Strimzi Operator: 0.51.0
-- Kafka: 4.1.1 (KRaft mode, sense Zookeeper)
-- AKS: k8s 1.34.7 al nou cluster d'Azure for Students
+La memòria ha de deixar clar que Confluent no inclou serveis extra en aquesta fase.

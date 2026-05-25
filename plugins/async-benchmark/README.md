@@ -1,59 +1,50 @@
 # `plugins/async-benchmark`
 
-Plugin principal del portal. Conté les pantalles que veu l'usuari per
-entendre components, crear escenaris, seguir execucions i comparar
-resultats.
+Plugin principal del portal. Conté les pantalles que l'usuari fa servir per entendre components, preparar escenaris, seguir execucions i comparar resultats.
 
 ## Pàgines
 
-| Fitxer | Què fa |
-|--------|--------|
-| `src/pages/HomePage.tsx` | Explica el flux general del sistema i dona accessos ràpids. |
-| `src/pages/CatalogPage.tsx` | Mostra components, compatibilitat i detalls de reproduïbilitat. |
-| `src/pages/ScenariosPage.tsx` | Crea, edita, duplica i executa escenaris. |
-| `src/pages/ExecucionsPage.tsx` | Mostra runs actius, aturats i finalitzats. |
-| `src/pages/ResultatsPage.tsx` | Mostra historial, comparació i detall de puntuació. |
+| Fitxer | Funció |
+|---|---|
+| `src/pages/HomePage.tsx` | Context inicial: brokers, flux de prova, modes del portal i accés a tutorials. |
+| `src/pages/CatalogPage.tsx` | Components, compatibilitat, configuració i reproduïbilitat. |
+| `src/pages/ScenariosPage.tsx` | Creació, edició, duplicació, execució i aturada d'escenaris. |
+| `src/pages/ExecucionsPage.tsx` | Seguiment de runs pendents, actius i finalitzats. |
+| `src/pages/ResultatsPage.tsx` | Historial, comparació per format, mètriques i puntuació. |
 
 ## Components compartits
 
-| Component | Funció |
-|-----------|--------|
-| `FilterPanel` | Dona el mateix format als filtres de totes les pàgines. |
-| `GuidePanel` | Dona el mateix format a guies, blocs d'ajuda i passos. |
-| `TutorialOverlay` | Mostra tutorials per pàgina amb mock visual i cursor animat. |
-| `CompatibilityMatrix` | Ensenya si una combinació és executable, requereix configuració o està bloquejada. |
-| `MetricsDetailDrawer` | Mostra explicació detallada de mètriques quan cal context. |
-
-Els tutorials no s'obren sols. L'usuari els obre amb el botó de tutorial
-de cada pàgina. El botó sempre diu `Tutorial`, també si l'usuari ja l'ha
-obert abans.
-
-El mock del tutorial fa servir la mateixa idea visual que el portal:
-navegació superior, zones de contingut i cursor animat que apunta a
-elements que existeixen a cada pàgina.
+| Component | Responsabilitat |
+|---|---|
+| `FilterPanel` | Manté el mateix patró visual als filtres. |
+| `GuidePanel` | Mostra guies i passos de cada pàgina. |
+| `TutorialOverlay` | Explica on clicar i què esperar a cada pantalla. |
+| `CompatibilityMatrix` | Mostra si una combinació és executable, requereix configuració o no està disponible. |
+| `MetricsDetailDrawer` | Dona context de mètriques i puntuació quan l'usuari obre un detall. |
 
 ## Fonts compartides
 
 | Fitxer | Responsabilitat |
-|--------|-----------------|
-| `src/shared/catalog/compatibility.ts` | Criteri únic de compatibilitat. |
-| `src/shared/catalog/reproducibility.ts` | Dades de reproduïbilitat, versions conegudes i snippets de configuració. |
-| `src/shared/results/scenarioDetail.ts` | Preparació del detall d'un escenari. |
-| `src/shared/results/historyMetrics.ts` | Helpers per comptar mostres, missatges i historial. |
+|---|---|
+| `src/shared/catalog/compatibility.ts` | Regles de compatibilitat entre arquitectura, protocol i plataforma. |
+| `src/shared/catalog/defaultComponents.ts` | Seed visible del catàleg quan encara no hi ha dades carregades. |
+| `src/shared/catalog/reproducibility.ts` | Versions, notes i passos per replicar components. |
 | `src/shared/metrics/liveMetrics.ts` | Lectura segura de mètriques en directe. |
+| `src/shared/results/historyMetrics.ts` | Resum històric i recompte de mostres. |
+| `src/shared/results/scenarioDetail.ts` | Preparació del detall d'un escenari o run. |
 
-## Idiomes
+## Regles de UI
 
-Les pàgines fan servir el sistema d'i18n del paquet `packages/app`.
-Tot text visible ha d'anar per clau de traducció. Les dades internes,
-identificadors d'API i noms de mètriques es mantenen en anglès quan formen
-part del contracte tècnic.
+- La llista principal de resultats en directe només mostra execucions en curs.
+- Les execucions pendents es mostren com a cua, sense ocupar el mateix espai que els runs actius.
+- A Execucions, l'estat ha de diferenciar pendent, en execució, completat, fallit i cancel·lat.
+- A Resultats, les comparacions s'han de llegir primer per format de dades.
+- La puntuació ordena visualment, però la justificació final sempre ha de mirar latència, P99, throughput i errors.
 
 ## Criteri de codi
 
-- Millor codi llegible que expressions massa compactes.
-- Comentaris només on expliquen una decisió o una regla de negoci.
-- Booleans amb prefixos clars: `is`, `has`, `can`, `should`.
+- Noms de booleans amb `is`, `has`, `can` o `should`.
 - Handlers amb prefix `handle`.
 - Dades derivades amb noms com `filteredRuns`, `sortedRuns` o `visibleItems`.
-- No s'han afegit dependències noves per als tutorials, guies o filtres.
+- Comentaris curts només quan expliquen una regla de negoci.
+- Sense dependències noves per a tutorials, guies o filtres.

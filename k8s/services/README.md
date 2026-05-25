@@ -1,81 +1,45 @@
-# `k8s/services/` — Serveis (ClusterIP i LoadBalancer)
+# `k8s/services/` - Services de Kubernetes
 
-Aquest directori exposa els Deployments coma Serveis de Kubernetes,
-permetent que altres pods hi accedisquen dins el cluster o des de fora.
-
-## Namespace
-Tots els Serveis es desplegen al namespace `apis-asincrones`.
+Aquest directori exposa els Deployments del namespace `apis-asincrones`.
 
 ## Manifests
 
-| Manifest | Servei | Type | Port | Notas |
-|----------|--------|------|------|-------|
-| `backstage-service.yaml` | Backstage | LoadBalancer | 80/443 | Accés extern; IP pública AKS |
-| `catalog-service.yaml` | Catalog Service | ClusterIP | 3001 | Accés intern |
-| `scenario-service.yaml` | Scenario Service | ClusterIP | 3002 | Accés intern |
-| `metrics-api.yaml` | Metrics API | ClusterIP | 3004 | Accés intern (WebSocket + REST) |
-| `benchmark-orchestrator.yaml` | Orchestrator | ClusterIP | 3003 | Accés intern |
-| `elasticsearch.yaml` | Elasticsearch | ClusterIP | 9200/9300 | REST (9200) + node-to-node (9300) |
-| `grafana.yaml` | Grafana | ClusterIP | 3000 | Port accés intern |
+| Manifest | Service | Type | Port |
+|---|---|---|---:|
+| `backstage-service.yaml` | `backstage-service` | LoadBalancer | 80 |
+| `catalog-service.yaml` | `catalog-service` | ClusterIP | 3001 |
+| `scenario-service.yaml` | `scenario-service` | ClusterIP | 3002 |
+| `benchmark-orchestrator.yaml` | `benchmark-orchestrator` | ClusterIP | 3003 |
+| `metrics-api.yaml` | `metrics-api` | ClusterIP | 3004 |
+| `elasticsearch.yaml` | `elasticsearch` | ClusterIP | 9200, 9300 |
+| `grafana.yaml` | `grafana` | ClusterIP | 3000 |
 
-## Accedir als serveis
+## Accés extern
 
-### Des d'altre pod (intern)
-```
-http://catalog-service.apis-asincrones.svc.cluster.local:3001
-http://elasticsearch.apis-asincrones.svc.cluster.local:9200
-```
+Només Backstage s'exposa amb LoadBalancer:
 
-### Des de fora del cluster
-
-#### Backstage (LoadBalancer)
-```
-http://<IP-PUBLICA-AKS>:80
-```
-Obté la IP pública:
 ```bash
 kubectl get svc backstage-service -n apis-asincrones
-# Output: EXTERNAL-IP = <IP-PUBLICA-AKS>
 ```
 
-#### Port-forward (temporalment)
-```bash
-# Accés a Elasticsearch
-kubectl port-forward -n apis-asincrones svc/elasticsearch 9200:9200
+La resta de serveis són interns i s'accedeixen a través del proxy de Backstage o amb `port-forward`.
 
-# Accés a Grafana
+## Port-forward útil
+
+```bash
 kubectl port-forward -n apis-asincrones svc/grafana 3000:3000
-# Obre http://localhost:3000
+kubectl port-forward -n apis-asincrones svc/elasticsearch 9200:9200
+kubectl port-forward -n apis-asincrones svc/metrics-api 3004:3004
 ```
 
-## Aplicar canvis
+## Aplicar i validar
 
 ```bash
-# Desplegar/actualizar tots els Serveis
 kubectl apply -f k8s/services/
-
-# Desplegar només un
-kubectl apply -f k8s/services/elasticsearch.yaml
-
-# Eliminar un servei (però NO els Pods)
-kubectl delete svc elasticsearch -n apis-asincrones
-```
-
-## Monitorar
-
-```bash
-# Veure tots els serveis
 kubectl get svc -n apis-asincrones
-
-# Veure detalls (endpoints, ClusterIP, etc.)
-kubectl describe svc elasticsearch -n apis-asincrones
-
-# Verificar endpoints actius
-kubectl get endpoints elasticsearch -n apis-asincrones
+kubectl get endpoints -n apis-asincrones
 ```
 
-## Notes
+## Nota de cost
 
-- **LoadBalancer**: Crea IP pública a Azure. Comporta cost.
-- **ClusterIP**: Accés intern únic; suficcient per al benchmark.
-- **Ports**: Els Serveis MapGen ports del Pod al Service. Revisa cadascun.
+El Service `LoadBalancer` crea una IP pública a Azure. Els `ClusterIP` no exposen serveis fora del clúster i són suficients per al funcionament intern del benchmark.

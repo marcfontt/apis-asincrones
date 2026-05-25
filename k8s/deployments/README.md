@@ -1,75 +1,55 @@
-# `k8s/deployments/` — Deployments dels serveis principals
+# `k8s/deployments/` - Deployments principals
 
-Aquest directori conté totes les definicions de Deployment que executen els serveis
-del benchmark al cluster AKS.
+Aquest directori conté els Deployments, ConfigMaps i Secrets dels serveis principals del portal.
 
 ## Namespace
-Tots els Deployments es desplegan al namespace `apis-asincrones`.
 
-## Manifests
+Tots aquests recursos es despleguen al namespace `apis-asincrones`.
 
-### Serveis de negoci
+## Serveis
 
-| Manifest | Servei | Dependències | Notes |
-|----------|--------|--------------|-------|
-| `backstage.yaml` | Backstage UI | Catalog Service | Portal principal; LoadBalancer |
-| `catalog-service.yaml` | Catalog Service | NATS | CRUD de components; auto-seed |
-| `scenario-service.yaml` | Scenario Service | Elasticsearch | CRUD d'escenaris; persisteix a ES |
-| `metrics-api.yaml` | Metrics API | Elasticsearch | WebSocket + REST API; índex async-metrics |
+| Manifest | Servei | Notes |
+|---|---|---|
+| `backstage.yaml` | Backstage UI | Portal principal. |
+| `catalog-service.yaml` | Catalog Service | Catàleg de components. |
+| `scenario-service.yaml` | Scenario Service | CRUD d'escenaris. |
+| `benchmark-orchestrator.yaml` | Benchmark Orchestrator | Cua i Jobs de Kubernetes. |
+| `metrics-api.yaml` | Metrics API | REST i WebSocket de mètriques. |
+| `elasticsearch.yaml` | Elasticsearch | Persistència de catàleg, escenaris i mètriques. |
+| `grafana.yaml` | Grafana | Visualització de mètriques. |
+| `grafana-provisioning.yaml` | Grafana ConfigMap | Datasource d'Elasticsearch. |
+| `grafana-secret.yaml` | Grafana Secret | Usuari i contrasenya d'administració. |
 
-### Sistema de benchmarking
-
-| Manifest | Servei | Dependències | Notes |
-|----------|--------|--------------|-------|
-| `benchmark-orchestrator.yaml` | Benchmark Orchestrator | K8s API, NATS | Crea Jobs dinàmics; necessita RBAC |
-
-### Observabilitat
-
-| Manifest | Servei | Dependències | Notes |
-|----------|--------|--------------|-------|
-| `elasticsearch.yaml` | Elasticsearch | PVC | Single-node; heap 1Gi; health probes |
-| `grafana.yaml` | Grafana | Elasticsearch | Visualització de mètriques; PVC per dashboards |
-| `grafana-provisioning.yaml` | Grafana (ConfigMap) | — | Configmap amb datasource d'ES automàtic |
-| `grafana-secret.yaml` | Grafana (Secret) | — | Password d'admin; actualizat a mà |
-
-## Aplicar canvis
+## Aplicar i reiniciar
 
 ```bash
-# Desplegar tots els Deployments
 kubectl apply -f k8s/deployments/
-
-# Desplegar només un servei
-kubectl apply -f k8s/deployments/backstage.yaml
-
-# Reiniciar un servei (força nova imatge)
 kubectl rollout restart deployment/backstage -n apis-asincrones
+kubectl rollout status deployment/backstage -n apis-asincrones --timeout=240s
 ```
 
-## Monitorar
+Per reiniciar tots els serveis del portal:
 
 ```bash
-# Veure estat de tots els Deployments
-kubectl get deployments -n apis-asincrones
-
-# Veure logs d'un servei
-kubectl logs -n apis-asincrones -l app=backstage --tail=50 -f
-
-# Describir un Deployment (veure events, pullPolicy, etc.)
-kubectl describe deployment backstage -n apis-asincrones
+kubectl rollout restart deployment/backstage deployment/catalog-service deployment/scenario-service deployment/metrics-api deployment/benchmark-orchestrator -n apis-asincrones
 ```
 
-## Configuració de recursos
+## Monitoratge
 
-Tots els Deployments especifiquen:
-- **Requests**: CPU i memòria garantida
-- **Limits**: Límit màxim de recursos
+```bash
+kubectl get deployments -n apis-asincrones
+kubectl get pods -n apis-asincrones
+kubectl logs -n apis-asincrones deployment/benchmark-orchestrator --tail=40
+```
 
-Revisa cada manifest per ajustar segons necessitat del cluster.
+## Notes de recursos
 
-## Nota sobre imatges Docker
+Els microserveis tenen requests baixos perquè el pressupost d'Azure for Students és limitat. Els brokers són els que s'han d'alinear per a la comparació de rendiment; els manifests d'aquesta carpeta sostenen el portal i la persistència.
 
-Les imatges es pulen de repositoris:
-- `acr-asincrones.azurecr.io` — Azure Container Registry (privat)
-- `quay.io` — Per a Strimzi, Elasticsearch, etc.
+Grafana es pot escalar a zero si cal alliberar memòria durant una tanda de proves:
 
-Assegura't que el cluster AKS té accés als secrets d'imagePullSecrets si usa registres privats.
+```bash
+kubectl scale deployment/grafana -n apis-asincrones --replicas=0
+```
+
+Les mètriques no es perden per apagar Grafana, perquè es desen a Elasticsearch.
