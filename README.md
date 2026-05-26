@@ -8,6 +8,50 @@ Projecte de Final de Grau. Universitat de Girona. Marc Font. 2026.
 
 L'objectiu no és només desplegar brokers, sinó oferir una eina reproduïble per comparar combinacions d'arquitectura, protocol, plataforma i càrrega amb dades defensables. Per això el portal controla la configuració de cada escenari, separa les execucions pendents de les que realment estan corrent i desa les mostres a Elasticsearch per poder comparar-les després.
 
+La idea central és que una decisió arquitectònica no es prengui només per teoria o preferència tecnològica, sinó a partir de proves equivalents: mateix format de dades, mateixa durada, mateix ritme, mateix payload i mateixa manera de recollir mètriques.
+
+## Lectura ràpida del repositori
+
+Aquest projecte està dividit en quatre blocs principals:
+
+| Bloc | Funció |
+|---|---|
+| `plugins/async-benchmark` | Part visual del portal Backstage: pàgines, components, filtres, guies i resultats. |
+| `packages/` | Serveis executables: Backstage, orquestrador, generador de càrrega, mètriques, catàleg i escenaris. |
+| `k8s/` | Manifests de Kubernetes per desplegar el portal, brokers, serveis, storage i permisos. |
+| `docs/` | Documentació tècnica principal del projecte. |
+
+En una explicació ràpida del codi, el flux més important és:
+
+```text
+ScenariosPage.tsx
+  -> POST /runs
+  -> benchmark-orchestrator
+  -> Kubernetes Job
+  -> load-generator
+  -> broker triat
+  -> metrics-api
+  -> Elasticsearch
+  -> ResultatsPage.tsx / Grafana
+```
+
+## Fitxers principals de l'arrel
+
+| Fitxer | Funció |
+|---|---|
+| `app-config.yaml` | Configuració local de Backstage. Defineix el proxy cap als microserveis interns: `catalog-service`, `scenario-service`, `benchmark-orchestrator` i `metrics-api`. |
+| `app-config.production.yaml` | Configuració equivalent per a l'entorn desplegat. Ajusta URL pública, CORS i endpoints interns del clúster. |
+| `backstage.json` | Metadades de l'aplicació Backstage. |
+| `catalog-info.yaml` | Descriptor perquè Backstage pugui registrar el projecte dins del seu catàleg. |
+| `Dockerfile` | Imatge base del portal quan es construeix el projecte complet. |
+| `package.json` | Scripts i dependències del monorepo. |
+| `playwright.config.ts` | Configuració de proves end-to-end del frontend. |
+| `resultats-finals-10min.json` | Export dels resultats finals en format JSON. |
+| `resultats-finals-10min.csv` | Export dels resultats finals en format CSV. |
+| `tsconfig.json` | Configuració TypeScript general. |
+| `yarn.lock` | Bloqueig de versions de dependències per mantenir instal·lacions reproduïbles. |
+| `deploy-all.sh` | Script principal de build, push d'imatges a ACR i restart dels deployments a AKS. |
+
 ## Què fa el portal
 
 | Pàgina | Funció |
@@ -20,16 +64,6 @@ L'objectiu no és només desplegar brokers, sinó oferir una eina reproduïble p
 | Settings | Canvia idioma i tema visual. |
 
 El text visible està preparat en català, castellà i anglès.
-
-## Estat actual
-
-- El portal funciona amb Backstage 1.47, React 18 i TypeScript.
-- Els microserveis s'exposen darrere del proxy de Backstage.
-- Els resultats es desen a Elasticsearch i es poden explorar també amb Grafana.
-- El catàleg inclou 15 components: 5 arquitectures, 6 protocols i 4 plataformes.
-- SEA correspon a Serverless Event Architecture.
-- Confluent es tracta com a plataforma pròpia al portal, però en aquesta fase s'executa pel camí Kafka-compatible del clúster.
-- Les proves finals s'han executat de forma serial amb 16 escenaris: 4 plataformes per 4 formats de dades.
 
 ## Arquitectura
 
@@ -76,15 +110,160 @@ flowchart TB
 
 ## Flux d'una prova
 
-1. L'usuari crea o tria un escenari.
-2. El portal envia la petició al backend de Backstage.
-3. Backstage fa proxy cap al `benchmark-orchestrator`.
-4. L'orquestrador deixa el run en pendent si el límit de concurrència està ple.
-5. Quan hi ha lloc, crea un namespace `sc-*` i un Job amb el `load-generator`.
-6. El generador publica i consumeix missatges al broker triat.
-7. El generador envia snapshots a `metrics-api` cada 5 segons.
-8. `metrics-api` persisteix les mostres a Elasticsearch.
-9. Resultats i Grafana llegeixen les dades guardades.
+1. L'usuari crea o tria un escenari a la pàgina `Escenaris`.
+2. El modal d'execució construeix la configuració efectiva del run.
+3. El frontend fa un `POST /runs` contra el proxy de Backstage.
+4. Backstage redirigeix la crida cap al servei intern `benchmark-orchestrator`.
+5. L'orquestrador crea un `runId`, registra el run i el posa a la cua.
+6. Quan la concurrència ho permet, l'orquestrador crea un namespace `sc-*` i un Job de Kubernetes.
+7. El Job executa la imatge `load-generator:latest`.
+8. El generador publica i consumeix missatges al broker triat: Kafka, Confluent, NATS o RabbitMQ.
+9. El generador envia snapshots a `metrics-api` cada 5 segons.
+10. `metrics-api` desa les mostres a Elasticsearch.
+11. La pàgina `Resultats` i Grafana llegeixen les dades guardades.
+
+El frontend no parla directament amb Kubernetes. La responsabilitat de crear namespaces, Jobs, selectors de node i variables d'entorn és del `benchmark-orchestrator`.
+
+## Estructura del repositori
+
+```text
+apis-asincrones/
+|-- docs/
+|   `-- architecture.md              # Documentació tècnica principal
+|-- k8s/
+|   |-- brokers/                     # RabbitMQ i NATS
+|   |-- kafka/                       # Recursos Strimzi per Kafka
+|   |-- deployments/                 # Pods permanents del portal i serveis
+|   |-- services/                    # Services interns i externs
+|   |-- rbac/                        # Permisos de l'orquestrador
+|   `-- storage/                     # PVC i storage class
+|-- packages/
+|   |-- app/                         # Frontend Backstage
+|   |-- backend/                     # Backend Backstage i proxy
+|   |-- benchmark-orchestrator/      # Cua, runs i Jobs de Kubernetes
+|   |-- catalog-service/             # Catàleg de components
+|   |-- load-generator/              # Generador de càrrega
+|   |-- metrics-api/                 # REST, WebSocket i persistència de mètriques
+|   `-- scenario-service/            # CRUD d'escenaris
+|-- plugins/
+|   `-- async-benchmark/
+|       |-- src/components/          # Components reutilitzables
+|       |-- src/pages/               # Home, Catàleg, Escenaris, Execucions i Resultats
+|       |-- src/shared/              # Lògica compartida de catàleg, mètriques i resultats
+|       |-- src/plugin.ts            # Registre del plugin dins Backstage
+|       `-- src/index.ts             # Punt d'entrada públic del plugin
+|-- scripts/
+|   `-- configure-backstage-public-url.sh
+|-- app-config.yaml
+|-- app-config.production.yaml
+|-- deploy-all.sh
+|-- package.json
+|-- playwright.config.ts
+|-- tsconfig.json
+`-- yarn.lock
+```
+
+## `plugins/async-benchmark`
+
+El plugin és la part visible del projecte. Aquí és on es construeix l'experiència d'usuari.
+
+| Carpeta o fitxer | Funció |
+|---|---|
+| `src/pages/HomePage.tsx` | Pantalla inicial i context del portal. |
+| `src/pages/CatalogPage.tsx` | Catàleg d'arquitectures, protocols i plataformes. |
+| `src/pages/ScenariosPage.tsx` | Creació, edició, duplicació, execució i aturada d'escenaris. |
+| `src/pages/ExecucionsPage.tsx` | Seguiment de runs pendents i en execució. |
+| `src/pages/ResultatsPage.tsx` | Històric, comparatives i detall de resultats. |
+| `src/components/` | Components comuns: filtres, guies, matriu de compatibilitat i detall de mètriques. |
+| `src/shared/catalog/` | Dades i regles del catàleg. |
+| `src/shared/metrics/` | Utilitats per mètriques en directe. |
+| `src/shared/results/` | Utilitats per resum i detall històric. |
+
+Per explicar el flux d'execució al vídeo, el punt clau és `ScenariosPage.tsx`: el modal `ExecuteModal` crida `handleExecute`, que fa el `POST /runs`.
+
+## `packages/`
+
+Els `packages` contenen les parts executables. Backstage aporta la base del portal, però la lògica específica del benchmarking està separada en microserveis.
+
+| Package | Funció |
+|---|---|
+| `app` | Frontend Backstage. Integra el plugin visual i la navegació. |
+| `backend` | Backend Backstage. Gestiona el proxy cap als serveis interns. |
+| `benchmark-orchestrator` | Rep `POST /runs`, crea `runId`, controla la cua i crea Jobs a AKS. |
+| `catalog-service` | Serveix el catàleg de components i dades base. |
+| `scenario-service` | Desa i consulta escenaris creats per l'usuari. |
+| `load-generator` | Executa la prova de càrrega dins d'un Job temporal. |
+| `metrics-api` | Rep snapshots del generador, desa a Elasticsearch i exposa resum i detall. |
+
+Seqüència interna del run:
+
+```text
+ScenariosPage.tsx
+  handleExecute()
+    -> POST /runs
+
+benchmark-orchestrator/src/index.ts
+  app.post('/runs')
+    -> enqueueRun()
+    -> processRunQueue()
+    -> startRun()
+    -> deployScenario()
+    -> batchApi.createNamespacedJob()
+    -> monitorJob()
+
+load-generator/src/index.ts
+  main()
+    -> runKafka() / runNats() / runRabbitMQ()
+    -> postMetric()
+
+metrics-api/src/index.ts
+  POST /metrics
+    -> Elasticsearch
+  GET /metrics/summary
+    -> ResultatsPage.tsx
+```
+
+## `k8s/`
+
+La carpeta `k8s` conté la infraestructura declarativa del projecte.
+
+| Carpeta | Funció |
+|---|---|
+| `brokers/` | Manifests de NATS i RabbitMQ. Kafka va separat perquè es gestiona amb Strimzi. |
+| `kafka/` | Recursos Kafka: `Kafka` i `KafkaNodePool`. |
+| `deployments/` | Deployments del portal, serveis, Elasticsearch i Grafana. |
+| `services/` | Services que exposen els pods dins del clúster o cap a fora. |
+| `rbac/` | ServiceAccount, ClusterRole i ClusterRoleBinding de l'orquestrador. |
+| `storage/` | PVCs i storage class per persistència d'Elasticsearch i Grafana. |
+
+El punt més important és `k8s/rbac/benchmark-orchestrator-rbac.yaml`: dona a l'orquestrador permisos per crear namespaces efímers, crear Jobs, llegir pods, consultar services/endpoints i copiar secrets d'ACR. Sense aquests permisos, el botó d'execució podria crear el run a l'aplicació, però no podria desplegar-lo realment a Kubernetes.
+
+## `docs/`
+
+La documentació principal visible del repositori és:
+
+| Fitxer | Funció |
+|---|---|
+| `docs/architecture.md` | Explicació tècnica de l'arquitectura i del flux general. |
+
+La memòria i el resum del PFG es mantenen fora del repo de codi final. Aquest directori es deixa per documentació tècnica útil per entendre el projecte des del repositori.
+
+## `scripts/`
+
+| Script | Funció |
+|---|---|
+| `configure-backstage-public-url.sh` | Llegeix la IP pública del `backstage-service` i injecta aquesta URL al deployment de Backstage mitjançant variables d'entorn. |
+
+Aquest script és auxiliar. El desplegament principal el porta `deploy-all.sh`; aquest script només ajuda quan el LoadBalancer d'AKS obté una IP nova i cal sincronitzar la URL pública de Backstage.
+
+## Estat actual
+
+- El portal funciona amb Backstage 1.47, React 18 i TypeScript.
+- Els microserveis s'exposen darrere del proxy de Backstage.
+- Els resultats es desen a Elasticsearch i es poden explorar també amb Grafana.
+- El catàleg inclou arquitectures, protocols i plataformes d'APIs asíncrones.
+- Confluent es tracta com a plataforma pròpia al portal, però en aquesta fase s'executa pel camí Kafka-compatible del clúster.
+- Les proves finals s'han executat amb 16 escenaris: 4 plataformes per 4 formats de dades.
 
 ## Concurrència de proves
 
@@ -120,27 +299,6 @@ La lectura principal s'ha de fer per format. Primer es comparen les quatre plata
 | Completat | La prova ha acabat i la mostra final s'ha guardat. |
 | Fallit | El broker, el Job o la ingesta de mètriques han fallat. |
 | Cancel·lat | L'usuari ha aturat la prova manualment. |
-
-## Estructura del repositori
-
-```text
-apis-asincrones/
-|-- packages/
-|   |-- app/                    # Frontend Backstage
-|   |-- backend/                # Backend Backstage i proxy
-|   |-- catalog-service/        # Catàleg de components
-|   |-- scenario-service/       # CRUD d'escenaris
-|   |-- benchmark-orchestrator/ # Cua i Jobs de Kubernetes
-|   |-- load-generator/         # Generador de càrrega
-|   `-- metrics-api/            # REST, WebSocket i persistència de mètriques
-|-- plugins/
-|   `-- async-benchmark/        # Plugin visible del portal
-|-- k8s/                        # Manifests AKS
-|-- docs/                       # Documentació tècnica
-|-- scripts/                    # Scripts auxiliars
-|-- deploy-all.sh               # Build, push i restart
-`-- app-config.yaml             # Configuració local de Backstage
-```
 
 ## Stack
 
@@ -225,7 +383,7 @@ Per comparar correctament, filtra primer per format de dades i compara les quatr
 
 ## Documentació addicional
 
-- [docs/README.md](docs/README.md): índex de documentació tècnica.
+- [docs/architecture.md](docs/architecture.md): arquitectura i flux general.
 - [packages/README.md](packages/README.md): app i microserveis.
 - [plugins/README.md](plugins/README.md): plugin Backstage.
 - [k8s/README.md](k8s/README.md): manifests AKS.
