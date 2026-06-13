@@ -21,7 +21,7 @@ spec:
       - name: acr-secret
       containers:
       - name: backstage
-        image: asyncpfg65454.azurecr.io/backstage:latest
+        image: asyncpfgpayg65454.azurecr.io/backstage:latest
         imagePullPolicy: Always
         env:
         - name: NODE_ENV

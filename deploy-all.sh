@@ -20,7 +20,7 @@
 # -----------------------------------------------------------------------------
 set -e
 
-ACR_NAME="${ACR_NAME:-asyncpfg65454}"
+ACR_NAME="${ACR_NAME:-asyncpfgpayg65454}"
 ACR="${ACR_NAME}.azurecr.io"
 NAMESPACE="apis-asincrones"
 REPO_DIR="$(cd "$(dirname "$0")" && pwd)"

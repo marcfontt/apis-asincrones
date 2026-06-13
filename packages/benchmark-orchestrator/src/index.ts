@@ -11,7 +11,7 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3002;
 const SCENARIO_SERVICE_URL = process.env.SCENARIO_SERVICE_URL || 'http://scenario-service:3002';
-const ACR_SERVER = process.env.ACR_SERVER || 'asyncpfg65454.azurecr.io';
+const ACR_SERVER = process.env.ACR_SERVER || 'asyncpfgpayg65454.azurecr.io';
 const LOAD_GENERATOR_IMAGE = `${ACR_SERVER}/load-generator:latest`;
 const LOAD_GENERATOR_CPU = process.env.LOAD_GENERATOR_CPU || '100m';
 const LOAD_GENERATOR_NODE_SELECTOR_KEY = process.env.LOAD_GENERATOR_NODE_SELECTOR_KEY || '';

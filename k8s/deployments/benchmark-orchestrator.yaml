@@ -22,7 +22,7 @@ spec:
       - name: acr-secret
       containers:
       - name: benchmark-orchestrator
-        image: asyncpfg65454.azurecr.io/benchmark-orchestrator:latest
+        image: asyncpfgpayg65454.azurecr.io/benchmark-orchestrator:latest
         imagePullPolicy: Always
         env:
         - name: ELASTICSEARCH_URL
@@ -38,7 +38,7 @@ spec:
         - name: METRICS_API_URL
           value: http://metrics-api:3004
         - name: ACR_SERVER
-          value: asyncpfg65454.azurecr.io
+          value: asyncpfgpayg65454.azurecr.io
         - name: LOAD_GENERATOR_CPU
           value: 100m
         - name: MAX_CONCURRENT_RUNS

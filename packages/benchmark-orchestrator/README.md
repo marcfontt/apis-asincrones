@@ -52,7 +52,7 @@ Confluent usa el mateix endpoint Kafka-compatible si no es configura un endpoint
 | `PORT` | `3003` |
 | `SCENARIO_SERVICE_URL` | `http://scenario-service:3002` |
 | `METRICS_API_URL` | `http://metrics-api:3004` |
-| `ACR_SERVER` | `asyncpfg65454.azurecr.io` |
+| `ACR_SERVER` | `asyncpfgpayg65454.azurecr.io` |
 | `NAMESPACE` | `apis-asincrones` |
 | `BROKER_NAMESPACE` | `brokers` |
 | `LOAD_GENERATOR_CPU` | `100m` |
